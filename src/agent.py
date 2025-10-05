@@ -23,3 +23,11 @@ local_tool = QueryEngineTool(
     ),
 )
 
+# 2. Configura a tool de busca na Internet
+def search_web(query: str) -> str:
+    """Busca informações atualizadas na internet."""
+    with DDGS() as ddgs:
+        results = [r for r in ddgs.text(query, max_results=3)]
+        return str(results)
+
+web_tool = FunctionTool.from_defaults(fn=search_web)
