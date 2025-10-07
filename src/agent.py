@@ -31,3 +31,11 @@ def search_web(query: str) -> str:
         return str(results)
 
 web_tool = FunctionTool.from_defaults(fn=search_web)
+
+# 3. Inicializar o Agente de Pair Programming. Sim, ele irá pensar e escolher qual ferramenta usar!
+agent = ReActAgent.from_tools(
+    [local_tool, web_tool], 
+    llm=llm, 
+    verbose=True # Deixe True para ver a IA "pensando" e escolhendo qual ferramenta usar
+)
+
