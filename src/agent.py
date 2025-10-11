@@ -39,3 +39,10 @@ agent = ReActAgent.from_tools(
     verbose=True # Deixe True para ver a IA "pensando" e escolhendo qual ferramenta usar
 )
 
+print("Sovereign Pair Programmer Iniciado. Digite 'sair' para encerrar.")
+while True:
+    prompt = input("\nJeferson > ") # Vai solicitar uma pergunta pra mim aqui.. sim, meu nome está setado para Jeferson, porém, quando você baixar este fonte, poderá alterar para o seu nome. rs
+    if prompt.lower() == 'sair':
+        break
+    response = agent.chat(prompt)
+    print(f"\nSovereign IA > {response}")
