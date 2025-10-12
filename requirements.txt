@@ -1,0 +1,28 @@
+# ============================================================================
+# SOVEREIGN PAIR - Dependências do Projeto
+# ============================================================================
+
+# Core RAG Framework
+llama-index>=0.10.0
+llama-index-core>=0.10.0
+llama-index-llms-ollama>=0.1.0
+llama-index-embeddings-ollama>=0.1.0
+llama-index-vector-stores-chroma>=0.1.0
+
+# Vector Store
+chromadb>=0.4.0
+
+# Web Search
+duckduckgo-search>=4.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+requests>=2.31.0
+
+# Progress Bar (para ingest.py)
+tqdm>=4.66.0
+
+# Development Tools (opcional)
+pytest>=7.4.0
+black>=23.0.0
+ruff>=0.1.0
