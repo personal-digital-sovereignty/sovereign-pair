@@ -58,6 +58,13 @@ else:
 # Manter RAW_DOCS_DIR para compatibilidade (primeiro caminho da lista)
 RAW_DOCS_DIR = RAW_DOCS_DIRS[0]
 
+# Extensões de arquivo permitidas para ingestão
+ALLOWED_EXTENSIONS_STR = os.getenv(
+    "ALLOWED_EXTENSIONS", 
+    ".md,.pdf,.txt,.docx,.csv,.json,.html"
+).strip()
+ALLOWED_EXTENSIONS = [ext.strip() for ext in ALLOWED_EXTENSIONS_STR.split(",") if ext.strip()]
+
 
 # ============================================================================
 # CONFIGURAÇÕES OLLAMA

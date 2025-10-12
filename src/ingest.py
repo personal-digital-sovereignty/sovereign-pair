@@ -1,8 +1,9 @@
 """
 Script de ingestão de documentos para o Sovereign Pair RAG.
 
-Este módulo carrega documentos de múltiplas fontes, gera embeddings
-e armazena no ChromaDB para posterior recuperação pelo agente.
+Este módulo carrega documentos de múltiplas fontes, processa com chunking
+inteligente (MarkdownNodeParser para .md), gera embeddings e armazena no 
+ChromaDB para posterior recuperação pelo agente.
 """
 
 import logging
@@ -11,6 +12,7 @@ from pathlib import Path
 from typing import Optional
 from tqdm import tqdm
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext
+from llama_index.core.node_parser import MarkdownNodeParser
 from llama_index.vector_stores.chroma import ChromaVectorStore
 
 # Importar configurações centralizadas
@@ -21,6 +23,7 @@ from config import (
     CHROMA_DIR,
     CHROMA_COLLECTION_NAME,
     FOLLOW_SYMLINKS,
+    ALLOWED_EXTENSIONS,
     embed_model,
     validate_document_paths,
 )
@@ -74,7 +77,11 @@ def load_documents_from_directory(
     
     try:
         logger.info(f"📂 Carregando documentos de '{dir_name}'...")
-        docs = SimpleDirectoryReader(str(directory), recursive=True).load_data()
+        docs = SimpleDirectoryReader(
+            str(directory), 
+            recursive=True,
+            required_exts=ALLOWED_EXTENSIONS  # Filtro de extensões configurável
+        ).load_data()
         documents.extend(docs)
         logger.info(f"   ✓ {len(docs)} documento(s) carregado(s) de '{dir_name}'")
     except Exception as e:
@@ -138,15 +145,66 @@ def ingest_data() -> Optional[VectorStoreIndex]:
     if not all_documents:
         logger.error("❌ Nenhum documento encontrado para indexar!")
         logger.info(f"   Verifique os diretórios:")
-        logger.info(f"   - {RAW_DOCS_DIR}")
-        logger.info(f"   - {VAULT_DIR}")
+        logger.info(f"   - Vault: {VAULT_DIR}")
+        for i, path in enumerate(RAW_DOCS_DIRS, 1):
+            logger.info(f"   - Raw docs {i}: {path}")
+        logger.info(f"\n💡 Extensões permitidas: {', '.join(ALLOWED_EXTENSIONS)}")
         return None
     
-    logger.info(f"\n📊 Total: {len(all_documents)} documento(s) carregado(s)")
+    logger.info(f"\n✅ Total: {len(all_documents)} documento(s) carregado(s)")
     
-    # 2. Inicializar ChromaDB
+    # 2. Processar documentos com chunking inteligente
+    logger.info("\n" + "=" * 70)
+    logger.info("📋 Etapa 2/4: Processando documentos com chunking inteligente")
+    logger.info("=" * 70)
+    
+    # Separar documentos Markdown dos demais
+    markdown_docs = []
+    other_docs = []
+    
+    for doc in all_documents:
+        file_path = doc.metadata.get('file_path', '')
+        if file_path.endswith('.md'):
+            markdown_docs.append(doc)
+        else:
+            other_docs.append(doc)
+    
+    logger.info(f"   📝 Arquivos Markdown: {len(markdown_docs)}")
+    logger.info(f"   📄 Outros formatos: {len(other_docs)}")
+    
+    # Processar Markdown com parser especializado
+    all_nodes = []
+    
+    if markdown_docs:
+        logger.info("\n   🧩 Processando Markdown com MarkdownNodeParser...")
+        logger.info("      (Respeita cabeçalhos ## e blocos de código ```)")
+        md_parser = MarkdownNodeParser()
+        md_nodes = md_parser.get_nodes_from_documents(markdown_docs)
+        all_nodes.extend(md_nodes)
+        logger.info(f"      ✓ {len(md_nodes)} blocos semânticos criados")
+    
+    # Processar outros documentos
+    if other_docs:
+        logger.info(f"\n   📦 Processando {len(other_docs)} documentos não-Markdown...")
+        from llama_index.core.node_parser import SimpleNodeParser
+        simple_parser = SimpleNodeParser()
+        other_nodes = simple_parser.get_nodes_from_documents(other_docs)
+        all_nodes.extend(other_nodes)
+        logger.info(f"      ✓ {len(other_nodes)} blocos criados")
+    
+    logger.info(f"\n   📊 Total de blocos (nodes): {len(all_nodes)}")
+    if all_nodes:
+        avg_size = sum(len(node.text) for node in all_nodes) // len(all_nodes)
+        logger.info(f"   📏 Tamanho médio: {avg_size} caracteres")
+    
+    # 3. Inicializar ChromaDB
+    logger.info("\n" + "=" * 70)
+    logger.info("📋 Etapa 3/4: Configurando ChromaDB")
+    logger.info("=" * 70)
+    
     try:
-        logger.info(f"\n🗄️  Inicializando ChromaDB em: {CHROMA_DIR}")
+        logger.info(f"   🗄️  Diretório: {CHROMA_DIR}")
+        logger.info(f"   📦 Coleção: {CHROMA_COLLECTION_NAME}")
         
         # Garantir que o diretório existe
         CHROMA_DIR.mkdir(parents=True, exist_ok=True)
@@ -154,28 +212,40 @@ def ingest_data() -> Optional[VectorStoreIndex]:
         db = chromadb.PersistentClient(path=str(CHROMA_DIR))
         chroma_collection = db.get_or_create_collection(CHROMA_COLLECTION_NAME)
         vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
-        
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
-        logger.info(f"   ✓ Coleção '{CHROMA_COLLECTION_NAME}' pronta")
+        
+        logger.info("   ✓ ChromaDB configurado com sucesso")
         
     except Exception as e:
         logger.error(f"❌ Erro ao inicializar ChromaDB: {e}")
+        logger.exception("Detalhes do erro:")
         return None
     
-    # 3. Gerar embeddings e indexar
+    # 4. Gerar embeddings e indexar
+    logger.info("\n" + "=" * 70)
+    logger.info("📋 Etapa 4/4: Gerando embeddings e indexando")
+    logger.info("=" * 70)
+    logger.info("   ⚡ Gerando coordenadas vetoriais com Ollama...")
+    logger.info("   ☕ Isso pode levar alguns minutos. Pegue um café!")
+    logger.info("")
+    
     try:
-        logger.info("\n🧠 Gerando embeddings e indexando...")
-        logger.info("   (isso pode levar alguns minutos dependendo da quantidade de documentos)")
-        
-        # Criar índice com progress bar
-        index = VectorStoreIndex.from_documents(
-            all_documents,
+        # Criar índice a partir dos nodes processados
+        index = VectorStoreIndex(
+            all_nodes,
             storage_context=storage_context,
+            embed_model=embed_model,
             show_progress=True,
         )
         
-        logger.info("\n✅ Indexação concluída com sucesso!")
-        logger.info(f"   📊 Documentos indexados: {len(all_documents)}")
+        logger.info("")
+        logger.info("   ✓ Embeddings gerados e salvos no ChromaDB")
+        logger.info("")
+        logger.info("=" * 70)
+        logger.info("✅ INGESTÃO CONCLUÍDA COM SUCESSO!")
+        logger.info("=" * 70)
+        logger.info(f"   📚 Documentos processados: {len(all_documents)}")
+        logger.info(f"   🧩 Blocos (nodes) criados: {len(all_nodes)}")
         logger.info(f"   💾 Armazenado em: {CHROMA_DIR}")
         logger.info("=" * 70)
         
