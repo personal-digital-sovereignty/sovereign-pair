@@ -16,23 +16,31 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 # Importar configurações centralizadas
 from config import (
     RAW_DOCS_DIR,
+    RAW_DOCS_DIRS,
     VAULT_DIR,
     CHROMA_DIR,
     CHROMA_COLLECTION_NAME,
+    FOLLOW_SYMLINKS,
     embed_model,
+    validate_document_paths,
 )
 
 # Configurar logger
 logger = logging.getLogger(__name__)
 
 
-def load_documents_from_directory(directory: Path, dir_name: str) -> list:
+def load_documents_from_directory(
+    directory: Path, 
+    dir_name: str,
+    follow_symlinks: bool = True
+) -> list:
     """
     Carrega documentos de um diretório específico.
     
     Args:
         directory: Path do diretório a ser lido
         dir_name: Nome do diretório (para logging)
+        follow_symlinks: Se deve seguir links simbólicos
         
     Returns:
         list: Lista de documentos carregados
@@ -42,6 +50,19 @@ def load_documents_from_directory(directory: Path, dir_name: str) -> list:
     if not directory.exists():
         logger.warning(f"⚠️  Diretório '{dir_name}' não encontrado: {directory}")
         return documents
+    
+    # Verificar se é symlink
+    if directory.is_symlink():
+        if not follow_symlinks:
+            logger.warning(f"⚠️  Ignorando symlink '{dir_name}' (FOLLOW_SYMLINKS=false): {directory}")
+            return documents
+        
+        target = directory.resolve()
+        if not target.exists():
+            logger.error(f"❌ Symlink quebrado '{dir_name}': {directory} -> {target}")
+            return documents
+        
+        logger.info(f"🔗 Seguindo symlink '{dir_name}': {directory} -> {target}")
     
     # Verificar se há arquivos no diretório
     files = list(directory.rglob("*"))
@@ -64,7 +85,7 @@ def load_documents_from_directory(directory: Path, dir_name: str) -> list:
 
 def ingest_data() -> Optional[VectorStoreIndex]:
     """
-    Carrega documentos de raw_docs e vault, gera embeddings e armazena no ChromaDB.
+    Carrega documentos de caminhos configurados, gera embeddings e armazena no ChromaDB.
     
     O SimpleDirectoryReader suporta nativamente: .md, .pdf, .docx, .csv, .txt, etc.
     
@@ -75,16 +96,43 @@ def ingest_data() -> Optional[VectorStoreIndex]:
     logger.info("🚀 INICIANDO INGESTÃO DE DOCUMENTOS")
     logger.info("=" * 70)
     
-    # 1. Carregar documentos de múltiplas fontes
+    # 1. Validar caminhos antes de começar
+    logger.info("\n🔍 Validando caminhos de documentos...")
+    paths_valid, problems = validate_document_paths()
+    
+    if not paths_valid:
+        logger.error("❌ Problemas encontrados nos caminhos:")
+        for problem in problems:
+            logger.error(f"   - {problem}")
+        logger.info("\n💡 Dica: Execute 'python setup.py' para configurar caminhos")
+        logger.info("💡 Ou crie os diretórios manualmente:")
+        logger.info(f"   mkdir -p {VAULT_DIR}")
+        for path in RAW_DOCS_DIRS:
+            logger.info(f"   mkdir -p {path}")
+        return None
+    
+    logger.info("   ✓ Todos os caminhos são válidos")
+    
+    # 2. Carregar documentos de múltiplas fontes
     all_documents = []
     
-    # Carregar de raw_docs
-    raw_docs = load_documents_from_directory(RAW_DOCS_DIR, "raw_docs")
-    all_documents.extend(raw_docs)
-    
     # Carregar de vault
-    vault_docs = load_documents_from_directory(VAULT_DIR, "vault")
+    vault_docs = load_documents_from_directory(
+        VAULT_DIR, 
+        f"vault ({VAULT_DIR})",
+        follow_symlinks=FOLLOW_SYMLINKS
+    )
     all_documents.extend(vault_docs)
+    
+    # Carregar de raw_docs (pode ser múltiplos caminhos)
+    for i, raw_docs_dir in enumerate(RAW_DOCS_DIRS, 1):
+        dir_name = f"raw_docs_{i}" if len(RAW_DOCS_DIRS) > 1 else "raw_docs"
+        raw_docs = load_documents_from_directory(
+            raw_docs_dir,
+            f"{dir_name} ({raw_docs_dir})",
+            follow_symlinks=FOLLOW_SYMLINKS
+        )
+        all_documents.extend(raw_docs)
     
     # Verificar se há documentos para processar
     if not all_documents:

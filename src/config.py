@@ -24,11 +24,40 @@ load_dotenv()
 # Diretório base do projeto (pasta pai de src/)
 BASE_DIR = Path(__file__).parent.parent.resolve()
 
-# Diretórios de dados
+# Diretório de dados base
 DATA_DIR = BASE_DIR / "data"
-RAW_DOCS_DIR = DATA_DIR / "raw_docs"
-VAULT_DIR = DATA_DIR / "vault"
+
+# Diretório ChromaDB (sempre no projeto)
 CHROMA_DIR = DATA_DIR / "chromadb"
+
+# ============================================================================
+# CAMINHOS DE INGESTÃO CUSTOMIZADOS
+# ============================================================================
+
+# Caminhos customizados (podem ser absolutos ou usar padrão)
+VAULT_PATH_CUSTOM = os.getenv("VAULT_PATH", "").strip()
+RAW_DOCS_PATHS_CUSTOM = os.getenv("RAW_DOCS_PATHS", "").strip()
+FOLLOW_SYMLINKS = os.getenv("FOLLOW_SYMLINKS", "true").lower() == "true"
+
+# Determinar caminhos finais
+if VAULT_PATH_CUSTOM:
+    VAULT_DIR = Path(VAULT_PATH_CUSTOM).expanduser().resolve()
+else:
+    VAULT_DIR = DATA_DIR / "vault"
+
+if RAW_DOCS_PATHS_CUSTOM:
+    # Suportar múltiplos caminhos separados por vírgula
+    RAW_DOCS_DIRS = [
+        Path(p.strip()).expanduser().resolve() 
+        for p in RAW_DOCS_PATHS_CUSTOM.split(",")
+        if p.strip()
+    ]
+else:
+    RAW_DOCS_DIRS = [DATA_DIR / "raw_docs"]
+
+# Manter RAW_DOCS_DIR para compatibilidade (primeiro caminho da lista)
+RAW_DOCS_DIR = RAW_DOCS_DIRS[0]
+
 
 # ============================================================================
 # CONFIGURAÇÕES OLLAMA
@@ -170,6 +199,106 @@ def get_config_summary() -> str:
    Verbose:       {AGENT_VERBOSE}
    Max Results:   {MAX_WEB_SEARCH_RESULTS}
 """
+
+
+def validate_document_paths() -> tuple[bool, list[str]]:
+    """
+    Valida caminhos de documentos e links simbólicos.
+    
+    Returns:
+        tuple: (todos_validos, lista_de_problemas)
+    """
+    problems = []
+    
+    # Validar VAULT_DIR
+    if not VAULT_DIR.exists():
+        problems.append(f"Vault path não existe: {VAULT_DIR}")
+    elif VAULT_DIR.is_symlink() and not FOLLOW_SYMLINKS:
+        problems.append(f"Vault é symlink mas FOLLOW_SYMLINKS=false: {VAULT_DIR}")
+    elif VAULT_DIR.is_symlink():
+        target = VAULT_DIR.resolve()
+        if not target.exists():
+            problems.append(f"Symlink quebrado em vault: {VAULT_DIR} -> {target}")
+    
+    # Validar RAW_DOCS_DIRS
+    for i, path in enumerate(RAW_DOCS_DIRS, 1):
+        if not path.exists():
+            problems.append(f"Raw docs path {i} não existe: {path}")
+        elif path.is_symlink() and not FOLLOW_SYMLINKS:
+            problems.append(f"Path {i} é symlink mas FOLLOW_SYMLINKS=false: {path}")
+        elif path.is_symlink():
+            target = path.resolve()
+            if not target.exists():
+                problems.append(f"Symlink quebrado em raw docs {i}: {path} -> {target}")
+    
+    return len(problems) == 0, problems
+
+
+def detect_obsidian_vault() -> Optional[Path]:
+    """
+    Tenta detectar Obsidian vault no sistema.
+    
+    Procura em locais comuns e verifica a presença do diretório .obsidian
+    que marca um vault válido.
+    
+    Returns:
+        Path: Caminho do primeiro vault encontrado ou None
+    """
+    vaults = find_obsidian_vaults()
+    return vaults[0] if vaults else None
+
+
+def find_obsidian_vaults(search_paths: Optional[list[Path]] = None) -> list[Path]:
+    """
+    Busca todos os Obsidian vaults no sistema.
+    
+    Args:
+        search_paths: Lista de caminhos para buscar. Se None, usa locais comuns.
+    
+    Returns:
+        list[Path]: Lista de caminhos de vaults encontrados
+    """
+    home = Path.home()
+    vaults = []
+    
+    # Locais comuns para buscar
+    if search_paths is None:
+        search_paths = [
+            home / "Documents",
+            home / "Obsidian",
+            home / "Notes",
+            home / "Dropbox",
+            home / "iCloudDrive",
+            home,  # Buscar também no home
+        ]
+    
+    # Buscar recursivamente (mas não muito profundo para evitar lentidão)
+    max_depth = 3
+    
+    for base_path in search_paths:
+        if not base_path.exists():
+            continue
+        
+        try:
+            # Buscar diretórios .obsidian (marca de vault)
+            for obsidian_dir in base_path.rglob(".obsidian"):
+                if obsidian_dir.is_dir():
+                    vault_path = obsidian_dir.parent
+                    
+                    # Verificar profundidade
+                    try:
+                        depth = len(vault_path.relative_to(base_path).parts)
+                        if depth <= max_depth:
+                            if vault_path not in vaults:
+                                vaults.append(vault_path)
+                    except ValueError:
+                        # Caminho não é relativo ao base_path
+                        continue
+        except (PermissionError, OSError):
+            # Ignorar diretórios sem permissão
+            continue
+    
+    return sorted(vaults)  # Ordenar para consistência
 
 
 # ============================================================================
