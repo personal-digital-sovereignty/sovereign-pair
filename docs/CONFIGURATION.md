@@ -4,6 +4,39 @@ Este guia explica como configurar o Sovereign Pair RAG para seu ambiente.
 
 ---
 
+## Pré-requisitos
+
+### Python 3.11 ou 3.12
+
+O projeto requer **Python 3.11 ou 3.12** para compatibilidade com todas as dependências.
+
+```bash
+python --version  # Deve retornar 3.11.x ou 3.12.x
+```
+
+**Importante**: 
+- ✅ Python 3.11 e 3.12 são totalmente compatíveis
+- ⚠️ Python 3.10 pode funcionar mas não é oficialmente testado
+- ❌ Python 3.14+ não é compatível (problemas com ChromaDB/Pydantic V1)
+
+Se você tem Python 3.14+, crie um ambiente virtual com Python 3.12:
+
+```bash
+# Instalar Python 3.12 (se necessário)
+# Ubuntu/Debian
+sudo apt install python3.12 python3.12-venv
+
+# macOS
+brew install python@3.12
+
+# Criar ambiente virtual com Python 3.12
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+---
+
 ## 🚀 Configuração Rápida (Recomendado)
 
 A maneira mais fácil de configurar o projeto é usando o script interativo:
@@ -247,6 +280,49 @@ ollama pull llama3.2
 
 # Baixar modelo de embeddings
 ollama pull nomic-embed-text
+```
+
+---
+
+### Erro: "Pydantic V1 isn't compatible with Python 3.14"
+
+**Sintoma**: 
+```
+pydantic.v1.errors.ConfigError: unable to infer type for attribute "chroma_server_nofile"
+```
+
+**Causa**: Python 3.14+ não é compatível com ChromaDB/Pydantic V1
+
+**Solução**: Usar Python 3.11 ou 3.12
+
+```bash
+# 1. Verificar versão atual
+python --version
+
+# 2. Instalar Python 3.12 (se necessário)
+# Ubuntu/Debian
+sudo apt install python3.12 python3.12-venv
+
+# macOS
+brew install python@3.12
+
+# 3. Remover ambiente virtual antigo
+cd /caminho/do/projeto
+rm -rf .venv
+
+# 4. Criar novo ambiente com Python 3.12
+python3.12 -m venv .venv
+
+# 5. Ativar ambiente
+source .venv/bin/activate  # Linux/macOS
+# ou
+.venv\Scripts\activate  # Windows
+
+# 6. Reinstalar dependências
+pip install -r requirements.txt
+
+# 7. Verificar instalação
+python --version  # Deve mostrar 3.12.x
 ```
 
 ---

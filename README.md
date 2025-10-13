@@ -36,11 +36,13 @@ ollama pull llama3.2
 ollama pull nomic-embed-text
 ```
 
-### 3. Python 3.10+
+### 3. Python 3.11 ou 3.12 (Recomendado)
 
 ```bash
-python --version  # Deve ser 3.10 ou superior
+python --version  # Deve ser 3.11 ou 3.12
 ```
+
+**Nota**: Python 3.14+ ainda não é totalmente compatível com as dependências (ChromaDB/Pydantic V1). Use Python 3.11 ou 3.12 para melhor compatibilidade.
 
 ---
 
