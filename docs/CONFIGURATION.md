@@ -21,15 +21,72 @@ python --version  # Deve retornar 3.11.x ou 3.12.x
 
 Se você tem Python 3.14+, crie um ambiente virtual com Python 3.12:
 
+#### Ubuntu/Debian
+
 ```bash
-# Instalar Python 3.12 (se necessário)
-# Ubuntu/Debian
+# Instalar Python 3.12
 sudo apt install python3.12 python3.12-venv
 
-# macOS
+# Criar ambiente virtual
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+#### Arch Linux
+
+**Opção 1: Usando AUR (yay ou paru)**
+
+```bash
+# Com yay
+yay -S python312
+
+# Ou com paru
+paru -S python312
+
+# Criar ambiente virtual
+cd ~/Developer/local-repositories/sovereign-pair
+rm -rf .venv
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+**Opção 2: Usando pyenv (mais flexível)**
+
+```bash
+# Instalar pyenv via AUR
+yay -S pyenv
+
+# Configurar pyenv no shell
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+
+# Recarregar configuração
+source ~/.bashrc
+
+# Instalar Python 3.12
+pyenv install 3.12
+
+# Usar localmente no projeto
+cd ~/Developer/local-repositories/sovereign-pair
+pyenv local 3.12
+
+# Criar ambiente virtual
+rm -rf .venv
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+#### macOS
+
+```bash
+# Instalar Python 3.12
 brew install python@3.12
 
-# Criar ambiente virtual com Python 3.12
+# Criar ambiente virtual
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -295,15 +352,102 @@ pydantic.v1.errors.ConfigError: unable to infer type for attribute "chroma_serve
 
 **Solução**: Usar Python 3.11 ou 3.12
 
+#### Ubuntu/Debian
+
 ```bash
 # 1. Verificar versão atual
 python --version
 
-# 2. Instalar Python 3.12 (se necessário)
-# Ubuntu/Debian
+# 2. Instalar Python 3.12
 sudo apt install python3.12 python3.12-venv
 
-# macOS
+# 3. Remover ambiente virtual antigo
+cd /caminho/do/projeto
+rm -rf .venv
+
+# 4. Criar novo ambiente com Python 3.12
+python3.12 -m venv .venv
+
+# 5. Ativar ambiente
+source .venv/bin/activate
+
+# 6. Reinstalar dependências
+pip install -r requirements.txt
+
+# 7. Verificar instalação
+python --version  # Deve mostrar 3.12.x
+```
+
+#### Arch Linux
+
+**Opção 1: Usando AUR**
+
+```bash
+# 1. Verificar versão atual
+python --version
+
+# 2. Instalar Python 3.12 via AUR
+yay -S python312
+# ou
+paru -S python312
+
+# 3. Remover ambiente virtual antigo
+cd ~/Developer/local-repositories/sovereign-pair
+rm -rf .venv
+
+# 4. Criar novo ambiente com Python 3.12
+python3.12 -m venv .venv
+
+# 5. Ativar ambiente
+source .venv/bin/activate
+
+# 6. Reinstalar dependências
+pip install -r requirements.txt
+
+# 7. Verificar instalação
+python --version  # Deve mostrar 3.12.x
+```
+
+**Opção 2: Usando pyenv**
+
+```bash
+# 1. Instalar pyenv (se ainda não tiver)
+yay -S pyenv
+
+# 2. Configurar pyenv
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+source ~/.bashrc
+
+# 3. Instalar Python 3.12
+pyenv install 3.12
+
+# 4. Definir como versão local do projeto
+cd ~/Developer/local-repositories/sovereign-pair
+pyenv local 3.12
+
+# 5. Remover ambiente virtual antigo
+rm -rf .venv
+
+# 6. Criar novo ambiente
+python -m venv .venv
+source .venv/bin/activate
+
+# 7. Reinstalar dependências
+pip install -r requirements.txt
+
+# 8. Verificar instalação
+python --version  # Deve mostrar 3.12.x
+```
+
+#### macOS
+
+```bash
+# 1. Verificar versão atual
+python --version
+
+# 2. Instalar Python 3.12
 brew install python@3.12
 
 # 3. Remover ambiente virtual antigo
@@ -314,9 +458,7 @@ rm -rf .venv
 python3.12 -m venv .venv
 
 # 5. Ativar ambiente
-source .venv/bin/activate  # Linux/macOS
-# ou
-.venv\Scripts\activate  # Windows
+source .venv/bin/activate
 
 # 6. Reinstalar dependências
 pip install -r requirements.txt
