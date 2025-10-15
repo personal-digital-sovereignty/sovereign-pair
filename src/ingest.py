@@ -38,7 +38,7 @@ def load_documents_from_directory(
     follow_symlinks: bool = True
 ) -> list:
     """
-    Carrega documentos de um diretório específico.
+    Carrega documentos de um diretório, seguindo symlinks de diretórios se configurado.
     
     Args:
         directory: Path do diretório a ser lido
@@ -54,38 +54,84 @@ def load_documents_from_directory(
         logger.warning(f"⚠️  Diretório '{dir_name}' não encontrado: {directory}")
         return documents
     
-    # Verificar se é symlink
-    if directory.is_symlink():
-        if not follow_symlinks:
-            logger.warning(f"⚠️  Ignorando symlink '{dir_name}' (FOLLOW_SYMLINKS=false): {directory}")
-            return documents
-        
-        target = directory.resolve()
-        if not target.exists():
-            logger.error(f"❌ Symlink quebrado '{dir_name}': {directory} -> {target}")
-            return documents
-        
-        logger.info(f"🔗 Seguindo symlink '{dir_name}': {directory} -> {target}")
+    # Coletar todos os caminhos a processar (resolvendo symlinks)
+    paths_to_process = []
+    visited_paths = set()  # Evitar loops infinitos
     
-    # Verificar se há arquivos no diretório
-    files = list(directory.rglob("*"))
-    file_count = len([f for f in files if f.is_file()])
+    # Escanear diretório em busca de arquivos, diretórios e symlinks
+    try:
+        for item in directory.iterdir():
+            # Verificar se é symlink
+            if item.is_symlink():
+                if not follow_symlinks:
+                    logger.warning(f"⚠️  Ignorando symlink '{item.name}' (FOLLOW_SYMLINKS=false)")
+                    continue
+                
+                # Resolver symlink
+                try:
+                    target = item.resolve(strict=True)
+                except (OSError, RuntimeError) as e:
+                    logger.error(f"❌ Symlink quebrado '{item.name}': {item} -> erro: {e}")
+                    continue
+                
+                # Evitar loops infinitos
+                if target in visited_paths:
+                    logger.warning(f"⚠️  Symlink circular detectado, ignorando: {item.name}")
+                    continue
+                
+                visited_paths.add(target)
+                
+                if target.is_dir():
+                    logger.info(f"🔗 Seguindo symlink de diretório: {item.name} -> {target}")
+                    paths_to_process.append(target)
+                elif target.is_file():
+                    logger.info(f"🔗 Seguindo symlink de arquivo: {item.name} -> {target}")
+                    if target.suffix in ALLOWED_EXTENSIONS:
+                        paths_to_process.append(target)
+            
+            # Diretório ou arquivo real (não symlink)
+            elif item.is_dir():
+                if item not in visited_paths:
+                    visited_paths.add(item)
+                    paths_to_process.append(item)
+            elif item.is_file():
+                if item.suffix in ALLOWED_EXTENSIONS:
+                    paths_to_process.append(item)
     
-    if file_count == 0:
-        logger.warning(f"⚠️  Diretório '{dir_name}' está vazio: {directory}")
+    except PermissionError as e:
+        logger.error(f"❌ Sem permissão para ler '{dir_name}': {e}")
         return documents
     
-    try:
-        logger.info(f"📂 Carregando documentos de '{dir_name}'...")
-        docs = SimpleDirectoryReader(
-            str(directory), 
-            recursive=True,
-            required_exts=ALLOWED_EXTENSIONS  # Filtro de extensões configurável
-        ).load_data()
-        documents.extend(docs)
-        logger.info(f"   ✓ {len(docs)} documento(s) carregado(s) de '{dir_name}'")
-    except Exception as e:
-        logger.error(f"   ❌ Erro ao ler '{dir_name}': {e}")
+    # Verificar se há caminhos para processar
+    if not paths_to_process:
+        logger.warning(f"⚠️  Diretório '{dir_name}' está vazio ou sem arquivos compatíveis: {directory}")
+        return documents
+    
+    # Processar cada caminho com SimpleDirectoryReader
+    logger.info(f"📂 Carregando documentos de '{dir_name}'...")
+    
+    for path in paths_to_process:
+        try:
+            if path.is_file():
+                # Processar arquivo individual
+                docs = SimpleDirectoryReader(
+                    input_files=[str(path)]
+                ).load_data()
+                documents.extend(docs)
+            elif path.is_dir():
+                # Processar diretório recursivamente
+                docs = SimpleDirectoryReader(
+                    str(path),
+                    recursive=True,
+                    required_exts=ALLOWED_EXTENSIONS
+                ).load_data()
+                documents.extend(docs)
+                logger.info(f"   ✓ {len(docs)} documento(s) de '{path.name}/'")
+        except Exception as e:
+            logger.error(f"   ❌ Erro ao processar '{path.name}': {e}")
+    
+    if documents:
+        logger.info(f"   ✓ Total: {len(documents)} documento(s) carregado(s) de '{dir_name}'")
     
     return documents
 

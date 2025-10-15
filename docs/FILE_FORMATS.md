@@ -4,6 +4,119 @@ Este guia documenta os formatos de arquivo suportados pelo sistema de ingestão 
 
 ---
 
+## Suporte a Links Simbólicos (Symlinks)
+
+O sistema suporta **links simbólicos** tanto para **arquivos** quanto para **diretórios**, permitindo organização flexível sem duplicar dados.
+
+### Symlinks de Diretórios
+
+Você pode criar symlinks para diretórios inteiros, e o sistema processará **recursivamente** todo o conteúdo:
+
+```bash
+# Linkar Obsidian vault
+ln -sf /path/to/obsidian-vault data/vault/my-vault
+
+# Linkar diretório de documentos
+ln -sf ~/Documents/Projects/docs data/raw_docs/project-docs
+
+# Linkar múltiplos diretórios
+ln -sf ~/Dropbox/Notes data/vault/dropbox
+ln -sf ~/Google\ Drive/Docs data/raw_docs/gdrive
+```
+
+**Comportamento**:
+- ✅ Todo o conteúdo do diretório linkado é indexado recursivamente
+- ✅ Subdiretórios dentro do symlink são processados
+- ✅ Respeita `ALLOWED_EXTENSIONS` configurado
+- ✅ Evita loops infinitos (symlinks circulares)
+
+**Exemplo de log**:
+```
+🔗 Seguindo symlink de diretório: my-vault -> /home/user/obsidian-vault
+   ✓ 45 documento(s) de 'my-vault/'
+```
+
+### Symlinks de Arquivos
+
+Você também pode criar symlinks para arquivos individuais:
+
+```bash
+# Linkar arquivo específico
+ln -sf ~/important-doc.pdf data/raw_docs/doc.pdf
+
+# Linkar múltiplos arquivos
+ln -sf ~/thesis.pdf data/raw_docs/
+ln -sf ~/notes.md data/vault/
+```
+
+**Comportamento**:
+- ✅ Arquivo linkado é processado normalmente
+- ✅ Respeita extensões permitidas
+
+### Configuração: FOLLOW_SYMLINKS
+
+Controle se symlinks devem ser seguidos via `.env`:
+
+```env
+# Seguir symlinks (padrão: true)
+FOLLOW_SYMLINKS=true
+
+# Ignorar symlinks
+FOLLOW_SYMLINKS=false
+```
+
+**Com `FOLLOW_SYMLINKS=false`**:
+- Symlinks são ignorados
+- Apenas arquivos e diretórios reais são processados
+- Log: `⚠️  Ignorando symlink 'nome' (FOLLOW_SYMLINKS=false)`
+
+### Detecção de Problemas
+
+O sistema detecta e reporta problemas com symlinks:
+
+**Symlink Quebrado**:
+```
+❌ Symlink quebrado 'old-vault': data/vault/old-vault -> /path/nonexistent
+```
+
+**Symlink Circular**:
+```
+⚠️  Symlink circular detectado, ignorando: loop
+```
+
+### Casos de Uso
+
+#### Obsidian Vault
+
+```bash
+# Não copiar vault, apenas linkar
+ln -sf ~/Obsidian/MyVault data/vault/obsidian
+
+# Resultado: todas as notas .md são indexadas
+```
+
+#### Múltiplas Fontes de Documentos
+
+```bash
+# Linkar diferentes fontes
+ln -sf ~/Dropbox/Work data/raw_docs/work
+ln -sf ~/Google\ Drive/Personal data/raw_docs/personal
+ln -sf ~/Documents/Research data/raw_docs/research
+
+# Todas são indexadas juntas
+```
+
+#### Documentos Compartilhados
+
+```bash
+# Linkar diretório compartilhado na rede
+ln -sf /mnt/nas/shared-docs data/raw_docs/shared
+
+# Documentos acessíveis sem duplicação
+```
+
+---
+
 ## Formatos Suportados Nativamente
 
 O sistema utiliza o `SimpleDirectoryReader` do LlamaIndex, que suporta nativamente os seguintes formatos:
