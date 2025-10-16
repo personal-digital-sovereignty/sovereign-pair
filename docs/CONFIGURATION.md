@@ -305,7 +305,54 @@ Python é uma linguagem...
 
 **Trade-offs**:
 - **Mais resultados**: Mais contexto, mas processamento mais lento
-- **Menos resultados**: Mais rápido, mas pode perder informações
+- **Menos resultados**: Mais rápido, mas pod**Recomendação**: 3 para maioria dos casos
+
+---
+
+### CHUNK_SIZE
+
+**Descrição**: Tamanho máximo de cada bloco de texto (em caracteres)
+
+**Padrão**: `1024`
+
+**Valores recomendados por modelo de embeddings**:
+
+| Modelo | Chunk Size | Motivo |
+|--------|-----------|--------|
+| `nomic-embed-text` | 1024 | Padrão, compatível com ~2048 tokens |
+| `mxbai-embed-large` | 512 | Modelo com limite menor |
+| `all-minilm` | 256 | Modelo compacto |
+
+**Exemplo**:
+```env
+# Para nomic-embed-text (padrão)
+CHUNK_SIZE=1024
+
+# Para modelos menores
+CHUNK_SIZE=512
+```
+
+**Importante**: Chunks muito grandes causam erro `"input length exceeds the context length"` durante a geração de embeddings.
+
+---
+
+### CHUNK_OVERLAP
+
+**Descrição**: Sobreposição entre chunks consecutivos (em caracteres)
+
+**Padrão**: `200`
+
+**Benefícios**:
+- Preserva informações nas bordas dos chunks
+- Melhora recuperação de informações
+- Evita perda de contexto entre blocos
+
+**Exemplo**:
+```env
+CHUNK_OVERLAP=200
+```
+
+**Recomendação**: Use ~20% do `CHUNK_SIZE` como overlap
 
 ---
 
@@ -323,6 +370,35 @@ curl http://localhost:11434/api/tags
 # Se não estiver, iniciar Ollama
 ollama serve
 ```
+
+---
+
+### Erro: "input length exceeds the context length"
+
+**Sintoma**:
+```
+❌ Erro durante indexação: the input length exceeds the context length (status code: 400)
+📏 Tamanho médio: 3598 caracteres
+```
+
+**Causa**: Blocos de texto muito grandes excedem limite do modelo de embeddings
+
+**Solução**: Reduzir `CHUNK_SIZE` no `.env`
+
+```env
+# Antes (muito grande)
+CHUNK_SIZE=2048
+
+# Depois (seguro para nomic-embed-text)
+CHUNK_SIZE=1024
+```
+
+**Valores seguros por modelo**:
+- `nomic-embed-text`: 1024
+- `mxbai-embed-large`: 512
+- `all-minilm`: 256
+
+**Após ajustar**: Execute novamente `python ingest.py`
 
 ---
 

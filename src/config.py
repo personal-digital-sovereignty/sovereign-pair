@@ -67,6 +67,18 @@ ALLOWED_EXTENSIONS = [ext.strip() for ext in ALLOWED_EXTENSIONS_STR.split(",") i
 
 
 # ============================================================================
+# CONFIGURAÇÕES DE CHUNKING
+# ============================================================================
+
+# Tamanho máximo de chunk para embeddings (em caracteres)
+# Ajustado para compatibilidade com nomic-embed-text (~2048 tokens)
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1024"))
+
+# Sobreposição entre chunks para manter contexto
+CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
+
+
+# ============================================================================
 # CONFIGURAÇÕES OLLAMA
 # ============================================================================
 

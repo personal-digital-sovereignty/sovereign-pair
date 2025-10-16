@@ -24,6 +24,8 @@ from config import (
     CHROMA_COLLECTION_NAME,
     FOLLOW_SYMLINKS,
     ALLOWED_EXTENSIONS,
+    CHUNK_SIZE,
+    CHUNK_OVERLAP,
     embed_model,
     validate_document_paths,
 )
@@ -224,7 +226,10 @@ def ingest_data() -> Optional[VectorStoreIndex]:
     if markdown_docs:
         logger.info("\n   🧩 Processando Markdown com MarkdownNodeParser...")
         logger.info("      (Respeita cabeçalhos ## e blocos de código ```)")
-        md_parser = MarkdownNodeParser()
+        md_parser = MarkdownNodeParser(
+            chunk_size=CHUNK_SIZE,
+            chunk_overlap=CHUNK_OVERLAP
+        )
         md_nodes = md_parser.get_nodes_from_documents(markdown_docs)
         all_nodes.extend(md_nodes)
         logger.info(f"      ✓ {len(md_nodes)} blocos semânticos criados")
@@ -233,7 +238,10 @@ def ingest_data() -> Optional[VectorStoreIndex]:
     if other_docs:
         logger.info(f"\n   📦 Processando {len(other_docs)} documentos não-Markdown...")
         from llama_index.core.node_parser import SimpleNodeParser
-        simple_parser = SimpleNodeParser()
+        simple_parser = SimpleNodeParser(
+            chunk_size=CHUNK_SIZE,
+            chunk_overlap=CHUNK_OVERLAP
+        )
         other_nodes = simple_parser.get_nodes_from_documents(other_docs)
         all_nodes.extend(other_nodes)
         logger.info(f"      ✓ {len(other_nodes)} blocos criados")
