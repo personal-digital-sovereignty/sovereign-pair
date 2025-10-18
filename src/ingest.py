@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Optional
 from tqdm import tqdm
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext
-from llama_index.core.node_parser import MarkdownNodeParser
 from llama_index.vector_stores.chroma import ChromaVectorStore
 
 # Importar configurações centralizadas
@@ -224,15 +223,16 @@ def ingest_data() -> Optional[VectorStoreIndex]:
     all_nodes = []
     
     if markdown_docs:
-        logger.info("\n   🧩 Processando Markdown com MarkdownNodeParser...")
-        logger.info("      (Respeita cabeçalhos ## e blocos de código ```)")
-        md_parser = MarkdownNodeParser(
+        logger.info("\n   🧩 Processando Markdown com SentenceSplitter...")
+        logger.info(f"      (Chunk size: {CHUNK_SIZE}, overlap: {CHUNK_OVERLAP})")
+        from llama_index.core.node_parser import SentenceSplitter
+        md_parser = SentenceSplitter(
             chunk_size=CHUNK_SIZE,
             chunk_overlap=CHUNK_OVERLAP
         )
         md_nodes = md_parser.get_nodes_from_documents(markdown_docs)
         all_nodes.extend(md_nodes)
-        logger.info(f"      ✓ {len(md_nodes)} blocos semânticos criados")
+        logger.info(f"      ✓ {len(md_nodes)} blocos criados")
     
     # Processar outros documentos
     if other_docs:
