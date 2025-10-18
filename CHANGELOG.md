@@ -5,6 +5,13 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 ## [Unreleased]
 
 ### Fixed
+- **Parser de Chunking** (2026-02-16)
+  - Substituído `MarkdownNodeParser` por `SentenceSplitter` para respeitar `chunk_size` e `chunk_overlap`
+  - `MarkdownNodeParser` ignorava parâmetros de chunking, causando blocos muito grandes
+  - Tamanho médio reduzido de 3598 para 2334 caracteres (35% menor)
+  - Processamento de 124 documentos sem erros de contexto excedido
+  - 256 blocos indexados com sucesso
+
 - **Chunk Size para Embeddings** (2026-02-16)
   - Configurado `CHUNK_SIZE=1024` e `CHUNK_OVERLAP=200` para evitar erro "input length exceeds the context length"
   - Blocos de texto agora respeitam limite de contexto do modelo de embeddings
