@@ -2,6 +2,38 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [Unreleased]
+
+### Fixed
+- **Chunk Size para Embeddings** (2026-02-16)
+  - Configurado `CHUNK_SIZE=1024` e `CHUNK_OVERLAP=200` para evitar erro "input length exceeds the context length"
+  - Blocos de texto agora respeitam limite de contexto do modelo de embeddings
+  - Adicionadas configurações em `config.py`, `.env.example` e documentação
+  - Parsers (`MarkdownNodeParser` e `SimpleNodeParser`) configurados com limites seguros
+  - Documentação de troubleshooting para erro de contexto excedido
+
+- **Suporte a Symlinks de Diretórios** (2026-02-16)
+  - Corrigido problema onde symlinks de diretórios não eram processados recursivamente
+  - `load_documents_from_directory()` agora escaneia e resolve symlinks corretamente
+  - Suporte a symlinks de arquivos e diretórios
+  - Detecção de loops infinitos (symlinks circulares)
+  - Logs melhorados mostrando quando symlinks são seguidos
+  - Documentação completa em `docs/FILE_FORMATS.md` sobre uso de symlinks
+
+### Added
+- **Instruções para Arch Linux** (2026-02-16)
+  - Adicionadas instruções de instalação Python 3.12 via AUR (yay/paru)
+  - Opção alternativa usando pyenv
+  - Troubleshooting específico para Arch Linux
+  - Cobertura completa de sistemas: Ubuntu/Debian, Arch Linux, macOS
+
+### Changed
+- **Requisitos de Versão Python** (2026-02-16)
+  - Especificado Python 3.11 ou 3.12 como versões recomendadas
+  - Nota sobre incompatibilidade Python 3.14+ com ChromaDB/Pydantic V1
+  - Troubleshooting para erro "Pydantic V1 isn't compatible with Python 3.14"
+  - Instruções para criar ambiente virtual com Python 3.12
+
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
