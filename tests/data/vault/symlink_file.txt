@@ -1,0 +1,1 @@
+../raw_docs/test_pdf_placeholder.txt

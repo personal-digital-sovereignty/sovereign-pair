@@ -1,0 +1,4 @@
+# Placeholder para PDF
+
+Este arquivo simula um documento que seria PDF.
+Em testes reais, substitua por arquivos .pdf reais.
