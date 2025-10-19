@@ -132,3 +132,31 @@ dmypy.json
 # OS
 .DS_Store
 Thumbs.db
+
+# ============================================================================
+# SOVEREIGN PAIR - DADOS SENSÍVEIS E PRIVADOS
+# ============================================================================
+# CRÍTICO: Estes diretórios contêm dados pessoais e NUNCA devem ser commitados
+
+# Dados de ingestão (documentos privados do usuário)
+data/raw_docs/
+data/vault/
+
+# Banco de dados vetorial (embeddings dos documentos)
+data/chromadb/
+
+# Backups de configuração (podem conter URLs e tokens)
+.env.backup*
+*.env.backup
+
+# Resultados de testes (podem conter dados sensíveis)
+tests/results/
+
+# Logs de execução
+*.log
+logs/
+
+# Arquivos temporários do sistema
+*.tmp
+*.temp
+.cache/
