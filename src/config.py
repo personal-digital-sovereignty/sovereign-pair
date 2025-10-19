@@ -77,6 +77,19 @@ CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1024"))
 # Sobreposição entre chunks para manter contexto
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
 
+# ============================================================================
+# CONFIGURAÇÕES DE HISTÓRICO DE INGESTÃO
+# ============================================================================
+
+# Arquivo de histórico para ingestão incremental
+HISTORY_FILE = Path(os.getenv(
+    "HISTORY_FILE",
+    str(DATA_DIR / ".ingestion_history.json")
+))
+
+# Modo interativo (pergunta ao usuário sobre modo de ingestão)
+INTERACTIVE_MODE = os.getenv("INTERACTIVE_MODE", "true").lower() == "true"
+
 
 # ============================================================================
 # CONFIGURAÇÕES OLLAMA

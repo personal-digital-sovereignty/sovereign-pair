@@ -25,9 +25,16 @@ from config import (
     ALLOWED_EXTENSIONS,
     CHUNK_SIZE,
     CHUNK_OVERLAP,
+    HISTORY_FILE,
+    INTERACTIVE_MODE,
     embed_model,
     validate_document_paths,
 )
+
+# Importar módulos de ingestão incremental
+from history import IngestionHistory
+from diff import detect_new_files
+from interactive import show_changes_summary, prompt_ingestion_mode
 
 # Configurar logger
 logger = logging.getLogger(__name__)
