@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class IngestionHistory:
     """Gerencia histórico de arquivos indexados."""
     
-    VERSION = "1.0"
+    VERSION = "1.1"
     
     def __init__(self, history_file: Path):
         """
@@ -97,19 +97,33 @@ class IngestionHistory:
         
         return {Path(file_path) for file_path in self.data['files'].keys()}
     
-    def add_files(self, files_data: Dict[Path, int]) -> None:
+    def add_files(self, files_data: Dict[Path, dict]) -> None:
         """
         Adiciona arquivos ao histórico.
         
         Args:
-            files_data: Dict {file_path: num_chunks}
+            files_data: Dict {file_path: {'chunks': int, 'hash': str, 'mtime': float}}
         """
         now = datetime.now().isoformat()
         
-        for file_path, num_chunks in files_data.items():
+        for file_path, data in files_data.items():
+            # Suportar formato antigo (apenas int) e novo (dict)
+            if isinstance(data, int):
+                # Formato v1.0: apenas número de chunks
+                num_chunks = data
+                content_hash = ''
+                modified_at = file_path.stat().st_mtime if file_path.exists() else 0
+            else:
+                # Formato v1.1: dict com chunks, hash e mtime
+                num_chunks = data.get('chunks', 0)
+                content_hash = data.get('hash', '')
+                modified_at = data.get('mtime', file_path.stat().st_mtime if file_path.exists() else 0)
+            
             self.data['files'][str(file_path.absolute())] = {
                 'indexed_at': now,
-                'chunks': num_chunks
+                'modified_at': modified_at,
+                'chunks': num_chunks,
+                'content_hash': content_hash
             }
         
         # Atualizar totais
@@ -145,11 +159,35 @@ class IngestionHistory:
         if not all(key in self.data for key in required_keys):
             return False
         
-        if self.data['version'] != self.VERSION:
+        # Permitir v1.0 e v1.1 (migração automática)
+        if self.data['version'] not in ['1.0', '1.1']:
             logger.warning(f"⚠️  Versão do histórico incompatível: {self.data['version']}")
             return False
         
+        # Migrar v1.0 -> v1.1 se necessário
+        if self.data['version'] == '1.0':
+            self._migrate_to_v11()
+        
         return True
+    
+    def _migrate_to_v11(self) -> None:
+        """
+        Migra histórico de v1.0 para v1.1.
+        
+        Adiciona campos content_hash e modified_at aos arquivos existentes.
+        """
+        logger.info("🔄 Migrando histórico de v1.0 para v1.1...")
+        
+        for file_path_str, file_data in self.data['files'].items():
+            # Adicionar campos faltantes
+            if 'content_hash' not in file_data:
+                file_data['content_hash'] = ''
+            if 'modified_at' not in file_data:
+                file_data['modified_at'] = 0
+        
+        # Atualizar versão
+        self.data['version'] = '1.1'
+        logger.info("✓ Migração concluída")
     
     def get_stats(self) -> Dict:
         """
