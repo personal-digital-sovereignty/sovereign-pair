@@ -15,6 +15,8 @@ IngestionMode = Literal["incremental", "full", "cancel"]
 
 def show_changes_summary(
     new_files: Set[Path],
+    modified_files: Set[Path],
+    deleted_files: Set[Path],
     indexed_files: Set[Path],
     current_files: Set[Path]
 ) -> None:
@@ -23,6 +25,8 @@ def show_changes_summary(
     
     Args:
         new_files: Arquivos novos
+        modified_files: Arquivos modificados
+        deleted_files: Arquivos deletados
         indexed_files: Arquivos já indexados
         current_files: Arquivos atuais
     """
@@ -34,15 +38,23 @@ def show_changes_summary(
     
     print(f"Arquivos já indexados: {len(indexed_files)}")
     print(f"Arquivos atuais: {len(current_files)}")
-    print(f"Novos arquivos detectados: {len(new_files)}")
     print()
     
+    print(f"✨ Novos: {len(new_files)}")
+    print(f"✏️  Modificados: {len(modified_files)}")
+    print(f"🗑️  Deletados: {len(deleted_files)}")
+    print()
+    
+    total_changes = len(new_files) + len(modified_files) + len(deleted_files)
+    print(f"📝 Total de mudanças: {total_changes}")
+    print()
+    
+    # Mostrar detalhes (até 5 de cada tipo)
     if new_files:
         print("Novos arquivos:")
-        # Mostrar até 10 arquivos
         for i, file_path in enumerate(sorted(new_files), 1):
-            if i > 10:
-                remaining = len(new_files) - 10
+            if i > 5:
+                remaining = len(new_files) - 5
                 print(f"  ... e mais {remaining} arquivo(s)")
                 break
             # Mostrar path relativo se possível
@@ -51,6 +63,34 @@ def show_changes_summary(
                 print(f"  ✨ {rel_path}")
             except ValueError:
                 print(f"  ✨ {file_path.name}")
+        print()
+    
+    if modified_files:
+        print("Arquivos modificados:")
+        for i, file_path in enumerate(sorted(modified_files), 1):
+            if i > 5:
+                remaining = len(modified_files) - 5
+                print(f"  ... e mais {remaining} arquivo(s)")
+                break
+            try:
+                rel_path = file_path.relative_to(Path.cwd())
+                print(f"  ✏️  {rel_path}")
+            except ValueError:
+                print(f"  ✏️  {file_path.name}")
+        print()
+    
+    if deleted_files:
+        print("Arquivos deletados:")
+        for i, file_path in enumerate(sorted(deleted_files), 1):
+            if i > 5:
+                remaining = len(deleted_files) - 5
+                print(f"  ... e mais {remaining} arquivo(s)")
+                break
+            try:
+                rel_path = file_path.relative_to(Path.cwd())
+                print(f"  🗑️  {rel_path}")
+            except ValueError:
+                print(f"  🗑️  {file_path.name}")
         print()
 
 
