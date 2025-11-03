@@ -31,10 +31,12 @@ from config import (
     validate_document_paths,
 )
 
-# Importar módulos de ingestão incremental
+# Importar módulos de ingestão incremental (Fase 1 + 2)
 from history import IngestionHistory
-from diff import detect_new_files
+from diff import detect_new_files, detect_modified_files, detect_deleted_files
 from interactive import show_changes_summary, prompt_ingestion_mode
+from hash_utils import compute_file_hash
+from cleanup import remove_obsolete_chunks
 
 # Configurar logger
 logger = logging.getLogger(__name__)
