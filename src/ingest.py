@@ -291,20 +291,38 @@ def scan_all_files() -> set[Path]:
 
 def ingest_data() -> Optional[VectorStoreIndex]:
     """
-    Função principal de ingestão de documentos.
+    Carrega documentos de caminhos configurados, gera embeddings e armazena no ChromaDB.
     
-    Carrega documentos, processa com chunking, gera embeddings e armazena no ChromaDB.
+    O SimpleDirectoryReader suporta nativamente: .md, .pdf, .docx, .csv, .txt, etc.
+    
+    Returns:
+        VectorStoreIndex: Índice criado com sucesso ou None em caso de erro
     """
-    try:
-        # 1. Carregar documentos
-        all_documents = load_all_documents()
-        
-        if all_documents is None or len(all_documents) == 0:
-            return None
-        
-        # 2. Processar documentos com chunking inteligente
-        logger.info("\n" + "=" * 70)
-        logger.info("📋 Etapa 2/4: Processando documentos com chunking inteligente")
+    logger.info("=" * 70)
+    logger.info("🚀 INICIANDO INGESTÃO DE DOCUMENTOS")
+    logger.info("=" * 70)
+    
+    # 1. Validar caminhos antes de começar
+    logger.info("\n🔍 Validando caminhos de documentos...")
+    validate_document_paths()
+    
+    # 2. Carregar todos os documentos
+    all_documents = load_all_documents()
+    
+    if all_documents is None or len(all_documents) == 0:
+        logger.error("\n❌ Nenhum documento encontrado para processar!")
+        return None
+    
+    # 2. Processar documentos com chunking inteligente
+    logger.info("\n" + "=" * 70)
+    logger.info("📋 Etapa 2/4: Processando documentos com chunking inteligente")
+    logger.info("=" * 70)
+    
+    # Separar Markdown de outros formatos
+    markdown_docs = []
+    other_docs = []
+    
+    for doc in all_documents:
         file_path = doc.metadata.get('file_path', '')
         if file_path.endswith('.md'):
             markdown_docs.append(doc)
