@@ -425,10 +425,86 @@ def ingest_data() -> Optional[VectorStoreIndex]:
 
 
 def main():
-    """Função principal para execução do script."""
+    """
+    Função principal com suporte a ingestão incremental (Fase 2).
+    
+    Detecta automaticamente mudanças (novos, modificados, deletados) e processa
+    apenas o necessário, economizando tempo e recursos.
+    """
     try:
-        index = ingest_data()
+        # Carregar histórico de ingestão
+        history = IngestionHistory(HISTORY_FILE)
+        history.load()
+        stats = history.get_stats()
         
+        # Escanear arquivos atuais
+        current_files = scan_all_files()
+        indexed_files = history.get_indexed_files()
+        
+        # Detectar mudanças
+        new_files = detect_new_files(current_files, indexed_files)
+        modified_files = detect_modified_files(current_files, indexed_files, history)
+        deleted_files = detect_deleted_files(current_files, indexed_files)
+        
+        # Determinar modo de ingestão
+        if INTERACTIVE_MODE:
+            # Mostrar resumo e perguntar ao usuário
+            show_changes_summary(new_files, modified_files, deleted_files,
+                               indexed_files, current_files)
+            mode = prompt_ingestion_mode(
+                new_files | modified_files,
+                stats['has_history']
+            )
+        else:
+            # Modo automático
+            if new_files or modified_files:
+                mode = "incremental"
+                logger.info(f"\n📝 Modo automático: {len(new_files)} novos, {len(modified_files)} modificados")
+            elif deleted_files:
+                mode = "skip"
+                logger.info(f"\n🗑️  Apenas {len(deleted_files)} arquivo(s) deletado(s)")
+            else:
+                logger.info("\n📊 Nenhuma mudança detectada. Pulando ingestão.")
+                exit(0)
+        
+        # Processar baseado no modo
+        if mode == "cancel":
+            logger.info("\n⚠️  Ingestão cancelada pelo usuário.")
+            exit(0)
+        
+        elif mode == "skip":
+            # Apenas limpar deletados
+            if deleted_files:
+                logger.info(f"\n🗑️  Limpando {len(deleted_files)} arquivo(s) deletado(s)...")
+                chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+                chroma_collection = chroma_client.get_collection(CHROMA_COLLECTION_NAME)
+                remove_obsolete_chunks(deleted_files, chroma_collection)
+                
+                for file_path in deleted_files:
+                    history.data['files'].pop(str(file_path.absolute()), None)
+                history.save()
+                logger.info("✅ Limpeza concluída!")
+            exit(0)
+        
+        elif mode == "full":
+            # Modo full: limpar histórico e processar tudo
+            logger.info("\n🔄 MODO FULL: Processando todos os arquivos...")
+            history.clear()
+            index = ingest_data()
+        
+        else:  # mode == "incremental"
+            # Modo incremental: processar apenas mudanças
+            logger.info(f"\n⚡ MODO INCREMENTAL: Processando mudanças...")
+            logger.info(f"   ✨ Novos: {len(new_files)}")
+            logger.info(f"   ✏️  Modificados: {len(modified_files)}")
+            
+            # TODO: Implementar processamento incremental completo
+            # Por enquanto, usar modo full
+            logger.warning("\n⚠️  Processamento incremental completo ainda não implementado.")
+            logger.info("   Usando modo full por segurança...")
+            index = ingest_data()
+        
+        # Verificar resultado
         if index is None:
             logger.error("\n⚠️  Ingestão falhou. Verifique os logs acima.")
             exit(1)
