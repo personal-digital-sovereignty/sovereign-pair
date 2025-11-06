@@ -287,6 +287,102 @@ def scan_all_files() -> set[Path]:
     return all_files
 
 
+def load_specific_files(file_paths: set[Path]) -> list:
+    """
+    Carrega apenas arquivos específicos (modo incremental).
+    
+    Args:
+        file_paths: Conjunto de Paths de arquivos a carregar
+        
+    Returns:
+        Lista de documentos carregados
+    """
+    from llama_index.core import SimpleDirectoryReader
+    
+    documents = []
+    
+    logger.info(f"\n📂 Carregando {len(file_paths)} arquivo(s) específico(s)...")
+    
+    for file_path in tqdm(file_paths, desc="Carregando"):
+        try:
+            docs = SimpleDirectoryReader(
+                input_files=[str(file_path)]
+            ).load_data()
+            documents.extend(docs)
+            logger.debug(f"   ✓ {file_path.name}: {len(docs)} documento(s)")
+        except Exception as e:
+            logger.error(f"   ❌ Erro ao carregar {file_path.name}: {e}")
+    
+    logger.info(f"✅ {len(documents)} documento(s) carregado(s)")
+    return documents
+
+
+def update_history_with_hashes(
+    index: Optional[VectorStoreIndex],
+    processed_files: set[Path],
+    deleted_files: set[Path],
+    history: 'IngestionHistory'
+) -> None:
+    """
+    Atualiza histórico com hashes SHA256 dos arquivos processados.
+    
+    Args:
+        index: Índice criado (pode ser None)
+        processed_files: Arquivos que foram processados
+        deleted_files: Arquivos que foram deletados
+        history: Instância do histórico
+    """
+    logger.info("\n💾 Atualizando histórico...")
+    
+    # Coletar dados dos arquivos processados
+    files_data = {}
+    
+    # Contar chunks por arquivo
+    if index and hasattr(index, 'docstore'):
+        for node_id, node in index.docstore.docs.items():
+            file_path_str = node.metadata.get('file_path', '')
+            if file_path_str:
+                file_path = Path(file_path_str)
+                if file_path in processed_files:
+                    if file_path not in files_data:
+                        # Calcular hash e coletar metadados
+                        hash_value = compute_file_hash(file_path)
+                        mtime = file_path.stat().st_mtime if file_path.exists() else 0
+                        
+                        files_data[file_path] = {
+                            'chunks': 0,
+                            'hash': hash_value if hash_value else '',
+                            'mtime': mtime
+                        }
+                    files_data[file_path]['chunks'] += 1
+    
+    # Se não conseguiu contar chunks via index, usar hashes apenas
+    if not files_data:
+        logger.warning("   ⚠️  Não foi possível contar chunks via index")
+        for file_path in processed_files:
+            hash_value = compute_file_hash(file_path)
+            mtime = file_path.stat().st_mtime if file_path.exists() else 0
+            files_data[file_path] = {
+                'chunks': 0,  # Desconhecido
+                'hash': hash_value if hash_value else '',
+                'mtime': mtime
+            }
+    
+    # Remover deletados do histórico
+    if deleted_files:
+        for file_path in deleted_files:
+            history.data['files'].pop(str(file_path.absolute()), None)
+        logger.info(f"   ✓ {len(deleted_files)} arquivo(s) deletado(s) removidos do histórico")
+    
+    # Adicionar/atualizar processados
+    if files_data:
+        history.add_files(files_data)
+        logger.info(f"   ✓ {len(files_data)} arquivo(s) atualizados no histórico")
+    
+    history.save()
+    logger.info("   ✓ Histórico salvo!")
+
+
 
 
 def ingest_data() -> Optional[VectorStoreIndex]:
@@ -494,15 +590,35 @@ def main():
         
         else:  # mode == "incremental"
             # Modo incremental: processar apenas mudanças
+            files_to_process = new_files | modified_files
+            
             logger.info(f"\n⚡ MODO INCREMENTAL: Processando mudanças...")
             logger.info(f"   ✨ Novos: {len(new_files)}")
             logger.info(f"   ✏️  Modificados: {len(modified_files)}")
             
-            # TODO: Implementar processamento incremental completo
-            # Por enquanto, usar modo full
-            logger.warning("\n⚠️  Processamento incremental completo ainda não implementado.")
-            logger.info("   Usando modo full por segurança...")
+            # Remover chunks obsoletos ANTES de processar
+            if modified_files or deleted_files:
+                logger.info(f"\n🗑️  Removendo chunks obsoletos...")
+                chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+                chroma_collection = chroma_client.get_collection(CHROMA_COLLECTION_NAME)
+                remove_obsolete_chunks(modified_files | deleted_files, chroma_collection)
+            
+            # Carregar apenas arquivos modificados
+            documents = load_specific_files(files_to_process)
+            
+            if not documents:
+                logger.error("\n❌ Nenhum documento carregado!")
+                exit(1)
+            
+            # Processar documentos (reutilizar lógica de ingest_data)
+            # TODO: Refatorar ingest_data() para aceitar documentos como parâmetro
+            # Por enquanto, usar ingest_data() completo
+            logger.warning("\n⚠️  Usando ingest_data() completo (refatoração pendente)")
             index = ingest_data()
+            
+            # Atualizar histórico com hashes
+            if index:
+                update_history_with_hashes(index, files_to_process, deleted_files, history)
         
         # Verificar resultado
         if index is None:
