@@ -183,73 +183,6 @@ def scan_all_files() -> set[Path]:
     return all_files
 
 
-def ingest_data() -> Optional[VectorStoreIndex]:
-    """
-    Carrega documentos de caminhos configurados, gera embeddings e armazena no ChromaDB.
-    
-    O SimpleDirectoryReader suporta nativamente: .md, .pdf, .docx, .csv, .txt, etc.
-    
-    Returns:
-        VectorStoreIndex: Índice criado com sucesso ou None em caso de erro
-    """
-    logger.info("=" * 70)
-    logger.info("🚀 INICIANDO INGESTÃO DE DOCUMENTOS")
-    logger.info("=" * 70)
-    
-    # 1. Validar caminhos antes de começar
-    logger.info("\n🔍 Validando caminhos de documentos...")
-    paths_valid, problems = validate_document_paths()
-    
-    if not paths_valid:
-        logger.error("❌ Problemas encontrados nos caminhos:")
-        for problem in problems:
-            logger.error(f"   - {problem}")
-        logger.info("\n💡 Dica: Execute 'python setup.py' para configurar caminhos")
-        logger.info("💡 Ou crie os diretórios manualmente:")
-        logger.info(f"   mkdir -p {VAULT_DIR}")
-        for path in RAW_DOCS_DIRS:
-            logger.info(f"   mkdir -p {path}")
-        return None
-    
-    logger.info("   ✓ Todos os caminhos são válidos")
-    
-    # 2. Carregar documentos de múltiplas fontes
-    all_documents = []
-    
-    # Carregar de vault
-    vault_docs = load_documents_from_directory(
-        VAULT_DIR, 
-        f"vault ({VAULT_DIR})",
-        follow_symlinks=FOLLOW_SYMLINKS
-    )
-    all_documents.extend(vault_docs)
-    
-    # Carregar de raw_docs (pode ser múltiplos caminhos)
-    for i, raw_docs_dir in enumerate(RAW_DOCS_DIRS, 1):
-        dir_name = f"raw_docs_{i}" if len(RAW_DOCS_DIRS) > 1 else "raw_docs"
-        raw_docs = load_documents_from_directory(
-            raw_docs_dir,
-            f"{dir_name} ({raw_docs_dir})",
-            follow_symlinks=FOLLOW_SYMLINKS
-        )
-        all_documents.extend(raw_docs)
-    
-    # Verificar se há documentos para processar
-    if not all_documents:
-        logger.error("❌ Nenhum documento encontrado para indexar!")
-        logger.info(f"   Verifique os diretórios:")
-        logger.info(f"   - Vault: {VAULT_DIR}")
-        for i, path in enumerate(RAW_DOCS_DIRS, 1):
-            logger.info(f"   - Raw docs {i}: {path}")
-        logger.info(f"\n💡 Extensões permitidas: {', '.join(ALLOWED_EXTENSIONS)}")
-        return None
-    
-    logger.info(f"\n✅ Total: {len(all_documents)} documento(s) carregado(s)")
-    
-    # 2. Processar documentos com chunking inteligente
-    logger.info("\n" + "=" * 70)
-
-
 def scan_all_files() -> set[Path]:
     """
     Escaneia todos os arquivos nos diretórios configurados.
@@ -385,9 +318,14 @@ def update_history_with_hashes(
 
 
 
-def ingest_data() -> Optional[VectorStoreIndex]:
+def ingest_data(documents: Optional[list] = None) -> Optional[VectorStoreIndex]:
     """
-    Carrega documentos de caminhos configurados, gera embeddings e armazena no ChromaDB.
+    Carrega documentos e gera embeddings no ChromaDB.
+    
+    Args:
+        documents: Lista de documentos a processar. Se None, carrega todos os documentos
+                   dos diretórios configurados (modo full). Se fornecido, processa apenas
+                   esses documentos (modo incremental).
     
     O SimpleDirectoryReader suporta nativamente: .md, .pdf, .docx, .csv, .txt, etc.
     
@@ -398,16 +336,28 @@ def ingest_data() -> Optional[VectorStoreIndex]:
     logger.info("🚀 INICIANDO INGESTÃO DE DOCUMENTOS")
     logger.info("=" * 70)
     
-    # 1. Validar caminhos antes de começar
-    logger.info("\n🔍 Validando caminhos de documentos...")
-    validate_document_paths()
-    
-    # 2. Carregar todos os documentos
-    all_documents = load_all_documents()
-    
-    if all_documents is None or len(all_documents) == 0:
-        logger.error("\n❌ Nenhum documento encontrado para processar!")
-        return None
+    # Se documentos não fornecidos, carregar todos (modo full)
+    if documents is None:
+        logger.info("\n🔍 Modo FULL: Carregando todos os documentos...")
+        
+        # 1. Validar caminhos antes de começar
+        logger.info("\n   Validando caminhos de documentos...")
+        validate_document_paths()
+        
+        # 2. Carregar todos os documentos
+        all_documents = load_all_documents()
+        
+        if all_documents is None or len(all_documents) == 0:
+            logger.error("\n❌ Nenhum documento encontrado para processar!")
+            return None
+    else:
+        # Usar documentos fornecidos (modo incremental)
+        logger.info(f"\n📂 Modo INCREMENTAL: Usando {len(documents)} documento(s) fornecido(s)")
+        all_documents = documents
+        
+        if not all_documents:
+            logger.error("\n❌ Lista de documentos vazia!")
+            return None
     
     # 2. Processar documentos com chunking inteligente
     logger.info("\n" + "=" * 70)
@@ -610,11 +560,9 @@ def main():
                 logger.error("\n❌ Nenhum documento carregado!")
                 exit(1)
             
-            # Processar documentos (reutilizar lógica de ingest_data)
-            # TODO: Refatorar ingest_data() para aceitar documentos como parâmetro
-            # Por enquanto, usar ingest_data() completo
-            logger.warning("\n⚠️  Usando ingest_data() completo (refatoração pendente)")
-            index = ingest_data()
+            # Processar APENAS esses documentos (100% incremental)
+            logger.info("\n✅ Processando apenas arquivos modificados...")
+            index = ingest_data(documents=documents)
             
             # Atualizar histórico com hashes
             if index:
