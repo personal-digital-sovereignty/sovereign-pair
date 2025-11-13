@@ -1,7 +1,7 @@
 # Ingestão Incremental
 
-**Status**: MVP (Fase 2 de 5) - 100% Completo  
-**Versão**: 2.0  
+**Status**: MVP (Fase 3 de 5) - 100% Completo  
+**Versão**: 3.0  
 **Data**: 2026-02-16
 
 ---

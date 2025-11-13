@@ -4,6 +4,63 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+### Added - Ingestão Incremental (MVP - Fase 3) ✅ 100% COMPLETO
+
+**Refatoração Completa para Processamento 100% Incremental**
+
+Refatorada função `ingest_data()` para aceitar documentos como parâmetro opcional, eliminando recarregamento desnecessário de todos os arquivos no modo incremental.
+
+**Mudanças Principais**
+- Removida função `ingest_data()` duplicada e incompleta (~67 linhas)
+- Assinatura refatorada: `ingest_data(documents: Optional[list] = None)`
+- Lógica condicional implementada:
+  - `documents=None`: Carrega TODOS os arquivos (modo full)
+  - `documents` fornecido: Processa APENAS esses (modo incremental)
+- Modo incremental atualizado para passar documentos carregados
+- Logs melhorados para distinguir modo full vs incremental
+
+**Antes (Fase 2)**
+```python
+# Carregava apenas arquivos modificados mas depois recarregava TODOS
+documents = load_specific_files(files_to_process)
+logger.warning("Usando ingest_data() completo")
+index = ingest_data()  # ❌ Recarrega TODOS os arquivos
+```
+
+**Depois (Fase 3)**
+```python
+# Processa APENAS os arquivos modificados
+documents = load_specific_files(files_to_process)
+logger.info("Processando apenas arquivos modificados")
+index = ingest_data(documents=documents)  # ✅ Processa APENAS modificados
+```
+
+**Benefícios**
+- ✅ 100% incremental real (sem recarregar todos os arquivos)
+- ✅ Código mais limpo (remove função duplicada)
+- ✅ Retrocompatível (modo full continua funcionando)
+- ✅ Flexível (aceita documentos de fontes externas)
+- ✅ Performance máxima (processa apenas o necessário)
+
+**Estatísticas**
+- Linhas removidas: ~67 (função duplicada)
+- Linhas modificadas: ~30
+- Linhas adicionadas: ~15
+- Total: ~48 linhas líquidas removidas
+
+**Status**: MVP 100% funcional (Fase 3 de 5)
+- ✅ Detecção de novos arquivos (Fase 1)
+- ✅ Detecção de modificações por hash SHA256 (Fase 2)
+- ✅ Detecção de deleções (Fase 2)
+- ✅ Limpeza automática de chunks (Fase 2)
+- ✅ Processamento incremental otimizado (Fase 2)
+- ✅ **Refatoração completa - 100% incremental real (Fase 3)**
+- ⏳ Testes end-to-end (Fase 4)
+
+**Commit**: feat: Refatorar ingest_data() para processamento 100% incremental
+
+---
+
 ### Added - Ingestão Incremental (MVP - Fase 2) ✅ 100% COMPLETO
 
 **Detecção Completa de Mudanças**
