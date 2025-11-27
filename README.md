@@ -296,3 +296,21 @@ Sistema completo de ingestão incremental:
 **Versão**: 1.0  
 **Data**: 2026-02-16  
 **Status**: ✅ MVP Completo
+
+---
+
+## 📄 Licença e Uso Comercial
+
+Este projeto foi idealizado, arquitetado e desenvolvido com foco em soberania de dados, alta performance e excelência técnica. 
+
+O código-fonte está disponibilizado sob a licença **PolyForm Noncommercial 1.0.0**. 
+
+**O que isso significa na prática?**
+- ✅ **Livre para uso pessoal e comunidade:** Você é totalmente livre para clonar, estudar, modificar e utilizar este sistema em seus projetos pessoais, acadêmicos, no seu HomeLab ou em iniciativas estritamente sem fins lucrativos. A essência do conhecimento aberto está mantida.
+- ❌ **Proibido para uso comercial sem autorização:** É estritamente proibida a utilização, integração, cópia ou adaptação deste código (total ou parcial) em produtos comerciais, ambientes corporativos, serviços pagos, ou qualquer iniciativa que vise lucro, sem a aquisição prévia de uma **Licença Comercial Proprietária**.
+
+**Licenciamento Comercial**
+Se você representa uma empresa ou deseja integrar o *Sovereign Pair* em um produto comercial ou ambiente corporativo lucrativo, entre em contato diretamente com o autor e detentor dos direitos autorais para negociar os termos de licenciamento e royalties:
+📧 **Contato:** [jefersonlopes@proton.me]
+
+A propriedade intelectual da arquitetura, orquestração e código permanece com o autor original.
