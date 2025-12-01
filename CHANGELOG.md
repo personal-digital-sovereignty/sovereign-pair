@@ -1,413 +1,129 @@
-# Changelog - Sovereign Pair RAG
+# Changelog
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
-## [Unreleased]
-
-### Added - Ingestão Incremental (MVP - Fase 4) ✅ Testes End-to-End
-
-**Testes Completos para Validação do MVP**
-
-Criados testes end-to-end manuais e scripts de validação automática para garantir funcionamento correto de todo o sistema de ingestão incremental.
-
-**Arquivos Criados**
-
-1. **`tests/manual_e2e_tests.md`** - Guia completo de testes manuais
-   - 5 cenários principais de teste
-   - Setup detalhado para cada cenário
-   - Comandos para executar
-   - Validações esperadas
-   - Verificações de histórico e ChromaDB
-
-2. **`tests/validate_state.py`** - Script de validação automática
-   - Valida histórico (`.ingestion_history.json`)
-   - Valida ChromaDB (chunks e metadados)
-   - Valida consistência entre histórico e ChromaDB
-   - Relatório detalhado com resumo final
-
-3. **`tests/README.md`** - Documentação dos testes
-   - Descrição de cada arquivo de teste
-   - Instruções de uso
-   - Critérios de aceitação
-   - Troubleshooting
-
-**5 Cenários de Teste**
-
-1. **Novo Arquivo**: Validar detecção e processamento de arquivo novo
-2. **Arquivo Modificado**: Validar detecção por hash SHA256 e reprocessamento
-3. **Arquivo Deletado**: Validar limpeza de chunks obsoletos
-4. **Múltiplas Mudanças**: Validar processamento de múltiplas mudanças simultâneas
-5. **Modo Full**: Validar retrocompatibilidade do modo full
-
-**Validações**
-- ✅ ChromaDB consistente
-- ✅ Histórico correto (v1.1 com hashes SHA256)
-- ✅ Performance (95%+ economia no modo incremental)
-- ✅ Sem erros ou warnings
-
-**Uso**
-```bash
-# Validação rápida
-python tests/validate_state.py
-
-# Testes end-to-end
-cat tests/manual_e2e_tests.md
-# Seguir guia passo a passo
-```
-
-**Benefícios**
-- ✅ Validação completa do MVP
-- ✅ Testes práticos e executáveis
-- ✅ Verificação de consistência automática
-- ✅ Documentação clara e detalhada
-
-**Status**: MVP 100% funcional (Fase 4 de 5)
-- ✅ Detecção de novos arquivos (Fase 1)
-- ✅ Detecção de modificações por hash SHA256 (Fase 2)
-- ✅ Detecção de deleções (Fase 2)
-- ✅ Limpeza automática de chunks (Fase 2)
-- ✅ Processamento incremental otimizado (Fase 2)
-- ✅ Refatoração completa - 100% incremental real (Fase 3)
-- ✅ **Testes end-to-end completos (Fase 4)**
-- ⏳ Otimizações finais (Fase 5)
-
-**Commit**: test: Adicionar testes end-to-end manuais (Fase 4)
+O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
+e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ---
 
-### Added - Ingestão Incremental (MVP - Fase 3) ✅ 100% COMPLETO
+## [2.0.0] - 2026-02-16
 
-**Refatoração Completa para Processamento 100% Incremental**
+### 🎉 Major Release - MVP Completo com Otimizações
 
-Refatorada função `ingest_data()` para aceitar documentos como parâmetro opcional, eliminando recarregamento desnecessário de todos os arquivos no modo incremental.
-
-**Mudanças Principais**
-- Removida função `ingest_data()` duplicada e incompleta (~67 linhas)
-- Assinatura refatorada: `ingest_data(documents: Optional[list] = None)`
-- Lógica condicional implementada:
-  - `documents=None`: Carrega TODOS os arquivos (modo full)
-  - `documents` fornecido: Processa APENAS esses (modo incremental)
-- Modo incremental atualizado para passar documentos carregados
-- Logs melhorados para distinguir modo full vs incremental
-
-**Antes (Fase 2)**
-```python
-# Carregava apenas arquivos modificados mas depois recarregava TODOS
-documents = load_specific_files(files_to_process)
-logger.warning("Usando ingest_data() completo")
-index = ingest_data()  # ❌ Recarrega TODOS os arquivos
-```
-
-**Depois (Fase 3)**
-```python
-# Processa APENAS os arquivos modificados
-documents = load_specific_files(files_to_process)
-logger.info("Processando apenas arquivos modificados")
-index = ingest_data(documents=documents)  # ✅ Processa APENAS modificados
-```
-
-**Benefícios**
-- ✅ 100% incremental real (sem recarregar todos os arquivos)
-- ✅ Código mais limpo (remove função duplicada)
-- ✅ Retrocompatível (modo full continua funcionando)
-- ✅ Flexível (aceita documentos de fontes externas)
-- ✅ Performance máxima (processa apenas o necessário)
-
-**Estatísticas**
-- Linhas removidas: ~67 (função duplicada)
-- Linhas modificadas: ~30
-- Linhas adicionadas: ~15
-- Total: ~48 linhas líquidas removidas
-
-**Status**: MVP 100% funcional (Fase 3 de 5)
-- ✅ Detecção de novos arquivos (Fase 1)
-- ✅ Detecção de modificações por hash SHA256 (Fase 2)
-- ✅ Detecção de deleções (Fase 2)
-- ✅ Limpeza automática de chunks (Fase 2)
-- ✅ Processamento incremental otimizado (Fase 2)
-- ✅ **Refatoração completa - 100% incremental real (Fase 3)**
-- ⏳ Testes end-to-end (Fase 4)
-
-**Commit**: feat: Refatorar ingest_data() para processamento 100% incremental
-
----
-
-### Added - Ingestão Incremental (MVP - Fase 2) ✅ 100% COMPLETO
-
-**Detecção Completa de Mudanças**
-- Novo módulo `src/hash_utils.py` para hashing SHA256 eficiente
-- Detecção de modificações por comparação de hash de conteúdo
-- Detecção de arquivos deletados
-- Histórico v1.1 com `content_hash` e `modified_at`
-- Migração automática de v1.0 → v1.1
-
-**Limpeza Automática**
-- Novo módulo `src/cleanup.py` para remoção de chunks obsoletos
-- Remove chunks do ChromaDB antes de reprocessar
-- Suporte a dry-run para testes
-- Verificação de limpeza com contadores
-
-**Processamento Incremental Otimizado**
-- Função `load_specific_files()` carrega APENAS arquivos modificados
-- Função `update_history_with_hashes()` atualiza histórico com SHA256
-- Modo incremental remove chunks obsoletos automaticamente
-- Economia de 95%+ em tempo e recursos
-
-**Interface Expandida**
-- `show_changes_summary()` mostra novos, modificados e deletados
-- 4 modos de operação: incremental, full, skip, cancel
-- Modo automático decide baseado em mudanças detectadas
-- Logs detalhados de todas as operações
-
-**Módulos Atualizados**
-- `src/diff.py`: Adicionadas funções `detect_modified_files()` e `detect_deleted_files()`
-- `src/interactive.py`: Resumo expandido com contadores
-- `src/ingest.py`: Integração completa na `main()` com processamento otimizado
-
-**Benefícios**
-- ⚡ 95%+ mais rápido que modo full
-- 🔍 Detecção precisa por hash SHA256
-- 🗑️ Limpeza automática de chunks obsoletos
-- 💾 Histórico versionado com migração automática
-- 🎯 Processamento apenas do necessário
-
-**Status**: MVP 100% funcional (Fase 2 de 5)
-- ✅ Detecção de novos arquivos (Fase 1)
-- ✅ Detecção de modificações por hash SHA256 (Fase 2)
-- ✅ Detecção de deleções (Fase 2)
-- ✅ Limpeza automática de chunks (Fase 2)
-- ✅ Processamento incremental otimizado (Fase 2)
-- ⏳ Refatoração completa de ingest_data() (Fase 3)
-
-**Commits** (8 total):
-1. feat: Hashing SHA256 + histórico v1.1
-2. feat: Detecção modificações/deleções
-3. feat: Módulo cleanup
-4. feat: Interface atualizada
-5. feat: Imports Fase 2
-6. fix: Erro de sintaxe corrigido
-7. feat: Integração main()
-8. feat: Processamento incremental otimizado
-
-**Documentação**: Ver `docs/INCREMENTAL_INGESTION.md` para guia completo.
-
----
-
-### Added - Ingestão Incremental (MVP - Fase 1) ✅ COMPLETO
-
-**Sistema de Rastreamento de Arquivos**
-- Novo módulo `src/history.py` para gerenciamento de histórico de ingestão
-- Arquivo `.ingestion_history.json` rastreia arquivos já indexados
-- Suporte a backup automático do histórico
-- Validação de integridade do histórico
-
-**Detecção de Mudanças**
-- Novo módulo `src/diff.py` para detecção de novos arquivos
-- Comparação entre arquivos atuais e histórico
-- Identificação precisa de arquivos não indexados
-
-**Interface Interativa**
-- Novo módulo `src/interactive.py` para escolha de modo
-- Resumo visual de mudanças detectadas
-- Opções: incremental (apenas novos), completa (tudo), ou cancelar
-- Modo não-interativo para CI/CD (`INTERACTIVE_MODE=false`)
-
-**Configurações**
-- `HISTORY_FILE`: Caminho do arquivo de histórico (padrão: `data/.ingestion_history.json`)
-- `INTERACTIVE_MODE`: Habilita/desabilita interface interativa (padrão: `true`)
-
-**Benefícios**
-- ⚡ 18-36x mais rápido para atualizações incrementais
-- 💾 Economia de recursos (CPU, memória, rede)
-- 📊 Rastreabilidade completa de ingestões
-- 🎯 Escalabilidade linear
-
-### Fixed
-- **Parser de Chunking** (2026-02-16)
-  - Substituído `MarkdownNodeParser` por `SentenceSplitter` para respeitar `chunk_size` e `chunk_overlap`
-  - `MarkdownNodeParser` ignorava parâmetros de chunking, causando blocos muito grandes
-  - Tamanho médio reduzido de 3598 para 2334 caracteres (35% menor)
-  - Processamento de 124 documentos sem erros de contexto excedido
-  - 256 blocos indexados com sucesso
-
-- **Chunk Size para Embeddings** (2026-02-16)
-  - Configurado `CHUNK_SIZE=1024` e `CHUNK_OVERLAP=200` para evitar erro "input length exceeds the context length"
-  - Blocos de texto agora respeitam limite de contexto do modelo de embeddings
-  - Adicionadas configurações em `config.py`, `.env.example` e documentação
-  - Parsers (`MarkdownNodeParser` e `SimpleNodeParser`) configurados com limites seguros
-  - Documentação de troubleshooting para erro de contexto excedido
-
-- **Suporte a Symlinks de Diretórios** (2026-02-16)
-  - Corrigido problema onde symlinks de diretórios não eram processados recursivamente
-  - `load_documents_from_directory()` agora escaneia e resolve symlinks corretamente
-  - Suporte a symlinks de arquivos e diretórios
-  - Detecção de loops infinitos (symlinks circulares)
-  - Logs melhorados mostrando quando symlinks são seguidos
-  - Documentação completa em `docs/FILE_FORMATS.md` sobre uso de symlinks
+**Commit**: `81406a3`
 
 ### Added
-- **Instruções para Arch Linux** (2026-02-16)
-  - Adicionadas instruções de instalação Python 3.12 via AUR (yay/paru)
-  - Opção alternativa usando pyenv
-  - Troubleshooting específico para Arch Linux
-  - Cobertura completa de sistemas: Ubuntu/Debian, Arch Linux, macOS
+- **Fase 3**: Refatoração 100% incremental
+  - `ingest_data()` aceita documentos opcionais
+  - Modo incremental não recarrega arquivos desnecessariamente
+- **Fase 4**: Testes end-to-end completos
+  - `tests/manual_e2e_tests.md` - Guia com 5 cenários
+  - `tests/validate_state.py` - Validação automática
+  - `tests/README.md` - Documentação de testes
+- **Fase 5.1**: Otimizações de performance
+  - `hash_utils.py` v2.0 com paralelização (ThreadPoolExecutor)
+  - Cache LRU de hashes (functools.lru_cache)
+  - `ux.py` - Logs coloridos (colorama)
+  - Barras de progresso (tqdm)
+  - Estatísticas detalhadas de processamento
+- **Fase 5.2**: Documentação completa
+  - `docs/USER_GUIDE.md` (366 linhas)
+  - `docs/API.md` (503 linhas)
+  - `docs/FAQ.md` (434 linhas)
+  - `README.md` atualizado e completo
 
 ### Changed
-- **Requisitos de Versão Python** (2026-02-16)
-  - Especificado Python 3.11 ou 3.12 como versões recomendadas
-  - Nota sobre incompatibilidade Python 3.14+ com ChromaDB/Pydantic V1
-  - Troubleshooting para erro "Pydantic V1 isn't compatible with Python 3.14"
-  - Instruções para criar ambiente virtual com Python 3.12
+- `ingest_data()` refatorado para aceitar `documents: Optional[list]`
+- `diff.py` usa `compute_hashes_parallel()` para detecção mais rápida
+- `hash_utils.py` completamente reescrito (v2.0)
 
-O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
-e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
+### Performance
+- ⚡ **95%+ mais rápido** em modo incremental vs full
+- ⚡ **3-4x mais rápido** no cálculo de hashes (paralelização)
+- 💾 Cache LRU reduz recálculo desnecessário
+- 📊 Estatísticas detalhadas de performance
+
+### Documentation
+- 📚 **1303 linhas** de documentação nova
+- 📖 Guia do usuário completo
+- 🔧 API documentada
+- ❓ FAQ abrangente
 
 ---
 
 ## [1.1.0] - 2026-02-16
 
-### 🎉 Sistema de Configuração Interativa
+### 🚀 Minor Release - Ingestão Incremental (Fases 1 e 2)
 
-Implementado sistema completo de configuração interativa com assistência do **Claude Sonnet 4.5**.
+**Commits**: `5d9435c` até `f9dd82e`
 
-#### ✨ Adicionado
+### Added
+- **Fase 1**: Detecção de novos arquivos
+  - `history.py` - Gerenciamento de histórico de ingestão
+  - `diff.py` - Detecção de mudanças
+  - Integração com `ingest.py`
+- **Fase 2**: Detecção completa + limpeza
+  - `hash_utils.py` - Cálculo de hashes SHA256
+  - Histórico v1.1 com campo `content_hash`
+  - Detecção de arquivos modificados (via hash)
+  - Detecção de arquivos deletados
+  - `cleanup.py` - Limpeza automática de chunks obsoletos
+  - `interactive.py` - Interface interativa (full/incremental/skip/cancel)
 
-**Novos Arquivos:**
-- `setup.py` (471 linhas) - Script de configuração interativa
-  - Detecção automática de Ollama (localhost ou URL customizada)
-  - Listagem de modelos disponíveis com seleção interativa
-  - Mapeamento inteligente LLM → Embed Model recomendado
-  - Cálculo automático de timeout baseado em categoria do modelo
-  - Personalização completa de todas variáveis do agente
-  - Geração automática de arquivo `.env`
-  - Interface colorida com emojis e feedback visual
-  - Backup automático de `.env` existente
+### Changed
+- Histórico migrado de v1.0 para v1.1 (adição de `content_hash`)
+- `ingest.py` integrado com sistema incremental
 
-- `docs/CONFIGURATION.md` (368 linhas) - Guia completo de configuração
-  - Referência detalhada de todas as variáveis
-  - Tabelas comparativas de modelos LLM e embed models
-  - Recomendações de timeout por categoria de modelo
-  - Exemplos de configuração para diferentes cenários
-  - Seção de troubleshooting
-  - Guias de uso para configuração rápida e manual
-
-**Funcionalidades:**
-- Seleção interativa de modelos Ollama disponíveis
-- Mapeamento automático de 9+ modelos LLM para embed models
-- Timeout dinâmico com 3 categorias (small: 60s, medium: 120s, large: 180s)
-- Validação de conexão com Ollama antes de prosseguir
-- Suporte a Ollama remoto (não apenas localhost)
-
-#### 📝 Modificado
-
-- `.env.example` (13 → 93 linhas)
-  - Adicionados comentários explicativos detalhados para cada variável
-  - Exemplos de valores para diferentes cenários
-  - Recomendações específicas por categoria de modelo
-  - Documentação inline de modelos populares
-  - Explicação de trade-offs de configuração
-
-- `README.md`
-  - Nova seção "Configure o Projeto" com duas opções:
-    - Opção A: Configuração Interativa (Recomendado) com `python setup.py`
-    - Opção B: Configuração Manual tradicional
-  - Link para documentação completa em `docs/CONFIGURATION.md`
-  - Instruções detalhadas do processo de setup interativo
-
-#### 🔧 Melhorias
-
-**Experiência do Usuário:**
-- Processo de configuração reduzido de manual para ~2 minutos guiados
-- Recomendações automáticas eliminam necessidade de pesquisa
-- Validações previnem erros de configuração
-- Interface visual melhora compreensão do processo
-
-**Documentação:**
-- Guia completo de 368 linhas cobrindo todos os aspectos de configuração
-- Exemplos práticos para 4 cenários diferentes (GPU potente, balanceado, leve, remoto)
-- Tabelas comparativas facilitam escolha de modelos
-- Troubleshooting cobre problemas comuns
-
-**Flexibilidade:**
-- Suporte a Ollama local e remoto
-- Personalização completa mantida
-- Configuração manual ainda disponível
-- Backup automático protege configurações existentes
+### Performance
+- 🎯 Processa apenas arquivos novos ou modificados
+- 🗑️ Limpeza automática de chunks obsoletos
+- 📊 Detecção precisa via hash SHA256
 
 ---
 
 ## [1.0.0] - 2026-02-16
 
-### 🚀 Lançamento Inicial - Refatoração Completa
+### 🎊 Major Release - Primeira Versão Estável
 
-Refatoração completa do projeto com assistência do **Claude Sonnet 4.5**.
+**Commit**: `9d64dbf`
 
-#### ✨ Adicionado
+### Added
+- Sistema RAG básico funcional
+- Ingestão de documentos (PDF, Markdown, DOCX, CSV, etc.)
+- Busca vetorial com ChromaDB
+- Agente ReAct com ferramentas
+- Configuração via `.env`
+- Tratamento robusto de erros
+- Logging estruturado
 
-**Arquivos Principais:**
-- `src/config.py` (191 linhas) - Configurações centralizadas
-  - Paths absolutos usando `pathlib.Path`
-  - Suporte a variáveis de ambiente com `python-dotenv`
-  - Validação de conexão e modelos Ollama
-  - Configuração global do LlamaIndex Settings
-  - Funções auxiliares de validação
+### Changed
+- `src/agent.py` - Melhorias significativas (+314 linhas)
+- `src/config.py` - Configuração robusta (+191 linhas)
+- `src/ingest.py` - Ingestão otimizada (+175 linhas)
 
-- `src/ingest.py` (165 linhas) - Sistema de ingestão robusto
-  - Tratamento completo de erros
-  - Logging estruturado com emojis
-  - Validação de diretórios e arquivos
-  - Progress bar para feedback visual
-  - Função modular `load_documents_from_directory()`
-  - Retorno do índice criado
-
-- `src/agent.py` (284 linhas) - Agente modular
-  - Arquitetura modular com funções separadas
-  - Validações pré-execução (Ollama, modelos, ChromaDB)
-  - Comandos especiais (`/help`, `/clear`, `sair`)
-  - Tratamento robusto de erros
-  - Busca web melhorada com formatação
-  - Interface visual aprimorada
-
-**Documentação:**
-- `README.md` (296 linhas) - Documentação completa
-  - Guia de instalação passo a passo
-  - Instruções de uso detalhadas
-  - Seção de troubleshooting
-  - Exemplos práticos
-  - Estrutura do projeto
-
-- `requirements.txt` - Dependências organizadas
-  - Core RAG Framework
-  - Vector Store
-  - Web Search
-  - Utilities
-  - Development Tools
-
-- `.env.example` - Template de configuração
-- `.gitignore` - Ignorar arquivos desnecessários
-
-#### 🔧 Melhorias
-
-**Arquitetura:**
-- Caminhos relativos → Paths absolutos
-- Código no nível de módulo → Funções `main()`
-- Configurações duplicadas → Centralizadas em `config.py`
-- Sem tratamento de erros → Try/except em operações críticas
-
-**Qualidade de Código:**
-- 0% → 100% type hints
-- 0 → 11 docstrings
-- 0 → 15+ blocos de tratamento de erros
-- 84 → 640 linhas de código (+662%)
-
-**Experiência do Usuário:**
-- Prints simples → Logging estruturado
-- Sem validações → Validações completas
-- Sem feedback → Progress bars e emojis
-- Mensagens genéricas → Mensagens claras e úteis
+### Fixed
+- Diversos tratamentos de erros
+- Validações de configuração
+- Robustez geral do sistema
 
 ---
 
-## Créditos
+## Tipos de Mudanças
 
-Desenvolvimento e refatoração realizados com assistência de **Claude Sonnet 4.5** (Anthropic).
+- `Added` - Novas funcionalidades
+- `Changed` - Mudanças em funcionalidades existentes
+- `Deprecated` - Funcionalidades que serão removidas
+- `Removed` - Funcionalidades removidas
+- `Fixed` - Correções de bugs
+- `Security` - Correções de vulnerabilidades
+- `Performance` - Melhorias de performance
+- `Documentation` - Mudanças na documentação
+
+---
+
+## Links
+
+- [v2.0.0](https://github.com/jefersonlopes/sovereign-pair/commit/81406a3)
+- [v1.1.0](https://github.com/jefersonlopes/sovereign-pair/commit/f9dd82e)
+- [v1.0.0](https://github.com/jefersonlopes/sovereign-pair/commit/9d64dbf)

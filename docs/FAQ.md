@@ -1,6 +1,6 @@
 # FAQ - Perguntas Frequentes
 
-**Versão**: 1.0  
+**Versão**: 2.0.0  
 **Data**: 2026-02-16
 
 ---
@@ -431,4 +431,4 @@ cd projeto2 && python ../src/ingest.py
 
 **Autor**: Jeferson Lopes  
 **Data**: 2026-02-16  
-**Versão**: 1.0
+**Versão**: 2.0.0

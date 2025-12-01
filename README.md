@@ -293,7 +293,7 @@ Sistema completo de ingestão incremental:
 
 ---
 
-**Versão**: 1.0  
+**Versão**: 2.0.0  
 **Data**: 2026-02-16  
 **Status**: ✅ MVP Completo
 
