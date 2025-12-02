@@ -162,3 +162,4 @@ logs/
 *.tmp
 *.temp
 .cache/
+.git.backup/
