@@ -264,17 +264,13 @@ Contribuições são bem-vindas! Por favor:
 
 ---
 
-## 📝 Licença
+## 👨💻 Autor
+**Autoria, idealização, arquitetura, planejamento, desenvolvimento e documentação:**
+- *Jeferson Lopes*
 
-[Adicionar licença aqui]
-
----
-
-## 👨‍💻 Autor
-
-**Jeferson Lopes**
-
-Co-desenvolvido com assistência de **Claude Sonnet 4.5** (Anthropic)
+**Co-desenvolvido com assistência:**
+- *Google Gemini 3 Pro (Google)*
+- *Claude Sonnet 4.5 (Anthropic)*
 
 ---
 
@@ -299,7 +295,10 @@ Sistema completo de ingestão incremental:
 
 ---
 
-## 📄 Licença e Uso Comercial
+## 📝 Licença
+[**PolyForm Noncommercial License 1.0.0**](https://polyformproject.org/licenses/noncommercial/1.0.0)
+
+### 📄 Licença e Uso Comercial
 
 Este projeto foi idealizado, arquitetado e desenvolvido com foco em soberania de dados, alta performance e excelência técnica. 
 

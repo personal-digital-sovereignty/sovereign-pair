@@ -124,6 +124,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## Links
 
-- [v2.0.0](https://github.com/jefersonlopes/sovereign-pair/commit/81406a3)
-- [v1.1.0](https://github.com/jefersonlopes/sovereign-pair/commit/f9dd82e)
-- [v1.0.0](https://github.com/jefersonlopes/sovereign-pair/commit/9d64dbf)
+| Version | URL |
+|---------|-----|
+| [2.0.0](https://github.com/Personal-Digital-Sovereignty/sovereign-pair/commit/2d97e65) | https://github.com/Personal-Digital-Sovereignty/sovereign-pair/releases/tag/v2.0.0 |
+| [1.1.0](https://github.com/Personal-Digital-Sovereignty/sovereign-pair/commit/8a3046d) | https://github.com/Personal-Digital-Sovereignty/sovereign-pair/releases/tag/v1.1.0 |
+| [1.0.0](https://github.com/Personal-Digital-Sovereignty/sovereign-pair/commit/9d64dbf) | https://github.com/Personal-Digital-Sovereignty/sovereign-pair/releases/tag/v1.0.0 |
