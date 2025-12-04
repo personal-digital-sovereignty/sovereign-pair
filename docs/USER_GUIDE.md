@@ -96,6 +96,8 @@ mkdir -p data/vault data/chroma_db docs
 cp ~/meus-docs/*.md docs/
 ```
 
+> **Nota**: Para processar arquivos `.docx`, certifique-se de instalar `docx2txt` (`pip install docx2txt` ou via `requirements.txt`).
+
 ---
 
 ## Uso Básico

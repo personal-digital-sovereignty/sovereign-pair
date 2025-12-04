@@ -183,41 +183,6 @@ def scan_all_files() -> set[Path]:
     return all_files
 
 
-def scan_all_files() -> set[Path]:
-    """
-    Escaneia todos os arquivos nos diretórios configurados.
-    
-    Retorna conjunto de Paths absolutos de todos os arquivos encontrados,
-    sem carregá-los. Usado para detecção de mudanças na ingestão incremental.
-    
-    Returns:
-        Conjunto de Paths absolutos de todos os arquivos
-    """
-    all_files = set()
-    
-    # Escanear vault
-    if VAULT_DIR.exists():
-        for ext in ALLOWED_EXTENSIONS:
-            all_files.update(VAULT_DIR.rglob(f"*{ext}"))
-    
-    # Escanear raw_docs (pode ser múltiplos caminhos)
-    for raw_docs_dir in RAW_DOCS_DIRS:
-        if raw_docs_dir.exists():
-            for ext in ALLOWED_EXTENSIONS:
-                all_files.update(raw_docs_dir.rglob(f"*{ext}"))
-    
-    # Resolver symlinks se configurado
-    if FOLLOW_SYMLINKS:
-        resolved_files = set()
-        for file_path in all_files:
-            try:
-                resolved = file_path.resolve(strict=True)
-                resolved_files.add(resolved)
-            except (OSError, RuntimeError):
-                logger.warning(f"⚠️  Ignorando arquivo com erro: {file_path}")
-        return resolved_files
-    
-    return all_files
 
 
 def load_specific_files(file_paths: set[Path]) -> list:
@@ -248,6 +213,30 @@ def load_specific_files(file_paths: set[Path]) -> list:
     
     logger.info(f"✅ {len(documents)} documento(s) carregado(s)")
     return documents
+
+
+def load_all_documents() -> list:
+    """
+    Carrega todos os documentos dos diretórios configurados.
+    
+    Returns:
+        Lista de documentos carregados
+    """
+    all_docs = []
+    
+    # Carregar do Vault
+    if VAULT_DIR.exists():
+        docs = load_documents_from_directory(VAULT_DIR, "Vault", FOLLOW_SYMLINKS)
+        all_docs.extend(docs)
+    
+    # Carregar de raw_docs
+    for i, raw_dir in enumerate(RAW_DOCS_DIRS):
+        if raw_dir.exists():
+            dir_name = f"Raw Docs {i+1}" if len(RAW_DOCS_DIRS) > 1 else "Raw Docs"
+            docs = load_documents_from_directory(raw_dir, dir_name, FOLLOW_SYMLINKS)
+            all_docs.extend(docs)
+            
+    return all_docs
 
 
 def update_history_with_hashes(
@@ -536,7 +525,39 @@ def main():
             # Modo full: limpar histórico e processar tudo
             logger.info("\n🔄 MODO FULL: Processando todos os arquivos...")
             history.clear()
+            
+            # Precisamos dos documentos para saber o que salvar no histórico
+            # Como ingest_data() no modo full carrega tudo internamente,
+            # vamos usar current_files (que já foi escaneado) para popular o histórico
             index = ingest_data()
+            
+            if index:
+                 # Popular histórico com os arquivos atuais
+                 # Nota: Em modo full, assumimos que tudo em current_files foi processado com sucesso
+                 # O ideal seria ingest_data retornar a lista de processados, mas vamos usar current_files
+                 logger.info("\n💾 Salvando estado inicial do histórico...")
+                 
+                 # Preparar dados para o histórico (hash será calculado na próxima execução incremental ou agora?)
+                 # Para simplificar e não recalcular tudo agora (seria lento), vamos salvar sem hash/mtime detalhado
+                 # ou melhor: vamos iterar e salvar corretamente.
+                 
+                 files_data = {}
+                 for file_path in current_files:
+                     # Recalcular hash/mtime para ter base sólida
+                     if file_path.exists():
+                         from hash_utils import compute_file_hash
+                         hash_value = compute_file_hash(file_path)
+                         mtime = file_path.stat().st_mtime
+                         files_data[file_path] = {
+                             'chunks': 0, # Desconhecido por enquanto, não crítico
+                             'hash': hash_value,
+                             'mtime': mtime
+                         }
+                 
+                 if files_data:
+                     history.add_files(files_data)
+                     history.save()
+                     logger.info(f"   ✓ Histórico inicializado com {len(files_data)} arquivos")
         
         else:  # mode == "incremental"
             # Modo incremental: processar apenas mudanças
@@ -570,7 +591,11 @@ def main():
         
         # Verificar resultado
         if index is None:
-            logger.error("\n⚠️  Ingestão falhou. Verifique os logs acima.")
+            logger.error("\n⚠️  Ingestão falhou ou foi parcial. Verifique os logs acima.")
+            # Salvar histórico mesmo em caso de falha parcial para evitar reprocessamento do que deu certo
+            if history and history.data['files']:
+                 history.save()
+                 logger.info("   💾 Histórico parcial salvo.")
             exit(1)
         else:
             logger.info("\n🎉 Ingestão concluída com sucesso!")
@@ -579,10 +604,17 @@ def main():
             
     except KeyboardInterrupt:
         logger.info("\n\n⚠️  Ingestão cancelada pelo usuário.")
+        if history:
+             history.save()
+             logger.info("   💾 Histórico salvo até o momento do cancelamento.")
         exit(130)
     except Exception as e:
         logger.error(f"\n❌ Erro inesperado: {e}")
         logger.exception("Detalhes:")
+        # Tentar salvar histórico do que já foi feito
+        if 'history' in locals() and history:
+             history.save()
+             logger.info("   💾 Histórico parcial salvo antes de sair.")
         exit(1)
 
 

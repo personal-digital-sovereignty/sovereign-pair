@@ -22,7 +22,12 @@ load_dotenv()
 # ============================================================================
 
 # Diretório base do projeto (pasta pai de src/)
-BASE_DIR = Path(__file__).parent.parent.resolve()
+# Diretório base do projeto (pasta pai de src/)
+# Tenta resolver via __file__ (confiável quando importado) ou sys.argv[0] (quando executado)
+try:
+    BASE_DIR = Path(__file__).parent.parent.resolve()
+except NameError:
+    BASE_DIR = Path.cwd()
 
 # Diretório de dados base
 DATA_DIR = BASE_DIR / "data"

@@ -19,6 +19,9 @@ duckduckgo-search>=4.0.0
 python-dotenv>=1.0.0
 requests>=2.31.0
 
+# Document Formats
+docx2txt>=0.8
+
 # Progress Bar (para ingest.py)
 tqdm>=4.66.0
 

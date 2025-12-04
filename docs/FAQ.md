@@ -273,6 +273,17 @@ python tests/validate_state.py
    python src/ingest.py  # modo full
    ```
 
+### Erro "docx2txt is required" - Como resolver?
+
+**Causa**: Falta a biblioteca necessária para processar arquivos `.docx` (Microsoft Word).
+
+**Solução**:
+```bash
+pip install docx2txt
+# ou
+pip install -r requirements.txt
+```
+
 ### Erro "Permission denied" - O que fazer?
 
 **Causa**: Sem permissão para ler arquivo ou escrever no ChromaDB
