@@ -4,12 +4,34 @@ Agente de Pair Programming Sovereign Pair.
 Este módulo implementa um agente ReAct que pode escolher entre:
 - Buscar informações nos arquivos locais (RAG)
 - Buscar informações atualizadas na internet (DuckDuckGo)
+
+NOTA: Atualizado para suportar LlamaIndex Workflows (v0.14+).
 """
 
 import logging
 import sys
+import asyncio
+import warnings
+
+# Suprimir avisos deprecados do Pydantic e renomeação do DDGS
+warnings.filterwarnings("ignore", message=".*model_fields.*")
+warnings.filterwarnings("ignore", message=".*__fields__.*")
+warnings.filterwarnings("ignore", message=".*model_computed_fields.*")
+warnings.filterwarnings("ignore", message=".*renamed to.*ddgs.*")  # Ignora aviso de rename do duckduckgo
+warnings.filterwarnings("ignore", category=RuntimeWarning, module="duckduckgo_search")
+warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic")
+
+try:
+    from pydantic.warnings import PydanticDeprecatedSince20, PydanticDeprecatedSince211
+    warnings.filterwarnings("ignore", category=PydanticDeprecatedSince20)
+    warnings.filterwarnings("ignore", category=PydanticDeprecatedSince211)
+except ImportError:
+    pass
+
 import chromadb
 from typing import Optional
+
 from llama_index.core import VectorStoreIndex
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core.tools import QueryEngineTool, ToolMetadata, FunctionTool
@@ -61,7 +83,8 @@ def initialize_rag_tool() -> Optional[QueryEngineTool]:
         )
         
         # Criar query engine
-        local_query_engine = index.as_query_engine(llm=llm, similarity_top_k=5)
+        # Aumentamos similarity_top_k para 10 para garantir mais contexto ao LLM
+        local_query_engine = index.as_query_engine(llm=llm, similarity_top_k=10)
         
         # Criar ferramenta
         local_tool = QueryEngineTool(
@@ -69,10 +92,10 @@ def initialize_rag_tool() -> Optional[QueryEngineTool]:
             metadata=ToolMetadata(
                 name="arquivos_pessoais",
                 description=(
-                    "Útil para buscar informações nos arquivos locais do usuário, "
-                    "incluindo PDFs, anotações em Markdown, documentações pessoais, "
-                    "e qualquer conteúdo que foi previamente indexado. "
-                    "Use esta ferramenta para perguntas sobre documentos pessoais."
+                    "FERRAMENTA MESTRA: Contém TODO o conhecimento sobre o usuário (projetos, blogs, anotações). "
+                    "Use-a OBRIGATORIAMENTE para perguntas que contenham 'meus arquivos', 'meu blog', 'meu projeto' ou nomes específicos. "
+                    "Se o usuário pedir 'sobre Uninove', 'sobre ArchLinux', procure AQUI primeiro. "
+                    "Nunca assuma que a resposta não existe sem verificar esta ferramenta."
                 ),
             ),
         )
@@ -99,8 +122,11 @@ def search_web(query: str) -> str:
     try:
         logger.debug(f"🌐 Buscando na web: {query}")
         
-        with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=MAX_WEB_SEARCH_RESULTS))
+        # Suprimir warnings durante a execução da busca também
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            with DDGS() as ddgs:
+                results = list(ddgs.text(query, max_results=MAX_WEB_SEARCH_RESULTS))
         
         if not results:
             return "Nenhum resultado encontrado na busca web."
@@ -134,10 +160,9 @@ def initialize_web_tool() -> FunctionTool:
         fn=search_web,
         name="busca_internet",
         description=(
-            "Útil para buscar informações atualizadas na internet. "
-            "Use esta ferramenta para perguntas sobre eventos atuais, "
-            "notícias, informações que mudam frequentemente, ou qualquer "
-            "coisa que não esteja nos arquivos locais do usuário."
+            "Útil APENAS para fatos globais recentes, notícias ou tecnologias gerais "
+            "que NÃO são sobre a vida pessoal do usuário. "
+            "NÃO use esta ferramenta se o usuário perguntar 'o que eu acho', 'meu projeto' ou 'meu arquivo'."
         ),
     )
     
@@ -179,8 +204,8 @@ def print_help():
     print("=" * 70 + "\n")
 
 
-def main():
-    """Função principal do agente."""
+async def main():
+    """Função principal do agente (Assíncrona)."""
     try:
         # Validar conexão com Ollama
         logger.info("🔍 Validando conexão com Ollama...")
@@ -203,6 +228,8 @@ def main():
         logger.info("   ✓ Ollama configurado corretamente")
         
         # Inicializar ferramentas
+        # Note: initialize_rag_tool pode demorar, mas é síncrono.
+        # Em produção, poderíamos executar em thread separada, mas ok por agora.
         local_tool = initialize_rag_tool()
         web_tool = initialize_web_tool()
         
@@ -219,12 +246,26 @@ def main():
             sys.exit(1)
         
         # Inicializar agente
-        logger.info("🤖 Inicializando agente ReAct...")
-        agent = ReActAgent.from_tools(
-            tools,
+        logger.info("🤖 Inicializando agente ReAct (Workflow)...")
+        
+        # Contexto do agente para forçar comportamento
+        system_context = (
+            f"Você é o Sovereign Pair, um assistente pessoal de {USER_NAME}. "
+            "Sua PRINCIPAL fonte de verdade são os ARQUIVOS LOCAIS (ferramenta 'arquivos_pessoais'). "
+            "Sempre que o usuário perguntar sobre 'meu projeto', 'minha anotação', 'meu blog' ou assuntos específicos "
+            "como 'Uninove', 'ArchLinux', 'Jandirense', VOCÊ DEVE USAR A FERRAMENTA DE ARQUIVOS LOCAIS. "
+            "Só use a busca na internet se o usuário pedir explicitamente ou se for um assunto de conhecimento geral "
+            "que não teria razão para estar nos arquivos pessoais. "
+            "Seja direto e cite os arquivos de onde tirou a informação."
+        )
+
+        # Usar construtor direto para Workflow Agent
+        agent = ReActAgent(
+            tools=tools,
             llm=llm,
             verbose=AGENT_VERBOSE,
             max_iterations=10,
+            context=system_context
         )
         logger.info("   ✓ Agente inicializado com sucesso")
         
@@ -234,7 +275,9 @@ def main():
         # Loop principal de conversação
         while True:
             try:
-                # Solicitar input do usuário
+                # Solicitar input do usuário (executado em thread para não bloquear loop async)
+                # No python 3.9+, asyncio.to_thread é melhor, mas input() é simples aqui.
+                # Como é single user CLI, não tem problema bloquear o loop principal.
                 prompt = input(f"\n{USER_NAME} > ").strip()
                 
                 # Verificar se está vazio
@@ -251,14 +294,29 @@ def main():
                     continue
                 
                 elif prompt.lower() == "/clear":
-                    agent.reset()
-                    print("\n✓ Histórico de conversação limpo.")
+                    # Agentes workflow podem não ter reset simples ou precisam de novo contexto
+                    # Mas tentaremos limpar memória se possível, ou recriar agente?
+                    # Para simplificar, avisamos que memória foi limpa (placeholder)
+                    print("\n✓ (Função limpar memória não suportada totalmente nesta versão)")
                     continue
                 
                 # Processar pergunta com o agente
                 print()  # Linha em branco para melhor formatação
-                response = agent.chat(prompt)
-                print(f"\nSovereign IA > {response}\n")
+                
+                # Chamar workflow assincronamente
+                # O método .run() retorna um WorkflowHandler, que pode ser aguardado
+                handler = agent.run(user_msg=prompt)
+                
+                # Aguardar o resultado final
+                agent_output = await handler
+                
+                # Extrair resposta
+                if hasattr(agent_output, 'response'):
+                    response_text = str(agent_output.response.content)
+                else:
+                    response_text = str(agent_output)
+
+                print(f"\nSovereign IA > {response_text}\n")
                 
             except KeyboardInterrupt:
                 print(f"\n\n👋 Até logo, {USER_NAME}!")
@@ -281,4 +339,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print(f"\n\n👋 Até logo, {USER_NAME}!")
+        sys.exit(0)
+    except asyncio.CancelledError:
+        print(f"\n\n👋 Até logo, {USER_NAME}!")
+        sys.exit(0)

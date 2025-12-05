@@ -7,6 +7,7 @@ ChromaDB para posterior recuperação pelo agente.
 """
 
 import logging
+import os
 import chromadb
 from pathlib import Path
 from typing import Optional
@@ -142,8 +143,108 @@ def load_documents_from_directory(
     
     if documents:
         logger.info(f"   ✓ Total: {len(documents)} documento(s) carregado(s) de '{dir_name}'")
+        # Pós-processamento para limpar ruído (Navegação do Blog)
+        for doc in documents:
+            if "**Navegação:**" in doc.text:
+                try:
+                    # Abordagem simples: filtrar linhas de navegação
+                    lines = doc.text.split('\n')
+                    clean_lines = []
+                    for line in lines:
+                        # Ignorar linhas com o padrão de navegação específico
+                        if "**Navegação:**" in line and "[[Blog]]" in line:
+                            continue
+                        # Ignorar separadores horizontais excessivos que sobram
+                        if line.strip().startswith("---") and len(line.strip()) > 10:
+                            continue
+                        clean_lines.append(line)
+                    
+                    doc.text = '\n'.join(clean_lines)
+                except Exception:
+                    pass
+
+        
+        # Pós-processamento para limpar ruído (Navegação do Blog)
+        for doc in documents:
+            if "**Navegação:**" in doc.text:
+                try:
+                    # Abordagem simples: filtrar linhas de navegação
+                    lines = doc.text.split('\n')
+                    clean_lines = []
+                    for line in lines:
+                        # Ignorar linhas com o padrão de navegação específico
+                        if "**Navegação:**" in line and "[[Blog]]" in line:
+                            continue
+                        # Ignorar separadores horizontais excessivos que sobram
+                        if line.strip().startswith("---") and len(line.strip()) > 10:
+                            continue
+                        clean_lines.append(line)
+                    
+                    doc.text = '\n'.join(clean_lines)
+                except Exception:
+                    pass
+        
+        # Pós-processamento para limpar ruído (Navegação do Blog)
+        for doc in documents:
+            if "**Navegação:**" in doc.text:
+                try:
+                    import re
+                    # Remove bloco de navegação específico do usuário
+                    # Ex: --- **Navegação:** ... --------------------------------------------------
+                    # Regex busca: (--- ou line start) **Navegação:** (qualquer coisa) (--- ou fim)
+                    
+                    # Abordagem 1: Remover linhas contendo a string específica
+                    lines = doc.text.split('\n')
+                    clean_lines = []
+                    skip = False
+                    for line in lines:
+                        if "**Navegação:**" in line and "[[Blog]]" in line:
+                            # Detectou linha de navegação, ignorar ela e talvez linhas adjacentes se forem separadores
+                            continue
+                        # Remover separadores horizontais soltos que sobraram
+                        if line.strip().startswith("---") and len(line.strip()) > 10:
+                            continue
+                        clean_lines.append(line)
+                    
+                    doc.text = '\n'.join(clean_lines)
+                except Exception:
+                    pass
     
     return documents
+
+
+def get_all_files_recursive(directory: Path, follow_symlinks: bool = True) -> set[Path]:
+    """
+    Retorna todos os arquivos de um diretório recursivamente, seguindo symlinks.
+    
+    Substitui rglob que não segue symlinks de diretórios por padrão.
+    """
+    files = set()
+    if not directory.exists():
+        return files
+        
+    try:
+        # Usar os.walk com followlinks=True para entrar em diretórios symlinkados
+        for root, dirs, filenames in os.walk(str(directory), followlinks=follow_symlinks):
+            root_path = Path(root)
+            
+            # Verificar se estamos em um loop de symlink (segurança extra)
+            # (os.walk lida bem com isso, mas bom garantir)
+            
+            for filename in filenames:
+                file_path = root_path / filename
+                if file_path.suffix in ALLOWED_EXTENSIONS:
+                    # Resolver caminho absoluto
+                    try:
+                        resolved = file_path.resolve(strict=True)
+                        files.add(resolved)
+                    except (OSError, RuntimeError):
+                        pass
+                        
+    except Exception as e:
+        logger.error(f"❌ Erro ao escanear {directory}: {e}")
+        
+    return files
 
 
 def scan_all_files() -> set[Path]:
@@ -160,26 +261,13 @@ def scan_all_files() -> set[Path]:
     
     # Escanear vault
     if VAULT_DIR.exists():
-        for ext in ALLOWED_EXTENSIONS:
-            all_files.update(VAULT_DIR.rglob(f"*{ext}"))
+        all_files.update(get_all_files_recursive(VAULT_DIR, FOLLOW_SYMLINKS))
     
     # Escanear raw_docs (pode ser múltiplos caminhos)
     for raw_docs_dir in RAW_DOCS_DIRS:
         if raw_docs_dir.exists():
-            for ext in ALLOWED_EXTENSIONS:
-                all_files.update(raw_docs_dir.rglob(f"*{ext}"))
-    
-    # Resolver symlinks se configurado
-    if FOLLOW_SYMLINKS:
-        resolved_files = set()
-        for file_path in all_files:
-            try:
-                resolved = file_path.resolve(strict=True)
-                resolved_files.add(resolved)
-            except (OSError, RuntimeError):
-                logger.warning(f"⚠️  Ignorando arquivo com erro: {file_path}")
-        return resolved_files
-    
+            all_files.update(get_all_files_recursive(raw_docs_dir, FOLLOW_SYMLINKS))
+            
     return all_files
 
 
@@ -526,38 +614,27 @@ def main():
             logger.info("\n🔄 MODO FULL: Processando todos os arquivos...")
             history.clear()
             
-            # Precisamos dos documentos para saber o que salvar no histórico
-            # Como ingest_data() no modo full carrega tudo internamente,
-            # vamos usar current_files (que já foi escaneado) para popular o histórico
+            # Limpar coleção existente no ChromaDB para evitar duplicatas/lixo
+            try:
+                logger.info("   🗑️  Limpando banco de dados vetorial...")
+                chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+                try:
+                    chroma_client.delete_collection(CHROMA_COLLECTION_NAME)
+                    logger.info("      ✓ Coleção removida")
+                except ValueError:
+                    # Coleção não existe, tudo bem
+                    pass
+            except Exception as e:
+                logger.warning(f"      ⚠️  Erro ao limpar ChromaDB: {e}")
+            
+            # Ingestão cria nova coleção
             index = ingest_data()
             
             if index:
-                 # Popular histórico com os arquivos atuais
-                 # Nota: Em modo full, assumimos que tudo em current_files foi processado com sucesso
-                 # O ideal seria ingest_data retornar a lista de processados, mas vamos usar current_files
-                 logger.info("\n💾 Salvando estado inicial do histórico...")
-                 
-                 # Preparar dados para o histórico (hash será calculado na próxima execução incremental ou agora?)
-                 # Para simplificar e não recalcular tudo agora (seria lento), vamos salvar sem hash/mtime detalhado
-                 # ou melhor: vamos iterar e salvar corretamente.
-                 
-                 files_data = {}
-                 for file_path in current_files:
-                     # Recalcular hash/mtime para ter base sólida
-                     if file_path.exists():
-                         from hash_utils import compute_file_hash
-                         hash_value = compute_file_hash(file_path)
-                         mtime = file_path.stat().st_mtime
-                         files_data[file_path] = {
-                             'chunks': 0, # Desconhecido por enquanto, não crítico
-                             'hash': hash_value,
-                             'mtime': mtime
-                         }
-                 
-                 if files_data:
-                     history.add_files(files_data)
-                     history.save()
-                     logger.info(f"   ✓ Histórico inicializado com {len(files_data)} arquivos")
+                 # Popular histórico com os dados reais (chunks, hashes)
+                 # Usamos a função auxiliar que já faz a contagem correta via index.docstore
+                 logger.info("\n💾 Inicializando histórico...")
+                 update_history_with_hashes(index, current_files, set(), history)
         
         else:  # mode == "incremental"
             # Modo incremental: processar apenas mudanças

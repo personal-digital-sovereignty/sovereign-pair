@@ -75,12 +75,12 @@ ALLOWED_EXTENSIONS = [ext.strip() for ext in ALLOWED_EXTENSIONS_STR.split(",") i
 # CONFIGURAÇÕES DE CHUNKING
 # ============================================================================
 
-# Tamanho máximo de chunk para embeddings (em caracteres)
-# Ajustado para compatibilidade com nomic-embed-text (~2048 tokens)
-CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1024"))
+# Tamanho máximo de chunk para embeddings (em tokens, aprox 4 chars/token)
+# Reduzido para 512 para aumentar a granularidade e precisão do RAG
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "512"))
 
 # Sobreposição entre chunks para manter contexto
-CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
+CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
 
 # ============================================================================
 # CONFIGURAÇÕES DE HISTÓRICO DE INGESTÃO
@@ -183,7 +183,16 @@ def validate_ollama_models() -> tuple[bool, list[str]]:
     try:
         response = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
         if response.status_code == 200:
-            available_models = {model["name"].split(":")[0] for model in response.json().get("models", [])}
+            models_data = response.json().get("models", [])
+            
+            # Criar conjunto com nomes completos (com tag) e nomes base (sem tag)
+            available_models = set()
+            for model in models_data:
+                full_name = model["name"]
+                base_name = full_name.split(":")[0]
+                available_models.add(full_name)
+                available_models.add(base_name)
+            
             missing_models = [m for m in required_models if m not in available_models]
             return len(missing_models) == 0, missing_models
         else:
