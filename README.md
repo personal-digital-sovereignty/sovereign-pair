@@ -22,6 +22,11 @@ Sistema completo de Retrieval-Augmented Generation (RAG) com **ingestão increme
 - **Logs coloridos** (colorama) para melhor legibilidade
 - **Estimativas de tempo** de processamento
 - **Estatísticas detalhadas** de performance
+- **RAG Local Avançado**: Usa `Ollama` (LLM) + `ChromaDB` (Vector Store) para conversar com seus documentos.
+- **Busca Híbrida (v2.1.0)**: Combina busca vetorial (sentido) com BM25 (palavras-chave) para precisão máxima em datas e termos técnicos.
+- **Privacidade Total**: Seus dados nunca saem da sua máquina.
+- **Suporte a Múltiplos Formatos**: Markdown (.md), Texto (.txt), PDF (.pdf), Word (.docx).
+- **Engenharia de Prompt Refinada**: O agente sabe quando não sabe e evita alucinações.
 - **Interface interativa** (full/incremental/skip/cancel)
 
 ### 📚 Documentação Completa
@@ -289,9 +294,9 @@ Sistema completo de ingestão incremental:
 
 ---
 
-**Versão**: 2.0.0  
-**Data**: 2026-02-16  
-**Status**: ✅ MVP Completo
+**Versão**: 2.1.0  
+**Data**: 2026-02-17  
+**Status**: ✅ MVP Completo + Hybrid Search
 
 ---
 

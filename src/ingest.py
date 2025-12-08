@@ -10,6 +10,8 @@ import logging
 import os
 import chromadb
 from pathlib import Path
+import re
+import yaml
 from typing import Optional
 from tqdm import tqdm
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext
@@ -41,6 +43,76 @@ from cleanup import remove_obsolete_chunks
 
 # Configurar logger
 logger = logging.getLogger(__name__)
+
+
+def preprocess_document(doc):
+    """
+    Processa o documento para limpar ruídos e extrair metadados.
+    
+    Ações:
+    1. Extrai YAML Frontmatter e move para doc.metadata
+    2. Remove blocos de código Dataview/JS
+    3. Remove ruídos de navegação (Rodapés, Social Links)
+    """
+    try:
+        content = doc.text
+        
+        # 1. Extrair YAML Frontmatter
+        # Padrão: --- \n ... \n --- na primeira linha
+        yaml_pattern = r"^---\s*\n(.*?)\n---\s*\n"
+        match = re.search(yaml_pattern, content, re.DOTALL)
+        
+        if match:
+            yaml_block = match.group(1)
+            try:
+                # Parse seguro do YAML
+                metadata = yaml.safe_load(yaml_block)
+                if isinstance(metadata, dict):
+                    # ChromaDB requer metadados flat (str, int, float, bool).
+                    # Converter listas e dicts para string.
+                    clean_metadata = {}
+                    for k, v in metadata.items():
+                        if isinstance(v, list):
+                            clean_metadata[k] = ", ".join(str(i) for i in v)
+                        elif isinstance(v, dict):
+                            clean_metadata[k] = str(v)
+                        else:
+                            clean_metadata[k] = v
+                    
+                    # Atualizar metadados do documento
+                    doc.metadata.update(clean_metadata)
+            except yaml.YAMLError:
+                logger.warning("   ⚠️ Falha ao fazer parse do YAML Frontmatter (ignorado)")
+            
+            # Remover o bloco YAML do texto principal
+            content = re.sub(yaml_pattern, '', content, count=1, flags=re.DOTALL)
+        
+        # 2. Remover blocos Dataview / DataviewJS
+        # Padrão: ```dataview ... ```
+        content = re.sub(r'```dataview(?:js)?\s*\n.*?\n```', '', content, flags=re.DOTALL | re.IGNORECASE)
+        
+        # 3. Remover Ruído de Navegação (V2 - Definitive)
+        
+        # Navegação: **Navegação:** ...
+        content = re.sub(r'\*\*Navegação:\*\*.*', '', content, flags=re.IGNORECASE)
+        
+        # Social Links: * [Share] ...
+        content = re.sub(r'^\s*\*\s*\[(Share|Facebook|Digg|Twitter|LinkedIn|Email|Reddit)\].*$', '', content, flags=re.IGNORECASE | re.MULTILINE)
+        
+        # Separadores horizontais excessivos
+        content = re.sub(r'(?:\n\s*---+\s*)+\n', '\n', content)
+        
+        # Atualizar conteúdo (Usar set_content pois .text é read-only)
+        if hasattr(doc, 'set_content'):
+            doc.set_content(content.strip())
+        else:
+            # Fallback para versões antigas ou Mock
+            doc.text = content.strip()
+        
+    except Exception as e:
+        logger.error(f"Erro no preprocessamento do documento: {e}")
+    
+    return doc
 
 
 def load_documents_from_directory(
@@ -143,72 +215,13 @@ def load_documents_from_directory(
     
     if documents:
         logger.info(f"   ✓ Total: {len(documents)} documento(s) carregado(s) de '{dir_name}'")
-        # Pós-processamento para limpar ruído (Navegação do Blog)
-        for doc in documents:
-            if "**Navegação:**" in doc.text:
-                try:
-                    # Abordagem simples: filtrar linhas de navegação
-                    lines = doc.text.split('\n')
-                    clean_lines = []
-                    for line in lines:
-                        # Ignorar linhas com o padrão de navegação específico
-                        if "**Navegação:**" in line and "[[Blog]]" in line:
-                            continue
-                        # Ignorar separadores horizontais excessivos que sobram
-                        if line.strip().startswith("---") and len(line.strip()) > 10:
-                            continue
-                        clean_lines.append(line)
-                    
-                    doc.text = '\n'.join(clean_lines)
-                except Exception:
-                    pass
-
         
-        # Pós-processamento para limpar ruído (Navegação do Blog)
-        for doc in documents:
-            if "**Navegação:**" in doc.text:
-                try:
-                    # Abordagem simples: filtrar linhas de navegação
-                    lines = doc.text.split('\n')
-                    clean_lines = []
-                    for line in lines:
-                        # Ignorar linhas com o padrão de navegação específico
-                        if "**Navegação:**" in line and "[[Blog]]" in line:
-                            continue
-                        # Ignorar separadores horizontais excessivos que sobram
-                        if line.strip().startswith("---") and len(line.strip()) > 10:
-                            continue
-                        clean_lines.append(line)
-                    
-                    doc.text = '\n'.join(clean_lines)
-                except Exception:
-                    pass
+        # Pós-processamento Avançado (Pipeline de Limpeza)
+        logger.info(f"   🧹 Executando pipeline de limpeza (YAML, Dataview, Ruído)...")
         
-        # Pós-processamento para limpar ruído (Navegação do Blog)
+        # Processar todos os documentos
         for doc in documents:
-            if "**Navegação:**" in doc.text:
-                try:
-                    import re
-                    # Remove bloco de navegação específico do usuário
-                    # Ex: --- **Navegação:** ... --------------------------------------------------
-                    # Regex busca: (--- ou line start) **Navegação:** (qualquer coisa) (--- ou fim)
-                    
-                    # Abordagem 1: Remover linhas contendo a string específica
-                    lines = doc.text.split('\n')
-                    clean_lines = []
-                    skip = False
-                    for line in lines:
-                        if "**Navegação:**" in line and "[[Blog]]" in line:
-                            # Detectou linha de navegação, ignorar ela e talvez linhas adjacentes se forem separadores
-                            continue
-                        # Remover separadores horizontais soltos que sobraram
-                        if line.strip().startswith("---") and len(line.strip()) > 10:
-                            continue
-                        clean_lines.append(line)
-                    
-                    doc.text = '\n'.join(clean_lines)
-                except Exception:
-                    pass
+            preprocess_document(doc)
     
     return documents
 

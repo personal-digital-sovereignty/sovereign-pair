@@ -37,6 +37,14 @@ O sistema de **Ingestão Incremental** permite processar apenas arquivos novos o
 - 🎯 **Detecção precisa** via hash de conteúdo
 - 🧹 **Limpeza automática** de dados obsoletos
 
+### Nova Funcionalidade: Busca Híbrida (v2.1.0)
+
+O Sovereign Pair agora utiliza **Busca Híbrida**, combinando o melhor de dois mundos:
+1. **Busca Vetorial (Semântica)**: Entende o *significado* da sua pergunta (ex: "como configurar o sistema").
+2. **Busca por Palavras-Chave (BM25)**: Encontra *termos exatos*, datas e nomes específicos (ex: "erro 404", "2023-10-27", "função x_y_z").
+
+Isso garante que o agente nunca perca um documento importante só porque a busca vetorial não achou a similaridade alta o suficiente.
+
 ---
 
 ## Instalação
