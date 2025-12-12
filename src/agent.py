@@ -44,8 +44,7 @@ from llama_index.core.retrievers import QueryFusionRetriever
 from llama_index.core.retrievers.fusion_retriever import FUSION_MODES
 from llama_index.core.schema import TextNode
 from custom_retrievers import CustomBM25Retriever
-# from ddgs import DDGS
-# from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 # Importar configurações centralizadas
 from config import (
@@ -54,6 +53,7 @@ from config import (
     USER_NAME,
     AGENT_VERBOSE,
     INTERACTIVE_MODE,
+    MAX_WEB_SEARCH_RESULTS,
     llm,
     embed_model,
     validate_ollama_connection,
@@ -126,65 +126,54 @@ def initialize_rag_tool() -> Optional[QueryEngineTool]:
         return None
 
 
-# def search_web(query: str) -> str:
-#     """
-#     Busca informações atualizadas na internet usando DuckDuckGo.
-#     
-#     Args:
-#         query: Consulta de busca
-#         
-#     Returns:
-#         str: Resultados formatados ou mensagem de erro
-#     """
-#     try:
-#         logger.debug(f"🌐 Buscando na web: {query}")
-#         
-#         # Suprimir warnings durante a execução da busca também
-#         with warnings.catch_warnings():
-#             warnings.simplefilter("ignore")
-#             with DDGS() as ddgs:
-#                 results = list(ddgs.text(query, max_results=MAX_WEB_SEARCH_RESULTS))
-#         
-#         if not results:
-#             return "Nenhum resultado encontrado na busca web."
-#         
-#         # Formatar resultados de forma mais legível
-#         formatted_results = []
-#         for i, result in enumerate(results, 1):
-#             formatted_results.append(
-#                 f"{i}. {result.get('title', 'Sem título')}\n"
-#                 f"   {result.get('body', 'Sem descrição')}\n"
-#                 f"   URL: {result.get('href', 'N/A')}"
-#             )
-#         
-#         return "\n\n".join(formatted_results)
-#         
-#     except Exception as e:
-#         logger.error(f"❌ Erro na busca web: {e}")
-#         return f"Erro ao buscar na internet: {str(e)}"
-
-
-# def initialize_web_tool() -> FunctionTool:
-#     """
-#     Inicializa a ferramenta de busca na internet.
-#     
-#     Returns:
-#         FunctionTool: Ferramenta de busca web configurada
-#     """
-#     logger.info("🌐 Inicializando ferramenta de busca web...")
-#     
-#     web_tool = FunctionTool.from_defaults(
-#         fn=search_web,
-#         name="busca_internet",
-#         description=(
-#             "Útil APENAS para fatos globais recentes, notícias ou tecnologias gerais "
-#             "que NÃO são sobre a vida pessoal do usuário. "
-#             "NÃO use esta ferramenta se o usuário perguntar 'o que eu acho', 'meu projeto' ou 'meu arquivo'."
-#         ),
-#     )
-#     
-#     logger.info("   ✓ Ferramenta de busca web inicializada")
-#     return web_tool
+def search_web(query: str, timelimit: str = None) -> str:
+    """
+    Busca informações na internet usando DuckDuckGo (ddgs).
+    Ativada manualmente pelo usuário com o comando /web.
+    
+    Filtros avançados habilitados:
+    - region='br-pt': Prioriza resultados em PT-BR
+    - safesearch='off': Sem filtro (conteúdo técnico não é unsafe)
+    
+    Args:
+        query: Consulta de busca
+        timelimit: Filtro temporal ('d'=dia, 'w'=semana, 'm'=mês, 'y'=ano)
+        
+    Returns:
+        str: Resultados formatados ou mensagem de erro
+    """
+    try:
+        time_labels = {'d': 'último dia', 'w': 'última semana', 'm': 'último mês', 'y': 'último ano'}
+        time_info = f" ({time_labels.get(timelimit, 'sem filtro temporal')})"
+        logger.info(f"🌐 Buscando na web: {query}{time_info}")
+        
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ddgs = DDGS()
+            results = list(ddgs.text(
+                query,
+                region='br-pt',
+                safesearch='off',
+                timelimit=timelimit,
+                max_results=MAX_WEB_SEARCH_RESULTS,
+            ))
+        
+        if not results:
+            return "Nenhum resultado encontrado na busca web."
+        
+        formatted_results = []
+        for i, result in enumerate(results, 1):
+            formatted_results.append(
+                f"{i}. {result.get('title', 'Sem título')}\n"
+                f"   {result.get('body', 'Sem descrição')}\n"
+                f"   🔗 {result.get('href', 'N/A')}"
+            )
+        
+        return "\n\n".join(formatted_results)
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na busca web: {e}")
+        return f"Erro ao buscar na internet: {str(e)}"
 
 
 def print_welcome_message():
@@ -198,9 +187,10 @@ def print_welcome_message():
     print("  • Buscar informações atualizadas na internet")
     print("  • Responder perguntas e auxiliar no desenvolvimento")
     print("\nComandos especiais:")
-    print("  /help   - Mostrar esta mensagem")
-    print("  /clear  - Limpar histórico de conversação")
-    print("  sair    - Encerrar o programa")
+    print("  /help          - Mostrar esta mensagem")
+    print("  /clear         - Limpar histórico de conversação")
+    print("  /web <query>   - Buscar na internet (DuckDuckGo)")
+    print("  sair           - Encerrar o programa")
     print("\n" + "=" * 70 + "\n")
 
 
@@ -359,7 +349,29 @@ async def main():
                 
                 if prompt == '/clear':
                     print("\n🧹 Limpando histórico local...")
-                    chat_engine.reset() # Resetar memória do chat engine se suportado
+                    chat_engine.reset()
+                    continue
+                
+                if prompt.startswith('/web '):
+                    web_args = prompt[5:].strip()
+                    # Parsear filtro temporal: /web -d, /web -w, /web -m, /web -y
+                    timelimit = None
+                    if len(web_args) >= 2 and web_args[:2] in ('-d', '-w', '-m', '-y'):
+                        timelimit = web_args[1]  # 'd', 'w', 'm', 'y'
+                        web_query = web_args[2:].strip()
+                    else:
+                        web_query = web_args
+                    
+                    if web_query:
+                        time_labels = {'d': '24h', 'w': 'semana', 'm': 'mês', 'y': 'ano'}
+                        time_info = f" 🕐 {time_labels[timelimit]}" if timelimit else ""
+                        print(f"\n🌐 Buscando na web...{time_info}\n")
+                        web_result = search_web(web_query, timelimit=timelimit)
+                        print(web_result)
+                        print()
+                    else:
+                        print("\n⚠️  Uso: /web <query>")
+                        print("   Filtros: /web -d (dia), /web -w (semana), /web -m (mês), /web -y (ano)")
                     continue
 
                 # Processar pergunta (Stream para velocidade percebida)
