@@ -102,7 +102,7 @@ INTERACTIVE_MODE = os.getenv("INTERACTIVE_MODE", "true").lower() == "true"
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2")
-EMBED_MODEL_NAME = os.getenv("EMBED_MODEL", "nomic-embed-text")
+EMBED_MODEL_NAME = os.getenv("EMBED_MODEL", "bge-m3")
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "300.0"))
 
 # ============================================================================
