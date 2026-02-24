@@ -369,3 +369,10 @@ ln -s ~/Research/Datasets/docs data/raw_docs/dataset_docs
 ---
 
 **Dica Final**: Comece simples! Crie um symlink para seu Obsidian vault e veja como funciona. Depois adicione mais conforme necessário.
+
+---
+
+**Autor**: Jeferson Lopes  
+**Assistência**: Google Gemini 3 e Claude Sonnet 4.5 (Anthropic)  
+**Data**: 2026-02-17
+**Versão**: 2.0.0

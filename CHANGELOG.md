@@ -146,3 +146,10 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 | [2.0.0](https://github.com/Personal-Digital-Sovereignty/sovereign-pair/commit/2d97e65) | https://github.com/Personal-Digital-Sovereignty/sovereign-pair/releases/tag/v2.0.0 |
 | [1.1.0](https://github.com/Personal-Digital-Sovereignty/sovereign-pair/commit/8a3046d) | https://github.com/Personal-Digital-Sovereignty/sovereign-pair/releases/tag/v1.1.0 |
 | [1.0.0](https://github.com/Personal-Digital-Sovereignty/sovereign-pair/commit/9d64dbf) | https://github.com/Personal-Digital-Sovereignty/sovereign-pair/releases/tag/v1.0.0 |
+
+---
+
+**Autor**: Jeferson Lopes  
+**Assistência**: Google Gemini 3 e Claude Sonnet 4.5 (Anthropic)  
+**Data**: 2026-02-17
+**Versão**: 2.1.0

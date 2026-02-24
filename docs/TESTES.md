@@ -1,8 +1,6 @@
 # TESTES.md - Documentação de Testes e Validação
 
 **Projeto**: Sovereign Pair RAG  
-**Data dos Testes**: 2026-02-16  
-**Versão Testada**: Commits f203443 até 8d4a962
 
 ---
 
@@ -727,6 +725,7 @@ grep "❌" ingest.log
 
 ---
 
-**Documento criado por**: Jeferson Lopes  
-**Assistência técnica**: Claude Sonnet 4.5 (Anthropic)  
-**Data**: 2026-02-16
+**Autor**: Jeferson Lopes  
+**Assistência**: Google Gemini 3 e Claude Sonnet 4.5 (Anthropic)  
+**Data**: 2026-02-17
+**Versão**: 2.0.0

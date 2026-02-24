@@ -1,7 +1,7 @@
 # Guia do Usuário - Ingestão Incremental
 
 **Versão**: 2.0.0  
-**Data**: 2026-02-16  
+**Data**: 2026-02-17
 **Status**: MVP Completo
 
 ---
@@ -372,5 +372,6 @@ RAW_DOCS_DIRS=docs,vault,notes,wiki
 ---
 
 **Autor**: Jeferson Lopes  
-**Data**: 2026-02-16  
+**Assistência**: Google Gemini 3. 
+**Data**: 2026-02-17
 **Versão**: 2.0.0

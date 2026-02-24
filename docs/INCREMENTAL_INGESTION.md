@@ -2,7 +2,7 @@
 
 **Status**: MVP (Fase 4 de 5) - Testes End-to-End  
 **Versão**: 4.0  
-**Data**: 2026-02-16
+**Data**: 2026-02-17
 
 ---
 
@@ -399,4 +399,5 @@ Não. O `.gitignore` protege `data/.ingestion_history.json` pois contém paths a
 
 **Autor**: Jeferson Lopes  
 **Assistência**: Claude Sonnet 4.5 (Anthropic)  
-**Data**: 2026-02-16
+**Data**: 2026-02-17
+**Versão**: 2.0.0
