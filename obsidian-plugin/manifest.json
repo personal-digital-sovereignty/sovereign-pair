@@ -1,0 +1,10 @@
+{
+    "id": "sovereign-pair",
+    "name": "Sovereign Pair RAG",
+    "version": "1.0.0",
+    "minAppVersion": "1.1.15",
+    "description": "Seu assistente local inteligente diretamente injetado no processo de aprendizado livre.",
+    "author": "Sovereign AI",
+    "authorUrl": "https://github.com/jefersonlopes",
+    "isDesktopOnly": false
+}
