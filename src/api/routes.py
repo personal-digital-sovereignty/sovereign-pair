@@ -41,7 +41,7 @@ async def chat_endpoint(request: ChatRequest, engine=Depends(get_chat_engine)):
                         sources.add(f"📄 {metadata['file_name']}")
                         
             if sources:
-                nl = "\\n" # Evitar escaping quebra no json dumping
+                nl = "\n"
                 sources_str = f"{nl}{nl}**Fontes:**{nl}" + f"{nl}".join([f"  - {s}" for s in sorted(sources)])
                 yield f"data: {json.dumps({'content': sources_str})}\n\n"
                 

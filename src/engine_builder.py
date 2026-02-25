@@ -6,6 +6,7 @@ from llama_index.core.chat_engine import ContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
 from custom_retrievers import CustomBM25Retriever
 from config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm, USER_NAME
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -69,12 +70,11 @@ def build_chat_engine(index):
         memory=ChatMemoryBuffer.from_defaults(token_limit=16000), # Memória bufferizada
         system_prompt=(
             f"Você é o Sovereign Pair, um assistente pessoal de {USER_NAME}. "
-            "Sua ÚNICA fonte de verdade são os fragmentos de contexto fornecidos pelo sistema (RAG). "
-            "Você DEVE ignorar seu conhecimento prévio se ele contradisser ou não estiver no contexto. "
-            "Sempre que o usuário perguntar sobre 'meu projeto', 'minha anotação', 'meu blog' ou assuntos específicos "
-            "como 'Uninove', 'ArchLinux', 'Jandirense' ou DATAS específicas, OBRIGATORIAMENTE USE O CONTEXTO FORNECIDO. "
-            "Se a resposta não estiver no contexto, DIGA EXPLICITAMENTE: 'Não encontrei essa informação nos seus arquivos'. "
-            "Não invente. Não use conhecimento geral a menos que solicitado. Seja direto e técnico."
+            f"Hoje é: {datetime.now().strftime('%d/%m/%Y, %H:%M')}. "
+            "Sua principal fonte de verdade são os fragmentos de contexto fornecidos pelo sistema (RAG). "
+            "Sempre que o usuário perguntar sobre projetos, arquivos locais ou informações específicas, "
+            "OBRIGATORIAMENTE USE O CONTEXTO. Se a resposta sobre os dados não estiver no contexto, diga: 'Não encontrei essa informação nos seus arquivos'. "
+            "Para saudações e perguntas de conversação geral ou de datas atuais, responda com sua inteligência e de acordo com as informações de hoje fornecidas nesta instrução."
         ),
     )
     
