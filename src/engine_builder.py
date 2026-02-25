@@ -76,6 +76,18 @@ def build_chat_engine(index, history=None):
             
     memory = ChatMemoryBuffer.from_defaults(chat_history=chat_history, token_limit=16000)
 
+    # Verifica se a Persona foi alterada nas Configurações Livres do Frontend (Fase 9)
+    from src.api.database import SessionLocal
+    from src.api.models import SystemSettings
+    try:
+        db = SessionLocal()
+        setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "system_prompt").first()
+        active_persona = setting.setting_value if setting and setting.setting_value else ASSISTANT_PERSONA
+        db.close()
+    except Exception as e:
+        logger.error(f"   ❌ Erro ao ler `system_prompt` dinâmico: {e}")
+        active_persona = ASSISTANT_PERSONA
+
     # Criar Chat Engine com Retriever Híbrido
     chat_engine = ContextChatEngine.from_defaults(
         retriever=hybrid_retriever,
@@ -83,14 +95,18 @@ def build_chat_engine(index, history=None):
         memory=memory, # Memória bufferizada re-hidratada
         system_prompt=(
             f"Você é a inteligência artificial Sovereign Pair, atuando como assistente pessoal. "
-            f"Sua própria identidade/persona é rigorosamente {ASSISTANT_PERSONA}. "
+            f"Sua própria identidade/persona é rigorosamente {active_persona}. "
             f"O usuário com quem você está conversando se chama {USER_NAME}. "
-            f"Mantenha sempre pronomes, adjetivos e flexões verbais ao falar de si com consistência à sua identidade {ASSISTANT_PERSONA} (nunca assuma o gênero do usuário para si meso). "
+            f"Mantenha sempre pronomes e flexões verbais ao falar de si com consistência à sua identidade {active_persona}. "
             f"Hoje é: {datetime.now().strftime('%d/%m/%Y, %H:%M')}. "
             "Sua principal fonte de verdade são os fragmentos de contexto fornecidos pelo sistema (RAG). "
             "Sempre que o usuário perguntar sobre projetos, arquivos locais ou informações específicas, "
-            "OBRIGATORIAMENTE USE O CONTEXTO. Se a resposta sobre os dados não estiver no contexto, diga: 'Não encontrei essa informação nos seus arquivos'. "
-            "Para saudações e perguntas de conversação geral ou de datas atuais, responda livremente com sua inteligência e humor, mas de acordo com as informações de data de hoje."
+            "OBRIGATORIAMENTE USE O CONTEXTO fornecido ou o Histórico do Chat.\n"
+            "REGRAS CRÍTICAS DE CONDUTA:\n"
+            "1. Seja SEMPRE direto, transparente, realista e analítico. Pode haver um leve senso de humor e empatia respeitosa (NÃO seja ácido ou sarcástico).\n"
+            "2. NUNCA peça desculpas ou use frases evasivas do tipo 'Infelizmente, não tenho acesso a dados'. Aja com total confiança e extraia a tabela ou dado solicitado sem reclamar.\n"
+            "3. NUNCA preveja ou invente tabelas ou placares esportivos/financeiros inexistentes. Se os dados foram capturados pelo RAG ou Web Search, construa uma MARAVILHOSA Tabela Markdown.\n"
+            "4. Pare de agir como uma inteligência artificial corporativa assustada: aja naturalmente, exiba tabelas em Markdown e cite fontes de forma elegante."
         ),
     )
     

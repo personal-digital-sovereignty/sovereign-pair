@@ -566,6 +566,58 @@ def ingest_data(documents: Optional[list] = None) -> Optional[VectorStoreIndex]:
         return None
 
 
+def process_single_file(file_path: Path, is_update: bool = False) -> Optional[VectorStoreIndex]:
+    """
+    Processa um único documento e atualiza o ChromaDB "on-the-fly".
+    Otimizado para ser consumido pelas rotas REST dinâmicas (ex: Upload).
+    
+    Args:
+        file_path: Caminho absoluto para o arquivo físico.
+        is_update: Se verdadeiro, limpará os chunks anteriores do ChromaDB antes de re-ingerir.
+    """
+    if not file_path.exists():
+        logger.error(f"❌ Arquivo não encontrado: {file_path}")
+        return None
+        
+    logger.info(f"\n🔄 Iniciando ingestão dinâmica on-the-fly: {file_path.name}")
+    
+    target_files = {file_path.absolute()}
+    
+    # Se for uma atualização/sobrescrita, limpar o veto antigo antes
+    if is_update:
+        try:
+            logger.info(f"🗑️ Removendo vetores antigos do arquivo {file_path.name}...")
+            chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+            try:
+                chroma_collection = chroma_client.get_collection(CHROMA_COLLECTION_NAME)
+                remove_obsolete_chunks(target_files, chroma_collection)
+                logger.info("   ✓ Vetores antigos removidos.")
+            except Exception as e:
+                 logger.warning(f"   ⚠️ Coleção ou vetores não encontrados para limpeza: {e}")
+        except Exception as e:
+            logger.error(f"Erro ao limpar vetores antigos: {e}")
+
+    # 1. Carregar e parsear fisicamente
+    documents = load_specific_files(target_files)
+    if not documents:
+        logger.error(f"❌ Falha ao extrair payload de {file_path.name} ou extensão inválida.")
+        return None
+        
+    # 2. Ingerir no Banco de Dados Vetorial (ChromaDB)
+    index = ingest_data(documents=documents)
+    
+    # 3. Atualizar o histórico JSON invisivelmente
+    if index:
+        try:
+            history = IngestionHistory(HISTORY_FILE)
+            history.load()
+            update_history_with_hashes(index, target_files, set(), history)
+        except Exception as e:
+            logger.warning(f"⚠️  Falha ao salvar meta-histórico JSON para {file_path.name}: {e}")
+
+    return index
+
+
 def main():
     """
     Função principal com suporte a ingestão incremental (Fase 2).

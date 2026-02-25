@@ -4,15 +4,38 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-def get_llm(provider: str, model: str, temperature: float = 0.1, request_timeout: float = 300.0, **kwargs) -> Any:
+def _get_setting(key: str, default: str) -> str:
+    """Helper local para buscar configurações no DB de forma síncrona dentro do Worker."""
+    try:
+        from src.api.database import SessionLocal
+        from src.api.models import SystemSettings
+        db = SessionLocal()
+        setting = db.query(SystemSettings).filter(SystemSettings.setting_key == key).first()
+        val = setting.setting_value if setting and setting.setting_value else default
+        db.close()
+        return val
+    except Exception:
+        return default
+
+def get_llm(provider: str, model: str, temperature: float = 0.1, request_timeout: float = 900.0, **kwargs) -> Any:
     """
     Factory function para retornar a instância correta do LLM baseado no provedor.
+    Se existir configuração no DB SystemSettings (Fase 9), ele vai sobrepor os argumentos aqui recebidos do config.py.
     """
-    provider = provider.lower()
+    # Overrides via Banco de Dados
+    provider = _get_setting("llm_provider", provider).lower()
+    model = _get_setting("llm_model", model)
+    try:
+        temp_str = _get_setting("temperature", str(temperature))
+        temperature = float(temp_str)
+    except ValueError:
+        pass
     
     if provider == "ollama":
         from llama_index.llms.ollama import Ollama
         base_url = kwargs.get("base_url", "http://localhost:11434")
+        
+        # O timeout explícito para o Ollama evita cortes de conexão durante streamings pesados via ASGI/httpx
         return Ollama(
             model=model,
             request_timeout=request_timeout,

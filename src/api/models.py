@@ -30,3 +30,23 @@ class ChatMessage(Base):
     feedback_text = Column(Text, nullable=True) # Ex: O usuário corrigindo a IA dizendo "Você mentiu sobre X"
 
     session = relationship("ChatSession", back_populates="messages")
+
+class DocumentCache(Base):
+    __tablename__ = "document_cache"
+
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String(255), nullable=False)
+    file_path = Column(String(1024), nullable=False, unique=True)
+    sha256 = Column(String(64), nullable=False, index=True)
+    file_size = Column(Integer, nullable=False) # em bytes
+    
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+class SystemSettings(Base):
+    __tablename__ = "system_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    setting_key = Column(String(100), unique=True, nullable=False, index=True)
+    setting_value = Column(Text, nullable=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

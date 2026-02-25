@@ -1,5 +1,5 @@
 
-from typing import List, Optional
+from typing import List, Optional, Callable, Any
 from pathlib import Path
 from llama_index.core.retrievers import BaseRetriever
 from llama_index.core import QueryBundle
@@ -18,18 +18,27 @@ class CustomBM25Retriever(BaseRetriever):
     O corpus é enriquecido com metadados (nome do arquivo) para melhorar
     a precisão da busca por títulos e termos presentes no path do documento.
     """
+    
+    _nodes: Any = None
+    _similarity_top_k: int = 5
+    _tokenizer: Any = None
+    _bm25: Any = None
+
     def __init__(
         self,
         nodes: List[BaseNode],
-        tokenizer: Optional[callable] = None,
+        tokenizer: Optional[Callable] = None,
         similarity_top_k: int = 5,
+        **kwargs: Any
     ) -> None:
+        super().__init__(**kwargs)
+        
         self._nodes = nodes
         self._similarity_top_k = similarity_top_k
         
         # Tokenizador regex: split por qualquer caractere não-alfanumérico
         if tokenizer is None:
-            def default_tokenizer(text: str):
+            def default_tokenizer(text: str) -> List[str]:
                 return [t.lower() for t in re.split(r'\W+', text) if t]
             self._tokenizer = default_tokenizer
         else:
@@ -44,8 +53,6 @@ class CustomBM25Retriever(BaseRetriever):
             corpus = [self._tokenizer(self._enrich_with_metadata(node)) for node in nodes]
             self._bm25 = BM25Okapi(corpus)
             logger.info("   ✓ Índice BM25 pronto.")
-        
-        super().__init__()
 
     @staticmethod
     def _enrich_with_metadata(node: BaseNode) -> str:
@@ -82,7 +89,7 @@ class CustomBM25Retriever(BaseRetriever):
         nodes_with_scores = []
         for idx in top_n:
             score = scores[idx]
-            if score > 0:  # Filtrar resultados irrelevantes
+            if score != 0.0:  # Filtrar documentos estritamente sem nenhum match
                 node = self._nodes[idx]
                 logger.debug(f"BM25 Hit: {node.metadata.get('file_path', 'unknown')} (Score: {score:.2f})")
                 nodes_with_scores.append(NodeWithScore(node=node, score=score))

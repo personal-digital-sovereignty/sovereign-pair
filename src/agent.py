@@ -132,56 +132,7 @@ def initialize_rag_tool() -> Optional[QueryEngineTool]:
         return None
 
 
-def search_web(query: str, timelimit: str = None) -> str:
-    """
-    Busca informações na internet usando DuckDuckGo (ddgs).
-    Ativada manualmente pelo usuário com o comando /web.
-    
-    Filtros avançados habilitados:
-    - region='br-pt': Prioriza resultados em PT-BR
-    - safesearch='off': Sem filtro (conteúdo técnico não é unsafe)
-    
-    Args:
-        query: Consulta de busca
-        timelimit: Filtro temporal ('d'=dia, 'w'=semana, 'm'=mês, 'y'=ano)
-        
-    Returns:
-        str: Resultados formatados ou mensagem de erro
-    """
-    try:
-        time_labels = {'d': 'último dia', 'w': 'última semana', 'm': 'último mês', 'y': 'último ano'}
-        time_info = f" ({time_labels.get(timelimit, 'sem filtro temporal')})"
-        logger.info(f"🌐 Buscando na web: {query}{time_info}")
-        
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            ddgs = DDGS()
-            results = list(ddgs.text(
-                query,
-                region='br-pt',
-                safesearch='off',
-                timelimit=timelimit,
-                max_results=MAX_WEB_SEARCH_RESULTS,
-            ))
-        
-        if not results:
-            return "Nenhum resultado encontrado na busca web."
-        
-        formatted_results = []
-        for i, result in enumerate(results, 1):
-            formatted_results.append(
-                f"{i}. {result.get('title', 'Sem título')}\n"
-                f"   {result.get('body', 'Sem descrição')}\n"
-                f"   🌐 {result.get('href', 'N/A')}"
-            )
-        
-        return "\n\n".join(formatted_results)
-        
-    except Exception as e:
-        logger.error(f"❌ Erro na busca web: {e}")
-        return f"Erro ao buscar na internet: {str(e)}"
-
-
+from web_search import search_web
 def print_welcome_message():
     """Exibe mensagem de boas-vindas."""
     print("\n" + "=" * 70)

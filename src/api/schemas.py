@@ -37,3 +37,22 @@ class SessionResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+class UploadResponse(BaseModel):
+    status: str
+    message: str
+    file_path: Optional[str] = None
+    sha256: Optional[str] = None
+    require_action: Optional[str] = None
+
+class SettingsRequest(BaseModel):
+    llm_provider: str
+    llm_model: str
+    temperature: float
+    system_prompt: str
+
+class SettingsResponse(BaseModel):
+    llm_provider: str
+    llm_model: str
+    temperature: float
+    system_prompt: str
