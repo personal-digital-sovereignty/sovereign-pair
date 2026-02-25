@@ -2,6 +2,8 @@
 import { ref, onMounted, nextTick, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
 // Inicializar parser de markdown
 const md = new MarkdownIt({
   html: true,
@@ -43,7 +45,7 @@ const fetchLocalModels = async () => {
   if (systemSettings.value.llm_provider !== 'ollama') return
   isFetchingModels.value = true
   try {
-    const res = await fetch('http://127.0.0.1:8000/v1/ollama/models')
+    const res = await fetch(`${API_BASE_URL}/v1/ollama/models`)
     if (res.ok) {
       const data = await res.json()
       localModels.value = data.models || []
@@ -70,7 +72,7 @@ const chatContainer = ref<HTMLElement | null>(null)
 // Recuperar Sessões do Backend
 const loadSessions = async () => {
   try {
-    const res = await fetch('http://localhost:8000/v1/sessions')
+    const res = await fetch(`${API_BASE_URL}/v1/sessions`)
     if (res.ok) {
       sessions.value = await res.json()
     }
@@ -83,7 +85,7 @@ const loadSessions = async () => {
 const fetchConfig = async () => {
   isLoadingConfig.value = true
   try {
-    const res = await fetch('http://127.0.0.1:8000/v1/config')
+    const res = await fetch(`${API_BASE_URL}/v1/config`)
     if (res.ok) {
       systemSettings.value = await res.json()
       if (systemSettings.value.llm_provider === 'ollama') {
@@ -100,7 +102,7 @@ const fetchConfig = async () => {
 const saveConfig = async () => {
   isLoadingConfig.value = true
   try {
-    const res = await fetch('http://127.0.0.1:8000/v1/config', {
+    const res = await fetch(`${API_BASE_URL}/v1/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(systemSettings.value)
@@ -159,7 +161,7 @@ const sendMessage = async () => {
   scrollToBottom()
 
   try {
-    const response = await fetch('http://localhost:8000/v1/chat', {
+    const response = await fetch(`${API_BASE_URL}/v1/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -229,7 +231,7 @@ const sendMessage = async () => {
 // Carregar Histórico Antigo
 const loadSession = async (id: number) => {
   try {
-    const res = await fetch(`http://localhost:8000/v1/sessions/${id}`)
+    const res = await fetch(`${API_BASE_URL}/v1/sessions/${id}`)
     if (res.ok) {
       const data = await res.json()
       currentSessionId.value = data.id
@@ -264,7 +266,7 @@ const submitFeedback = async (msg: Message, type: 'up' | 'down') => {
   }
   
   try {
-    const res = await fetch('http://localhost:8000/v1/feedback', {
+    const res = await fetch(`${API_BASE_URL}/v1/feedback`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -340,7 +342,7 @@ const uploadFile = async (file: File, forceOverwrite = false, forceRename = fals
   showToast(`Iniciando processamento de: ${file.name}...`, 'info')
   
   try {
-    const res = await fetch('http://localhost:8000/v1/upload', {
+    const res = await fetch(`${API_BASE_URL}/v1/upload`, {
       method: 'POST',
       body: formData
     })

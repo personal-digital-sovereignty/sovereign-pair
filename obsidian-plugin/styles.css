@@ -17,8 +17,9 @@
     padding: 10px 14px;
     border-radius: 8px;
     max-width: 90%;
-    line-height: 1.5;
+    line-height: 1.6;
     word-wrap: break-word;
+    font-size: var(--font-text-size);
 }
 
 .sp-message-user {
@@ -51,7 +52,7 @@
     color: var(--text-normal);
     border: 1px solid var(--background-modifier-border);
     padding: 8px;
-    font-size: var(--font-ui-small);
+    font-size: var(--font-ui-medium);
 }
 
 .sp-chat-input:focus {

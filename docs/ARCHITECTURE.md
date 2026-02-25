@@ -88,9 +88,33 @@ O estágio atual do nosso app utiliza `PersistentClient` (no caso do Chroma) e `
 
 ---
 
-## 4. Práticas Futuras para Feature Requests
+## 5. DevSecOps & Cloud-Native Deployments
 
-**Atenção Desenvolvedor:** A partir do commit assinalado na Data Base (`Fev/2026`), **qualquer nova Feature de UI, Backend ou Ingestão** deve obrigatoriamente ser sumarizada no índice `#2 Fluxo de Dados Funcional` deste documento.
+A arquitetura de quatro pontas (Web-UI, Backend RAG, Banco Vetorial e Motor LLM) habilita as mais poderosas e escaláveis topologias de implantação empresarial (Enterprise-Ready). Abaixo listamos as abordagens suportadas pela engenharia atual.
 
-1. Commits referentes à atualizações listadas aqui **devem** ser acompanhados de comentários detalhados descrevendo qual *Layer* da infraestrutura foi modificado. 
-2. Testes Reais (*Pytest*) de escopo *Unitário* ou *Modular* devem obrigatoriamente passar na malha contínua do pipeline local antes da Fusão do Código (Merge).
+### 5.1. Containers (Docker e Podman)
+A infraestrutura roda agnosticamente. Para encapsular o sistema:
+- **Backend (API):** Subir uma imagem limpa `python:3.12-slim`, instalando apenas as rotatórias de *requirements.txt* e mantendo o volume `data/` espelhado (Bind Mount) para manter a base de dados SQlite imune a restarts.
+- **Web-UI (Vue):** Subir uma build estática em imagem Nginx Alpine (`FROM nginx:alpine`), copiando a compilação do `dist/` para `/usr/share/nginx/html`.
+- **Chroma & Ollama:** Podem ser extraídos das imagens oficiais (`chromadb/chroma` e `ollama/ollama`) e integrados no mesmo arquivo `docker-compose.yml` (ou `podman-compose`), permitindo uso do resolver de DNS interno (ex: `http://ollama-server:11434`).
+
+### 5.2. Orquestração Avançada (Kubernetes / K8s)
+O Sovereign Pair RAG, ao ser inteiramente modelado através de variáveis de ambiente (`.env`), é o sonho do *Cloud-Native*:
+- **ConfigMaps / Secrets:** Injete `ALLOWED_ORIGINS`, senhas e IP do Chroma através de Secrets.
+- **StatefulSets:** O ChromaDB e a pasta `data/` do SQLite devem ser configurados como *StatefulSets* ancorados em *PersistentVolumeClaims* (PVC). Dessa forma, a morte de um Pod não assassina a Memória Vetorial e das Conversas.
+- **Deployments (Stateless):** O Backend FastAPI (Uvicorn) e o frontend Nginx são Stateless (não guardam estado próprio internamente), podendo ter réplicas aumentadas conforme o tráfego da API cresce.
+
+### 5.3. Segurança de Rede / Criptografia em Trânsito
+
+Dada a sensibilidade de dados privados carregados num sistema de inteligência, o sistema foi projetado sob os auspícios de *Zero-Trust Network Architecture* visando blindagem lateral e vertical.
+
+1. **Camada Externa (TLS/HTTPS)**:
+   - Toda comunicação entre o Usuário Final (Navegador/Desktop/Celular) e a CDN do Frontend ou o domínio de Load Balancer do Backend FastAPI obrigatoriamente *sofrerá encriptação HTTPS/TLS 1.3*.
+   - A terminação do SSL ocorre no Ingress/Reverse Proxy do Kubernetes ou no painel da infraestrutura Nuvem (Nginx/Traefik).
+
+2. **Camada Interna e Backplanes (mTLS)**:
+   - Assim que o tráfego atinge o backend protegido, como ele viaja até a base Vetorial Privada (ChromaDB) ou LLM Engine (Ollama VPS)?
+   - Através de malhas virtuais autenticadas por certificados de ambos os lados (*Mutual TLS*). Em deploy rústico, utiliza-se Redes Definidas por Software (Mesh VPNs) como o **WireGuard** ou **Tailscale**. Todo dado de conversa voando da VPS A para a VPS B é matematicamente encriptado a nível de Protocolo IP, blindando contra grampos no DataCenter (*Sniffing*).
+
+3. **CORS Dinâmico (Restrição Restrita)**:
+   - Já implementado diretamente em nível de código (`src/api/main.py`), o servidor REST apenas processará e dará *Handshake* de dados para domínios rígidos definidos na variável mestre `ALLOWED_ORIGINS`, prevenindo a classe de ataques XSS (*Cross-Site Scripting*).

@@ -1,4 +1,4 @@
-import { App, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, MarkdownView, Notice, Editor, MarkdownFileInfo } from 'obsidian';
+import { App, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, MarkdownView, Notice, Editor, MarkdownFileInfo, Modal } from 'obsidian';
 
 export const VIEW_TYPE_CHAT = "sovereign-pair-chat-view";
 
@@ -36,6 +36,54 @@ export class SovereignPairView extends ItemView {
         header.style.textAlign = "center";
         header.style.marginBottom = "15px";
 
+        // Mover o Header e History area para cima da lista de mensagens
+        const historyArea = container.createDiv({ cls: 'sp-history-area' });
+        historyArea.style.padding = "5px 10px 10px";
+        historyArea.style.display = "flex";
+        historyArea.style.alignItems = "center";
+        historyArea.style.justifyContent = "space-between";
+        historyArea.style.gap = "8px";
+
+        this.sessionSelect = historyArea.createEl('select', { cls: 'sp-session-select' });
+        this.sessionSelect.style.flex = "1";
+        this.sessionSelect.style.padding = "4px";
+        this.sessionSelect.style.borderRadius = "4px";
+        this.sessionSelect.style.backgroundColor = "var(--background-modifier-form-field)";
+        this.sessionSelect.style.color = "var(--text-normal)";
+        this.sessionSelect.style.border = "1px solid var(--background-modifier-border)";
+
+        this.sessionSelect.createEl('option', { value: '', text: '--- Nova Conversa ---' });
+
+        this.sessionSelect.addEventListener('change', async (e) => {
+            const target = e.target as HTMLSelectElement;
+            const selectedId = target.value;
+            if (selectedId) {
+                await this.loadSession(parseInt(selectedId));
+            } else {
+                this.currentSessionId = null;
+                this.messageContainer.empty();
+                this.addMessage("Nova conversa iniciada. Como posso ajudar?", "ai");
+            }
+        });
+
+        const refreshBtn = historyArea.createEl('button', { text: '🔄', title: 'Recarregar Sessões' });
+        refreshBtn.style.cursor = "pointer";
+        refreshBtn.style.padding = "4px 8px";
+        refreshBtn.style.background = "transparent";
+        refreshBtn.style.border = "1px solid var(--background-modifier-border)";
+        refreshBtn.style.borderRadius = "4px";
+        refreshBtn.onclick = () => this.refreshSessionsList();
+
+        const configBtn = historyArea.createEl('button', { text: '⚙️', title: 'Configurações LLM' });
+        configBtn.style.cursor = "pointer";
+        configBtn.style.padding = "4px 8px";
+        configBtn.style.background = "transparent";
+        configBtn.style.border = "1px solid var(--background-modifier-border)";
+        configBtn.style.borderRadius = "4px";
+        configBtn.onclick = () => {
+            new SovereignPairConfigModal(this.app).open();
+        };
+
         // Messages Container
         this.messageContainer = container.createDiv({ cls: 'sp-messages-container' });
         this.messageContainer.style.flex = "1";
@@ -45,16 +93,17 @@ export class SovereignPairView extends ItemView {
         this.messageContainer.style.flexDirection = "column";
         this.messageContainer.style.gap = "10px";
 
-        // Adiciona mensagem de boas vindas
         this.addMessage("Olá! Sou a Sovereign Pair. Pergunte-me qualquer coisa sobre o seu Vault, ou sobre a anotação que você está lendo agora!", "ai");
 
-        // Imput Area
+        // Input Area at the bottom
         const inputArea = container.createDiv({ cls: 'sp-input-area' });
         inputArea.style.display = "flex";
         inputArea.style.gap = "8px";
         inputArea.style.marginTop = "10px";
         inputArea.style.padding = "10px";
         inputArea.style.borderTop = "1px solid var(--background-modifier-border)";
+        // FIX: Evita que os botões do rodapé fiquem escondidos na interface do Obsidian
+        inputArea.style.paddingBottom = "30px";
 
         this.inputField = inputArea.createEl('textarea', {
             cls: 'sp-chat-input',
@@ -75,45 +124,6 @@ export class SovereignPairView extends ItemView {
         this.submitButton = inputArea.createEl('button', { text: 'Envia' });
         this.submitButton.style.cursor = "pointer";
         this.submitButton.onclick = () => this.handleSubmit();
-
-        // History / Session Area
-        const historyArea = container.createDiv({ cls: 'sp-history-area' });
-        historyArea.style.padding = "5px 10px 10px";
-        historyArea.style.display = "flex";
-        historyArea.style.alignItems = "center";
-        historyArea.style.justifyContent = "space-between";
-        historyArea.style.gap = "8px";
-
-        this.sessionSelect = historyArea.createEl('select', { cls: 'sp-session-select' });
-        this.sessionSelect.style.flex = "1";
-        this.sessionSelect.style.padding = "4px";
-        this.sessionSelect.style.borderRadius = "4px";
-        this.sessionSelect.style.backgroundColor = "var(--background-modifier-form-field)";
-        this.sessionSelect.style.color = "var(--text-normal)";
-        this.sessionSelect.style.border = "1px solid var(--background-modifier-border)";
-
-        // Initial empty option
-        this.sessionSelect.createEl('option', { value: '', text: '--- Nova Conversa ---' });
-
-        this.sessionSelect.addEventListener('change', async (e) => {
-            const target = e.target as HTMLSelectElement;
-            const selectedId = target.value;
-            if (selectedId) {
-                await this.loadSession(parseInt(selectedId));
-            } else {
-                this.currentSessionId = null;
-                this.messageContainer.empty();
-                this.addMessage("Nova conversa iniciada. Como posso ajudar?", "ai");
-            }
-        });
-
-        const refreshBtn = historyArea.createEl('button', { text: '🔄' });
-        refreshBtn.style.cursor = "pointer";
-        refreshBtn.style.padding = "4px 8px";
-        refreshBtn.style.background = "transparent";
-        refreshBtn.style.border = "1px solid var(--background-modifier-border)";
-        refreshBtn.style.borderRadius = "4px";
-        refreshBtn.onclick = () => this.refreshSessionsList();
 
         // Load sessions initially
         this.refreshSessionsList();
@@ -432,5 +442,85 @@ export default class SovereignPairPlugin extends Plugin {
         if (leaf) {
             workspace.revealLeaf(leaf);
         }
+    }
+}
+
+class SovereignPairConfigModal extends Modal {
+    constructor(app: App) {
+        super(app);
+    }
+
+    async onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.createEl("h2", { text: "Sovereign Pair LLM Settings" });
+
+        const loadingMsg = contentEl.createEl("p", { text: "Carregando configurações do Backend RAG..." });
+
+        try {
+            const res = await fetch('http://127.0.0.1:8000/v1/config');
+            if (res.ok) {
+                const settings = await res.json();
+                loadingMsg.remove();
+
+                new Setting(contentEl)
+                    .setName('Provedor LLM')
+                    .setDesc('ollama, openai, groq, anthropic, gemini')
+                    .addText(text => text
+                        .setValue(settings.llm_provider)
+                        .onChange(async (val) => { settings.llm_provider = val.trim(); })
+                    );
+
+                new Setting(contentEl)
+                    .setName('Nome do Modelo')
+                    .setDesc('Ex: llama3.2, gpt-4o, bge-m3')
+                    .addText(text => text
+                        .setValue(settings.llm_model)
+                        .onChange(async (val) => { settings.llm_model = val.trim(); })
+                    );
+
+                new Setting(contentEl)
+                    .setName('Temperatura (0.0 até 2.0)')
+                    .setDesc('0 é frio e analítico, 2 é extremamente criativo.')
+                    .addText(text => text
+                        .setValue(settings.temperature.toString())
+                        .onChange(async (val) => { settings.temperature = parseFloat(val) || 0.1; })
+                    );
+
+                new Setting(contentEl)
+                    .setName('System Prompt / Persona')
+                    .addTextArea(text => text
+                        .setValue(settings.system_prompt)
+                        .onChange(async (val) => { settings.system_prompt = val; })
+                    );
+
+                new Setting(contentEl)
+                    .addButton(btn => btn
+                        .setButtonText('Salvar no Servidor')
+                        .setCta()
+                        .onClick(async () => {
+                            btn.setButtonText("Salvando...");
+                            const putRes = await fetch('http://127.0.0.1:8000/v1/config', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(settings)
+                            });
+                            if (putRes.ok) {
+                                new Notice('Configurações do LLM salvas no backend!');
+                                this.close();
+                            } else {
+                                new Notice('Erro ao salvar as configurações.');
+                                btn.setButtonText("Salvar no Servidor");
+                            }
+                        }));
+            }
+        } catch (e) {
+            loadingMsg.innerText = "Erro ao conectar-se ao servidor RAG (http://127.0.0.1:8000).";
+        }
+    }
+
+    onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
     }
 }

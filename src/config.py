@@ -108,6 +108,12 @@ EMBED_MODEL_NAME = os.getenv("EMBED_MODEL", "bge-m3")
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "300.0"))
 
 # ============================================================================
+# SEGURANÇA E CORS (Microserviços)
+# ============================================================================
+ALLOWED_ORIGINS_STR = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").strip()
+ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS_STR.split(",") if origin.strip()]
+
+# ============================================================================
 # CONFIGURAÇÕES CHROMADB
 # ============================================================================
 
