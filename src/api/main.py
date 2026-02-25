@@ -8,6 +8,11 @@ from fastapi.responses import FileResponse
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from .routes import router
+from .database import engine, Base
+from . import models
+
+# Cria o banquinho de dados e as tabelas CADA VEZ que o app iniciar
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Sovereign Pair RAG API",
