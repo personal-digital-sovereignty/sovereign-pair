@@ -10,10 +10,14 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-def build_chat_engine(index):
+from llama_index.core.llms import ChatMessage, MessageRole
+
+def build_chat_engine(index, history=None):
     """
     Constrói a instância do ContextChatEngine configurada com Hybrid Search
     (Vector + BM25) para recuperação precisa de documentos.
+    Recebe opcionalmente o `history` (Lista de Dicts) para resgatar
+    memória de curto/longo prazo do banco SQLite.
     """
     logger.info("⚙️  Configurando Busca Híbrida (Vector + BM25)...")
     
@@ -63,11 +67,20 @@ def build_chat_engine(index):
     )
     logger.info("   ✓ Hybrid Retriever configurado.")
 
+    # Memory Buffer (Preparar histórico persistente se fornecido)
+    chat_history = []
+    if history:
+        for msg in history:
+            role = MessageRole.USER if msg["role"] == "user" else MessageRole.ASSISTANT
+            chat_history.append(ChatMessage(role=role, content=msg["content"]))
+            
+    memory = ChatMemoryBuffer.from_defaults(chat_history=chat_history, token_limit=16000)
+
     # Criar Chat Engine com Retriever Híbrido
     chat_engine = ContextChatEngine.from_defaults(
         retriever=hybrid_retriever,
         llm=llm,
-        memory=ChatMemoryBuffer.from_defaults(token_limit=16000), # Memória bufferizada
+        memory=memory, # Memória bufferizada re-hidratada
         system_prompt=(
             f"Você é a inteligência artificial Sovereign Pair, atuando como assistente pessoal. "
             f"Sua própria identidade/persona é rigorosamente {ASSISTANT_PERSONA}. "

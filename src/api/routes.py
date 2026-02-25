@@ -120,20 +120,38 @@ async def chat_endpoint(request: ChatRequest, engine=Depends(get_chat_engine), d
             
         return StreamingResponse(event_generator(), media_type="text/event-stream")
         
-        sources = set()
-        if not (is_denial or is_trivial_chit_chat):
+    else:
+        # Lógica para resposta sem streaming (síncrona)
+        temp_sys_msg = None
+        if request.active_document:
+            from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
+            temp_sys_msg = LlamaMsg(role=MessageRole.USER, content=f"Aqui está o texto do meu documento ativo no Obsidian, APENAS CONSIDERE ele caso minha próxima pergunta tenha a ver com ele. NÃO invente informações se eu não perguntar:\n{request.active_document}")
+            engine._memory.put(temp_sys_msg)
+
+        try:
+            response = await asyncio.to_thread(engine.chat, request.message)
+            
+            # Gravar a mensagem da IA sincrona
+            full_ai_response = str(response)
+            ai_msg_db = ChatMessage(session_id=session_obj.id, role="assistant", content=full_ai_response)
+            db.add(ai_msg_db)
+            db.commit()
+            
+            # Extrai fontes caso existam
             source_nodes = getattr(response, "source_nodes", [])
+            citations = []
             if source_nodes:
                 for node_w_score in source_nodes:
                     metadata = node_w_score.node.metadata
-                    if not metadata:
-                        continue
-                    if "file_path" in metadata:
-                        sources.add(f"📄 {metadata['file_path']}")
-                    elif "file_name" in metadata:
-                        sources.add(f"📄 {metadata['file_name']}")
-                    
-        return ChatResponse(
-            response=str(response),
-            sources=[Citation(source=s) for s in sorted(sources)]
-        )
+                    if metadata and "file_path" in metadata:
+                        citations.append(Citation(source=metadata["file_path"]))
+                        
+            return ChatResponse(response=full_ai_response, sources=citations)
+        finally:
+            if request.active_document and temp_sys_msg:
+                try:
+                    all_history = engine._memory.get_all()
+                    clean_history = [m for m in all_history if m.content != temp_sys_msg.content]
+                    engine._memory.chat_store.set_messages(engine._memory.chat_store_key, clean_history)
+                except Exception:
+                    pass
