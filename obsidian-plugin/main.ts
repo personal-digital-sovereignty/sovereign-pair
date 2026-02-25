@@ -97,13 +97,10 @@ export class SovereignPairView extends ItemView {
     }
 
     async getActiveNoteContext(): Promise<string> {
-        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (activeView) {
-            const activeFile = activeView.file;
-            if (activeFile) {
-                const content = await this.app.vault.read(activeFile);
-                return `[DOCUMENTO ATUAL QUE O USUÁRIO ESTÁ LENDO LENDO NO EDITOR:\nTítulo: ${activeFile.basename}\nCaminho: ${activeFile.path}\nConteúdo: ${content}\n--- FIM DO DOCUMENTO ATUAL ---]\n\n`;
-            }
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile && activeFile.extension === 'md') {
+            const content = await this.app.vault.read(activeFile);
+            return `[DOCUMENTO ATUALMENTE ABERTO E FOCADO NO EDITOR DO USUÁRIO:\nTítulo: ${activeFile.basename}\nCaminho: ${activeFile.path}\nConteúdo Histórico:\n${content}\n--- FIM DO DOCUMENTO ATUAL ---]\n\n`;
         }
         return "";
     }
@@ -121,12 +118,15 @@ export class SovereignPairView extends ItemView {
         try {
             // Capturar documento atual silenciosamente
             const activeContext = await this.getActiveNoteContext();
-            const finalPrompt = activeContext ? `${activeContext}Considerando o documento atual acima que estou lendo no meu editor (caso a minha pergunta tenha relação com ele), responda à seguinte pergunta:\n${text}` : text;
 
-            const response = await fetch('http://localhost:8000/v1/chat', {
+            const response = await fetch('http://127.0.0.1:8000/v1/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: finalPrompt, stream: true })
+                body: JSON.stringify({
+                    message: text,
+                    active_document: activeContext ? activeContext : null,
+                    stream: true
+                })
             });
 
             if (!response.ok) throw new Error("API Indisponível (FastAPI)");
