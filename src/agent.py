@@ -310,7 +310,7 @@ async def main():
                 
                 print("\n")
             except KeyboardInterrupt:
-                print(f"\n\n👋 Até logo, {USER_NAME}!")
+                print(f"\n👋 Até logo, {OWNER_NAME}!")
                 break
             
             except Exception as e:
@@ -334,8 +334,8 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print(f"\n\n👋 Até logo, {USER_NAME}!")
+        print(f"\n👋 Até logo, {OWNER_NAME}!")
         sys.exit(0)
     except asyncio.CancelledError:
-        print(f"\n\n👋 Até logo, {USER_NAME}!")
+        print(f"\n👋 Até logo, {OWNER_NAME}!")
         sys.exit(0)

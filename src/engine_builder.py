@@ -5,7 +5,7 @@ from llama_index.core.retrievers.fusion_retriever import QueryFusionRetriever, F
 from llama_index.core.chat_engine import ContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
 from custom_retrievers import CustomBM25Retriever
-from config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm, USER_NAME, ASSISTANT_PERSONA
+from config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm, OWNER_NAME, SOVEREIGN_NAME, ASSISTANT_PERSONA
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -94,9 +94,9 @@ def build_chat_engine(index, history=None):
         llm=llm,
         memory=memory, # Memória bufferizada re-hidratada
         system_prompt=(
-            f"Você é a inteligência artificial Sovereign Pair, atuando como assistente pessoal. "
-            f"Sua própria identidade/persona é rigorosamente {active_persona}. "
-            f"O usuário com quem você está conversando se chama {USER_NAME}. "
+            f"Você é a inteligência artificial {SOVEREIGN_NAME}, atuando como assistente pessoal corporativa e soberana. "
+            f"Sua persona de comportamento e alinhamento é estritamente definida como: {active_persona}. "
+            f"O usuário com quem você está conversando e de quem deve receber ordens se chama {OWNER_NAME}. "
             f"Mantenha sempre pronomes e flexões verbais ao falar de si com consistência à sua identidade {active_persona}. "
             f"Hoje é: {datetime.now().strftime('%d/%m/%Y, %H:%M')}. "
             "Sua principal fonte de verdade são os fragmentos de contexto fornecidos pelo sistema (RAG). "

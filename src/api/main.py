@@ -31,7 +31,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router, prefix="/v1")
+from fastapi import Depends
+from .auth import router as auth_router, get_current_user
+app.include_router(auth_router, prefix="/v1/auth", tags=["Authentication"])
+app.include_router(router, prefix="/v1", dependencies=[Depends(get_current_user)])
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
