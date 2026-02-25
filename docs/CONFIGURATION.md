@@ -139,9 +139,18 @@ Abra o arquivo `.env` e ajuste as variáveis conforme necessário.
 - `http://192.168.1.100:11434` - Ollama em outra máquina na rede
 - `http://host.docker.internal:11434` - Ollama do host quando rodando em Docker
 
-**Como Verificar**:
+**Acesso Remoto (Importante!)**:
+Se você vai usar o Ollama rodando em outra máquina (como o IP `192.168.1.100`), garanta que no **servidor onde o Ollama roda**, ele tenha sido iniciado aceitando conexões externas definindo a variável `OLLAMA_HOST`:
+```bash
+# Na máquina servidora:
+OLLAMA_HOST="0.0.0.0" ollama serve
+```
+
+**Como Verificar a Conexão**:
 ```bash
 curl http://localhost:11434/api/tags
+# Ou remotamente:
+curl http://192.168.1.100:11434/api/tags
 ```
 
 ---
