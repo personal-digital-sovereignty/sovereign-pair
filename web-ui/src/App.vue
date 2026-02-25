@@ -172,8 +172,7 @@ const sendMessage = async () => {
           <!-- Avatar -->
           <div class="shrink-0 flex items-start justify-center mt-1">
             <div v-if="msg.role === 'assistant'" class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-[#0284c7] to-[#0ea5e9] flex items-center justify-center p-1.5 shadow-lg shadow-primary-500/20">
-              <img src="/favicon.png" alt="AI Icon" class="w-full h-full object-contain filter brightness-0 invert" v-if="false" />
-              <svg class="w-full h-full text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              <img src="/favicon.png" alt="AI Icon" class="w-full h-full object-contain filter brightness-0 invert" v-if="true" />
             </div>
             <div v-else class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-700 flex items-center justify-center p-2 text-slate-300">
               <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
