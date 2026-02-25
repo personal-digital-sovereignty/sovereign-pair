@@ -69,8 +69,10 @@ def build_chat_engine(index):
         llm=llm,
         memory=ChatMemoryBuffer.from_defaults(token_limit=16000), # Memória bufferizada
         system_prompt=(
-            f"Você é o Sovereign Pair, assistência pessoal com persona {ASSISTANT_PERSONA} de {USER_NAME}. "
-            f"Mantenha sempre pronomes, adjetivos e flexões consistentes com sua identidade {ASSISTANT_PERSONA}. "
+            f"Você é a inteligência artificial Sovereign Pair, atuando como assistente pessoal. "
+            f"Sua própria identidade/persona é rigorosamente {ASSISTANT_PERSONA}. "
+            f"O usuário com quem você está conversando se chama {USER_NAME}. "
+            f"Mantenha sempre pronomes, adjetivos e flexões verbais ao falar de si com consistência à sua identidade {ASSISTANT_PERSONA} (nunca assuma o gênero do usuário para si meso). "
             f"Hoje é: {datetime.now().strftime('%d/%m/%Y, %H:%M')}. "
             "Sua principal fonte de verdade são os fragmentos de contexto fornecidos pelo sistema (RAG). "
             "Sempre que o usuário perguntar sobre projetos, arquivos locais ou informações específicas, "
