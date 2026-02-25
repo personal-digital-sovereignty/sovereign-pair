@@ -12,7 +12,8 @@ import chromadb
 from pathlib import Path
 import re
 import yaml
-from typing import Optional
+from typing import Optional, List, Set, Dict, Any
+from llama_index.core.schema import Document
 from tqdm import tqdm
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext
 from llama_index.vector_stores.chroma import ChromaVectorStore
@@ -45,7 +46,7 @@ from cleanup import remove_obsolete_chunks
 logger = logging.getLogger(__name__)
 
 
-def preprocess_document(doc):
+def preprocess_document(doc: Document) -> Document:
     """
     Processa o documento para limpar ruídos e extrair metadados.
     
@@ -72,12 +73,17 @@ def preprocess_document(doc):
                     # Converter listas e dicts para string.
                     clean_metadata = {}
                     for k, v in metadata.items():
-                        if isinstance(v, list):
+                        if v is None:
+                            continue
+                        if isinstance(v, (list, tuple)):
                             clean_metadata[k] = ", ".join(str(i) for i in v)
                         elif isinstance(v, dict):
-                            clean_metadata[k] = str(v)
-                        else:
+                            import json
+                            clean_metadata[k] = json.dumps(v, ensure_ascii=False)
+                        elif isinstance(v, (str, int, float, bool)):
                             clean_metadata[k] = v
+                        else:
+                            clean_metadata[k] = str(v)
                     
                     # Atualizar metadados do documento
                     doc.metadata.update(clean_metadata)
@@ -119,7 +125,7 @@ def load_documents_from_directory(
     directory: Path, 
     dir_name: str,
     follow_symlinks: bool = True
-) -> list:
+) -> List[Document]:
     """
     Carrega documentos de um diretório, seguindo symlinks de diretórios se configurado.
     
@@ -226,7 +232,7 @@ def load_documents_from_directory(
     return documents
 
 
-def get_all_files_recursive(directory: Path, follow_symlinks: bool = True) -> set[Path]:
+def get_all_files_recursive(directory: Path, follow_symlinks: bool = True) -> Set[Path]:
     """
     Retorna todos os arquivos de um diretório recursivamente, seguindo symlinks.
     
@@ -260,7 +266,7 @@ def get_all_files_recursive(directory: Path, follow_symlinks: bool = True) -> se
     return files
 
 
-def scan_all_files() -> set[Path]:
+def scan_all_files() -> Set[Path]:
     """
     Escaneia todos os arquivos nos diretórios configurados.
     
@@ -286,7 +292,7 @@ def scan_all_files() -> set[Path]:
 
 
 
-def load_specific_files(file_paths: set[Path]) -> list:
+def load_specific_files(file_paths: Set[Path]) -> List[Document]:
     """
     Carrega apenas arquivos específicos (modo incremental).
     
@@ -316,7 +322,7 @@ def load_specific_files(file_paths: set[Path]) -> list:
     return documents
 
 
-def load_all_documents() -> list:
+def load_all_documents() -> List[Document]:
     """
     Carrega todos os documentos dos diretórios configurados.
     

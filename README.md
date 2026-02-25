@@ -54,7 +54,7 @@ Sistema completo de Retrieval-Augmented Generation (RAG) com **ingestão increme
 
 ### Dependências
 ```bash
-pip install llama-index chromadb python-dotenv tqdm colorama
+pip install llama-index chromadb python-dotenv tqdm colorama fastapi uvicorn sse-starlette rank-bm25 ddgs
 ```
 
 ---
@@ -88,32 +88,36 @@ mkdir -p data/vault data/chroma_db docs
 
 ## 🚀 Uso
 
-### Primeira Execução (Modo Full)
+### Usando como Agente de Terminal (CLI)
 ```bash
+python src/agent.py
+```
+**Resultado**: Inicia um assistente interactivo no seu terminal capaz de ler seus arquivos locais ou buscar na Web (`/web`).
+
+### Usando como API Web (FastAPI)
+```bash
+# Iniciar o servidor de desenvolvimento
+uvicorn src.api.main:app --reload
+```
+**Resultado**: O motor será desassociado do terminal e você poderá conversar enviando POSTS JSONs na porta `8000` suportando Server-Sent Events (SSE). Cheque `http://localhost:8000/docs` para a documentação via Swagger.
+
+### Mudar o Provedor de IA
+O RAG foi construído com modelo Factory modular, o que significa que nas suas variáveis do `.env` você não está mais restrito somento ao Ollama:
+
+```ini
+LLM_PROVIDER=openai
+# ou: ollama, anthropic, groq, gemini
+OPENAI_API_KEY=sk-xxxxxx
+# (...)
+```
+
+---
+
+### Executar Ingestão (Indexar Documentos)
+```bash
+# Indexar de forma Full ou Incremental
 python src/ingest.py
-# Escolher "full" quando perguntado
 ```
-
-**Resultado**: Processa todos os arquivos e cria histórico
-
-### Execuções Subsequentes (Modo Incremental)
-```bash
-# Modificar alguns arquivos
-echo "\n## Nova seção" >> docs/exemplo.md
-
-# Executar novamente
-python src/ingest.py
-# Escolher "incremental" quando perguntado
-```
-
-**Resultado**: Processa APENAS arquivos modificados (95%+ mais rápido!)
-
-### Validar Estado
-```bash
-python tests/validate_state.py
-```
-
-**Resultado**: Valida consistência entre histórico e ChromaDB
 
 ---
 

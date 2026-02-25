@@ -660,3 +660,9 @@ Após configurar o `.env`:
 - [Documentação do Ollama](https://ollama.ai/docs)
 - [Lista de Modelos Ollama](https://ollama.ai/library)
 - [README Principal](../README.md)
+
+---
+
+**Autor**: Jeferson Lopes  
+**Data**: 2026-02-17
+**Versão**: 2.0.0

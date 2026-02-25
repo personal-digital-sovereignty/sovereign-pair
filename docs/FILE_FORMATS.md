@@ -419,3 +419,9 @@ Durante a ingestão, o sistema mostra:
 ---
 
 **Dica**: Mantenha seus documentos em formatos suportados nativamente para melhor performance e qualidade de indexação!
+
+---
+
+**Autor**: Jeferson Lopes  
+**Data**: 2026-02-17
+**Versão**: 2.0.0

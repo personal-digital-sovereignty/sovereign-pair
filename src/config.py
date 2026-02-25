@@ -10,9 +10,8 @@ import logging
 from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
-from llama_index.llms.ollama import Ollama
-from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.core import Settings
+from llm_factory import get_llm, get_embedding_model
 
 # Carregar variáveis de ambiente do arquivo .env (se existir)
 load_dotenv()
@@ -97,8 +96,11 @@ INTERACTIVE_MODE = os.getenv("INTERACTIVE_MODE", "true").lower() == "true"
 
 
 # ============================================================================
-# CONFIGURAÇÕES OLLAMA
+# CONFIGURAÇÕES DE PROVIDERS (API & LLM)
 # ============================================================================
+
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama").strip().lower()
+EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", LLM_PROVIDER).strip().lower()
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2")
@@ -120,20 +122,22 @@ AGENT_VERBOSE = os.getenv("AGENT_VERBOSE", "true").lower() == "true"
 MAX_WEB_SEARCH_RESULTS = int(os.getenv("MAX_WEB_SEARCH_RESULTS", "3"))
 
 # ============================================================================
-# INICIALIZAÇÃO DOS MODELOS
+# INICIALIZAÇÃO DOS MODELOS (VIA FACTORY)
 # ============================================================================
 
 # Configuração do LLM para chat e geração de respostas
-llm = Ollama(
+llm = get_llm(
+    provider=LLM_PROVIDER,
     model=LLM_MODEL,
+    temperature=0.1,
     request_timeout=REQUEST_TIMEOUT,
     base_url=OLLAMA_BASE_URL,
-    temperature=0.1,  # Temperatura baixa para respostas mais precisas em RAG
 )
 
 # Configuração do modelo de embeddings para vetorização de documentos
-embed_model = OllamaEmbedding(
-    model_name=EMBED_MODEL_NAME,
+embed_model = get_embedding_model(
+    provider=EMBEDDING_PROVIDER,
+    model=EMBED_MODEL_NAME,
     base_url=OLLAMA_BASE_URL,
 )
 
@@ -154,12 +158,12 @@ Settings.chunk_overlap = 50
 def validate_ollama_connection() -> bool:
     """
     Valida se o Ollama está acessível e rodando.
-    
-    Returns:
-        bool: True se conectado com sucesso, False caso contrário
+    Pula a validação se o provedor for diferente de Ollama.
     """
+    if LLM_PROVIDER != "ollama" and EMBEDDING_PROVIDER != "ollama":
+        return True
+        
     import requests
-    
     try:
         response = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
         return response.status_code == 200
@@ -171,21 +175,26 @@ def validate_ollama_connection() -> bool:
 def validate_ollama_models() -> tuple[bool, list[str]]:
     """
     Verifica se os modelos necessários estão disponíveis no Ollama.
-    
-    Returns:
-        tuple: (todos_modelos_disponiveis, lista_de_modelos_faltantes)
+    Pula a verificação se o provedor não for Ollama.
     """
+    if LLM_PROVIDER != "ollama" and EMBEDDING_PROVIDER != "ollama":
+        return True, []
+        
     import requests
-    
-    required_models = {LLM_MODEL, EMBED_MODEL_NAME}
+    required_models = set()
+    if LLM_PROVIDER == "ollama":
+        required_models.add(LLM_MODEL)
+    if EMBEDDING_PROVIDER == "ollama":
+        required_models.add(EMBED_MODEL_NAME)
+        
+    if not required_models:
+        return True, []
+        
     missing_models = []
-    
     try:
         response = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
         if response.status_code == 200:
             models_data = response.json().get("models", [])
-            
-            # Criar conjunto com nomes completos (com tag) e nomes base (sem tag)
             available_models = set()
             for model in models_data:
                 full_name = model["name"]
