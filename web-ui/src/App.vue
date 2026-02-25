@@ -88,8 +88,9 @@ const sendMessage = async () => {
           
           try {
             const data = JSON.parse(dataStr)
-            if (data.token) {
-              messages.value[assistantMsgIndex].content += data.token
+            const textDelta = data.content || data.token
+            if (textDelta) {
+              messages.value[assistantMsgIndex].content += textDelta
               scrollToBottom()
             }
           } catch (e) {
