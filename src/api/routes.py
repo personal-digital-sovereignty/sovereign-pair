@@ -27,16 +27,23 @@ async def chat_endpoint(request: ChatRequest, engine=Depends(get_chat_engine)):
                     # Enviando tokens em formato padrão SSE
                     yield f"data: {json.dumps({'content': token})}\n\n"
                 
-                # Heurística para ocultar fontes em respostas triviais (saudações, data) ou não-encontradas
+                # Heurística abrangente para ocultar fontes em respostas triviais/conversacionais
                 texto = full_response.lower()
-                is_trivial_or_not_found = (
-                    "não encontrei essa informação" in texto or
-                    "não há informações" in texto or
-                    "nenhuma menção" in texto or
-                    (len(texto) < 150 and not any(word in texto for word in ["contexto", "documento", "arquivo", "fonte", "projeto"]))
-                )
                 
-                if not is_trivial_or_not_found:
+                # Sinais de que a IA não tirou a resposta da documentação
+                is_denial = any(phrase in texto for phrase in [
+                    "não encontrei", "não há informações", "não tenho acesso", 
+                    "não há menção", "nenhuma menção", "não menciona", 
+                    "como assistente", "posso estar errado", "não possuo acesso",
+                    "não consigo", "desculpe", "fora do contexto"
+                ])
+                
+                # Sinais de que é apenas conversa ou resposta curta
+                is_trivial_chit_chat = len(texto) < 400 and not any(word in texto for word in [
+                    "contexto", "documento", "arquivo", "pasta", "projeto", "código", "relatório", "anotação"
+                ])
+                
+                if not (is_denial or is_trivial_chit_chat):
                     # Extrair Fontes no Final
                     source_nodes = getattr(response, "source_nodes", [])
                     sources = set()
@@ -64,15 +71,20 @@ async def chat_endpoint(request: ChatRequest, engine=Depends(get_chat_engine)):
         response = await asyncio.to_thread(engine.chat, request.message)
         
         texto = str(response).lower()
-        is_trivial_or_not_found = (
-            "não encontrei essa informação" in texto or
-            "não há informações" in texto or
-            "nenhuma menção" in texto or
-            (len(texto) < 150 and not any(word in texto for word in ["contexto", "documento", "arquivo", "fonte", "projeto"]))
-        )
+        
+        is_denial = any(phrase in texto for phrase in [
+            "não encontrei", "não há informações", "não tenho acesso", 
+            "não há menção", "nenhuma menção", "não menciona", 
+            "como assistente", "posso estar errado", "não possuo acesso",
+            "não consigo", "desculpe", "fora do contexto"
+        ])
+        
+        is_trivial_chit_chat = len(texto) < 400 and not any(word in texto for word in [
+            "contexto", "documento", "arquivo", "pasta", "projeto", "código", "relatório", "anotação"
+        ])
         
         sources = set()
-        if not is_trivial_or_not_found:
+        if not (is_denial or is_trivial_chit_chat):
             source_nodes = getattr(response, "source_nodes", [])
             if source_nodes:
                 for node_w_score in source_nodes:
