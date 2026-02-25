@@ -118,6 +118,7 @@ CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "sovereign_knowledg
 # ============================================================================
 
 USER_NAME = os.getenv("USER_NAME", "Jeferson")
+ASSISTANT_PERSONA = os.getenv("ASSISTANT_PERSONA", "feminina") # Ex: feminina, masculina, neutra, robótica
 AGENT_VERBOSE = os.getenv("AGENT_VERBOSE", "true").lower() == "true"
 MAX_WEB_SEARCH_RESULTS = int(os.getenv("MAX_WEB_SEARCH_RESULTS", "3"))
 
