@@ -1,8 +1,38 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
+import Setup from './views/Setup.vue'
+import Login from './views/Login.vue'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
+const authPhase = ref('loading')
+
+const getAuthHeaders = () => {
+   const token = localStorage.getItem('sovereign_token')
+   return token ? { 'Authorization': `Bearer ${token}` } : {}
+}
+
+const checkAuthStatus = async () => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/v1/auth/status`)
+    const data = await res.json()
+    if (!data.is_setup) {
+      authPhase.value = 'setup'
+    } else {
+      const token = localStorage.getItem('sovereign_token')
+      if (!token) {
+        authPhase.value = 'login'
+      } else {
+        authPhase.value = 'authenticated'
+        loadSessions()
+        fetchConfig()
+      }
+    }
+  } catch(e) {
+    console.error("Auth Server offline", e)
+  }
+}
 
 // Inicializar parser de markdown
 const md = new MarkdownIt({
@@ -45,7 +75,9 @@ const fetchLocalModels = async () => {
   if (systemSettings.value.llm_provider !== 'ollama') return
   isFetchingModels.value = true
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/ollama/models`)
+    const res = await fetch(`${API_BASE_URL}/v1/ollama/models`, {
+        headers: getAuthHeaders()
+    })
     if (res.ok) {
       const data = await res.json()
       localModels.value = data.models || []
@@ -72,7 +104,9 @@ const chatContainer = ref<HTMLElement | null>(null)
 // Recuperar Sessões do Backend
 const loadSessions = async () => {
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/sessions`)
+    const res = await fetch(`${API_BASE_URL}/v1/sessions`, {
+        headers: getAuthHeaders()
+    })
     if (res.ok) {
       sessions.value = await res.json()
     }
@@ -85,7 +119,9 @@ const loadSessions = async () => {
 const fetchConfig = async () => {
   isLoadingConfig.value = true
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/config`)
+    const res = await fetch(`${API_BASE_URL}/v1/config`, {
+        headers: getAuthHeaders()
+    })
     if (res.ok) {
       systemSettings.value = await res.json()
       if (systemSettings.value.llm_provider === 'ollama') {
@@ -104,7 +140,10 @@ const saveConfig = async () => {
   try {
     const res = await fetch(`${API_BASE_URL}/v1/config`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+      },
       body: JSON.stringify(systemSettings.value)
     })
     if (res.ok) {
@@ -124,8 +163,7 @@ const openConfigModal = () => {
 }
 
 onMounted(() => {
-  loadSessions()
-  fetchConfig()
+  checkAuthStatus()
 })
 
 const scrollToBottom = async () => {
@@ -231,7 +269,9 @@ const sendMessage = async () => {
 // Carregar Histórico Antigo
 const loadSession = async (id: number) => {
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/sessions/${id}`)
+    const res = await fetch(`${API_BASE_URL}/v1/sessions/${id}`, {
+        headers: getAuthHeaders()
+    })
     if (res.ok) {
       const data = await res.json()
       currentSessionId.value = data.id
@@ -376,7 +416,13 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
 </script>
 
 <template>
-  <div class="flex h-screen w-full bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
+  <div v-if="authPhase === 'loading'" class="flex h-screen w-full bg-[#0f172a] items-center justify-center">
+      <div class="text-white animate-pulse">Invocando o RAG...</div>
+  </div>
+  <Setup v-else-if="authPhase === 'setup'" @setup-complete="checkAuthStatus" />
+  <Login v-else-if="authPhase === 'login'" @login-success="checkAuthStatus" />
+  
+  <div v-else class="flex h-screen w-full bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
     
     <!-- Sidebar / Navigation -->
     <aside class="w-72 bg-[#1e293b] border-r border-slate-700/50 flex flex-col transition-all duration-300 transform hidden md:flex">

@@ -13,8 +13,13 @@ from dotenv import load_dotenv
 from llama_index.core import Settings
 from llm_factory import get_llm, get_embedding_model
 
-# Carregar variáveis de ambiente do arquivo .env (se existir)
-load_dotenv()
+# 1. Carregar variáveis de ambiente do arquivo .env local (sobrescreve o global para dev)
+load_dotenv(override=True)
+
+# 2. Carregar configuração global do SO (se existir e preencher o que faltar)
+global_conf = Path(os.environ.get("SOVEREIGN_CONF", "~/.config/sovereign.conf")).expanduser()
+if global_conf.exists():
+    load_dotenv(global_conf)
 
 # ============================================================================
 # PATHS DO PROJETO (Absolutos)
@@ -108,6 +113,12 @@ EMBED_MODEL_NAME = os.getenv("EMBED_MODEL", "bge-m3")
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "300.0"))
 
 # ============================================================================
+# IDENTIDADE E PERSONALIDADE (Multi-User)
+# ============================================================================
+OWNER_NAME = os.getenv("OWNER_NAME", "Jeferson").strip()
+SOVEREIGN_NAME = os.getenv("SOVEREIGN_NAME", "Sovereign").strip()
+
+# ============================================================================
 # SEGURANÇA E CORS (Microserviços)
 # ============================================================================
 ALLOWED_ORIGINS_STR = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").strip()
@@ -123,7 +134,6 @@ CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "sovereign_knowledg
 # CONFIGURAÇÕES DO AGENTE
 # ============================================================================
 
-USER_NAME = os.getenv("USER_NAME", "Jeferson")
 ASSISTANT_PERSONA = os.getenv("ASSISTANT_PERSONA", "feminina") # Ex: feminina, masculina, neutra, robótica
 AGENT_VERBOSE = os.getenv("AGENT_VERBOSE", "true").lower() == "true"
 MAX_WEB_SEARCH_RESULTS = int(os.getenv("MAX_WEB_SEARCH_RESULTS", "3"))
