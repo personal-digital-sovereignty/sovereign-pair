@@ -36,10 +36,14 @@ class CustomBM25Retriever(BaseRetriever):
             self._tokenizer = tokenizer
             
         # Construir índice BM25 com corpus enriquecido
-        logger.info(f"🏗️  Construindo índice BM25 para {len(nodes)} nós...")
-        corpus = [self._tokenizer(self._enrich_with_metadata(node)) for node in nodes]
-        self._bm25 = BM25Okapi(corpus)
-        logger.info("   ✓ Índice BM25 pronto.")
+        if not nodes:
+            logger.warning("🏗️  Passando BM25: Banco de dados parece estar vazio.")
+            self._bm25 = None
+        else:
+            logger.info(f"🏗️  Construindo índice BM25 para {len(nodes)} nós...")
+            corpus = [self._tokenizer(self._enrich_with_metadata(node)) for node in nodes]
+            self._bm25 = BM25Okapi(corpus)
+            logger.info("   ✓ Índice BM25 pronto.")
         
         super().__init__()
 
@@ -60,6 +64,10 @@ class CustomBM25Retriever(BaseRetriever):
         return content
 
     def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
+        if not self._bm25:
+            logger.debug("BM25 Retorno Vazio: Índice BM25 não foi instanciado.")
+            return []
+
         query = query_bundle.query_str
         tokenized_query = self._tokenizer(query)
         logger.debug(f"BM25 Query: {query}")

@@ -18,9 +18,13 @@ async def chat_endpoint(request: ChatRequest, engine=Depends(get_chat_engine)):
             # Executar query_engine via thread para não bloquear o Async Loop do ASGI
             response = await asyncio.to_thread(engine.stream_chat, request.message)
             
-            for token in response.response_gen:
-                # Enviando tokens em formato padrão SSE
-                yield f"data: {json.dumps({'content': token})}\n\n"
+            # Se for uma string direta ('Empty Response') por causa de RAG Vazio:
+            if isinstance(response, str) or not hasattr(response, 'response_gen'):
+                yield f"data: {json.dumps({'content': str(response)})}\n\n"
+            else:
+                for token in response.response_gen:
+                    # Enviando tokens em formato padrão SSE
+                    yield f"data: {json.dumps({'content': token})}\n\n"
                 
             # Extrair Fontes no Final
             source_nodes = getattr(response, "source_nodes", [])
