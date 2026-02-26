@@ -223,10 +223,10 @@ const saveConfig = async () => {
 
 const applyTheme = (themeName: string) => {
   const root = document.documentElement;
-  root.classList.remove('theme-slate', 'theme-ocean', 'theme-forest', 'theme-hacker', 'theme-rose', 'theme-amber', 'theme-purple', 'light-theme');
+  root.classList.remove('theme-slate', 'theme-ocean', 'theme-forest', 'theme-hacker', 'theme-rose', 'theme-amber', 'theme-purple', 'theme-light');
   
   if (themeName === 'light') {
-    root.classList.add('light-theme');
+    root.classList.add('theme-light');
   } else if (themeName && themeName !== 'dark') {
     root.classList.add(`theme-${themeName}`);
   } else {
@@ -655,7 +655,7 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
       <div class="p-4 border-t border-slate-700/50">
         <button 
           @click="openConfigModal"
-          class="flex items-center justify-center gap-2 text-sm text-slate-300 hover:text-white transition-colors w-full p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600/50 shadow-sm"
+          class="flex items-center justify-center gap-2 text-sm text-slate-300 hover:text-white transition-colors w-full p-2 rounded-lg bg-surface-800 hover:bg-surface-700 border border-surface-600/50 shadow-sm"
         >
           <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
           <span class="font-medium">Engine Settings</span>
@@ -819,10 +819,10 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
 
       <!-- Config Modal -->
       <div v-if="isConfigModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="bg-surface-900 border border-surface-700/50 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
           
           <!-- Header -->
-          <div class="px-6 py-4 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/50">
+          <div class="px-6 py-4 border-b border-surface-700/50 flex justify-between items-center bg-surface-800/50">
             <h3 class="text-lg font-medium text-slate-200 flex items-center gap-2">
               <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
               Engine Settings
@@ -838,7 +838,7 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-2">
                 <label class="block text-sm font-medium text-slate-400">Provedor LLM</label>
-                <select v-model="systemSettings.llm_provider" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block p-2.5 outline-none transition-all">
+                <select v-model="systemSettings.llm_provider" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
                   <option value="ollama">Ollama (Local)</option>
                   <option value="openai">OpenAI</option>
                   <option value="groq">Groq</option>
@@ -853,13 +853,13 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
                     <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     Buscando locais...
                   </div>
-                  <select v-else v-model="systemSettings.llm_model" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block p-2.5 outline-none transition-all">
+                  <select v-else v-model="systemSettings.llm_model" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
                     <option v-for="mod in localModels" :key="mod" :value="mod">{{ mod }}</option>
                     <option v-if="localModels.length === 0" value="llama3.2" disabled>Nenhum modelo encontrado</option>
                   </select>
                 </template>
                 <template v-else>
-                  <input v-model="systemSettings.llm_model" type="text" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block p-2.5 outline-none transition-all" placeholder="ex: llama3, gpt-4o">
+                  <input v-model="systemSettings.llm_model" type="text" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all" placeholder="ex: llama3, gpt-4o">
                 </template>
               </div>
             </div>
@@ -879,7 +879,7 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
 
             <div class="space-y-2">
               <label class="block text-sm font-medium text-slate-400">Persona (System Prompt)</label>
-              <textarea v-model="systemSettings.system_prompt" rows="5" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block p-3 outline-none transition-all resize-none font-mono text-[13px] leading-relaxed" placeholder="Como o assistente deve se comportar..."></textarea>
+              <textarea v-model="systemSettings.system_prompt" rows="5" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-3 outline-none transition-all resize-none font-mono text-[13px] leading-relaxed" placeholder="Como o assistente deve se comportar..."></textarea>
             </div>
             <!-- Theme selector -->
             <div class="space-y-3">
@@ -913,7 +913,7 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
             <!-- Auth Token Viewer -->
             <div class="space-y-2 border-t border-slate-700/50 pt-4">
               <label class="block text-sm font-medium text-slate-400">Sovereign Token (API Key)</label>
-              <div class="relative flex items-center bg-slate-800 border border-slate-700 rounded-lg overflow-hidden transition-all focus-within:ring-1 focus-within:ring-sky-500 focus-within:border-sky-500">
+              <div class="relative flex items-center bg-surface-800 border border-surface-700 rounded-lg overflow-hidden transition-all focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500">
                 <input 
                   :type="isTokenVisible ? 'text' : 'password'" 
                   readonly
@@ -935,9 +935,9 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
           </div>
 
           <!-- Footer -->
-          <div class="px-6 py-4 border-t border-slate-700/50 bg-slate-800/30 flex justify-end gap-3">
+          <div class="px-6 py-4 border-t border-surface-700/50 bg-surface-800/30 flex justify-end gap-3">
             <button @click="isConfigModalOpen = false" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancelar</button>
-            <button @click="saveConfig" :disabled="isLoadingConfig" class="px-5 py-2 text-sm bg-sky-500 hover:bg-sky-400 text-white rounded-lg font-medium transition-colors shadow-[0_0_15px_rgba(14,165,233,0.3)] disabled:opacity-50 flex items-center gap-2">
+            <button @click="saveConfig" :disabled="isLoadingConfig" class="px-5 py-2 text-sm bg-primary-500 hover:bg-primary-400 text-white rounded-lg font-medium transition-colors shadow-lg shadow-primary-500/30 disabled:opacity-50 flex items-center gap-2">
               <svg v-if="isLoadingConfig" class="w-4 h-4 animate-spin flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
               {{ isLoadingConfig ? 'Salvando...' : 'Salvar no Banco' }}
             </button>
@@ -948,8 +948,8 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
 
       <!-- Edit Session Modal -->
       <div v-if="isEditSessionModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
-          <div class="px-6 py-4 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/50">
+        <div class="bg-surface-900 border border-surface-700/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+          <div class="px-6 py-4 border-b border-surface-700/50 flex justify-between items-center bg-surface-800/50">
             <h3 class="text-lg font-medium text-slate-200">Editar Sessão</h3>
             <button @click="isEditSessionModalOpen = false" class="text-slate-400 hover:text-white transition-colors">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -958,16 +958,16 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
           <div class="p-6 space-y-4">
             <div class="space-y-2">
               <label class="block text-sm font-medium text-slate-400">Título</label>
-              <input v-model="editingSession.title" type="text" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block p-2.5 outline-none transition-all">
+              <input v-model="editingSession.title" type="text" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
             </div>
             <div class="space-y-2">
               <label class="block text-sm font-medium text-slate-400">Pasta (Opcional)</label>
-              <input v-model="editingSession.folder_name" type="text" placeholder="Nome da pasta" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block p-2.5 outline-none transition-all">
+              <input v-model="editingSession.folder_name" type="text" placeholder="Nome da pasta" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
             </div>
           </div>
-          <div class="px-6 py-4 border-t border-slate-700/50 bg-slate-800/30 flex justify-end gap-3">
+          <div class="px-6 py-4 border-t border-surface-700/50 bg-surface-800/30 flex justify-end gap-3">
             <button @click="isEditSessionModalOpen = false" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancelar</button>
-            <button @click="saveSessionEdit" class="px-5 py-2 text-sm bg-sky-500 hover:bg-sky-400 text-white rounded-lg font-medium transition-colors shadow-[0_0_15px_rgba(14,165,233,0.3)]">Salvar</button>
+            <button @click="saveSessionEdit" class="px-5 py-2 text-sm bg-primary-500 hover:bg-primary-400 text-white rounded-lg font-medium transition-colors shadow-lg shadow-primary-500/30">Salvar</button>
           </div>
         </div>
       </div>
