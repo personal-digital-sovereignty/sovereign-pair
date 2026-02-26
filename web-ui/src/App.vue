@@ -202,7 +202,8 @@ const sendMessage = async () => {
     const response = await fetch(`${API_BASE_URL}/v1/chat`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
       },
       body: JSON.stringify({
         message: userText,
