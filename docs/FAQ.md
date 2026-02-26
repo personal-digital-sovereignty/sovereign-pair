@@ -12,8 +12,9 @@
 3. [Detecção de Mudanças](#detecção-de-mudanças)
 4. [ChromaDB](#chromadb)
 5. [Histórico](#histórico)
-6. [Troubleshooting](#troubleshooting)
-7. [Configuração](#configuração)
+6. [Privacidade e Segurança](#privacidade-e-segurança)
+7. [Troubleshooting](#troubleshooting)
+8. [Configuração](#configuração)
 
 ---
 
@@ -207,6 +208,22 @@ A migração é **automática**:
 - Atualiza versão para v1.1
 
 **Nota**: Primeira execução após migração pode ser lenta (calcula todos os hashes).
+
+---
+
+## Privacidade e Segurança
+
+### O que é enviado para a nuvem quando uso um provedor Cloud (Ex: Anthropic/OpenAI)?
+
+**Seus documentos e o banco de dados ChromaDB NUNCA são enviados para a nuvem.**
+
+A arquitetura RAG (Retrieval-Augmented Generation) do Sovereign Pair garante **Zero-Trust**:
+
+1. **Ingestão Local:** Todos os seus PDFs e arquivos Markdown são indexados e convertidos em vetores matemáticos localmente no seu computador (seja via *bge-m3* no Ollama ou outro provider Embed). Tudo fica salvo na pasta `data/chromadb` do seu disco rígido (ou NVMe).
+2. **Busca e Recuperação:** Quando você faz uma pergunta, o sistema procura os trechos de texto (`chunks`) e documentos inteiramente de forma local no seu banco de dados (BM25 + Choma Vector).
+3. **Comunicação Ativa com a Nuvem:** O único dado que viaja para os servidores da Anthropic/Google/OpenAI **é a sua pergunta exata** + **os pequenos fragmentos de texto estritamente necessários** que o sistema encontrou nos seus arquivos locais para responder àquela dúvida específica. Todo o resto do seu Cofre (Vault) continua 100% offline e intocável.
+
+É literalmente o equivalente a você pinçar o parágrafo 3 da página 10 de um livro secreto, transcrever isso num Post-it, e enviar esse Post-it por cima do balcão para o Analista ler, emitir a opinião dele sobre o parágrafo, e devolver sua resposta. Ele nunca verá sua biblioteca real de Alexandria inteira.
 
 ---
 
