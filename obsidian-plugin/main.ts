@@ -2,6 +2,14 @@ import { App, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, Markdo
 
 export const VIEW_TYPE_CHAT = "sovereign-pair-chat-view";
 
+interface SovereignPairSettings {
+    authToken: string;
+}
+
+const DEFAULT_SETTINGS: SovereignPairSettings = {
+    authToken: ''
+}
+
 export class SovereignPairView extends ItemView {
     messageContainer: HTMLElement;
     inputField: HTMLTextAreaElement;
@@ -10,9 +18,11 @@ export class SovereignPairView extends ItemView {
 
     currentSessionId: number | null = null;
     sessionsList: any[] = [];
+    plugin: SovereignPairPlugin;
 
-    constructor(leaf: WorkspaceLeaf) {
+    constructor(leaf: WorkspaceLeaf, plugin: SovereignPairPlugin) {
         super(leaf);
+        this.plugin = plugin;
     }
 
     getViewType() {
@@ -27,10 +37,20 @@ export class SovereignPairView extends ItemView {
         return "bot";
     }
 
+    getAuthHeaders(): Record<string, string> {
+        const token = this.plugin.settings.authToken;
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    }
+
     async onOpen() {
         const container = this.containerEl.children[1];
         container.empty();
         container.addClass('sovereign-pair-container');
+
+        // Habilitar seleção de texto e cópia
+        const containerEl = container as HTMLElement;
+        containerEl.style.userSelect = "text";
+        containerEl.style.webkitUserSelect = "text";
 
         const header = container.createEl("h2", { text: "Sovereign Pair" });
         header.style.textAlign = "center";
@@ -81,7 +101,7 @@ export class SovereignPairView extends ItemView {
         configBtn.style.border = "1px solid var(--background-modifier-border)";
         configBtn.style.borderRadius = "4px";
         configBtn.onclick = () => {
-            new SovereignPairConfigModal(this.app).open();
+            new SovereignPairConfigModal(this.app, this.plugin).open();
         };
 
         // Messages Container
@@ -120,6 +140,9 @@ export class SovereignPairView extends ItemView {
                 this.handleSubmit();
             }
         });
+
+        // Habilitar paste no input field explicitly if needed, but obsidian forms usually handle it.
+        // The container.style.userSelect = "text"; above usually handles copy inside the view.
 
         this.submitButton = inputArea.createEl('button', { text: 'Envia' });
         this.submitButton.style.cursor = "pointer";
@@ -187,7 +210,10 @@ export class SovereignPairView extends ItemView {
             try {
                 await fetch('http://127.0.0.1:8000/v1/feedback', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...this.getAuthHeaders()
+                    },
                     body: JSON.stringify({ message_id: messageId, thumbs_up: up, thumbs_down: down })
                 });
             } catch (e) {
@@ -201,7 +227,9 @@ export class SovereignPairView extends ItemView {
 
     async refreshSessionsList() {
         try {
-            const res = await fetch('http://127.0.0.1:8000/v1/sessions');
+            const res = await fetch('http://127.0.0.1:8000/v1/sessions', {
+                headers: this.getAuthHeaders()
+            });
             if (res.ok) {
                 this.sessionsList = await res.json();
                 this.sessionSelect.empty();
@@ -218,7 +246,9 @@ export class SovereignPairView extends ItemView {
 
     async loadSession(id: number) {
         try {
-            const res = await fetch(`http://127.0.0.1:8000/v1/sessions/${id}`);
+            const res = await fetch(`http://127.0.0.1:8000/v1/sessions/${id}`, {
+                headers: this.getAuthHeaders()
+            });
             if (res.ok) {
                 const data = await res.json();
                 this.currentSessionId = data.id;
@@ -271,7 +301,10 @@ export class SovereignPairView extends ItemView {
 
             const response = await fetch('http://127.0.0.1:8000/v1/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...this.getAuthHeaders()
+                },
                 body: JSON.stringify({
                     message: text,
                     active_document: activeContext ? activeContext : null,
@@ -335,13 +368,16 @@ export class SovereignPairView extends ItemView {
 
 export default class SovereignPairPlugin extends Plugin {
     lastSyncTime: number = Date.now();
+    settings: SovereignPairSettings;
 
     async onload() {
         console.log('Carregando Sovereign Pair RAG Plugin...');
 
+        await this.loadSettings();
+
         this.registerView(
             VIEW_TYPE_CHAT,
-            (leaf) => new SovereignPairView(leaf)
+            (leaf) => new SovereignPairView(leaf, this)
         );
 
         this.addRibbonIcon('bot', 'Sovereign Pair Chat', () => {
@@ -358,7 +394,7 @@ export default class SovereignPairPlugin extends Plugin {
 
         // 1. Interceptar Colagem de Arquivos (Ctrl+V)
         this.registerEvent(
-            this.app.workspace.on('editor-paste', async (evt: ClipboardEvent, editor: Editor, info: MarkdownView | MarkdownFileInfo) => {
+            this.app.workspace.on('editor-paste', async (evt: ClipboardEvent, editor: Editor) => {
                 if (evt.clipboardData && evt.clipboardData.files.length > 0) {
                     const file = evt.clipboardData.files[0];
                     new Notice(`Sovereign Pair: Recebendo arquivo colado '${file.name}' para o RAG...`);
@@ -386,6 +422,7 @@ export default class SovereignPairPlugin extends Plugin {
         try {
             const res = await fetch('http://127.0.0.1:8000/v1/upload', {
                 method: 'POST',
+                headers: this.settings.authToken ? { 'Authorization': `Bearer ${this.settings.authToken}` } : {},
                 body: formData
             });
             const data = await res.json();
@@ -424,6 +461,14 @@ export default class SovereignPairPlugin extends Plugin {
         console.log('Descarregando Sovereign Pair RAG Plugin...');
     }
 
+    async loadSettings() {
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    }
+
+    async saveSettings() {
+        await this.saveData(this.settings);
+    }
+
     async activateView() {
         const { workspace } = this.app;
 
@@ -446,8 +491,11 @@ export default class SovereignPairPlugin extends Plugin {
 }
 
 class SovereignPairConfigModal extends Modal {
-    constructor(app: App) {
+    plugin: SovereignPairPlugin;
+
+    constructor(app: App, plugin: SovereignPairPlugin) {
         super(app);
+        this.plugin = plugin;
     }
 
     async onOpen() {
@@ -455,10 +503,24 @@ class SovereignPairConfigModal extends Modal {
         contentEl.empty();
         contentEl.createEl("h2", { text: "Sovereign Pair LLM Settings" });
 
+        new Setting(contentEl)
+            .setName('Token de Acesso (API Key)')
+            .setDesc('Cole o Sovereign Token exibido na interface Web (Settings -> API Config).')
+            .addText(text => text
+                .setPlaceholder('ey...')
+                .setValue(this.plugin.settings.authToken)
+                .onChange(async (val) => {
+                    this.plugin.settings.authToken = val.trim();
+                    await this.plugin.saveSettings();
+                })
+            );
+
         const loadingMsg = contentEl.createEl("p", { text: "Carregando configurações do Backend RAG..." });
 
         try {
-            const res = await fetch('http://127.0.0.1:8000/v1/config');
+            const res = await fetch('http://127.0.0.1:8000/v1/config', {
+                headers: this.plugin.settings.authToken ? { 'Authorization': `Bearer ${this.plugin.settings.authToken}` } : {}
+            });
             if (res.ok) {
                 const settings = await res.json();
                 loadingMsg.remove();
@@ -502,7 +564,10 @@ class SovereignPairConfigModal extends Modal {
                             btn.setButtonText("Salvando...");
                             const putRes = await fetch('http://127.0.0.1:8000/v1/config', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    ...(this.plugin.settings.authToken ? { 'Authorization': `Bearer ${this.plugin.settings.authToken}` } : {})
+                                },
                                 body: JSON.stringify(settings)
                             });
                             if (putRes.ok) {
