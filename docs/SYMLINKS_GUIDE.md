@@ -4,7 +4,7 @@ Este guia explica como usar links simbólicos (symlinks) para integrar seus docu
 
 ---
 
-## 🔗 O que são Links Simbólicos?
+##  O que são Links Simbólicos?
 
 Links simbólicos são "atalhos" que apontam para arquivos ou diretórios em outros locais do sistema. Eles permitem que você acesse seus documentos originais sem duplicá-los.
 
@@ -12,15 +12,15 @@ Links simbólicos são "atalhos" que apontam para arquivos ou diretórios em out
 
 ---
 
-## 🎯 Por que usar Symlinks?
+##  Por que usar Symlinks?
 
 ### Vantagens
 
-✅ **Sem Duplicação**: Não ocupa espaço extra no disco
-✅ **Sempre Atualizado**: Mudanças nos arquivos originais são refletidas automaticamente
-✅ **Organização**: Mantém seus arquivos onde já estão
-✅ **Integração com Obsidian**: Use seu vault diretamente
-✅ **Múltiplas Fontes**: Combine documentos de diferentes locais
+ **Sem Duplicação**: Não ocupa espaço extra no disco
+ **Sempre Atualizado**: Mudanças nos arquivos originais são refletidas automaticamente
+ **Organização**: Mantém seus arquivos onde já estão
+ **Integração com Obsidian**: Use seu vault diretamente
+ **Múltiplas Fontes**: Combine documentos de diferentes locais
 
 ### Quando Usar
 
@@ -31,7 +31,7 @@ Links simbólicos são "atalhos" que apontam para arquivos ou diretórios em out
 
 ---
 
-## 📖 Como Criar Links Simbólicos
+##  Como Criar Links Simbólicos
 
 ### Sintaxe Básica
 
@@ -79,7 +79,7 @@ ln -s ~/Projects/Documentation data/raw_docs/project_docs
 
 ---
 
-## 🔧 Verificando Links Simbólicos
+##  Verificando Links Simbólicos
 
 ### Ver se é um Symlink
 
@@ -106,7 +106,7 @@ ls ~/Documents/ObsidianVault
 
 ---
 
-## ⚠️ Problemas Comuns
+##  Problemas Comuns
 
 ### Symlink Quebrado
 
@@ -137,12 +137,12 @@ chmod +r ~/Documents/ObsidianVault/*
 
 ### Caminho Relativo vs Absoluto
 
-**❌ Evite caminhos relativos**:
+** Evite caminhos relativos**:
 ```bash
 ln -s ../../../Documents/Vault data/vault  # Pode quebrar
 ```
 
-**✅ Use caminhos absolutos**:
+** Use caminhos absolutos**:
 ```bash
 ln -s ~/Documents/Vault data/vault  # Sempre funciona
 # ou
@@ -151,7 +151,7 @@ ln -s /home/usuario/Documents/Vault data/vault
 
 ---
 
-## 🚀 Integração com Obsidian
+##  Integração com Obsidian
 
 ### Passo a Passo
 
@@ -184,14 +184,14 @@ ln -s /home/usuario/Documents/Vault data/vault
 
 ### Vantagens
 
-- ✅ Todas as suas notas do Obsidian ficam disponíveis para o agente
-- ✅ Quando você edita no Obsidian, basta re-indexar
-- ✅ Não duplica seus arquivos
-- ✅ Mantém sua organização existente
+-  Todas as suas notas do Obsidian ficam disponíveis para o agente
+-  Quando você edita no Obsidian, basta re-indexar
+-  Não duplica seus arquivos
+-  Mantém sua organização existente
 
 ---
 
-## 🔄 Alternativa: Caminhos Absolutos
+##  Alternativa: Caminhos Absolutos
 
 Se você não quer usar symlinks, pode configurar caminhos absolutos no `.env`:
 
@@ -216,25 +216,25 @@ FOLLOW_SYMLINKS=true
 
 ---
 
-## 📊 Comparação: Symlinks vs Caminhos Absolutos vs Copiar
+##  Comparação: Symlinks vs Caminhos Absolutos vs Copiar
 
 | Método | Duplicação | Atualização | Flexibilidade | Complexidade |
 |--------|------------|-------------|---------------|--------------|
-| **Copiar Arquivos** | ❌ Sim | ❌ Manual | ⭐ | ⭐⭐⭐ Simples |
-| **Symlinks** | ✅ Não | ✅ Automática | ⭐⭐⭐ | ⭐⭐ Médio |
-| **Caminhos Absolutos** | ✅ Não | ✅ Automática | ⭐⭐ | ⭐ Fácil |
+| **Copiar Arquivos** |  Sim |  Manual |  |  Simples |
+| **Symlinks** |  Não |  Automática |  |  Médio |
+| **Caminhos Absolutos** |  Não |  Automática |  |  Fácil |
 
 ---
 
-## 💡 Dicas e Boas Práticas
+##  Dicas e Boas Práticas
 
 ### 1. Use Nomes Descritivos
 
 ```bash
-# ❌ Ruim
+#  Ruim
 ln -s ~/docs data/raw_docs/d
 
-# ✅ Bom
+#  Bom
 ln -s ~/Documents/PDFs data/raw_docs/pdfs
 ln -s ~/Downloads/Papers data/raw_docs/research_papers
 ```
@@ -272,7 +272,7 @@ chmod +x setup_symlinks.sh
 
 ---
 
-## 🔍 Troubleshooting
+##  Troubleshooting
 
 ### Erro: "Vault path não existe"
 
@@ -312,7 +312,7 @@ ls -R ~/Documents/ObsidianVault
 
 ---
 
-## 📚 Exemplos Práticos
+##  Exemplos Práticos
 
 ### Caso 1: Estudante com Múltiplas Fontes
 
@@ -360,7 +360,7 @@ ln -s ~/Research/Datasets/docs data/raw_docs/dataset_docs
 
 ---
 
-## 🎓 Recursos Adicionais
+##  Recursos Adicionais
 
 - [Documentação Completa de Configuração](CONFIGURATION.md)
 - [README Principal](../README.md)
@@ -372,7 +372,7 @@ ln -s ~/Research/Datasets/docs data/raw_docs/dataset_docs
 
 ---
 
-**Autor**: Jeferson Lopes  
-**Assistência**: Google Gemini 3 e Claude Sonnet 4.5 (Anthropic)  
+**Autor**: Jeferson Lopes
+**Assistência**: Google Gemini 3 e Claude Sonnet 4.5 (Anthropic)
 **Data**: 2026-02-17
 **Versão**: 2.0.0

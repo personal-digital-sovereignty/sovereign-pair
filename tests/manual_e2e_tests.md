@@ -1,12 +1,12 @@
 # Testes End-to-End Manuais - Ingestão Incremental
 
-**Versão**: 1.0  
-**Data**: 2026-02-16  
+**Versão**: 1.0
+**Data**: 2026-02-16
 **Objetivo**: Validar MVP completo com testes práticos
 
 ---
 
-## 📋 Preparação
+##  Preparação
 
 ### 1. Backup do Estado Atual
 ```bash
@@ -35,13 +35,13 @@ python src/ingest.py
 ```
 
 **Validar**:
-- ✅ ChromaDB criado em `data/chroma_db/`
-- ✅ Histórico criado em `data/.ingestion_history.json`
-- ✅ 3 arquivos processados
+-  ChromaDB criado em `data/chroma_db/`
+-  Histórico criado em `data/.ingestion_history.json`
+-  3 arquivos processados
 
 ---
 
-## 🧪 Cenário 1: Novo Arquivo
+##  Cenário 1: Novo Arquivo
 
 ### Objetivo
 Validar detecção e processamento de arquivo novo
@@ -79,7 +79,7 @@ cat data/.ingestion_history.json | jq '.files["vault/test/novo.md"]'
 
 ---
 
-## 🧪 Cenário 2: Arquivo Modificado
+##  Cenário 2: Arquivo Modificado
 
 ### Objetivo
 Validar detecção por hash e reprocessamento
@@ -114,7 +114,7 @@ cat data/.ingestion_history.json | jq '.files["vault/test/base1.md"].content_has
 
 ---
 
-## 🧪 Cenário 3: Arquivo Deletado
+##  Cenário 3: Arquivo Deletado
 
 ### Objetivo
 Validar limpeza de chunks obsoletos
@@ -143,7 +143,7 @@ cat data/.ingestion_history.json | jq '.files["vault/test/base2.md"]'
 
 ---
 
-## 🧪 Cenário 4: Múltiplas Mudanças
+##  Cenário 4: Múltiplas Mudanças
 
 ### Objetivo
 Validar processamento de múltiplas mudanças simultâneas
@@ -165,7 +165,7 @@ python src/ingest.py
 ```
 
 ### Validações Esperadas
-- [ ] **Detecção**: 
+- [ ] **Detecção**:
   - 2 arquivos novos
   - 1 arquivo modificado
   - 1 arquivo deletado
@@ -183,7 +183,7 @@ cat data/.ingestion_history.json | jq '.files | length'
 
 ---
 
-## 🧪 Cenário 5: Modo Full
+##  Cenário 5: Modo Full
 
 ### Objetivo
 Validar retrocompatibilidade do modo full
@@ -211,7 +211,7 @@ cat data/.ingestion_history.json | jq '.files | to_entries[] | {file: .key, modi
 
 ---
 
-## 📊 Teste de Performance
+##  Teste de Performance
 
 ### Objetivo
 Validar que modo incremental é 95%+ mais rápido
@@ -252,7 +252,7 @@ Esperado: > 95%
 
 ---
 
-## ✅ Checklist de Validação Final
+##  Checklist de Validação Final
 
 ### Funcionalidade
 - [ ] Cenário 1: Novo arquivo ✓
@@ -280,7 +280,7 @@ Esperado: > 95%
 
 ---
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### Erro: "Collection not found"
 ```bash
@@ -306,29 +306,29 @@ python src/ingest.py  # modo full
 
 ---
 
-## 📝 Relatório de Testes
+##  Relatório de Testes
 
 Após executar todos os cenários, preencher:
 
-**Data**: ___________  
+**Data**: ___________
 **Executor**: ___________
 
 | Cenário | Status | Observações |
 |---------|--------|-------------|
-| 1. Novo arquivo | ⬜ Pass / ⬜ Fail | |
-| 2. Modificado | ⬜ Pass / ⬜ Fail | |
-| 3. Deletado | ⬜ Pass / ⬜ Fail | |
-| 4. Múltiplas mudanças | ⬜ Pass / ⬜ Fail | |
-| 5. Modo full | ⬜ Pass / ⬜ Fail | |
+| 1. Novo arquivo |  Pass /  Fail | |
+| 2. Modificado |  Pass /  Fail | |
+| 3. Deletado |  Pass /  Fail | |
+| 4. Múltiplas mudanças |  Pass /  Fail | |
+| 5. Modo full |  Pass /  Fail | |
 
 **Performance**:
 - Tempo modo full: _____ s
 - Tempo incremental: _____ s
 - Economia: _____ %
 
-**Conclusão**: ⬜ APROVADO / ⬜ REPROVADO
+**Conclusão**:  APROVADO /  REPROVADO
 
 ---
 
-**Autor**: Jeferson Lopes  
+**Autor**: Jeferson Lopes
 **Assistência**: Claude Sonnet 4.5 (Anthropic)

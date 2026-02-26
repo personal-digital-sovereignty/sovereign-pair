@@ -37,7 +37,7 @@ O projeto adota uma arquitetura em camadas **[Desacoplada]**, o que significa qu
 ## 2. Fluxo de Dados Funcional (Como as coisas conversam)
 
 ### A. Fluxo de Ingestão de Documentos (Upload & Indexação)
-1. **Através da API (`routes.py` -> `POST /v1/upload`):** 
+1. **Através da API (`routes.py` -> `POST /v1/upload`):**
    - Recebe um binário/texto -> Lê o Hash (SHA256).
    - Verifica contra o SQLite se o hash é idempotente (ignora se sim).
    - Se o nome existe para outro hash: O sistema lida ativamente com a renomeação (adicionando trechos hachados) para não destruir vetores passados (`rename_if_exists=True`).
