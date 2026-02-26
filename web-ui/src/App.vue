@@ -189,7 +189,7 @@ const fetchConfig = async () => {
       if (systemSettings.value.llm_provider === 'ollama') {
          fetchLocalModels()
       }
-      document.documentElement.classList.toggle('light-theme', systemSettings.value.theme === 'light')
+      applyTheme(systemSettings.value.theme)
     }
   } catch (error) {
     console.error('Falha ao obter configurações do servidor', error)
@@ -212,7 +212,7 @@ const saveConfig = async () => {
     if (res.ok) {
       systemSettings.value = await res.json()
       isConfigModalOpen.value = false
-      document.documentElement.classList.toggle('light-theme', systemSettings.value.theme === 'light')
+      applyTheme(systemSettings.value.theme)
     }
   } catch (error) {
     console.error('Falha ao salvar configurações', error)
@@ -220,6 +220,23 @@ const saveConfig = async () => {
     isLoadingConfig.value = false
   }
 }
+
+const applyTheme = (themeName: string) => {
+  const root = document.documentElement;
+  root.classList.remove('theme-slate', 'theme-ocean', 'theme-forest', 'theme-hacker', 'theme-rose', 'theme-amber', 'theme-purple', 'light-theme');
+  
+  if (themeName === 'light') {
+    root.classList.add('light-theme');
+  } else if (themeName && themeName !== 'dark') {
+    root.classList.add(`theme-${themeName}`);
+  } else {
+    root.classList.add('theme-slate');
+  }
+}
+
+watch(() => systemSettings.value.theme, (newVal) => {
+  applyTheme(newVal)
+})
 
 const isTokenVisible = ref(false)
 const authTokenForDisplay = ref('')
@@ -540,13 +557,13 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
 </script>
 
 <template>
-  <div v-if="authPhase === 'loading'" class="flex h-screen w-full bg-[#0f172a] items-center justify-center">
+  <div v-if="authPhase === 'loading'" class="flex h-screen w-full bg-surface-900 items-center justify-center">
       <div class="text-white animate-pulse">Invocando o RAG...</div>
   </div>
   <Setup v-else-if="authPhase === 'setup'" @setup-complete="checkAuthStatus" />
   <Login v-else-if="authPhase === 'login'" @login-success="checkAuthStatus" />
   
-  <div v-else class="flex h-screen w-full bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
+  <div v-else class="flex h-screen w-full bg-surface-900 text-slate-200 overflow-hidden font-sans">
     
     <!-- Sidebar / Navigation -->
     <aside 
@@ -555,7 +572,7 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
       :style="{ width: sidebarWidth + 'px' }"
     >
       <div class="p-4 flex items-center gap-3 border-b border-slate-700/50 shine-effect">
-        <div class="w-8 h-8 rounded bg-gradient-to-tr from-[#0ea5e9] to-[#38bdf8] flex items-center justify-center shadow-lg shadow-sky-500/20">
+        <div class="w-8 h-8 rounded bg-gradient-to-tr from-primary-600 to-primary-400 flex items-center justify-center shadow-lg shadow-primary-500/20">
           <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
         </div>
         <div>
@@ -654,14 +671,14 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
 
     <!-- Main Chat Area -->
     <main 
-      class="flex-1 flex flex-col h-full bg-[#0f172a] shadow-[-10px_0_30px_rgba(0,0,0,0.5)] z-10 relative"
+      class="flex-1 flex flex-col h-full bg-surface-900 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] z-10 relative"
       @dragover.prevent="handleDragOver" 
       @dragleave.prevent="handleDragLeave" 
       @drop.prevent="handleDrop"
     >
       
       <!-- Drag Overlay -->
-      <div v-if="isDragging" class="absolute inset-x-2 inset-y-2 z-50 bg-[#0f172a]/90 backdrop-blur-md border-2 border-dashed border-sky-500 rounded-xl flex items-center justify-center transition-all">
+      <div v-if="isDragging" class="absolute inset-x-2 inset-y-2 z-50 bg-surface-900/90 backdrop-blur-md border-2 border-dashed border-primary-500 rounded-xl flex items-center justify-center transition-all">
         <div class="text-center pointer-events-none">
           <svg class="w-16 h-16 text-sky-400 mx-auto mb-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
           <h2 class="text-2xl font-bold text-slate-100">Solte o arquivo para Ingestão RAG</h2>
@@ -679,14 +696,14 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
 
       <!-- Conflict Modal -->
       <div v-if="conflictFile" class="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center">
-        <div class="bg-[#1e293b] border border-slate-700 p-6 rounded-2xl max-w-md w-full shadow-2xl animate-scale-in">
+        <div class="bg-surface-800 border border-surface-700 p-6 rounded-2xl max-w-md w-full shadow-2xl animate-scale-in">
           <div class="flex items-center gap-3 mb-4 text-amber-400">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
             <h3 class="text-lg font-bold text-slate-100">Colisão de Arquivo</h3>
           </div>
           <p class="text-slate-300 text-sm mb-6 leading-relaxed">{{ conflictFile.message }}</p>
           <div class="flex gap-3 justify-end flex-wrap mt-2">
-             <button @click="resolveConflict('cancel')" class="px-3 py-2 rounded-lg bg-[#334155] text-slate-300 hover:bg-slate-600 transition-colors text-sm font-medium">Cancelar</button>
+             <button @click="resolveConflict('cancel')" class="px-3 py-2 rounded-lg bg-surface-700 text-slate-300 hover:bg-surface-600 transition-colors text-sm font-medium">Cancelar</button>
              <button @click="resolveConflict('rename')" class="px-3 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/30 transition-colors text-sm font-medium shadow-[0_0_15px_rgba(16,185,129,0.2)]">Renomear Novo</button>
              <button @click="resolveConflict('overwrite')" class="px-3 py-2 rounded-lg bg-amber-500/20 border border-amber-500/50 text-amber-300 hover:bg-amber-500/30 transition-colors text-sm font-medium shadow-[0_0_15px_rgba(245,158,11,0.2)]">Sobrescrever Vetores</button>
           </div>
@@ -694,7 +711,7 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
       </div>
       
       <!-- Top header for mobile / status -->
-      <header class="h-14 border-b border-slate-800 flex items-center px-4 justify-between shrink-0 bg-[#0f172a]/80 backdrop-blur-md">
+      <header class="h-14 border-b border-surface-800 flex items-center px-4 justify-between shrink-0 bg-surface-900/80 backdrop-blur-md">
         <div class="flex items-center gap-3">
           <h2 class="font-medium text-slate-300 truncate max-w-[200px] md:max-w-md">
              {{ activeSession ? activeSession.title : 'Sovereign Pair' }}
@@ -725,8 +742,8 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
         >
           <!-- Avatar -->
           <div class="shrink-0 flex items-start justify-center mt-1">
-            <div v-if="msg.role === 'assistant'" class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-[#0284c7] to-[#0ea5e9] flex items-center justify-center p-1.5 shadow-lg shadow-primary-500/20">
-              <img src="/favicon.png" alt="AI Icon" class="w-full h-full object-contain filter brightness-0 invert" v-if="true" />
+            <div v-if="msg.role === 'assistant'" class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-primary-600 to-primary-400 flex items-center justify-center p-1.5 shadow-lg shadow-primary-500/20">
+              <svg class="w-5 h-5 text-white drop-shadow-sm" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"></path></svg>
             </div>
             <div v-else class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-700 flex items-center justify-center p-2 text-slate-300">
               <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
@@ -740,7 +757,7 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
           >
             <div 
               class="px-5 py-4 rounded-2xl shadow-sm text-[15px] leading-relaxed relative"
-              :class="msg.role === 'user' ? 'bg-[#334155] text-slate-100 rounded-tr-sm' : 'bg-transparent prose prose-invert w-full max-w-none'"
+              :class="msg.role === 'user' ? 'bg-surface-700 text-slate-100 rounded-tr-sm' : 'bg-transparent prose prose-invert w-full max-w-none'"
             >
               <template v-if="msg.role === 'user'">
                 {{ msg.content }}
@@ -773,7 +790,7 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
       <!-- Input Area -->
       <div class="px-4 pb-6 pt-2 shrink-0 max-w-4xl w-full mx-auto">
         <input type="file" ref="fileUploadInput" class="hidden" @change="handleFileSelect" accept=".txt,.md,.pdf,.csv">
-        <div class="relative flex items-center bg-[#1e293b] rounded-2xl border border-slate-700 shadow-xl focus-within:ring-1 focus-within:ring-sky-500/50 focus-within:border-sky-500/50 transition-all">
+        <div class="relative flex items-center bg-surface-800 rounded-2xl border border-surface-700 shadow-xl focus-within:ring-1 focus-within:ring-primary-500/50 focus-within:border-primary-500/50 transition-all">
           <button @click="triggerFileUpload" class="absolute left-3 p-2 text-slate-400 hover:text-sky-400 transition-colors" title="Anexar Arquivo">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
           </button>
@@ -865,17 +882,31 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
               <textarea v-model="systemSettings.system_prompt" rows="5" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block p-3 outline-none transition-all resize-none font-mono text-[13px] leading-relaxed" placeholder="Como o assistente deve se comportar..."></textarea>
             </div>
             <!-- Theme selector -->
-            <div class="space-y-2">
+            <div class="space-y-3">
               <label class="block text-sm font-medium text-slate-400">Aparência da Interface</label>
-              <div class="flex gap-4">
-                <label class="flex items-center gap-2 cursor-pointer text-slate-300">
-                  <input type="radio" value="dark" v-model="systemSettings.theme" class="accent-sky-500 w-4 h-4">
-                  <span>Tema Escuro (Padrão)</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer text-slate-300">
-                  <input type="radio" value="light" v-model="systemSettings.theme" class="accent-sky-500 w-4 h-4">
-                  <span>Tema Claro</span>
-                </label>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button 
+                  v-for="themeOp in [
+                    { id: 'slate', name: 'Slate', color: 'bg-slate-800', border: 'border-slate-600' },
+                    { id: 'ocean', name: 'Ocean', color: 'bg-cyan-900', border: 'border-cyan-700' },
+                    { id: 'forest', name: 'Forest', color: 'bg-emerald-900', border: 'border-emerald-700' },
+                    { id: 'hacker', name: 'Hacker', color: 'bg-black', border: 'border-green-500' },
+                    { id: 'rose', name: 'Rose', color: 'bg-rose-900', border: 'border-rose-700' },
+                    { id: 'amber', name: 'Amber', color: 'bg-orange-900', border: 'border-orange-700' },
+                    { id: 'purple', name: 'Purple', color: 'bg-purple-900', border: 'border-purple-700' },
+                    { id: 'light', name: 'Light', color: 'bg-white', border: 'border-slate-300' }
+                  ]" 
+                  :key="themeOp.id"
+                  @click="systemSettings.theme = themeOp.id"
+                  class="flex items-center justify-center p-2 rounded-xl border-2 transition-all relative overflow-hidden group"
+                  :class="systemSettings.theme === themeOp.id ? 'border-primary-500 ring-2 ring-primary-500/20' : 'border-surface-700 hover:border-surface-600'"
+                >
+                  <div class="flex items-center gap-2 relative z-10 w-full justify-center">
+                    <div class="w-4 h-4 rounded-full border shadow-sm shrink-0" :class="[themeOp.color, themeOp.border]"></div>
+                    <span class="text-xs font-medium text-slate-300 truncate group-hover:text-white transition-colors">{{ themeOp.name }}</span>
+                  </div>
+                  <div class="absolute inset-x-0 bottom-0 h-1/2 opacity-10 pointer-events-none" :class="themeOp.color"></div>
+                </button>
               </div>
             </div>
 

@@ -10,24 +10,157 @@
   --color-surface-600: #475569;
 }
 
-:root.light-theme {
+/* 1. Slate (Default Dark) */
+:root,
+:root.theme-slate {
+  --color-primary-400: #38bdf8;
+  /* sky-400 */
+  --color-primary-500: #0ea5e9;
+  /* sky-500 */
+  --color-primary-600: #0284c7;
+  /* sky-600 */
+  --color-surface-900: #0f172a;
+  /* slate-900 */
+  --color-surface-800: #1e293b;
+  /* slate-800 */
+  --color-surface-700: #334155;
+  /* slate-700 */
+  --color-surface-600: #475569;
+  /* slate-600 */
+}
+
+/* 2. Ocean (Deep Blue) */
+:root.theme-ocean {
+  --color-primary-400: #22d3ee;
+  /* cyan-400 */
+  --color-primary-500: #06b6d4;
+  /* cyan-500 */
+  --color-primary-600: #0891b2;
+  /* cyan-600 */
+  --color-surface-900: #172554;
+  /* blue-950 */
+  --color-surface-800: #1e3a8a;
+  /* blue-900 */
+  --color-surface-700: #1e40af;
+  /* blue-800 */
+  --color-surface-600: #1d4ed8;
+  /* blue-700 */
+}
+
+/* 3. Forest (Dark Green) */
+:root.theme-forest {
+  --color-primary-400: #34d399;
+  /* emerald-400 */
+  --color-primary-500: #10b981;
+  /* emerald-500 */
+  --color-primary-600: #059669;
+  /* emerald-600 */
+  --color-surface-900: #022c22;
+  /* emerald-950 */
+  --color-surface-800: #064e3b;
+  /* emerald-900 */
+  --color-surface-700: #065f46;
+  /* emerald-800 */
+  --color-surface-600: #047857;
+  /* emerald-700 */
+}
+
+/* 4. Hacker (Black & Neon Green) */
+:root.theme-hacker {
+  --color-primary-400: #4ade80;
+  /* green-400 */
+  --color-primary-500: #22c55e;
+  /* green-500 */
+  --color-primary-600: #16a34a;
+  /* green-600 */
+  --color-surface-900: #000000;
+  /* pure black */
+  --color-surface-800: #0a0a0a;
+  /* neutral-950 */
+  --color-surface-700: #171717;
+  /* neutral-900 */
+  --color-surface-600: #262626;
+  /* neutral-800 */
+}
+
+/* 5. Rose (Dark Red) */
+:root.theme-rose {
+  --color-primary-400: #fb7185;
+  /* rose-400 */
+  --color-primary-500: #f43f5e;
+  /* rose-500 */
+  --color-primary-600: #e11d48;
+  /* rose-600 */
+  --color-surface-900: #4c0519;
+  /* rose-950 */
+  --color-surface-800: #881337;
+  /* rose-900 */
+  --color-surface-700: #9f1239;
+  /* rose-800 */
+  --color-surface-600: #be123c;
+  /* rose-700 */
+}
+
+/* 6. Amber (Dark Brown/Orange) */
+:root.theme-amber {
+  --color-primary-400: #fbbf24;
+  /* amber-400 */
+  --color-primary-500: #f59e0b;
+  /* amber-500 */
+  --color-primary-600: #d97706;
+  /* amber-600 */
+  --color-surface-900: #451a03;
+  /* orange-950 */
+  --color-surface-800: #7c2d12;
+  /* orange-900 */
+  --color-surface-700: #9a3412;
+  /* orange-800 */
+  --color-surface-600: #c2410c;
+  /* orange-700 */
+}
+
+/* 7. Purple (Deep Purple) */
+:root.theme-purple {
+  --color-primary-400: #c084fc;
+  /* purple-400 */
+  --color-primary-500: #a855f7;
+  /* purple-500 */
+  --color-primary-600: #9333ea;
+  /* purple-600 */
+  --color-surface-900: #3b0764;
+  /* purple-950 */
+  --color-surface-800: #581c87;
+  /* purple-900 */
+  --color-surface-700: #6b21a8;
+  /* purple-800 */
+  --color-surface-600: #7e22ce;
+  /* purple-700 */
+}
+
+/* 8. Light (Clean White) */
+:root.theme-light {
+  --color-primary-400: #38bdf8;
+  --color-primary-500: #0ea5e9;
+  --color-primary-600: #0284c7;
+
+  --color-surface-900: #f8fafc;
+  /* slate-50 */
+  --color-surface-800: #ffffff;
+  /* white */
+  --color-surface-700: #f1f5f9;
+  /* slate-100 */
+  --color-surface-600: #e2e8f0;
+  /* slate-200 */
+
   --color-slate-900: #f8fafc;
-  --color-slate-800: #f1f5f9;
-  --color-slate-700: #e2e8f0;
-  --color-slate-600: #cbd5e1;
-  --color-slate-500: #64748b;
-  --color-slate-400: #475569;
+  --color-slate-800: #ffffff;
+  --color-slate-700: #f1f5f9;
+  --color-slate-600: #e2e8f0;
+  --color-slate-500: #94a3b8;
+  --color-slate-400: #64748b;
   --color-slate-300: #334155;
   --color-slate-200: #1e293b;
   --color-slate-100: #0f172a;
-
-  --color-surface-900: #ffffff;
-  --color-surface-800: #f8fafc;
-  --color-surface-700: #f1f5f9;
-  --color-surface-600: #e2e8f0;
-
-  --color-black: #ffffff;
-  --color-white: #0f172a;
 }
 
 body {
