@@ -1,11 +1,11 @@
 # API Documentation - Ingestão Incremental
 
-**Versão**: 2.0.0  
+**Versão**: 2.0.0
 **Data**: 2026-02-16
 
 ---
 
-## 📋 Índice
+##  Índice
 
 1. [Módulos](#módulos)
 2. [Funções Principais](#funções-principais)
@@ -498,6 +498,6 @@ stats.show_summary()
 
 ---
 
-**Autor**: Jeferson Lopes  
-**Data**: 2026-02-16  
+**Autor**: Jeferson Lopes
+**Data**: 2026-02-16
 **Versão**: 2.0.0

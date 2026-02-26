@@ -1,0 +1,44 @@
+import sys
+import os
+
+# Necessário para localizar módulos da raiz (src)
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from agent import initialize_rag_tool
+from engine_builder import build_chat_engine
+
+from fastapi import Request, Depends
+from sqlalchemy.orm import Session
+from .database import get_db
+from .models import ChatMessage
+import json
+
+# Intância Global do Índice (Para não recarregar o ChromaDB a cada request)
+_index = None
+
+def get_chat_engine(request: Request, db: Session = Depends(get_db)):
+    """
+    Dependency Injection for FastAPI. 
+    Lê o `session_id` do Request e remonta o ContextChatEngine dinamicamente
+    com a memória extraída do SQLite caso exista.
+    """
+    global _index
+    if _index is None:
+        _index, _ = initialize_rag_tool()
+        
+    history_dicts = None
+    
+    # Precisamos ler o body manualmente na dependência pois o Pydantic consome o stream depois
+    try:
+        # Recupera o body cacheados pelo middleware ou lê de forma segura
+        body_bytes = request._body if hasattr(request, "_body") else b"{}"
+        body = json.loads(body_bytes)
+        session_id = body.get("session_id")
+        
+        if session_id:
+            historical_msgs = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).order_by(ChatMessage.created_at.asc()).all()
+            history_dicts = [{"role": msg.role, "content": msg.content} for msg in historical_msgs]
+    except Exception:
+        pass
+        
+    return build_chat_engine(_index, history=history_dicts)

@@ -4,7 +4,7 @@ Este diretório contém testes para validar o sistema de ingestão incremental.
 
 ---
 
-## 📋 Arquivos de Teste
+##  Arquivos de Teste
 
 ### 1. `manual_e2e_tests.md`
 **Guia completo de testes end-to-end manuais**
@@ -47,35 +47,35 @@ chmod +x tests/validate_state.py
 ╚══════════════════════════════════════════════════════════════════╝
 
 ======================================================================
-📋 VALIDANDO HISTÓRICO
+ VALIDANDO HISTÓRICO
 ======================================================================
    Versão: 1.1
    Arquivos no histórico: 5
-   ✅ Todos os 5 arquivos válidos
+    Todos os 5 arquivos válidos
 
 ======================================================================
-💾 VALIDANDO CHROMADB
+ VALIDANDO CHROMADB
 ======================================================================
    Total de chunks: 42
    Arquivos únicos: 5
-   ✅ ChromaDB válido
+    ChromaDB válido
 
 ======================================================================
-🔍 VALIDANDO CONSISTÊNCIA
+ VALIDANDO CONSISTÊNCIA
 ======================================================================
    Arquivos no histórico: 5
    Arquivos no ChromaDB: 5
-   ✅ Histórico e ChromaDB consistentes
+    Histórico e ChromaDB consistentes
 
 ======================================================================
-📊 RESUMO
+ RESUMO
 ======================================================================
-   History        : ✅ PASS
-   Chromadb       : ✅ PASS
-   Consistency    : ✅ PASS
+   History        :  PASS
+   Chromadb       :  PASS
+   Consistency    :  PASS
 
 ======================================================================
-✅ TODAS AS VALIDAÇÕES PASSARAM
+ TODAS AS VALIDAÇÕES PASSARAM
 ======================================================================
 ```
 
@@ -96,7 +96,7 @@ python tests/test_incremental_modules.py
 
 ---
 
-## 🚀 Execução Rápida
+##  Execução Rápida
 
 ### Validação Completa
 ```bash
@@ -119,27 +119,27 @@ python tests/validate_state.py
 
 ---
 
-## 📊 Critérios de Aceitação
+##  Critérios de Aceitação
 
-### Funcionalidade ✅
+### Funcionalidade
 - [ ] Todos os 5 cenários passam
 - [ ] ChromaDB consistente
 - [ ] Histórico correto
 - [ ] Sem erros ou warnings
 
-### Performance ✅
+### Performance
 - [ ] Modo incremental 95%+ mais rápido
 - [ ] Processamento linear
 - [ ] Uso de memória controlado
 
-### Qualidade ✅
+### Qualidade
 - [ ] Código sem erros
 - [ ] Logs claros
 - [ ] Tratamento de erros robusto
 
 ---
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### Erro: "Collection not found"
 ```bash
@@ -166,12 +166,12 @@ python src/ingest.py  # modo full
 
 ---
 
-## 📝 Relatório de Testes
+##  Relatório de Testes
 
 Após executar todos os testes, documentar resultados em:
 - `tests/results/test_report_YYYY-MM-DD.md`
 
 ---
 
-**Autor**: Jeferson Lopes  
+**Autor**: Jeferson Lopes
 **Data**: 2026-02-16

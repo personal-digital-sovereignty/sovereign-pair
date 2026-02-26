@@ -12,7 +12,8 @@ import chromadb
 from pathlib import Path
 import re
 import yaml
-from typing import Optional
+from typing import Optional, List, Set, Dict, Any
+from llama_index.core.schema import Document
 from tqdm import tqdm
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext
 from llama_index.vector_stores.chroma import ChromaVectorStore
@@ -45,7 +46,7 @@ from cleanup import remove_obsolete_chunks
 logger = logging.getLogger(__name__)
 
 
-def preprocess_document(doc):
+def preprocess_document(doc: Document) -> Document:
     """
     Processa o documento para limpar ruídos e extrair metadados.
     
@@ -72,12 +73,17 @@ def preprocess_document(doc):
                     # Converter listas e dicts para string.
                     clean_metadata = {}
                     for k, v in metadata.items():
-                        if isinstance(v, list):
+                        if v is None:
+                            continue
+                        if isinstance(v, (list, tuple)):
                             clean_metadata[k] = ", ".join(str(i) for i in v)
                         elif isinstance(v, dict):
-                            clean_metadata[k] = str(v)
-                        else:
+                            import json
+                            clean_metadata[k] = json.dumps(v, ensure_ascii=False)
+                        elif isinstance(v, (str, int, float, bool)):
                             clean_metadata[k] = v
+                        else:
+                            clean_metadata[k] = str(v)
                     
                     # Atualizar metadados do documento
                     doc.metadata.update(clean_metadata)
@@ -119,7 +125,7 @@ def load_documents_from_directory(
     directory: Path, 
     dir_name: str,
     follow_symlinks: bool = True
-) -> list:
+) -> List[Document]:
     """
     Carrega documentos de um diretório, seguindo symlinks de diretórios se configurado.
     
@@ -226,7 +232,7 @@ def load_documents_from_directory(
     return documents
 
 
-def get_all_files_recursive(directory: Path, follow_symlinks: bool = True) -> set[Path]:
+def get_all_files_recursive(directory: Path, follow_symlinks: bool = True) -> Set[Path]:
     """
     Retorna todos os arquivos de um diretório recursivamente, seguindo symlinks.
     
@@ -260,7 +266,7 @@ def get_all_files_recursive(directory: Path, follow_symlinks: bool = True) -> se
     return files
 
 
-def scan_all_files() -> set[Path]:
+def scan_all_files() -> Set[Path]:
     """
     Escaneia todos os arquivos nos diretórios configurados.
     
@@ -286,7 +292,7 @@ def scan_all_files() -> set[Path]:
 
 
 
-def load_specific_files(file_paths: set[Path]) -> list:
+def load_specific_files(file_paths: Set[Path]) -> List[Document]:
     """
     Carrega apenas arquivos específicos (modo incremental).
     
@@ -316,7 +322,7 @@ def load_specific_files(file_paths: set[Path]) -> list:
     return documents
 
 
-def load_all_documents() -> list:
+def load_all_documents() -> List[Document]:
     """
     Carrega todos os documentos dos diretórios configurados.
     
@@ -558,6 +564,58 @@ def ingest_data(documents: Optional[list] = None) -> Optional[VectorStoreIndex]:
         logger.error(f"\n❌ Erro durante indexação: {e}")
         logger.exception("Detalhes do erro:")
         return None
+
+
+def process_single_file(file_path: Path, is_update: bool = False) -> Optional[VectorStoreIndex]:
+    """
+    Processa um único documento e atualiza o ChromaDB "on-the-fly".
+    Otimizado para ser consumido pelas rotas REST dinâmicas (ex: Upload).
+    
+    Args:
+        file_path: Caminho absoluto para o arquivo físico.
+        is_update: Se verdadeiro, limpará os chunks anteriores do ChromaDB antes de re-ingerir.
+    """
+    if not file_path.exists():
+        logger.error(f"❌ Arquivo não encontrado: {file_path}")
+        return None
+        
+    logger.info(f"\n🔄 Iniciando ingestão dinâmica on-the-fly: {file_path.name}")
+    
+    target_files = {file_path.absolute()}
+    
+    # Se for uma atualização/sobrescrita, limpar o veto antigo antes
+    if is_update:
+        try:
+            logger.info(f"🗑️ Removendo vetores antigos do arquivo {file_path.name}...")
+            chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+            try:
+                chroma_collection = chroma_client.get_collection(CHROMA_COLLECTION_NAME)
+                remove_obsolete_chunks(target_files, chroma_collection)
+                logger.info("   ✓ Vetores antigos removidos.")
+            except Exception as e:
+                 logger.warning(f"   ⚠️ Coleção ou vetores não encontrados para limpeza: {e}")
+        except Exception as e:
+            logger.error(f"Erro ao limpar vetores antigos: {e}")
+
+    # 1. Carregar e parsear fisicamente
+    documents = load_specific_files(target_files)
+    if not documents:
+        logger.error(f"❌ Falha ao extrair payload de {file_path.name} ou extensão inválida.")
+        return None
+        
+    # 2. Ingerir no Banco de Dados Vetorial (ChromaDB)
+    index = ingest_data(documents=documents)
+    
+    # 3. Atualizar o histórico JSON invisivelmente
+    if index:
+        try:
+            history = IngestionHistory(HISTORY_FILE)
+            history.load()
+            update_history_with_hashes(index, target_files, set(), history)
+        except Exception as e:
+            logger.warning(f"⚠️  Falha ao salvar meta-histórico JSON para {file_path.name}: {e}")
+
+    return index
 
 
 def main():

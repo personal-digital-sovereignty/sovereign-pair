@@ -9,12 +9,18 @@ NOTA: Atualizado para suportar LlamaIndex Workflows (v0.14+).
 """
 
 import nest_asyncio
-nest_asyncio.apply()
-
+try:
+    nest_asyncio.apply()
+except ValueError:
+    # Ignorar se o loop for incompatível (como o uvloop usado pelo Uvicorn/FastAPI)
+    pass
+    
 import logging
 import sys
 import asyncio
 import warnings
+import subprocess
+import re
 
 # Suprimir avisos deprecados do Pydantic e renomeação do DDGS
 warnings.filterwarnings("ignore", message=".*model_fields.*")
@@ -50,7 +56,8 @@ from ddgs import DDGS
 from config import (
     CHROMA_DIR,
     CHROMA_COLLECTION_NAME,
-    USER_NAME,
+    OWNER_NAME,
+    SOVEREIGN_NAME,
     AGENT_VERBOSE,
     INTERACTIVE_MODE,
     MAX_WEB_SEARCH_RESULTS,
@@ -126,62 +133,13 @@ def initialize_rag_tool() -> Optional[QueryEngineTool]:
         return None
 
 
-def search_web(query: str, timelimit: str = None) -> str:
-    """
-    Busca informações na internet usando DuckDuckGo (ddgs).
-    Ativada manualmente pelo usuário com o comando /web.
-    
-    Filtros avançados habilitados:
-    - region='br-pt': Prioriza resultados em PT-BR
-    - safesearch='off': Sem filtro (conteúdo técnico não é unsafe)
-    
-    Args:
-        query: Consulta de busca
-        timelimit: Filtro temporal ('d'=dia, 'w'=semana, 'm'=mês, 'y'=ano)
-        
-    Returns:
-        str: Resultados formatados ou mensagem de erro
-    """
-    try:
-        time_labels = {'d': 'último dia', 'w': 'última semana', 'm': 'último mês', 'y': 'último ano'}
-        time_info = f" ({time_labels.get(timelimit, 'sem filtro temporal')})"
-        logger.info(f"🌐 Buscando na web: {query}{time_info}")
-        
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            ddgs = DDGS()
-            results = list(ddgs.text(
-                query,
-                region='br-pt',
-                safesearch='off',
-                timelimit=timelimit,
-                max_results=MAX_WEB_SEARCH_RESULTS,
-            ))
-        
-        if not results:
-            return "Nenhum resultado encontrado na busca web."
-        
-        formatted_results = []
-        for i, result in enumerate(results, 1):
-            formatted_results.append(
-                f"{i}. {result.get('title', 'Sem título')}\n"
-                f"   {result.get('body', 'Sem descrição')}\n"
-                f"   🔗 {result.get('href', 'N/A')}"
-            )
-        
-        return "\n\n".join(formatted_results)
-        
-    except Exception as e:
-        logger.error(f"❌ Erro na busca web: {e}")
-        return f"Erro ao buscar na internet: {str(e)}"
-
-
+from web_search import search_web
 def print_welcome_message():
     """Exibe mensagem de boas-vindas."""
     print("\n" + "=" * 70)
     print("🤖 SOVEREIGN PAIR - Agente de Pair Programming")
     print("=" * 70)
-    print(f"\nOlá, {USER_NAME}! 👋")
+    print(f"\nOlá, {OWNER_NAME}! 👋")
     print("\nEu posso ajudar você com:")
     print("  • Buscar informações nos seus arquivos locais")
     print("  • Buscar informações atualizadas na internet")
@@ -226,11 +184,22 @@ async def main():
         logger.info("🔍 Validando modelos Ollama...")
         models_ok, missing_models = validate_ollama_models()
         if not models_ok:
-            print(f"\n❌ Erro: Modelos faltando no Ollama: {', '.join(missing_models)}")
-            print("   Baixe os modelos necessários:")
+            print(f"\n⚠️  Modelos faltando no Ollama: {', '.join(missing_models)}")
+            print("   Iniciando download automático (isso pode demorar minutos ou horas dependendo da sua conexão)...")
             for model in missing_models:
-                print(f"   $ ollama pull {model}")
-            sys.exit(1)
+                print(f"   Baixando {model}...")
+                try:
+                    subprocess.run(["ollama", "pull", model], check=True)
+                    print(f"   ✓ {model} baixado com sucesso!")
+                except FileNotFoundError:
+                    print("\n❌ Erro: O comando 'ollama' não foi encontrado no seu sistema.")
+                    print("   Por favor, instale o Ollama em https://ollama.com/")
+                    sys.exit(1)
+                except subprocess.CalledProcessError:
+                    print(f"\n❌ Erro ao baixar o modelo {model}.")
+                    print(f"   Por favor, rode manualmente: ollama pull {model}")
+                    sys.exit(1)
+            print("   ✓ Todos os modelos prontos!")
         
         logger.info("   ✓ Ollama configurado corretamente")
         
@@ -260,73 +229,8 @@ async def main():
         logger.info("   (Otimizado para velocidade e modelos locais)")
         
         # Criar Chat Engine com modo "context" (RAG padrão)
-        # O system_prompt força a personalidade e regras
-        # --- CONFIGURAÇÃO HÍBRIDA (Hybrid Search) ---
-        logger.info("⚙️  Configurando Busca Híbrida (Vector + BM25)...")
-        
-        # 1. Vector Retriever (Semântico) - Top-K conservador para performance
-        vector_retriever = index.as_retriever(similarity_top_k=5)
-        
-        # 2. BM25 Retriever (Palavras-chave / Datas exatas)
-        # Carrega nodes diretamente do ChromaDB (docstore pode estar vazio ao carregar do disco)
-        logger.info("   📊 Carregando nós para índice BM25...")
-        nodes = []
-        try:
-            db_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
-            collection = db_client.get_collection(CHROMA_COLLECTION_NAME)
-            result = collection.get()
-            
-            if result and result['documents']:
-                ids = result['ids']
-                texts = result['documents']
-                metadatas = result['metadatas']
-                
-                for i, text in enumerate(texts):
-                    node_metadata = metadatas[i] if metadatas else {}
-                    node = TextNode(
-                        text=text,
-                        id_=ids[i],
-                        metadata=node_metadata
-                    )
-                    nodes.append(node)
-                logger.info(f"   ✓ {len(nodes)} nós carregados do ChromaDB.")
-            else:
-                logger.warning("   ⚠️  Nenhum documento encontrado no ChromaDB para BM25.")
-                
-        except Exception as e:
-            logger.error(f"   ❌ Erro ao carregar nós do ChromaDB para BM25: {e}")
-
-        if not nodes:
-            logger.warning("   ⚠️  Índice BM25 iniciará vazio (Hybrid Search prejudicado).")
-
-        bm25_retriever = CustomBM25Retriever(nodes=nodes, similarity_top_k=5)
-        
-        # 3. Fusion Retriever (RRF - Reciprocal Rank Fusion)
-        hybrid_retriever = QueryFusionRetriever(
-            [vector_retriever, bm25_retriever],
-            num_queries=1,
-            use_async=False,
-            similarity_top_k=3,  # Top-3 final para manter contexto leve no LLM local
-            mode=FUSION_MODES.RECIPROCAL_RANK,
-        )
-        logger.info("   ✓ Hybrid Retriever configurado.")
-
-        # Criar Chat Engine com Retriever Híbrido
-        # Usamos ContextChatEngine diretamente para injetar o retriever personalizado
-        chat_engine = ContextChatEngine.from_defaults(
-            retriever=hybrid_retriever,
-            llm=llm,
-            memory=ChatMemoryBuffer.from_defaults(token_limit=16000), # Memória bufferizada
-            system_prompt=(
-                f"Você é o Sovereign Pair, um assistente pessoal de {USER_NAME}. "
-                "Sua ÚNICA fonte de verdade são os fragmentos de contexto fornecidos pelo sistema (RAG). "
-                "Você DEVE ignorar seu conhecimento prévio se ele contradisser ou não estiver no contexto. "
-                "Sempre que o usuário perguntar sobre 'meu projeto', 'minha anotação', 'meu blog' ou assuntos específicos "
-                "como 'Uninove', 'ArchLinux', 'Jandirense' ou DATAS específicas, OBRIGATORIAMENTE USE O CONTEXTO FORNECIDO. "
-                "Se a resposta não estiver no contexto, DIGA EXPLICITAMENTE: 'Não encontrei essa informação nos seus arquivos'. "
-                "Não invente. Não use conhecimento geral a menos que solicitado. Seja direto e técnico."
-            ),
-        )
+        from engine_builder import build_chat_engine
+        chat_engine = build_chat_engine(index)
         
         print_welcome_message()
         
@@ -335,12 +239,12 @@ async def main():
         
         while True:
             try:
-                prompt = input(f"\n{USER_NAME} > ").strip()
+                prompt = input(f"\n{OWNER_NAME} > ").strip()
                 if not prompt:
                     continue
                 
                 if prompt.lower() in ['sair', 'exit', 'quit']:
-                    print(f"\n👋 Até logo, {USER_NAME}!")
+                    print(f"\n👋 Até logo, {OWNER_NAME}!")
                     break
                 
                 if prompt == '/help':
@@ -352,13 +256,14 @@ async def main():
                     chat_engine.reset()
                     continue
                 
-                if prompt.startswith('/web '):
-                    web_args = prompt[5:].strip()
-                    # Parsear filtro temporal: /web -d, /web -w, /web -m, /web -y
+                if prompt.startswith('/web'):
+                    web_args = prompt[4:].strip()
+                    # Parsear filtro temporal com regex para lidar com múltiplos espaços: /web -d query
                     timelimit = None
-                    if len(web_args) >= 2 and web_args[:2] in ('-d', '-w', '-m', '-y'):
-                        timelimit = web_args[1]  # 'd', 'w', 'm', 'y'
-                        web_query = web_args[2:].strip()
+                    match = re.match(r'^(-[dwmy])\s+(.*)', web_args)
+                    if match:
+                        timelimit = match.group(1)[1]  # 'd', 'w', 'm', 'y'
+                        web_query = match.group(2).strip()
                     else:
                         web_query = web_args
                     
@@ -383,10 +288,30 @@ async def main():
                 for token in streaming_response.response_gen:
                     print(token, end="", flush=True)
                     full_response += token
-                print("\n")
                 
+                # ---- EXTRAÇÃO DE CITAÇÕES E FONTES ----
+                source_nodes = getattr(streaming_response, "source_nodes", [])
+                if source_nodes:
+                    unique_sources = set()
+                    for node_w_score in source_nodes:
+                        metadata = node_w_score.node.metadata
+                        if not metadata:
+                            continue
+                            
+                        # Mapeamento do Caminho Original
+                        if "file_path" in metadata:
+                            unique_sources.add(f"📄 {metadata['file_path']}")
+                        elif "file_name" in metadata:
+                            unique_sources.add(f"📄 {metadata['file_name']}")
+                    
+                    if unique_sources:
+                        print("\n\n**Fontes:**")
+                        for source in sorted(unique_sources):
+                            print(f"  - {source}")
+                
+                print("\n")
             except KeyboardInterrupt:
-                print(f"\n\n👋 Até logo, {USER_NAME}!")
+                print(f"\n👋 Até logo, {OWNER_NAME}!")
                 break
             
             except Exception as e:
@@ -410,8 +335,8 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print(f"\n\n👋 Até logo, {USER_NAME}!")
+        print(f"\n👋 Até logo, {OWNER_NAME}!")
         sys.exit(0)
     except asyncio.CancelledError:
-        print(f"\n\n👋 Até logo, {USER_NAME}!")
+        print(f"\n👋 Até logo, {OWNER_NAME}!")
         sys.exit(0)

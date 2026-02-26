@@ -7,6 +7,20 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [2.2.0] - 2026-02-24
+
+###  Major Release - Backend API, Citações e Modularidade
+
+### Adicionado
+- **Provedores LLM Modulares**: Refatoração profunda no núcleo (`config.py` e `llm_factory.py`) para permitir plugar facilmente `openai`, `anthropic`, `groq`, `gemini`, mantendo o `ollama` como a escolha local padrão e blindando a soberania digital.
+- **FastAPI e Server-Sent Events (SSE)**: Desacoplamento do motor LlamaIndex do CLI. Adicionados endpoints RESTful em `src/api` rodando em portas dedicadas (`uvicorn`) com streaming de respostas em tempo real para conectar frontends (Chat UIs, Obsidian, WhatsApp).
+- **Extração Formal de Citações e Fontes**: O RAG agora retorna proativamente ao usuário os arquivos locais ` caminho/do/arquivo.md` ou URLs ` url` usados na inferência, inserindo-os no final de cada streaming.
+- **Auto-pull Inteligente do Ollama**: O CLI deteta a falta de modelos vitais no Ollama e proativamente força o download transparente ao invés de abortar o terminal secamente.
+- **Tipagem Forte e Testes Modernos**: Atualização completa na validação da base convertendo testes estáticos ao ecossistema `pytest`, utilizando `fixtures` puras e o isolamento seguro vía `pytest-mock` e `MagicMock`, blindando regressões na pipeline de ingestão.
+- **Compatibilidade do Ambiente**: Reconfigurado o ambiente local de testes do ChromaDB para rodar suave e estavelmente apenas com versões do Python `3.12` a `3.13`, contornando problemas no ecossistema `Pydantic V1`.
+
+---
+
 ## [2.1.0] - 2026-02-17
 
 ### Adicionado
@@ -26,7 +40,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [2.0.0] - 2026-02-16
 
-### 🎉 Major Release - MVP Completo com Otimizações
+###  Major Release - MVP Completo com Otimizações
 
 **Commit**: `81406a3`
 
@@ -56,22 +70,22 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - `hash_utils.py` completamente reescrito (v2.0)
 
 ### Performance
-- ⚡ **95%+ mais rápido** em modo incremental vs full
-- ⚡ **3-4x mais rápido** no cálculo de hashes (paralelização)
-- 💾 Cache LRU reduz recálculo desnecessário
-- 📊 Estatísticas detalhadas de performance
+-  **95%+ mais rápido** em modo incremental vs full
+-  **3-4x mais rápido** no cálculo de hashes (paralelização)
+-  Cache LRU reduz recálculo desnecessário
+-  Estatísticas detalhadas de performance
 
 ### Documentation
-- 📚 **1303 linhas** de documentação nova
-- 📖 Guia do usuário completo
-- 🔧 API documentada
-- ❓ FAQ abrangente
+-  **1303 linhas** de documentação nova
+-  Guia do usuário completo
+-  API documentada
+-  FAQ abrangente
 
 ---
 
 ## [1.1.0] - 2026-02-16
 
-### 🚀 Minor Release - Ingestão Incremental (Fases 1 e 2)
+###  Minor Release - Ingestão Incremental (Fases 1 e 2)
 
 **Commits**: `5d9435c` até `f9dd82e`
 
@@ -93,15 +107,15 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - `ingest.py` integrado com sistema incremental
 
 ### Performance
-- 🎯 Processa apenas arquivos novos ou modificados
-- 🗑️ Limpeza automática de chunks obsoletos
-- 📊 Detecção precisa via hash SHA256
+-  Processa apenas arquivos novos ou modificados
+-  Limpeza automática de chunks obsoletos
+-  Detecção precisa via hash SHA256
 
 ---
 
 ## [1.0.0] - 2026-02-16
 
-### 🎊 Major Release - Primeira Versão Estável
+###  Major Release - Primeira Versão Estável
 
 **Commit**: `9d64dbf`
 
@@ -149,7 +163,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-**Autor**: Jeferson Lopes  
-**Assistência**: Google Gemini 3 e Claude Sonnet 4.5 (Anthropic)  
+**Autor**: Jeferson Lopes
+**Assistência**: Google Gemini 3 e Claude Sonnet 4.5 (Anthropic)
 **Data**: 2026-02-17
 **Versão**: 2.1.0

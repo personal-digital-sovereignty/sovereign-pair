@@ -14,10 +14,10 @@ O projeto requer **Python 3.11 ou 3.12** para compatibilidade com todas as depen
 python --version  # Deve retornar 3.11.x ou 3.12.x
 ```
 
-**Importante**: 
-- ✅ Python 3.11 e 3.12 são totalmente compatíveis
-- ⚠️ Python 3.10 pode funcionar mas não é oficialmente testado
-- ❌ Python 3.14+ não é compatível (problemas com ChromaDB/Pydantic V1)
+**Importante**:
+-  Python 3.11 e 3.12 são totalmente compatíveis
+-  Python 3.10 pode funcionar mas não é oficialmente testado
+-  Python 3.14+ não é compatível (problemas com ChromaDB/Pydantic V1)
 
 Se você tem Python 3.14+, crie um ambiente virtual com Python 3.12:
 
@@ -94,7 +94,7 @@ pip install -r requirements.txt
 
 ---
 
-## 🚀 Configuração Rápida (Recomendado)
+##  Configuração Rápida (Recomendado)
 
 A maneira mais fácil de configurar o projeto é usando o script interativo:
 
@@ -103,16 +103,16 @@ python setup.py
 ```
 
 O script irá:
-1. ✅ Detectar automaticamente sua instalação do Ollama
-2. ✅ Listar todos os modelos disponíveis
-3. ✅ Recomendar embed model baseado no LLM escolhido
-4. ✅ Calcular timeout ideal para o modelo
-5. ✅ Permitir personalização de todas as configurações
-6. ✅ Gerar arquivo `.env` automaticamente
+1.  Detectar automaticamente sua instalação do Ollama
+2.  Listar todos os modelos disponíveis
+3.  Recomendar embed model baseado no LLM escolhido
+4.  Calcular timeout ideal para o modelo
+5.  Permitir personalização de todas as configurações
+6.  Gerar arquivo `.env` automaticamente
 
 ---
 
-## ⚙️ Configuração Manual
+##  Configuração Manual
 
 Se preferir configurar manualmente:
 
@@ -128,7 +128,7 @@ Abra o arquivo `.env` e ajuste as variáveis conforme necessário.
 
 ---
 
-## 📋 Referência de Variáveis
+##  Referência de Variáveis
 
 ### OLLAMA_BASE_URL
 
@@ -139,9 +139,18 @@ Abra o arquivo `.env` e ajuste as variáveis conforme necessário.
 - `http://192.168.1.100:11434` - Ollama em outra máquina na rede
 - `http://host.docker.internal:11434` - Ollama do host quando rodando em Docker
 
-**Como Verificar**:
+**Acesso Remoto (Importante!)**:
+Se você vai usar o Ollama rodando em outra máquina (como o IP `192.168.1.100`), garanta que no **servidor onde o Ollama roda**, ele tenha sido iniciado aceitando conexões externas definindo a variável `OLLAMA_HOST`:
+```bash
+# Na máquina servidora:
+OLLAMA_HOST="0.0.0.0" ollama serve
+```
+
+**Como Verificar a Conexão**:
 ```bash
 curl http://localhost:11434/api/tags
+# Ou remotamente:
+curl http://192.168.1.100:11434/api/tags
 ```
 
 ---
@@ -154,12 +163,12 @@ curl http://localhost:11434/api/tags
 
 | Modelo | Tamanho | Velocidade | Qualidade | Uso Recomendado |
 |--------|---------|------------|-----------|-----------------|
-| `llama3.2` | ~4.7GB | ⚡⚡⚡ | ⭐⭐⭐⭐ | **Recomendado** - Melhor balanço |
-| `llama3.1` | ~4.7GB | ⚡⚡⚡ | ⭐⭐⭐⭐ | Versão anterior, muito capaz |
-| `mistral` | ~4.1GB | ⚡⚡⚡ | ⭐⭐⭐⭐ | Excelente para tarefas gerais |
-| `phi` | ~1.6GB | ⚡⚡⚡⚡ | ⭐⭐⭐ | Rápido, bom para hardware limitado |
-| `mixtral` | ~26GB | ⚡⚡ | ⭐⭐⭐⭐⭐ | Muito poderoso, requer GPU |
-| `gemma` | ~5.0GB | ⚡⚡⚡ | ⭐⭐⭐⭐ | Modelo do Google, muito capaz |
+| `llama3.2` | ~4.7GB |  |  | **Recomendado** - Melhor balanço |
+| `llama3.1` | ~4.7GB |  |  | Versão anterior, muito capaz |
+| `mistral` | ~4.1GB |  |  | Excelente para tarefas gerais |
+| `phi` | ~1.6GB |  |  | Rápido, bom para hardware limitado |
+| `mixtral` | ~26GB |  |  | Muito poderoso, requer GPU |
+| `gemma` | ~5.0GB |  |  | Modelo do Google, muito capaz |
 
 **Como Listar Modelos Disponíveis**:
 ```bash
@@ -181,9 +190,9 @@ ollama pull llama3.2
 
 | Modelo | Tamanho | Qualidade | Velocidade | Notas |
 |--------|---------|-----------|------------|-------|
-| `nomic-embed-text` | ~274MB | ⭐⭐⭐⭐ | ⚡⚡⚡ | **Recomendado** - Melhor balanço |
-| `mxbai-embed-large` | ~670MB | ⭐⭐⭐⭐⭐ | ⚡⚡ | Maior qualidade, mais lento |
-| `all-minilm` | ~45MB | ⭐⭐⭐ | ⚡⚡⚡⚡ | Muito rápido, menor qualidade |
+| `nomic-embed-text` | ~274MB |  |  | **Recomendado** - Melhor balanço |
+| `mxbai-embed-large` | ~670MB |  |  | Maior qualidade, mais lento |
+| `all-minilm` | ~45MB |  |  | Muito rápido, menor qualidade |
 
 **IMPORTANTE**: O embed model deve estar instalado:
 ```bash
@@ -299,7 +308,7 @@ Python é uma linguagem...
 **Descrição**: Quantidade máxima de resultados retornados pela busca web
 
 **Valores Recomendados**:
-- `3`: Rápido, suficiente para maioria dos casos ⭐ **Recomendado**
+- `3`: Rápido, suficiente para maioria dos casos  **Recomendado**
 - `5`: Mais contexto, um pouco mais lento
 - `10`: Máximo contexto, mais lento
 
@@ -356,7 +365,7 @@ CHUNK_OVERLAP=200
 
 ---
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### Erro: "Não foi possível conectar ao Ollama"
 
@@ -377,8 +386,8 @@ ollama serve
 
 **Sintoma**:
 ```
-❌ Erro durante indexação: the input length exceeds the context length (status code: 400)
-📏 Tamanho médio: 3598 caracteres
+ Erro durante indexação: the input length exceeds the context length (status code: 400)
+ Tamanho médio: 3598 caracteres
 ```
 
 **Causa**: Blocos de texto muito grandes excedem limite do modelo de embeddings
@@ -419,7 +428,7 @@ ollama pull nomic-embed-text
 
 ### Erro: "Pydantic V1 isn't compatible with Python 3.14"
 
-**Sintoma**: 
+**Sintoma**:
 ```
 pydantic.v1.errors.ConfigError: unable to infer type for attribute "chroma_server_nofile"
 ```
@@ -574,7 +583,7 @@ REQUEST_TIMEOUT=180.0
 
 ---
 
-## 📊 Exemplos de Configuração
+##  Exemplos de Configuração
 
 ### Configuração Rápida (GPU Potente)
 
@@ -630,7 +639,7 @@ MAX_WEB_SEARCH_RESULTS=3
 
 ---
 
-## 🎯 Próximos Passos
+##  Próximos Passos
 
 Após configurar o `.env`:
 
@@ -655,8 +664,14 @@ Após configurar o `.env`:
 
 ---
 
-## 📚 Recursos Adicionais
+##  Recursos Adicionais
 
 - [Documentação do Ollama](https://ollama.ai/docs)
 - [Lista de Modelos Ollama](https://ollama.ai/library)
 - [README Principal](../README.md)
+
+---
+
+**Autor**: Jeferson Lopes
+**Data**: 2026-02-17
+**Versão**: 2.0.0
