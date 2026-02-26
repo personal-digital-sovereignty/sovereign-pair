@@ -52,8 +52,8 @@ async def chat_endpoint(request: ChatRequest, engine=Depends(get_chat_engine), d
                 
                 if is_web_query:
                     import re
-                    from ..web_search import search_web
-                    from config import llm
+                    from src.web_search import search_web
+                    from src.config import llm
                     from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
                     
                     from datetime import datetime
@@ -181,8 +181,8 @@ EXTREMA IMPORTÂNCIA:
         
         if is_web_query:
             import re
-            from ..web_search import search_web
-            from config import llm
+            from src.web_search import search_web
+            from src.config import llm
             from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
             
             from datetime import datetime
