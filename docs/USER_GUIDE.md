@@ -1,12 +1,12 @@
 # Guia do Usuário - Ingestão Incremental
 
-**Versão**: 2.0.0  
+**Versão**: 2.0.0
 **Data**: 2026-02-17
 **Status**: MVP Completo
 
 ---
 
-## 📋 Índice
+##  Índice
 
 1. [Introdução](#introdução)
 2. [Instalação](#instalação)
@@ -32,10 +32,10 @@ O sistema de **Ingestão Incremental** permite processar apenas arquivos novos o
 
 ### Benefícios
 
-- ⚡ **95%+ mais rápido** que reprocessar tudo
-- 💾 **Economia de recursos** (CPU, memória, disco)
-- 🎯 **Detecção precisa** via hash de conteúdo
-- 🧹 **Limpeza automática** de dados obsoletos
+-  **95%+ mais rápido** que reprocessar tudo
+-  **Economia de recursos** (CPU, memória, disco)
+-  **Detecção precisa** via hash de conteúdo
+-  **Limpeza automática** de dados obsoletos
 
 ### Nova Funcionalidade: Busca Híbrida (v2.1.0)
 
@@ -128,19 +128,19 @@ python src/ingest.py
 ║               INGESTÃO INCREMENTAL                               ║
 ╚══════════════════════════════════════════════════════════════════╝
 
-🔍 Escaneando arquivos...
+ Escaneando arquivos...
    Encontrados: 50 arquivos
 
-📊 RESUMO DE MUDANÇAS
-   ✨ Novos: 50
-   ✏️  Modificados: 0
-   🗑️  Deletados: 0
+ RESUMO DE MUDANÇAS
+    Novos: 50
+     Modificados: 0
+     Deletados: 0
 
-💡 Modo sugerido: full
+ Modo sugerido: full
 
 Escolha o modo [full/incremental/skip/cancel]: full
 
-🚀 MODO FULL: Processando todos os arquivos...
+ MODO FULL: Processando todos os arquivos...
 Calculando hashes: 100%|████████████| 50/50 [00:05<00:00, 9.8 arquivo/s]
 
 ✓ 50 arquivos processados
@@ -148,14 +148,14 @@ Calculando hashes: 100%|████████████| 50/50 [00:05<00:00
 ✓ Histórico atualizado
 
 ======================================================================
-📊 ESTATÍSTICAS DE PROCESSAMENTO
+ ESTATÍSTICAS DE PROCESSAMENTO
 ======================================================================
 
-⏱️  Tempo total: 1m 30s
-📁 Arquivos processados: 50
-📦 Chunks criados: 250
-💾 Tamanho total: 5.2 MB
-⚡ Velocidade: 0.56 arquivos/s
+  Tempo total: 1m 30s
+ Arquivos processados: 50
+ Chunks criados: 250
+ Tamanho total: 5.2 MB
+ Velocidade: 0.56 arquivos/s
 ======================================================================
 ```
 
@@ -171,33 +171,33 @@ python src/ingest.py
 
 **Saída esperada**:
 ```
-🔍 Verificando 50 arquivo(s) comum(ns)...
+ Verificando 50 arquivo(s) comum(ns)...
 Calculando hashes: 100%|████████████| 50/50 [00:01<00:00, 45.2 arquivo/s]
 
-📊 RESUMO DE MUDANÇAS
-   ✨ Novos: 0
-   ✏️  Modificados: 1
-   🗑️  Deletados: 0
+ RESUMO DE MUDANÇAS
+    Novos: 0
+     Modificados: 1
+     Deletados: 0
 
-💡 Modo sugerido: incremental
+ Modo sugerido: incremental
 
 Escolha o modo [full/incremental/skip/cancel]: incremental
 
-⚡ MODO INCREMENTAL: Processando mudanças...
-   ✨ Novos: 0
-   ✏️  Modificados: 1
+ MODO INCREMENTAL: Processando mudanças...
+    Novos: 0
+     Modificados: 1
 
-🗑️  Removendo chunks obsoletos...
-✅ Processando apenas arquivos modificados...
+  Removendo chunks obsoletos...
+ Processando apenas arquivos modificados...
 
 ✓ 1 arquivo processado
 ✓ 5 chunks criados
 
-🚀 Modo incremental:
-   ✨ Novos: 0
-   ✏️  Modificados: 1
-   🗑️  Deletados: 0
-   ⏭️  Ignorados: 49
+ Modo incremental:
+    Novos: 0
+     Modificados: 1
+     Deletados: 0
+     Ignorados: 49
 ```
 
 ---
@@ -228,27 +228,27 @@ python tests/validate_state.py
 ║               VALIDAÇÃO DO SISTEMA                               ║
 ╚══════════════════════════════════════════════════════════════════╝
 
-📋 VALIDANDO HISTÓRICO
+ VALIDANDO HISTÓRICO
    Versão: 1.1
    Arquivos no histórico: 50
-   ✅ Todos os 50 arquivos válidos
+    Todos os 50 arquivos válidos
 
-💾 VALIDANDO CHROMADB
+ VALIDANDO CHROMADB
    Total de chunks: 250
    Arquivos únicos: 50
-   ✅ ChromaDB válido
+    ChromaDB válido
 
-🔍 VALIDANDO CONSISTÊNCIA
+ VALIDANDO CONSISTÊNCIA
    Arquivos no histórico: 50
    Arquivos no ChromaDB: 50
-   ✅ Histórico e ChromaDB consistentes
+    Histórico e ChromaDB consistentes
 
-📊 RESUMO
-   History        : ✅ PASS
-   Chromadb       : ✅ PASS
-   Consistency    : ✅ PASS
+ RESUMO
+   History        :  PASS
+   Chromadb       :  PASS
+   Consistency    :  PASS
 
-✅ TODAS AS VALIDAÇÕES PASSARAM
+ TODAS AS VALIDAÇÕES PASSARAM
 ```
 
 ### Limpar e Recomeçar
@@ -371,7 +371,7 @@ RAW_DOCS_DIRS=docs,vault,notes,wiki
 
 ---
 
-**Autor**: Jeferson Lopes  
-**Assistência**: Google Gemini 3. 
+**Autor**: Jeferson Lopes
+**Assistência**: Google Gemini 3.
 **Data**: 2026-02-17
 **Versão**: 2.0.0

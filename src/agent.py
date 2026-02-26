@@ -56,7 +56,8 @@ from ddgs import DDGS
 from config import (
     CHROMA_DIR,
     CHROMA_COLLECTION_NAME,
-    USER_NAME,
+    OWNER_NAME,
+    SOVEREIGN_NAME,
     AGENT_VERBOSE,
     INTERACTIVE_MODE,
     MAX_WEB_SEARCH_RESULTS,
@@ -138,7 +139,7 @@ def print_welcome_message():
     print("\n" + "=" * 70)
     print("🤖 SOVEREIGN PAIR - Agente de Pair Programming")
     print("=" * 70)
-    print(f"\nOlá, {USER_NAME}! 👋")
+    print(f"\nOlá, {OWNER_NAME}! 👋")
     print("\nEu posso ajudar você com:")
     print("  • Buscar informações nos seus arquivos locais")
     print("  • Buscar informações atualizadas na internet")
@@ -238,12 +239,12 @@ async def main():
         
         while True:
             try:
-                prompt = input(f"\n{USER_NAME} > ").strip()
+                prompt = input(f"\n{OWNER_NAME} > ").strip()
                 if not prompt:
                     continue
                 
                 if prompt.lower() in ['sair', 'exit', 'quit']:
-                    print(f"\n👋 Até logo, {USER_NAME}!")
+                    print(f"\n👋 Até logo, {OWNER_NAME}!")
                     break
                 
                 if prompt == '/help':

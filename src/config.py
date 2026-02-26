@@ -267,7 +267,7 @@ def get_config_summary() -> str:
    Collection:    {CHROMA_COLLECTION_NAME}
 
 👤 Agente:
-   User Name:     {USER_NAME}
+   Owner Name:    {OWNER_NAME}
    Verbose:       {AGENT_VERBOSE}
    Max Results:   {MAX_WEB_SEARCH_RESULTS}
 """

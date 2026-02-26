@@ -1,6 +1,6 @@
 # TESTES.md - Documentação de Testes e Validação
 
-**Projeto**: Sovereign Pair RAG  
+**Projeto**: Sovereign Pair RAG
 
 ---
 
@@ -102,11 +102,11 @@ python3.12 setup.py
 ```
 
 **Resultado Esperado**:
-- ✅ Detecção automática de Ollama
-- ✅ Validação de conexão com servidor remoto
-- ✅ Listagem de modelos disponíveis
-- ✅ Geração de arquivo `.env`
-- ✅ Backup de `.env` anterior
+-  Detecção automática de Ollama
+-  Validação de conexão com servidor remoto
+-  Listagem de modelos disponíveis
+-  Geração de arquivo `.env`
+-  Backup de `.env` anterior
 
 **Resultado Obtido**:
 ```
@@ -117,11 +117,11 @@ python3.12 setup.py
 ✓ Timeout: 120.0s
 ✓ Coleção: sovereign_knowledge
 ✓ Configurações do agente definidas!
-⚠ Backup do .env existente criado: .env.backup_20260216_120020
+ Backup do .env existente criado: .env.backup_20260216_120020
 ✓ Arquivo .env criado com sucesso!
 ```
 
-**Status**: ✅ PASSOU
+**Status**:  PASSOU
 
 ---
 
@@ -155,27 +155,27 @@ python3.12 ingest.py
 ```
 
 **Resultado Esperado**:
-- ✅ Detecção de symlinks
-- ✅ Resolução de caminhos reais
-- ✅ Processamento recursivo do conteúdo
-- ✅ Logs indicando symlinks seguidos
+-  Detecção de symlinks
+-  Resolução de caminhos reais
+-  Processamento recursivo do conteúdo
+-  Logs indicando symlinks seguidos
 
 **Resultado Obtido**:
 ```
-🔗 Seguindo symlink de diretório: old-blog -> /home/.../old-blog
+ Seguindo symlink de diretório: old-blog -> /home/.../old-blog
    ✓ 123 documento(s) de 'old-blog/'
 
-🔗 Seguindo symlink de diretório: ryzentosh -> /home/.../ryzentosh
+ Seguindo symlink de diretório: ryzentosh -> /home/.../ryzentosh
    ✓ 1 documento(s) de 'ryzentosh/'
 ```
 
 **Validação**:
-- ✅ Symlinks detectados corretamente
-- ✅ Caminhos resolvidos para absolutos
-- ✅ Conteúdo interno indexado
-- ✅ Sem loops infinitos
+-  Symlinks detectados corretamente
+-  Caminhos resolvidos para absolutos
+-  Conteúdo interno indexado
+-  Sem loops infinitos
 
-**Status**: ✅ PASSOU
+**Status**:  PASSOU
 
 ---
 
@@ -187,7 +187,7 @@ python3.12 ingest.py
 ```
 Parser: MarkdownNodeParser
 Configuração: CHUNK_SIZE=1024, CHUNK_OVERLAP=200
-Resultado: Tamanho médio 3598 caracteres ❌
+Resultado: Tamanho médio 3598 caracteres
 Erro: "input length exceeds the context length"
 ```
 
@@ -214,18 +214,18 @@ python3.12 ingest.py
 ```
 
 **Resultado Esperado**:
-- ✅ Chunks com tamanho ≤ 1024 caracteres
-- ✅ Overlap de ~200 caracteres entre chunks
-- ✅ Sem erros de contexto excedido
+-  Chunks com tamanho ≤ 1024 caracteres
+-  Overlap de ~200 caracteres entre chunks
+-  Sem erros de contexto excedido
 
 **Resultado Obtido**:
 ```
-📝 Arquivos Markdown: 124
-🧩 Processando Markdown com SentenceSplitter...
+ Arquivos Markdown: 124
+ Processando Markdown com SentenceSplitter...
    (Chunk size: 1024, overlap: 200)
    ✓ 256 blocos criados
 
-📏 Tamanho médio: 2334 caracteres
+ Tamanho médio: 2334 caracteres
 ```
 
 **Análise**:
@@ -240,7 +240,7 @@ python3.12 ingest.py
 # Resultado: Sem erros de "input length exceeds context length"
 ```
 
-**Status**: ✅ PASSOU
+**Status**:  PASSOU
 
 **Observação**: Tamanho médio de 2334 caracteres ainda é maior que CHUNK_SIZE (1024) porque `SentenceSplitter` preserva sentenças completas, podendo exceder ligeiramente o limite para não quebrar no meio de uma sentença.
 
@@ -275,11 +275,11 @@ Generating embeddings: 100%|██████████| 256/256 [03:01<00:00
 ✓ Embeddings gerados e salvos no ChromaDB
 
 ======================================================================
-✅ INGESTÃO CONCLUÍDA COM SUCESSO!
+ INGESTÃO CONCLUÍDA COM SUCESSO!
 ======================================================================
-   📚 Documentos processados: 124
-   🧩 Blocos (nodes) criados: 256
-   💾 Armazenado em: /path/to/chromadb
+    Documentos processados: 124
+    Blocos (nodes) criados: 256
+    Armazenado em: /path/to/chromadb
 ```
 
 **Análise de Performance**:
@@ -290,12 +290,12 @@ Generating embeddings: 100%|██████████| 256/256 [03:01<00:00
 - Status HTTP: 200 OK (todas bem-sucedidas)
 
 **Validação**:
-- ✅ Sem erros de contexto excedido
-- ✅ Todas requisições HTTP 200 OK
-- ✅ 256/256 blocos processados
-- ✅ Embeddings salvos no ChromaDB
+-  Sem erros de contexto excedido
+-  Todas requisições HTTP 200 OK
+-  256/256 blocos processados
+-  Embeddings salvos no ChromaDB
 
-**Status**: ✅ PASSOU
+**Status**:  PASSOU
 
 ---
 
@@ -327,7 +327,7 @@ HTTP Request: POST http://192.0.2.100:11434/api/embed "HTTP/1.1 200 OK"
 Durante o teste, foi identificado que `setup.py` mostrava:
 ```
 Resumo das Configurações:
-  🤖 Ollama URL:        http://localhost:11434
+   Ollama URL:        http://localhost:11434
 ```
 
 Porém, os logs de ingestão confirmaram uso correto da URL remota:
@@ -337,7 +337,7 @@ HTTP Request: POST http://192.0.2.100:11434/api/embed
 
 **Conclusão**: A URL configurada estava sendo usada corretamente pelo `config.py`, apenas o resumo do `setup.py` mostrava valor incorreto (bug cosmético, não funcional).
 
-**Status**: ✅ PASSOU (com observação)
+**Status**:  PASSOU (com observação)
 
 ---
 
@@ -357,24 +357,24 @@ python3.12 ingest.py
 ```
 
 **Resultado Esperado**:
-- ✅ Validação de existência de diretórios
-- ✅ Detecção de paths inválidos
-- ✅ Mensagens de erro claras
+-  Validação de existência de diretórios
+-  Detecção de paths inválidos
+-  Mensagens de erro claras
 
 **Resultado Obtido**:
 ```
-🔍 Validando caminhos de documentos...
+ Validando caminhos de documentos...
    ✓ Todos os caminhos são válidos
 ```
 
 **Casos de Teste**:
 
-1. **Paths válidos**: ✅ PASSOU
-2. **Paths inexistentes**: ✅ Erro detectado com mensagem clara
-3. **Symlinks válidos**: ✅ PASSOU
-4. **Symlinks quebrados**: ✅ Erro detectado e logado
+1. **Paths válidos**:  PASSOU
+2. **Paths inexistentes**:  Erro detectado com mensagem clara
+3. **Symlinks válidos**:  PASSOU
+4. **Symlinks quebrados**:  Erro detectado e logado
 
-**Status**: ✅ PASSOU
+**Status**:  PASSOU
 
 ---
 
@@ -405,11 +405,11 @@ python3.12 ingest.py
 
 **Resultado**:
 ```
-🔗 Seguindo symlink de diretório: test_symlink -> /path/to/directory
+ Seguindo symlink de diretório: test_symlink -> /path/to/directory
    ✓ X documento(s) de 'test_symlink/'
 ```
 
-**Status**: ✅ PASSOU
+**Status**:  PASSOU
 
 ---
 
@@ -439,12 +439,12 @@ python3.12 ingest.py
 
 **Resultado**:
 ```
-📏 Tamanho médio: 2334 caracteres (antes: 3598)
-✅ Embeddings gerados com sucesso
-✅ 256/256 blocos processados sem erros
+ Tamanho médio: 2334 caracteres (antes: 3598)
+ Embeddings gerados com sucesso
+ 256/256 blocos processados sem erros
 ```
 
-**Status**: ✅ PASSOU
+**Status**:  PASSOU
 
 ---
 
@@ -472,11 +472,11 @@ ls -lh data/chromadb/
 
 **Resultado**:
 ```
-✅ Configuração concluída
-✅ Symlinks criados
-✅ 124 documentos carregados
-✅ 256 blocos indexados
-✅ ChromaDB populado
+ Configuração concluída
+ Symlinks criados
+ 124 documentos carregados
+ 256 blocos indexados
+ ChromaDB populado
 ```
 
 **Validação do ChromaDB**:
@@ -486,7 +486,7 @@ du -sh data/chromadb/
 # Resultado: ~XX MB (varia conforme documentos)
 ```
 
-**Status**: ✅ PASSOU
+**Status**:  PASSOU
 
 ---
 
@@ -512,7 +512,7 @@ du -sh data/chromadb/
 |---------|---------------------------|--------------------------|----------|
 | Tamanho médio | 3598 caracteres | 2334 caracteres | -35% |
 | Blocos criados | 149 | 256 | +72% |
-| Erros de contexto | ❌ Sim | ✅ Não | 100% |
+| Erros de contexto |  Sim |  Não | 100% |
 | Taxa de sucesso | 6% (9/149) | 100% (256/256) | +94% |
 
 ---
@@ -536,10 +536,10 @@ python3.12 ingest.py
 
 **Resultado Esperado**:
 ```
-⚠️  Symlink circular detectado, ignorando: circular_link
+  Symlink circular detectado, ignorando: circular_link
 ```
 
-**Status**: ✅ PASSOU
+**Status**:  PASSOU
 
 ---
 
@@ -559,10 +559,10 @@ python3.12 ingest.py
 
 **Resultado Esperado**:
 ```
-❌ Symlink quebrado 'broken_link': /path/que/nao/existe -> erro: [Errno 2] No such file or directory
+ Symlink quebrado 'broken_link': /path/que/nao/existe -> erro: [Errno 2] No such file or directory
 ```
 
-**Status**: ✅ PASSOU
+**Status**:  PASSOU
 
 ---
 
@@ -582,7 +582,7 @@ python3.12 ingest.py
 
 **Resultado**: Arquivo ignorado ou processado sem erros
 
-**Status**: ✅ PASSOU
+**Status**:  PASSOU
 
 ---
 
@@ -632,12 +632,12 @@ python3.12 ingest.py
 
 | Categoria | Testes | Passou | Falhou |
 |-----------|--------|--------|--------|
-| Configuração | 1 | ✅ 1 | 0 |
-| Ingestão | 4 | ✅ 4 | 0 |
-| Integração | 1 | ✅ 1 | 0 |
-| Regressão | 2 | ✅ 2 | 0 |
-| Casos Específicos | 3 | ✅ 3 | 0 |
-| **TOTAL** | **11** | **✅ 11** | **0** |
+| Configuração | 1 |  1 | 0 |
+| Ingestão | 4 |  4 | 0 |
+| Integração | 1 |  1 | 0 |
+| Regressão | 2 |  2 | 0 |
+| Casos Específicos | 3 |  3 | 0 |
+| **TOTAL** | **11** | ** 11** | **0** |
 
 **Taxa de Sucesso**: 100%
 
@@ -645,12 +645,12 @@ python3.12 ingest.py
 
 O sistema foi validado com sucesso em todos os aspectos:
 
-✅ **Configuração**: Sistema interativo funcional  
-✅ **Symlinks**: Suporte completo a diretórios e arquivos  
-✅ **Chunking**: Tamanhos controlados e compatíveis  
-✅ **Embeddings**: Geração sem erros de contexto  
-✅ **Performance**: Métricas aceitáveis (1.41 blocos/s)  
-✅ **Integração**: Fluxo completo funcional  
+ **Configuração**: Sistema interativo funcional
+ **Symlinks**: Suporte completo a diretórios e arquivos
+ **Chunking**: Tamanhos controlados e compatíveis
+ **Embeddings**: Geração sem erros de contexto
+ **Performance**: Métricas aceitáveis (1.41 blocos/s)
+ **Integração**: Fluxo completo funcional
 
 ### 9.3 Recomendações
 
@@ -713,19 +713,19 @@ ls -lh data/chromadb/
 
 ```bash
 # Verificar logs
-grep "✅ INGESTÃO CONCLUÍDA" ingest.log
+grep " INGESTÃO CONCLUÍDA" ingest.log
 
 # Verificar métricas
 grep "Tamanho médio" ingest.log
 grep "blocos criados" ingest.log
 
 # Verificar erros
-grep "❌" ingest.log
+grep "" ingest.log
 ```
 
 ---
 
-**Autor**: Jeferson Lopes  
-**Assistência**: Google Gemini 3 e Claude Sonnet 4.5 (Anthropic)  
+**Autor**: Jeferson Lopes
+**Assistência**: Google Gemini 3 e Claude Sonnet 4.5 (Anthropic)
 **Data**: 2026-02-17
 **Versão**: 2.0.0

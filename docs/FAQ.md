@@ -1,11 +1,11 @@
 # FAQ - Perguntas Frequentes
 
-**Versão**: 2.0.0  
+**Versão**: 2.0.0
 **Data**: 2026-02-17
 
 ---
 
-## 📋 Índice
+##  Índice
 
 1. [Conceitos Básicos](#conceitos-básicos)
 2. [Performance](#performance)
@@ -472,6 +472,6 @@ cd projeto2 && python ../src/ingest.py
 
 ---
 
-**Autor**: Jeferson Lopes  
+**Autor**: Jeferson Lopes
 **Data**: 2026-02-17
 **Versão**: 2.0.0
