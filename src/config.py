@@ -121,7 +121,7 @@ SOVEREIGN_NAME = os.getenv("SOVEREIGN_NAME", "Sovereign").strip()
 # ============================================================================
 # SEGURANÇA E CORS (Microserviços)
 # ============================================================================
-ALLOWED_ORIGINS_STR = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").strip()
+ALLOWED_ORIGINS_STR = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000,app://obsidian.md").strip()
 ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS_STR.split(",") if origin.strip()]
 
 # ============================================================================

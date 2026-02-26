@@ -96,7 +96,7 @@ watch(() => systemSettings.value.llm_provider, (newVal) => {
 })
 
 const messages = ref<Message[]>([
-  { id: 1, role: 'assistant', content: 'Olá! Sou seu Sovereign Pair RAG. Estou conectado ao modelo local protegido em seus diretórios.\n\nComo posso ajudar hoje?' }
+  { id: 0, role: 'assistant', content: 'Olá! Sou seu Sovereign Pair RAG. Estou conectado ao modelo local protegido em seus diretórios.\n\nComo posso ajudar hoje?' }
 ])
 const isThinking = ref(false)
 const chatContainer = ref<HTMLElement | null>(null)
@@ -305,7 +305,7 @@ const loadSession = async (id: number) => {
 
 // Enviar Feedback
 const submitFeedback = async (msg: Message, type: 'up' | 'down') => {
-  if (msg.role !== 'assistant' || !msg.id || msg.isStreaming) return
+  if (msg.role !== 'assistant' || !msg.id || msg.id === 0 || msg.isStreaming) return
   
   // Optimistic UI Update
   const originalUp = msg.thumbs_up
