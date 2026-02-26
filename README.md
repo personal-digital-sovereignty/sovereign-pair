@@ -4,21 +4,21 @@ Sistema completo de Retrieval-Augmented Generation (RAG) com **ingestão increme
 
 ---
 
-## ✨ Funcionalidades Principais
+##  Funcionalidades Principais
 
-### 🚀 Ingestão Incremental
+###  Ingestão Incremental
 - **Detecção automática** de arquivos novos, modificados e deletados
 - **Hash SHA256** para detecção precisa de modificações de conteúdo
 - **Limpeza automática** de chunks obsoletos no ChromaDB
 - **95%+ mais rápido** que reprocessar tudo do zero
 
-### ⚡ Performance Otimizada
+###  Performance Otimizada
 - **Hashing paralelo** com ThreadPoolExecutor (3-4x mais rápido)
 - **Cache LRU** de hashes para evitar recálculo
 - **Batch processing** para inserções eficientes
 - **Barras de progresso** com feedback em tempo real
 
-### 🎨 UX Profissional
+###  UX Profissional
 - **Logs coloridos** (colorama) para melhor legibilidade
 - **Estimativas de tempo** de processamento
 - **Estatísticas detalhadas** de performance
@@ -29,7 +29,7 @@ Sistema completo de Retrieval-Augmented Generation (RAG) com **ingestão increme
 - **Engenharia de Prompt Refinada**: O agente sabe quando não sabe e evita alucinações.
 - **Interface interativa** (full/incremental/skip/cancel)
 
-### 📚 Documentação Completa
+###  Documentação Completa
 - **Guia do Usuário** (366 linhas)
 - **Documentação de API** (503 linhas)
 - **FAQ abrangente** (434 linhas)
@@ -37,7 +37,7 @@ Sistema completo de Retrieval-Augmented Generation (RAG) com **ingestão increme
 
 ---
 
-## 🎯 Casos de Uso
+##  Casos de Uso
 
 - **Obsidian Vault**: Sincronize suas notas automaticamente
 - **Documentação Técnica**: Mantenha docs sempre atualizadas
@@ -46,7 +46,7 @@ Sistema completo de Retrieval-Augmented Generation (RAG) com **ingestão increme
 
 ---
 
-## 📦 Instalação
+##  Instalação
 
 ### Requisitos
 - Python 3.8+
@@ -54,12 +54,12 @@ Sistema completo de Retrieval-Augmented Generation (RAG) com **ingestão increme
 
 ### Dependências
 ```bash
-pip install llama-index chromadb python-dotenv tqdm colorama
+pip install llama-index chromadb python-dotenv tqdm colorama fastapi uvicorn sse-starlette rank-bm25 ddgs
 ```
 
 ---
 
-## ⚙️ Configuração
+##  Configuração
 
 ### 1. Criar `.env`
 ```bash
@@ -86,38 +86,42 @@ mkdir -p data/vault data/chroma_db docs
 
 ---
 
-## 🚀 Uso
+##  Uso
 
-### Primeira Execução (Modo Full)
+### Usando como Agente de Terminal (CLI)
 ```bash
-python src/ingest.py
-# Escolher "full" quando perguntado
+python src/agent.py
 ```
+**Resultado**: Inicia um assistente interactivo no seu terminal capaz de ler seus arquivos locais ou buscar na Web (`/web`).
 
-**Resultado**: Processa todos os arquivos e cria histórico
-
-### Execuções Subsequentes (Modo Incremental)
+### Usando como API Web (FastAPI)
 ```bash
-# Modificar alguns arquivos
-echo "\n## Nova seção" >> docs/exemplo.md
-
-# Executar novamente
-python src/ingest.py
-# Escolher "incremental" quando perguntado
+# Iniciar o servidor de desenvolvimento
+uvicorn src.api.main:app --reload
 ```
+**Resultado**: O motor será desassociado do terminal e você poderá conversar enviando POSTS JSONs na porta `8000` suportando Server-Sent Events (SSE). Cheque `http://localhost:8000/docs` para a documentação via Swagger.
 
-**Resultado**: Processa APENAS arquivos modificados (95%+ mais rápido!)
+### Mudar o Provedor de IA
+O RAG foi construído com modelo Factory modular, o que significa que nas suas variáveis do `.env` você não está mais restrito somento ao Ollama:
 
-### Validar Estado
-```bash
-python tests/validate_state.py
+```ini
+LLM_PROVIDER=openai
+# ou: ollama, anthropic, groq, gemini
+OPENAI_API_KEY=sk-xxxxxx
+# (...)
 ```
-
-**Resultado**: Valida consistência entre histórico e ChromaDB
 
 ---
 
-## 📊 Performance
+### Executar Ingestão (Indexar Documentos)
+```bash
+# Indexar de forma Full ou Incremental
+python src/ingest.py
+```
+
+---
+
+##  Performance
 
 ### Comparação de Modos
 
@@ -135,7 +139,7 @@ python tests/validate_state.py
 
 ---
 
-## 🏗️ Arquitetura
+##  Arquitetura
 
 ### Módulos Principais
 
@@ -168,7 +172,7 @@ graph TD
 
 ---
 
-## 🧪 Testes
+##  Testes
 
 ### Testes End-to-End
 ```bash
@@ -180,15 +184,15 @@ python tests/validate_state.py
 ```
 
 ### Cenários Testados
-1. ✅ Novo arquivo
-2. ✅ Arquivo modificado
-3. ✅ Arquivo deletado
-4. ✅ Múltiplas mudanças
-5. ✅ Modo full
+1.  Novo arquivo
+2.  Arquivo modificado
+3.  Arquivo deletado
+4.  Múltiplas mudanças
+5.  Modo full
 
 ---
 
-## 📚 Documentação
+##  Documentação
 
 - [Guia do Usuário](docs/USER_GUIDE.md) - Instalação, configuração e uso
 - [Documentação de API](docs/API.md) - Funções e classes
@@ -198,7 +202,7 @@ python tests/validate_state.py
 
 ---
 
-## 🎯 Funcionalidades Detalhadas
+##  Funcionalidades Detalhadas
 
 ### Detecção Inteligente
 - **Novos**: Arquivos não no histórico
@@ -227,7 +231,7 @@ python tests/validate_state.py
 
 ---
 
-## 🛠️ Troubleshooting
+##  Troubleshooting
 
 ### "Collection not found"
 ```bash
@@ -248,7 +252,7 @@ python src/ingest.py  # modo incremental para corrigir
 
 ---
 
-## 📈 Roadmap
+##  Roadmap
 
 - [ ] Monitoramento com logs estruturados (JSON)
 - [ ] Métricas com Prometheus/Grafana
@@ -258,7 +262,7 @@ python src/ingest.py  # modo incremental para corrigir
 
 ---
 
-## 🤝 Contribuindo
+##  Contribuindo
 
 Contribuições são bem-vindas! Por favor:
 1. Fork o repositório
@@ -269,7 +273,7 @@ Contribuições são bem-vindas! Por favor:
 
 ---
 
-## 👨💻 Autor
+##  Autor
 **Autoria, idealização, arquitetura, planejamento, desenvolvimento e documentação:**
 - *Jeferson Lopes*
 
@@ -279,42 +283,42 @@ Contribuições são bem-vindas! Por favor:
 
 ---
 
-## 🌧️ Aqui, nós fazemos até chover! 😏
+##  Aqui, nós fazemos até chover!
 
 Sistema completo de ingestão incremental:
-- ✅ 5 fases implementadas
-- ✅ 9 commits realizados
-- ✅ 9 módulos Python
-- ✅ 1705+ linhas de documentação
-- ✅ Performance 3-10x mais rápida
-- ✅ UX profissional
-- ✅ 100% pronto para produção
+-  5 fases implementadas
+-  9 commits realizados
+-  9 módulos Python
+-  1705+ linhas de documentação
+-  Performance 3-10x mais rápida
+-  UX profissional
+-  100% pronto para produção
 
-**Status**: 🚀 PRODUÇÃO READY!
-
----
-
-**Versão**: 2.1.0  
-**Data**: 2026-02-17  
-**Status**: ✅ MVP Completo + Hybrid Search
+**Status**:  PRODUÇÃO READY!
 
 ---
 
-## 📝 Licença
+**Versão**: 2.1.0
+**Data**: 2026-02-17
+**Status**:  MVP Completo + Hybrid Search
+
+---
+
+##  Licença
 [**PolyForm Noncommercial License 1.0.0**](https://polyformproject.org/licenses/noncommercial/1.0.0)
 
-### 📄 Licença e Uso Comercial
+###  Licença e Uso Comercial
 
-Este projeto foi idealizado, arquitetado e desenvolvido com foco em soberania de dados, alta performance e excelência técnica. 
+Este projeto foi idealizado, arquitetado e desenvolvido com foco em soberania de dados, alta performance e excelência técnica.
 
-O código-fonte está disponibilizado sob a licença **PolyForm Noncommercial 1.0.0**. 
+O código-fonte está disponibilizado sob a licença **PolyForm Noncommercial 1.0.0**.
 
 **O que isso significa na prática?**
-- ✅ **Livre para uso pessoal e comunidade:** Você é totalmente livre para clonar, estudar, modificar e utilizar este sistema em seus projetos pessoais, acadêmicos, no seu HomeLab ou em iniciativas estritamente sem fins lucrativos. A essência do conhecimento aberto está mantida.
-- ❌ **Proibido para uso comercial sem autorização:** É estritamente proibida a utilização, integração, cópia ou adaptação deste código (total ou parcial) em produtos comerciais, ambientes corporativos, serviços pagos, ou qualquer iniciativa que vise lucro, sem a aquisição prévia de uma **Licença Comercial Proprietária**.
+-  **Livre para uso pessoal e comunidade:** Você é totalmente livre para clonar, estudar, modificar e utilizar este sistema em seus projetos pessoais, acadêmicos, no seu HomeLab ou em iniciativas estritamente sem fins lucrativos. A essência do conhecimento aberto está mantida.
+-  **Proibido para uso comercial sem autorização:** É estritamente proibida a utilização, integração, cópia ou adaptação deste código (total ou parcial) em produtos comerciais, ambientes corporativos, serviços pagos, ou qualquer iniciativa que vise lucro, sem a aquisição prévia de uma **Licença Comercial Proprietária**.
 
 **Licenciamento Comercial**
 Se você representa uma empresa ou deseja integrar o *Sovereign Pair* em um produto comercial ou ambiente corporativo lucrativo, entre em contato diretamente com o autor e detentor dos direitos autorais para negociar os termos de licenciamento e royalties:
-📧 **Contato:** [jefersonlopes@proton.me]
+ **Contato:** [jefersonlopes@proton.me]
 
 A propriedade intelectual da arquitetura, orquestração e código permanece com o autor original.

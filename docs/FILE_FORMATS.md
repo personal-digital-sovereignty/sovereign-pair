@@ -25,14 +25,14 @@ ln -sf ~/Google\ Drive/Docs data/raw_docs/gdrive
 ```
 
 **Comportamento**:
-- ✅ Todo o conteúdo do diretório linkado é indexado recursivamente
-- ✅ Subdiretórios dentro do symlink são processados
-- ✅ Respeita `ALLOWED_EXTENSIONS` configurado
-- ✅ Evita loops infinitos (symlinks circulares)
+-  Todo o conteúdo do diretório linkado é indexado recursivamente
+-  Subdiretórios dentro do symlink são processados
+-  Respeita `ALLOWED_EXTENSIONS` configurado
+-  Evita loops infinitos (symlinks circulares)
 
 **Exemplo de log**:
 ```
-🔗 Seguindo symlink de diretório: my-vault -> /home/user/obsidian-vault
+ Seguindo symlink de diretório: my-vault -> /home/user/obsidian-vault
    ✓ 45 documento(s) de 'my-vault/'
 ```
 
@@ -50,8 +50,8 @@ ln -sf ~/notes.md data/vault/
 ```
 
 **Comportamento**:
-- ✅ Arquivo linkado é processado normalmente
-- ✅ Respeita extensões permitidas
+-  Arquivo linkado é processado normalmente
+-  Respeita extensões permitidas
 
 ### Configuração: FOLLOW_SYMLINKS
 
@@ -68,7 +68,7 @@ FOLLOW_SYMLINKS=false
 **Com `FOLLOW_SYMLINKS=false`**:
 - Symlinks são ignorados
 - Apenas arquivos e diretórios reais são processados
-- Log: `⚠️  Ignorando symlink 'nome' (FOLLOW_SYMLINKS=false)`
+- Log: `  Ignorando symlink 'nome' (FOLLOW_SYMLINKS=false)`
 
 ### Detecção de Problemas
 
@@ -76,12 +76,12 @@ O sistema detecta e reporta problemas com symlinks:
 
 **Symlink Quebrado**:
 ```
-❌ Symlink quebrado 'old-vault': data/vault/old-vault -> /path/nonexistent
+ Symlink quebrado 'old-vault': data/vault/old-vault -> /path/nonexistent
 ```
 
 **Symlink Circular**:
 ```
-⚠️  Symlink circular detectado, ignorando: loop
+  Symlink circular detectado, ignorando: loop
 ```
 
 ### Casos de Uso
@@ -123,13 +123,13 @@ O sistema utiliza o `SimpleDirectoryReader` do LlamaIndex, que suporta nativamen
 
 | Formato | Extensão | Descrição | Suporte |
 |---------|----------|-----------|---------|
-| **Markdown** | `.md` | Arquivos de texto formatado (ideal para Obsidian) | ✅ Nativo + Chunking inteligente |
-| **PDF** | `.pdf` | Documentos PDF | ✅ Nativo |
-| **Texto** | `.txt` | Arquivos de texto simples | ✅ Nativo |
-| **Word (novo)** | `.docx` | Microsoft Word (formato moderno) | ✅ Nativo |
-| **CSV** | `.csv` | Planilhas em formato CSV | ✅ Nativo |
-| **JSON** | `.json` | Dados estruturados em JSON | ✅ Nativo |
-| **HTML** | `.html` | Páginas web | ✅ Nativo |
+| **Markdown** | `.md` | Arquivos de texto formatado (ideal para Obsidian) |  Nativo + Chunking inteligente |
+| **PDF** | `.pdf` | Documentos PDF |  Nativo |
+| **Texto** | `.txt` | Arquivos de texto simples |  Nativo |
+| **Word (novo)** | `.docx` | Microsoft Word (formato moderno) |  Nativo |
+| **CSV** | `.csv` | Planilhas em formato CSV |  Nativo |
+| **JSON** | `.json` | Dados estruturados em JSON |  Nativo |
+| **HTML** | `.html` | Páginas web |  Nativo |
 
 ---
 
@@ -139,10 +139,10 @@ Arquivos `.md` recebem tratamento especial com o **MarkdownNodeParser**:
 
 ### Funcionalidades
 
-- ✅ **Respeita cabeçalhos**: Divide por `##`, `###`, etc.
-- ✅ **Preserva blocos de código**: Mantém ` ``` ` intactos
-- ✅ **Contexto semântico**: Mantém hierarquia de notas
-- ✅ **Ideal para Obsidian**: Estrutura de vault preservada
+-  **Respeita cabeçalhos**: Divide por `##`, `###`, etc.
+-  **Preserva blocos de código**: Mantém ` ``` ` intactos
+-  **Contexto semântico**: Mantém hierarquia de notas
+-  **Ideal para Obsidian**: Estrutura de vault preservada
 
 ### Exemplo
 
@@ -176,7 +176,7 @@ Conteúdo do capítulo 2.
 
 ### Microsoft Word Antigo (.doc)
 
-**Status**: ❌ Não suportado nativamente
+**Status**:  Não suportado nativamente
 
 **Solução**: Converter para `.docx`
 
@@ -202,7 +202,7 @@ done
 
 ### OpenDocument Text (.odt)
 
-**Status**: ❌ Não suportado nativamente
+**Status**:  Não suportado nativamente
 
 **Solução**: Converter para `.docx`
 
@@ -288,7 +288,7 @@ for file in **/*.odt; do
 done
 
 echo ""
-echo "✅ Conversão concluída!"
+echo " Conversão concluída!"
 ```
 
 **Uso**:
@@ -314,8 +314,8 @@ find data/vault data/raw_docs -type f | sed 's/.*\.//' | sort | uniq -c
   12 pdf
    8 txt
    3 docx
-   2 doc    # ⚠️ Precisa conversão
-   1 odt    # ⚠️ Precisa conversão
+   2 doc    #  Precisa conversão
+   1 odt    #  Precisa conversão
 ```
 
 ### Encontrar arquivos que precisam conversão
@@ -369,20 +369,20 @@ brew install --cask libreoffice
 Durante a ingestão, o sistema mostra:
 
 ```
-📋 Etapa 2/4: Processando documentos com chunking inteligente
+ Etapa 2/4: Processando documentos com chunking inteligente
 ======================================================================
-   📝 Arquivos Markdown: 45
-   📄 Outros formatos: 15
+    Arquivos Markdown: 45
+    Outros formatos: 15
 
-   🧩 Processando Markdown com MarkdownNodeParser...
+    Processando Markdown com MarkdownNodeParser...
       (Respeita cabeçalhos ## e blocos de código ```)
       ✓ 234 blocos semânticos criados
 
-   📦 Processando 15 documentos não-Markdown...
+    Processando 15 documentos não-Markdown...
       ✓ 87 blocos criados
 
-   📊 Total de blocos (nodes): 321
-   📏 Tamanho médio: 512 caracteres
+    Total de blocos (nodes): 321
+    Tamanho médio: 512 caracteres
 ```
 
 ---
@@ -391,21 +391,21 @@ Durante a ingestão, o sistema mostra:
 
 ### Para Usuários Obsidian
 
-- ✅ Use `.md` para todas as notas
-- ✅ Aproveite o chunking inteligente
-- ✅ Mantenha estrutura de cabeçalhos
+-  Use `.md` para todas as notas
+-  Aproveite o chunking inteligente
+-  Mantenha estrutura de cabeçalhos
 
 ### Para Documentação Técnica
 
-- ✅ `.md` para documentação versionada
-- ✅ `.pdf` para manuais e especificações
-- ✅ `.docx` para documentos colaborativos
+-  `.md` para documentação versionada
+-  `.pdf` para manuais e especificações
+-  `.docx` para documentos colaborativos
 
 ### Para Pesquisa Acadêmica
 
-- ✅ `.pdf` para papers e artigos
-- ✅ `.md` para anotações e resumos
-- ✅ `.txt` para transcrições
+-  `.pdf` para papers e artigos
+-  `.md` para anotações e resumos
+-  `.txt` para transcrições
 
 ---
 
@@ -419,3 +419,9 @@ Durante a ingestão, o sistema mostra:
 ---
 
 **Dica**: Mantenha seus documentos em formatos suportados nativamente para melhor performance e qualidade de indexação!
+
+---
+
+**Autor**: Jeferson Lopes
+**Data**: 2026-02-17
+**Versão**: 2.0.0

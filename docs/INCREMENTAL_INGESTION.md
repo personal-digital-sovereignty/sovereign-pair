@@ -1,7 +1,7 @@
 # Ingestão Incremental
 
-**Status**: MVP (Fase 4 de 5) - Testes End-to-End  
-**Versão**: 4.0  
+**Status**: MVP (Fase 4 de 5) - Testes End-to-End
+**Versão**: 4.0
 **Data**: 2026-02-17
 
 ---
@@ -12,10 +12,10 @@ Sistema de ingestão incremental que rastreia arquivos já indexados e processa 
 
 ### Benefícios
 
-- ⚡ **Performance**: 18-36x mais rápido para atualizações
-- 💾 **Economia**: Redução de 95%+ no uso de CPU/memória
-- 📊 **Rastreabilidade**: Histórico completo de ingestões
-- 🎯 **Escalabilidade**: Crescimento linear, não quadrático
+-  **Performance**: 18-36x mais rápido para atualizações
+-  **Economia**: Redução de 95%+ no uso de CPU/memória
+-  **Rastreabilidade**: Histórico completo de ingestões
+-  **Escalabilidade**: Crescimento linear, não quadrático
 
 ---
 
@@ -85,23 +85,23 @@ Compara arquivos atuais com histórico usando **3 métodos**:
 
 ## Funcionalidades (Fase 2)
 
-### ✅ Detecção Completa
+###  Detecção Completa
 1. **Novos Arquivos**: Comparação de paths
 2. **Modificações**: Hash SHA256 do conteúdo
 3. **Deleções**: Ausência no filesystem
 4. **Sem mudanças**: Hash idêntico
 
-### ✅ Limpeza Automática
+###  Limpeza Automática
 - Remove chunks obsoletos do ChromaDB
 - Remove arquivos deletados do histórico
 - Mantém consistência automática
 
-### ✅ Interface Inteligente
+###  Interface Inteligente
 - **Modo Interativo**: Mostra resumo e pergunta
 - **Modo Automático**: Decide baseado em mudanças
 - **4 Modos**: incremental, full, skip, cancel
 
-### ✅ Processamento Otimizado
+###  Processamento Otimizado
 - Carrega APENAS arquivos modificados
 - Atualiza histórico com hashes SHA256
 - Economia de 95%+ em recursos
@@ -163,7 +163,7 @@ python ingest.py
 **Interface Interativa**:
 ```
 ======================================================================
-📊 RESUMO DE MUDANÇAS
+ RESUMO DE MUDANÇAS
 ======================================================================
 
 Arquivos já indexados: 124
@@ -171,7 +171,7 @@ Arquivos atuais: 125
 Novos arquivos detectados: 1
 
 Novos arquivos:
-  ✨ vault/novo.md
+   vault/novo.md
 
 ======================================================================
 MODO DE INGESTÃO
@@ -255,31 +255,31 @@ graph TD
 
 ## Roadmap
 
-### ✅ Fase 1: MVP (Atual)
+###  Fase 1: MVP (Atual)
 - Sistema de histórico JSON
 - Detecção de novos arquivos
 - Interface interativa
 - Modo incremental básico
 
-### ⏳ Fase 2: Detecção Completa
+###  Fase 2: Detecção Completa
 - Hashing de conteúdo (SHA256)
 - Detecção de arquivos modificados
 - Detecção de arquivos deletados
 - Remoção de chunks obsoletos
 
-### ⏳ Fase 3: Robustez
+###  Fase 3: Robustez
 - Validação de integridade
 - Recuperação de corrupção
 - Backups automáticos
 - Comando de rebuild
 
-### ⏳ Fase 4: Otimizações
+###  Fase 4: Otimizações
 - Cache de hashes
 - Processamento paralelo
 - Progress bars detalhadas
 - Estatísticas de economia
 
-### ⏳ Fase 5: Qualidade
+###  Fase 5: Qualidade
 - Testes unitários completos
 - Testes de integração
 - Documentação detalhada
@@ -380,7 +380,7 @@ Sistema detecta ausência e executa ingestão completa automaticamente.
 
 ### Posso forçar reingestão completa?
 
-**Atual**: Escolha opção "2" (Completa) na interface interativa.  
+**Atual**: Escolha opção "2" (Completa) na interface interativa.
 **Futuro**: `python src/ingest.py --full`
 
 ### O histórico é versionado no Git?
@@ -397,7 +397,7 @@ Não. O `.gitignore` protege `data/.ingestion_history.json` pois contém paths a
 
 ---
 
-**Autor**: Jeferson Lopes  
-**Assistência**: Claude Sonnet 4.5 (Anthropic)  
+**Autor**: Jeferson Lopes
+**Assistência**: Claude Sonnet 4.5 (Anthropic)
 **Data**: 2026-02-17
 **Versão**: 2.0.0

@@ -167,3 +167,6 @@ logs/
 # Scripts de debug (uso interno de desenvolvimento)
 debug/
 debug_output.txt
+
+# Segredos Industriais e Planejamento de Mercado
+_strategy/

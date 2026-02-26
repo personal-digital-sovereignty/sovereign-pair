@@ -27,7 +27,15 @@ tqdm>=4.66.0
 
 # Development Tools (opcional)
 pytest>=7.4.0
+pytest-mock>=3.14.0
 black>=23.0.0
 ruff>=0.1.0
-rank-bm25
-ddgs
+
+# Core Search Tools
+rank-bm25>=0.2.2
+ddgs>=4.0.0
+
+# API / Web
+fastapi>=0.100.0
+uvicorn>=0.20.0
+sse-starlette>=2.1.0

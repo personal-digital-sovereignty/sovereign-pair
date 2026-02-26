@@ -1,76 +1,94 @@
-
-import unittest
-import yaml
-from unittest.mock import MagicMock
+import pytest
 import sys
 import os
 
 # Adicionar src ao path para importar ingest
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
-# Mockar imports que não estão disponíveis no ambiente de teste ou não são o foco
-sys.modules['chromadb'] = MagicMock()
-sys.modules['llama_index'] = MagicMock()
-sys.modules['llama_index.core'] = MagicMock()
-sys.modules['llama_index.vector_stores.chroma'] = MagicMock()
-sys.modules['config'] = MagicMock()
-sys.modules['history'] = MagicMock()
-sys.modules['diff'] = MagicMock()
-sys.modules['interactive'] = MagicMock()
-sys.modules['hash_utils'] = MagicMock()
-sys.modules['cleanup'] = MagicMock()
+from unittest.mock import MagicMock
 
-from ingest import preprocess_document
+@pytest.fixture(autouse=True)
+def mock_dependencies(mocker):
+    """Substitui dependências externas usando pytest-mock."""
+    # O LlamaIndex importa schemas que iteram sobre objetos mockados. 
+    # Usar unittest.mock.MagicMock lida com operações mágicas (__iter__, etc) corretamente.
+    mock_modules = {
+        'chromadb': MagicMock(),
+        'llama_index': MagicMock(),
+        'llama_index.core': MagicMock(),
+        'llama_index.core.schema': MagicMock(),
+        'llama_index.core.node_parser': MagicMock(),
+        'llama_index.vector_stores.chroma': MagicMock(),
+        'config': MagicMock(),
+        'history': MagicMock(),
+        'diff': MagicMock(),
+        'interactive': MagicMock(),
+        'hash_utils': MagicMock(),
+        'cleanup': MagicMock(),
+    }
+    
+    mocker.patch.dict(sys.modules, mock_modules)
 
 class MockDocument:
     def __init__(self, text):
         self.text = text
         self.metadata = {}
 
-class TestIngestionLogic(unittest.TestCase):
-    
-    def test_yaml_extraction_simple(self):
-        """Testa se YAML simples é extraído e removido do texto."""
-        text = """---
+def test_yaml_extraction_simple():
+    """Testa se YAML simples é extraído e removido do texto."""
+    from ingest import preprocess_document
+    text = """---
 title: Teste
 date: 2026-02-17
 ---
 Conteúdo real."""
-        doc = MockDocument(text)
-        preprocess_document(doc)
-        
-        self.assertEqual(doc.metadata.get('title'), 'Teste')
-        self.assertEqual(str(doc.metadata.get('date')), '2026-02-17') # Date pode ser parsed como obj
-        self.assertEqual(doc.text.strip(), 'Conteúdo real.')
+    doc = MockDocument(text)
+    preprocess_document(doc)
+    
+    assert doc.metadata.get('title') == 'Teste'
+    assert str(doc.metadata.get('date')) == '2026-02-17'
+    assert doc.text.strip() == 'Conteúdo real.'
 
-    def test_yaml_list_metadata_flattening(self):
-        """Testa se listas no YAML são convertidas para string (correção do bug)."""
-        text = """---
+def test_yaml_list_metadata_flattening():
+    """Testa se listas no YAML são convertidas para string."""
+    from ingest import preprocess_document
+    text = """---
 tags: [tag1, tag2, tag3]
 categories:
   - cat1
   - cat2
 ---
 Conteúdo."""
-        doc = MockDocument(text)
-        preprocess_document(doc)
-        
-        # O BUG ATUAL: isso provavelmente vai falhar ou passar dependendo da minha implementação.
-        # Mas para o ChromaDB, deve ser string.
-        # Vamos verificar o que o preprocess_document faz. Atualmente ele NÃO trata isso.
-        # O teste deve falhar ou mostrar que é lista, confirmando o problema.
-        
-        tags = doc.metadata.get('tags')
-        
-        # A correção esperada é que seja uma string "tag1, tag2, tag3"
-        # Se for lista, o teste de unidade em si passa, mas a integração com Chroma falha.
-        # Vou afirmar que DEVE ser string para forçar a correção.
-        self.assertIsInstance(tags, str, f"Tags deveria ser string, mas é {type(tags)}")
-        self.assertEqual(tags, "tag1, tag2, tag3")
+    doc = MockDocument(text)
+    preprocess_document(doc)
+    
+    tags = doc.metadata.get('tags')
+    assert isinstance(tags, str), f"Tags deveria ser string, mas é {type(tags)}"
+    assert tags == "tag1, tag2, tag3"
+    
+    categories = doc.metadata.get('categories')
+    assert categories == "cat1, cat2"
 
-    def test_dataview_removal(self):
-        """Testa remoção de blocos dataview."""
-        text = """Texto antes.
+def test_yaml_nested_metadata_flattening():
+    """Testa conversão segura de dicts para json-string."""
+    from ingest import preprocess_document
+    import json
+    text = """---
+author:
+  name: "User"
+  email: "user@example.com"
+---
+Test."""
+    doc = MockDocument(text)
+    preprocess_document(doc)
+    author = doc.metadata.get('author')
+    assert isinstance(author, str)
+    assert json.loads(author) == {"name": "User", "email": "user@example.com"}
+
+def test_dataview_removal():
+    """Testa remoção de blocos dataview e js."""
+    from ingest import preprocess_document
+    text = """Texto antes.
 ```dataview
 list from "folder"
 ```
@@ -79,30 +97,28 @@ Texto depois.
 dv.list(dv.pages())
 ```
 Fim."""
-        doc = MockDocument(text)
-        preprocess_document(doc)
-        
-        self.assertNotIn("list from", doc.text, "Bloco dataview deve ser removido")
-        self.assertNotIn("dv.list", doc.text, "Bloco dataviewjs deve ser removido")
-        self.assertTrue("Texto antes." in doc.text)
-        self.assertTrue("Texto depois." in doc.text)
+    doc = MockDocument(text)
+    preprocess_document(doc)
+    
+    assert "list from" not in doc.text
+    assert "dv.list" not in doc.text
+    assert "Texto antes." in doc.text
+    assert "Texto depois." in doc.text
 
-    def test_noise_removal(self):
-        """Testa remoção de ruído de navegação V2."""
-        text = """Conteúdo útil.
+def test_noise_removal():
+    """Testa remoção de ruído de navegação V2."""
+    from ingest import preprocess_document
+    text = """Conteúdo útil.
 
 ---
 **Navegação:** [[Blog]] 🏠 | Old Blog
 * [Share](#)
 * [Facebook](url)
 """
-        doc = MockDocument(text)
-        preprocess_document(doc)
-        
-        self.assertNotIn("**Navegação:**", doc.text)
-        self.assertNotIn("[Share]", doc.text)
-        self.assertNotIn("[Facebook]", doc.text)
-        self.assertTrue("Conteúdo útil." in doc.text)
-
-if __name__ == '__main__':
-    unittest.main()
+    doc = MockDocument(text)
+    preprocess_document(doc)
+    
+    assert "**Navegação:**" not in doc.text
+    assert "[Share]" not in doc.text
+    assert "[Facebook]" not in doc.text
+    assert "Conteúdo útil." in doc.text
