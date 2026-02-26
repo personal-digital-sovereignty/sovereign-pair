@@ -55,6 +55,20 @@ O projeto adota uma arquitetura em camadas **[Desacoplada]**, o que significa qu
 3. Se o Usuário inseriu Data Relativa (`/web hoje`), a engine de _Web Scraper_ é engatada interceptando respostas do *DuckDuckGo* via `BeautifulSoup`.
 4. O *LLM Provider* mastiga o contexto consolidado e cospe uma resposta via `StreamingResponse` (tokens fragmentados usando a flag `data:` nativa de Server-Sent Events).
 
+### C. Arquitetura de Pastas Nativas (Chat Folders)
+Este recurso eleva o Sovereign Pair de um simples "chatbot de IA" para um *Sistema de Gerenciamento de Conhecimento e Prompting*, integrado fluidamente com o ecossistema do usuário (como o Obsidian).
+
+1. **A Fundamentação em Banco de Dados (SQLite):**
+   - A tabela `chat_sessions` foi expandida estruturalmente com uma coluna de ancoragem `folder_name (VARCHAR)`. Ao invés de criarmos tabelas relacionais complexas de "Pastas" `(1:N)`, adotamos uma abordagem ágil de *Metadado Forte*, onde `null` significa a raiz do histórico e qualquer string representa uma "Pasta Virtual".
+   - Isso garante performance absurda nas Querys (apenas 1 `SELECT * FROM chat_sessions` traz todas as propriedades) e mitiga problemas de chaves estrangeiras (`Foreign Keys`) ao deletar pastas.
+
+2. **Diferencial Competitivo (Gestão Contextual Reta):**
+   - Em contraste com plataformas em nuvem fechadas onde você fica preso em históricos cronológicos infinitos, a arquitetura de pastas permite "clusterizar" sessões de *Brainstorming*, *Codificação*, *Resumo de Reuniões* e *Pesquisas de Doutorado*.
+   - **No Obsidian:** O Plugin se beneficia enormemente dessa estrutura. Os Webhooks da `v1/sessions` são processados pelo UI do plugin transformando a árvore de conversas de uma lista morta em uma Estrutura de Diretórios nativa (idêntica ao sistema de hierarquia de notas do próprio Obsidian). Isso mantém o fluxo de trabalho imersivo e mentalmente alinhado.
+
+3. **Reatividade State-Driven (Vue 3 Front-End):**
+   - No frontend e no plugin, as pastas não existem matematicamente no DOM até a renderização. Uma propriedade `computed` dinâmica engole o Payload bruto da API e destrói/reconstrói o `Sidebar` dinamicamente em *Dicionários de Arrays* na memória RAM em microssegundos, permitindo criar, renomear e apagar pastas via métodos assíncronos `PATCH` e `DELETE` no endpoint `v1/sessions/{id}` sem necessidade de recarregar a visualização (Reatividade).
+
 ---
 
 ## 3. Respostas Técnicas a Eventuais Decisões de Deployment
