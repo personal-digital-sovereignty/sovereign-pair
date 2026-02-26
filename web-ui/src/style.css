@@ -10,6 +10,26 @@
   --color-surface-600: #475569;
 }
 
+:root.light-theme {
+  --color-slate-900: #f8fafc;
+  --color-slate-800: #f1f5f9;
+  --color-slate-700: #e2e8f0;
+  --color-slate-600: #cbd5e1;
+  --color-slate-500: #64748b;
+  --color-slate-400: #475569;
+  --color-slate-300: #334155;
+  --color-slate-200: #1e293b;
+  --color-slate-100: #0f172a;
+
+  --color-surface-900: #ffffff;
+  --color-surface-800: #f8fafc;
+  --color-surface-700: #f1f5f9;
+  --color-surface-600: #e2e8f0;
+
+  --color-black: #ffffff;
+  --color-white: #0f172a;
+}
+
 body {
   @apply bg-surface-900 text-slate-200 antialiased h-screen overflow-hidden selection:bg-primary-500/30;
 }
