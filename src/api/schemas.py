@@ -33,10 +33,15 @@ class ChatMessageModel(BaseModel):
 class SessionResponse(BaseModel):
     id: int
     title: str
+    folder_name: Optional[str] = None
     messages: List[ChatMessageModel] = []
     
     class Config:
         from_attributes = True
+
+class SessionUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    folder_name: Optional[str] = None
 
 class UploadResponse(BaseModel):
     status: str
@@ -50,9 +55,11 @@ class SettingsRequest(BaseModel):
     llm_model: str
     temperature: float
     system_prompt: str
+    theme: str = "dark"
 
 class SettingsResponse(BaseModel):
     llm_provider: str
     llm_model: str
     temperature: float
     system_prompt: str
+    theme: str = "dark"

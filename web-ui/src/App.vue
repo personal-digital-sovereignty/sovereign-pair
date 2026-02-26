@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 import Setup from './views/Setup.vue'
 import Login from './views/Login.vue'
@@ -8,7 +8,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 
 const authPhase = ref('loading')
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (): Record<string, string> => {
    const token = localStorage.getItem('sovereign_token')
    return token ? { 'Authorization': `Bearer ${token}` } : {}
 }
@@ -53,11 +53,72 @@ interface Message {
 interface ChatSession {
   id: number
   title: string
+  folder_name?: string | null
 }
 
 const inputMessage = ref('')
 const currentSessionId = ref<number | null>(null)
 const sessions = ref<ChatSession[]>([])
+
+const expandedFolders = ref<Record<string, boolean>>({})
+
+const toggleFolder = (folderName: string) => {
+  expandedFolders.value[folderName] = !expandedFolders.value[folderName]
+}
+
+const groupedSessions = computed(() => {
+  const groups: Record<string, ChatSession[]> = { '': [] }
+  sessions.value.forEach(s => {
+    const f = s.folder_name || ''
+    if (!groups[f]) {
+      groups[f] = []
+      if (expandedFolders.value[f] === undefined) {
+         expandedFolders.value[f] = true
+      }
+    }
+    groups[f].push(s)
+  })
+  return groups
+})
+
+const isEditSessionModalOpen = ref(false)
+const editingSession = ref({ id: 0, title: '', folder_name: '' })
+
+const openEditSessionModal = (session: ChatSession | undefined) => {
+  if (!session) return;
+  editingSession.value = {
+    id: session.id,
+    title: session.title,
+    folder_name: session.folder_name || ''
+  }
+  isEditSessionModalOpen.value = true
+}
+
+const saveSessionEdit = async () => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/v1/sessions/${editingSession.value.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({
+        title: editingSession.value.title,
+        folder_name: editingSession.value.folder_name
+      })
+    })
+    if (res.ok) {
+      isEditSessionModalOpen.value = false
+      await loadSessions()
+    }
+  } catch (e) {
+    console.error("Falha ao atualizar sessão", e)
+  }
+}
+
+const activeSession = computed(() => {
+  return sessions.value.find(s => s.id === currentSessionId.value)
+})
 
 const isConfigModalOpen = ref(false)
 const isLoadingConfig = ref(false)
@@ -65,7 +126,8 @@ const systemSettings = ref({
   llm_provider: 'ollama',
   llm_model: 'llama3',
   temperature: 0.1,
-  system_prompt: ''
+  system_prompt: '',
+  theme: 'dark'
 })
 
 const localModels = ref<string[]>([])
@@ -127,6 +189,7 @@ const fetchConfig = async () => {
       if (systemSettings.value.llm_provider === 'ollama') {
          fetchLocalModels()
       }
+      document.documentElement.classList.toggle('light-theme', systemSettings.value.theme === 'light')
     }
   } catch (error) {
     console.error('Falha ao obter configurações do servidor', error)
@@ -149,6 +212,7 @@ const saveConfig = async () => {
     if (res.ok) {
       systemSettings.value = await res.json()
       isConfigModalOpen.value = false
+      document.documentElement.classList.toggle('light-theme', systemSettings.value.theme === 'light')
     }
   } catch (error) {
     console.error('Falha ao salvar configurações', error)
@@ -162,8 +226,38 @@ const openConfigModal = () => {
   fetchConfig()
 }
 
+const sidebarWidth = ref(288) // w-72 = 18rem = 288px
+const isDraggingSidebar = ref(false)
+
+const startDragSidebar = () => {
+  isDraggingSidebar.value = true
+  document.body.style.cursor = 'col-resize'
+  document.addEventListener('mousemove', dragSidebar)
+  document.addEventListener('mouseup', stopDragSidebar)
+}
+
+const dragSidebar = (e: MouseEvent) => {
+  if (!isDraggingSidebar.value) return
+  let newWidth = e.clientX
+  if (newWidth < 200) newWidth = 200
+  if (newWidth > 600) newWidth = 600
+  sidebarWidth.value = newWidth
+}
+
+const stopDragSidebar = () => {
+  isDraggingSidebar.value = false
+  document.body.style.cursor = ''
+  document.removeEventListener('mousemove', dragSidebar)
+  document.removeEventListener('mouseup', stopDragSidebar)
+  localStorage.setItem('sidebar_width', sidebarWidth.value.toString())
+}
+
 onMounted(() => {
   checkAuthStatus()
+  const savedWidth = localStorage.getItem('sidebar_width')
+  if (savedWidth) {
+    sidebarWidth.value = parseInt(savedWidth)
+  }
 })
 
 const scrollToBottom = async () => {
@@ -230,7 +324,7 @@ const sendMessage = async () => {
         if (line.startsWith('data: ')) {
           const dataStr = line.slice(6).trim()
           if (dataStr === '[DONE]') {
-             fetchSessions() // Recarrega o menu da sidebar no final da conversa
+             loadSessions() // Recarrega o menu da sidebar no final da conversa
              continue
           }
           
@@ -240,11 +334,13 @@ const sendMessage = async () => {
                currentSessionId.value = data.session_id_established
             }
             if (data.message_id) {
-               messages.value[assistantMsgIndex].id = data.message_id
+               if (messages.value[assistantMsgIndex]) {
+                 messages.value[assistantMsgIndex].id = data.message_id
+               }
             }
             
             const textDelta = data.content || data.token
-            if (textDelta) {
+            if (textDelta && messages.value[assistantMsgIndex]) {
               messages.value[assistantMsgIndex].content += textDelta
               scrollToBottom()
             }
@@ -255,13 +351,19 @@ const sendMessage = async () => {
       }
     }
     
-    messages.value[assistantMsgIndex].isStreaming = false
+    if (assistantMsgIndex !== -1 && messages.value[assistantMsgIndex]) {
+      messages.value[assistantMsgIndex].isStreaming = false
+    }
 
   } catch (error) {
     console.error("Ocorreu um erro ao buscar:", error)
-    const assistantMsgIndex = messages.value.findIndex(m => m.id === assistantMsgId)
-    messages.value[assistantMsgIndex].content += '\n\n**Erro**: Não foi possível comunicar com o servidor. Garanta que a API FastAPI (`uvicorn src.api.main:app`) está em execução.'
-    messages.value[assistantMsgIndex].isStreaming = false
+    if (assistantMsgId !== undefined) {
+      const assistantMsgIndex = messages.value.findIndex(m => m.id === assistantMsgId)
+      if (assistantMsgIndex !== -1 && messages.value[assistantMsgIndex]) {
+        messages.value[assistantMsgIndex].content += '\n\n**Erro**: Não foi possível comunicar com o servidor. Garanta que a API FastAPI (`uvicorn src.api.main:app`) está em execução.'
+        messages.value[assistantMsgIndex].isStreaming = false
+      }
+    }
   } finally {
     isThinking.value = false
   }
@@ -352,7 +454,7 @@ const handleFileSelect = async (e: Event) => {
   const target = e.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
     const file = target.files[0]
-    await uploadFile(file)
+    if (file) await uploadFile(file)
     target.value = '' // reset input so same file can be uploaded again if needed
   }
 }
@@ -381,7 +483,7 @@ const handleDrop = async (e: DragEvent) => {
   
   if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
     const file = e.dataTransfer.files[0] // Fase 7 foca em 1 arquivo por drag
-    await uploadFile(file)
+    if (file) await uploadFile(file)
   }
 }
 
@@ -442,7 +544,11 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
   <div v-else class="flex h-screen w-full bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
     
     <!-- Sidebar / Navigation -->
-    <aside class="w-72 bg-[#1e293b] border-r border-slate-700/50 flex flex-col transition-all duration-300 transform hidden md:flex">
+    <aside 
+      class="bg-surface-800 border-r border-slate-700/50 flex flex-col transform hidden md:flex shrink-0 relative"
+      :class="{'transition-all duration-300': !isDraggingSidebar}"
+      :style="{ width: sidebarWidth + 'px' }"
+    >
       <div class="p-4 flex items-center gap-3 border-b border-slate-700/50 shine-effect">
         <div class="w-8 h-8 rounded bg-gradient-to-tr from-[#0ea5e9] to-[#38bdf8] flex items-center justify-center shadow-lg shadow-sky-500/20">
           <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
@@ -464,18 +570,60 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
 
         <div class="text-[10px] uppercase font-bold text-slate-500 mb-2 px-2 tracking-wider">Histórico de Sessões</div>
         
-        <button 
-          v-for="session in sessions" 
-          :key="session.id"
-          @click="loadSession(session.id)"
-          :class="['w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 border', 
-                   currentSessionId === session.id 
-                    ? 'bg-[#334155] text-sky-300 border-sky-500/50 shadow-[0_0_10px_rgba(14,165,233,0.1)]' 
-                    : 'bg-[#334155]/30 text-slate-300 hover:bg-[#334155]/80 border-slate-700/50']"
-        >
-          <svg class="w-4 h-4 shrink-0" :class="currentSessionId === session.id ? 'text-sky-400' : 'text-slate-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
-          <span class="truncate">{{ session.title }}</span>
-        </button>
+        <div class="space-y-4">
+          <!-- Pastas com nome -->
+          <div v-for="(sessList, folderName) in groupedSessions" :key="'folder-'+folderName">
+             <template v-if="folderName !== '' && sessList.length > 0">
+                 <button @click="toggleFolder(folderName as string)" class="w-full flex items-center justify-between px-2 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors uppercase tracking-wider mb-1">
+                   <div class="flex items-center gap-2">
+                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                     {{ folderName }}
+                   </div>
+                   <svg :class="{'rotate-180': expandedFolders[folderName as string]}" class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                 </button>
+                 
+                 <div v-show="expandedFolders[folderName as string]" class="space-y-1 pl-3 border-l-2 border-slate-700/50 ml-3 mb-2">
+                    <div 
+                      v-for="session in sessList" 
+                      :key="session.id"
+                      class="group flex items-center gap-1"
+                    >
+                      <button
+                        @click="loadSession(session.id)"
+                        :class="['w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors border', 
+                                 currentSessionId === session.id 
+                                  ? 'bg-surface-700 text-sky-300 border-sky-500/50 shadow-[0_0_10px_rgba(14,165,233,0.1)]' 
+                                  : 'bg-transparent text-slate-400 hover:bg-surface-700/50 border-transparent']"
+                      >
+                        <span class="truncate block w-full">{{ session.title }}</span>
+                      </button>
+                    </div>
+                 </div>
+             </template>
+          </div>
+          
+          <!-- Sessões Raiz -->
+          <div class="space-y-1">
+             <div 
+                v-for="session in groupedSessions['']" 
+                :key="session.id"
+                class="group flex items-center gap-1"
+              >
+                <button
+                  @click="loadSession(session.id)"
+                  :class="['w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex flex-col gap-1 border', 
+                           currentSessionId === session.id 
+                            ? 'bg-surface-700 text-sky-300 border-sky-500/50 shadow-[0_0_10px_rgba(14,165,233,0.1)]' 
+                            : 'bg-surface-700/30 text-slate-300 hover:bg-surface-700/80 border-slate-700/50']"
+                >
+                  <div class="flex items-center gap-2 w-full">
+                     <svg class="w-4 h-4 shrink-0" :class="currentSessionId === session.id ? 'text-sky-400' : 'text-slate-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                     <span class="truncate flex-1">{{ session.title }}</span>
+                  </div>
+                </button>
+              </div>
+          </div>
+        </div>
         
         <div v-if="sessions.length === 0" class="text-xs text-slate-500 italic px-3 py-2 text-center">
           Nenhuma conversa salva
@@ -491,6 +639,12 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
           <span class="font-medium">Engine Settings</span>
         </button>
       </div>
+      <!-- Resizer Handle -->
+      <div 
+        class="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-sky-500/50 z-10 transition-colors translate-x-1/2"
+        :class="{'bg-sky-500': isDraggingSidebar}"
+        @mousedown="startDragSidebar"
+      ></div>
     </aside>
 
     <!-- Main Chat Area -->
@@ -536,7 +690,14 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
       
       <!-- Top header for mobile / status -->
       <header class="h-14 border-b border-slate-800 flex items-center px-4 justify-between shrink-0 bg-[#0f172a]/80 backdrop-blur-md">
-        <h2 class="font-medium text-slate-300 md:hidden">Sovereign Pair</h2>
+        <div class="flex items-center gap-3">
+          <h2 class="font-medium text-slate-300 truncate max-w-[200px] md:max-w-md">
+             {{ activeSession ? activeSession.title : 'Sovereign Pair' }}
+          </h2>
+          <button v-if="activeSession" @click="openEditSessionModal(activeSession as any)" class="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-surface-700 rounded-md transition-colors" title="Editar Sessão">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+          </button>
+        </div>
         <div class="flex items-center gap-2">
           <span class="flex h-2 w-2">
             <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
@@ -697,7 +858,20 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
             <div class="space-y-2">
               <label class="block text-sm font-medium text-slate-400">Persona (System Prompt)</label>
               <textarea v-model="systemSettings.system_prompt" rows="5" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block p-3 outline-none transition-all resize-none font-mono text-[13px] leading-relaxed" placeholder="Como o assistente deve se comportar..."></textarea>
-              <p class="text-xs text-slate-500">Defina estritamente o papel, tom e comportamento. Será aplicado em novas interações.</p>
+            </div>
+            <!-- Theme selector -->
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-slate-400">Aparência da Interface</label>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2 cursor-pointer text-slate-300">
+                  <input type="radio" value="dark" v-model="systemSettings.theme" class="accent-sky-500 w-4 h-4">
+                  <span>Tema Escuro (Padrão)</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-slate-300">
+                  <input type="radio" value="light" v-model="systemSettings.theme" class="accent-sky-500 w-4 h-4">
+                  <span>Tema Claro</span>
+                </label>
+              </div>
             </div>
 
           </div>
@@ -711,6 +885,32 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
             </button>
           </div>
           
+        </div>
+      </div>
+
+      <!-- Edit Session Modal -->
+      <div v-if="isEditSessionModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+          <div class="px-6 py-4 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/50">
+            <h3 class="text-lg font-medium text-slate-200">Editar Sessão</h3>
+            <button @click="isEditSessionModalOpen = false" class="text-slate-400 hover:text-white transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-slate-400">Título</label>
+              <input v-model="editingSession.title" type="text" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block p-2.5 outline-none transition-all">
+            </div>
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-slate-400">Pasta (Opcional)</label>
+              <input v-model="editingSession.folder_name" type="text" placeholder="Nome da pasta" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block p-2.5 outline-none transition-all">
+            </div>
+          </div>
+          <div class="px-6 py-4 border-t border-slate-700/50 bg-slate-800/30 flex justify-end gap-3">
+            <button @click="isEditSessionModalOpen = false" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancelar</button>
+            <button @click="saveSessionEdit" class="px-5 py-2 text-sm bg-sky-500 hover:bg-sky-400 text-white rounded-lg font-medium transition-colors shadow-[0_0_15px_rgba(14,165,233,0.3)]">Salvar</button>
+          </div>
         </div>
       </div>
 

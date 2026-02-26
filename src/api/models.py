@@ -8,6 +8,7 @@ class ChatSession(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), default="Nova Conversa")
+    folder_name = Column(String(100), nullable=True, default=None)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 

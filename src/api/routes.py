@@ -268,9 +268,36 @@ EXTREMA IMPORTÂNCIA:
                 except Exception:
                     pass
 
-from .schemas import SessionResponse, FeedbackRequest
+from .schemas import SessionResponse, FeedbackRequest, SessionUpdateRequest
 from typing import List
 from fastapi import HTTPException
+
+@router.patch("/sessions/{session_id}", response_model=SessionResponse)
+async def update_session(session_id: int, req: SessionUpdateRequest, db: Session = Depends(get_db)):
+    """Atualiza metadados da sessão, como Título e Diretório (folder_name)."""
+    session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Sessão não encontrada")
+    
+    if req.title is not None:
+        session.title = req.title.strip()
+    if req.folder_name is not None:
+        folder = req.folder_name.strip()
+        session.folder_name = folder if folder else None
+        
+    db.commit()
+    db.refresh(session)
+    return session
+
+@router.delete("/sessions/{session_id}")
+async def delete_session(session_id: int, db: Session = Depends(get_db)):
+    """Remove uma conversa inteira."""
+    session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Sessão não encontrada")
+    db.delete(session)
+    db.commit()
+    return {"status": "success"}
 
 @router.get("/sessions", response_model=List[SessionResponse])
 async def get_all_sessions(db: Session = Depends(get_db)):
@@ -420,7 +447,8 @@ def get_settings(db: Session = Depends(get_db)):
         llm_provider=_get_setting_value(db, "llm_provider", LLM_PROVIDER),
         llm_model=_get_setting_value(db, "llm_model", LLM_MODEL),
         temperature=float(_get_setting_value(db, "temperature", "0.1")),
-        system_prompt=_get_setting_value(db, "system_prompt", ASSISTANT_PERSONA)
+        system_prompt=_get_setting_value(db, "system_prompt", ASSISTANT_PERSONA),
+        theme=_get_setting_value(db, "theme", "dark")
     )
 
 @router.post("/config", response_model=SettingsResponse)
@@ -430,6 +458,7 @@ def update_settings(request: SettingsRequest, db: Session = Depends(get_db)):
     _set_setting_value(db, "llm_model", request.llm_model)
     _set_setting_value(db, "temperature", str(request.temperature))
     _set_setting_value(db, "system_prompt", request.system_prompt)
+    _set_setting_value(db, "theme", request.theme)
     db.commit()
     
     return get_settings(db)
