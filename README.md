@@ -2,6 +2,10 @@
 
 **Sovereign Pair** é um sistema completo de Retrieval-Augmented Generation (RAG) em arquitetura desacoplada, focado em **alta performance, privacidade absoluta e segurança Zero-Trust**. Projetado para unificar inteligência local via modelos locais (Ollama) ou provedores em nuvem, o sistema se integra nativamente ao seu fluxo de trabalho através de uma API robusta e de um plugin nativo para Obsidian.
 
+> [!TIP]
+> **Quer ver o motor funcionando e ter aquele "brilho nos olhos"? 👀✨**
+> Confira a nossa página de [Demonstração Visual e Showcase](docs/SHOWCASE.md) para ver a IA operando na prática com nossa Web UI!
+
 ---
 
 ## Visa Geral da Arquitetura
