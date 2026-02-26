@@ -322,7 +322,10 @@ const submitFeedback = async (msg: Message, type: 'up' | 'down') => {
   try {
     const res = await fetch(`${API_BASE_URL}/v1/feedback`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
       body: JSON.stringify({
         message_id: msg.id,
         thumbs_up: msg.thumbs_up || false,
