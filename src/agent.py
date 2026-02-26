@@ -8,13 +8,7 @@ Este módulo implementa um agente ReAct que pode escolher entre:
 NOTA: Atualizado para suportar LlamaIndex Workflows (v0.14+).
 """
 
-import nest_asyncio
-try:
-    nest_asyncio.apply()
-except ValueError:
-    # Ignorar se o loop for incompatível (como o uvloop usado pelo Uvicorn/FastAPI)
-    pass
-    
+# nest_asyncio movido para __main__ para evitar conflito com uvicorn
 import logging
 import sys
 import asyncio
@@ -329,6 +323,12 @@ async def main():
 
 
 if __name__ == "__main__":
+    import nest_asyncio
+    try:
+        nest_asyncio.apply()
+    except ValueError:
+        pass
+
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     
