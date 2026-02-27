@@ -139,8 +139,12 @@ ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS_STR.split(",") i
 # ============================================================================
 # CONFIGURAÇÕES CHROMADB
 # ============================================================================
-
+# Nome da coleção no ChromaDB
 CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "sovereign_knowledge")
+
+# Coleção para o Meta-RAG (Auto-conhecimento da arquitetura do Sovereign Pair)
+CHROMA_SYSTEM_COLLECTION_NAME = os.getenv("CHROMA_SYSTEM_COLLECTION_NAME", "system_knowledge")
+
 
 # ============================================================================
 # CONFIGURAÇÕES DO AGENTE

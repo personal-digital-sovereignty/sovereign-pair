@@ -116,6 +116,51 @@ EXTREMA IMPORTÂNCIA:
                         full_ai_response = "⚠️  **Uso:** `/web <query>`\n\n**Filtros:** `/web -d` (dia), `/web -w` (semana), `/web -m` (mês), `/web -y` (ano)"
                         yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
 
+                elif request.message.strip().startswith('/sys'):
+                    from src.engine_builder import build_system_chat_engine
+                    import logging
+                    logger_routes = logging.getLogger(__name__)
+                    sys_query = request.message.strip()[4:].strip()
+                    
+                    if not sys_query:
+                        full_ai_response = "⚠️  **Uso:** `/sys <pergunta sobre a arquitetura do backend>`"
+                        yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
+                    else:
+                        yield f"data: {json.dumps({'content': '🧠 *Consultando Sistema Meta-RAG...*\\n\\n'})}\n\n"
+                        try:
+                            sys_engine = build_system_chat_engine(request.provider, request.model)
+                            if not sys_engine:
+                                full_ai_response = "❌ Erro: O Motor de Sistema não pôde ser iniciado. O banco vetorial foi criado?"
+                                yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
+                            else:
+                                response = await sys_engine.astream_chat(sys_query)
+                                full_ai_response = "🧠 *Consultando Sistema Meta-RAG...*\\n\\n"
+                                
+                                async_gen = await response.async_response_gen()
+                                async for token in async_gen:
+                                    full_ai_response += token
+                                    yield f"data: {json.dumps({'content': token})}\n\n"
+                                    
+                                # Adiciona a trilha de auditoria dos arquivos analisados pela IA
+                                source_nodes = getattr(response, "source_nodes", [])
+                                sources = set()
+                                for node_w_score in source_nodes:
+                                    metadata = node_w_score.node.metadata
+                                    if metadata and metadata.get("file_path"):
+                                        import os
+                                        filename = os.path.basename(metadata.get('file_path'))
+                                        sources.add(f"🛠️ {filename}")
+                                        
+                                if sources:
+                                    sources_str = "\\n".join(sources)
+                                    final_msg = f"\\n\\n**Arquivos Analisados:**\\n{sources_str}"
+                                    full_ai_response += final_msg
+                                    yield f"data: {json.dumps({'content': final_msg})}\n\n"
+                        except Exception as e:
+                            logger_routes.error(f"Meta-RAG Error: {e}")
+                            full_ai_response = f'❌ Erro interno no Meta-RAG: {e}'
+                            yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
+
                 else:
                     # Executar query_engine via coroutine nativa do LlamaIndex
                     response = await engine.astream_chat(request.message)
@@ -196,6 +241,7 @@ EXTREMA IMPORTÂNCIA:
     else:
         # Lógica para resposta sem streaming (síncrona)
         is_web_query = request.message.strip().startswith('/web')
+        is_sys_query = request.message.strip().startswith('/sys')
         
         if is_web_query:
             import re
@@ -253,6 +299,46 @@ EXTREMA IMPORTÂNCIA:
             db.commit()
             
             return ChatResponse(response=full_ai_response, sources=[])
+            
+        elif is_sys_query:
+            from src.engine_builder import build_system_chat_engine
+            import logging
+            logger_routes = logging.getLogger(__name__)
+            sys_query = request.message.strip()[4:].strip()
+            
+            if not sys_query:
+                full_ai_response = "⚠️  **Uso:** `/sys <pergunta sobre a arquitetura do backend>`"
+                sources = []
+            else:
+                try:
+                    sys_engine = build_system_chat_engine(request.provider, request.model)
+                    if not sys_engine:
+                        full_ai_response = "❌ Erro: O Motor de Sistema não pôde ser iniciado."
+                        sources = []
+                    else:
+                        response = await sys_engine.achat(sys_query)
+                        full_ai_response = f"🧠 *Consultando Sistema Meta-RAG...*\\n\\n{str(response)}"
+                        
+                        source_nodes = getattr(response, "source_nodes", [])
+                        sources = []
+                        if source_nodes:
+                            for node_w_score in source_nodes:
+                                metadata = node_w_score.node.metadata
+                                if metadata and metadata.get("file_path"):
+                                    import os
+                                    filename = os.path.basename(metadata.get('file_path'))
+                                    sources.append(Citation(source=f"🛠️ {filename}"))
+                                    
+                except Exception as e:
+                    logger_routes.error(f"Meta-RAG Error: {e}")
+                    full_ai_response = f"❌ Erro interno no Meta-RAG: {e}"
+                    sources = []
+                    
+            ai_msg_db = ChatMessage(session_id=session_obj.id, role="assistant", content=full_ai_response)
+            db.add(ai_msg_db)
+            db.commit()
+            
+            return ChatResponse(response=full_ai_response, sources=sources)
             
         temp_sys_msg = None
         if request.active_document:
