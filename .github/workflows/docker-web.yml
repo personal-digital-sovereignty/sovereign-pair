@@ -11,6 +11,7 @@ on:
     branches: [ "main" ]
     paths:
       - 'web-ui/**'
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
