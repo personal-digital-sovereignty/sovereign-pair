@@ -14,7 +14,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}-api
+  IMAGE_NAME: personal-digital-sovereignty/sovereign-pair-api
 
 jobs:
   # Opcionalmente aguardar o status do Workflow DevSecOps FOSS via GitHub Actions UI logic, 
@@ -56,9 +56,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set lowercase image name
-        run: echo "IMAGE_NAME_LC=$(echo ${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
       - name: Build and push API Docker image
         uses: docker/build-push-action@v5
         if: github.event_name == 'push'
@@ -66,6 +63,6 @@ jobs:
           context: .
           file: ./Dockerfile.api
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
