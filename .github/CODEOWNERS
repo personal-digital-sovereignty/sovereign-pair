@@ -4,8 +4,8 @@
 # For more information, see: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # Global Owner (Aprovação obrigatória para tudo)
-*       @jefersonlop3s
+*       @Personal-Digital-Sovereignty/core-devs
 
 # Proteção extra e explícita para as Esteiras de CI/CD (DevSecOps)
-/.github/workflows/ @jefersonlop3s
-/.github/actions/ @jefersonlop3s
+/.github/workflows/ @Personal-Digital-Sovereignty/core-devs
+/.github/actions/ @Personal-Digital-Sovereignty/core-devs
