@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  # 0. Edge Router (Reverse Proxy com Auto-HTTPS)
+  caddy:
+    image: caddy:2-alpine
+    container_name: sovereign-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - sovereign-net
+    depends_on:
+      - api
+      - web
+
+  # 1. Banco de Dados Relacional (PostgreSQL via Alpine - Mais Leve)
+  postgres:
+    image: postgres:15-alpine
+    container_name: sovereign-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sovereign}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-master_pwd}
+      POSTGRES_DB: ${POSTGRES_DB:-sovereign_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - sovereign-net
+
+  # 2. Banco Vetorial Local (ChromaDB)
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: sovereign-chroma
+    restart: always
+    volumes:
+      - chroma-data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+    networks:
+      - sovereign-net
+
+  # 3. Backend Mestre da Inteligência (Python/FastAPI)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: sovereign-api
+    restart: always
+    depends_on:
+      - postgres
+      - chroma
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-sovereign}:${POSTGRES_PASSWORD:-master_pwd}@postgres:5432/${POSTGRES_DB:-sovereign_db}
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://sovereign-pair.local,https://localhost,https://127.0.0.1}
+    # Montagem Bind para espelhar a pasta data local caso o SQLite precise sobreviver por qualquer motivo legal,
+    # e para leitura rápida de arquivos em lote.
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env
+    networks:
+      - sovereign-net
+    # PORTA Ocultada de propósito! Quem fará o port forward será o Tailscale e o Caddy.
+    # ports:
+    #   - "8000:8000"
+
+    # 4. Frontend Web App (Vue 3 + Vite -> Nginx)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: sovereign-web
+    restart: always
+    depends_on:
+      - api
+    networks:
+      - sovereign-net
+    # Acesso bloqueado externamente. Apenas o Caddy redireciona o tráfego 443 -> web:80
+    # ports:
+    #   - "8080:80"
+
+    # 5. Zero-Trust VPN Sidecar (Tailscale Subnet Router)
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: sovereign-tailscale
+    hostname: sovereign-rag-cloud
+    restart: always
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_ROUTES=172.28.0.0/16 # Propaga as rotas da bridge soberana para os membros da VPN
+      - TS_EXTRA_ARGS=--advertise-tags=tag:server --accept-dns=true
+      - TS_STATE_DIR=/var/lib/tailscale
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    networks:
+      - sovereign-net
+
+volumes:
+  pgdata:
+  chroma-data:
+  tailscale-state:
+
+
+networks:
+  sovereign-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

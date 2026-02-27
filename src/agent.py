@@ -46,7 +46,6 @@ from llama_index.core.schema import TextNode
 from custom_retrievers import CustomBM25Retriever
 from ddgs import DDGS
 
-# Importar configurações centralizadas
 from config import (
     CHROMA_DIR,
     CHROMA_COLLECTION_NAME,
@@ -58,8 +57,7 @@ from config import (
     llm,
     embed_model,
     validate_ollama_connection,
-    validate_ollama_models,
-    LLM_MODEL,
+    validate_ollama_models
 )
 
 # Configurar logger
@@ -228,7 +226,9 @@ async def main():
         
         print_welcome_message()
         
-        print(f"\n💡 Dica: Modo Turbo Ativado! (Usando {LLM_MODEL})")
+        model_name = getattr(chat_engine.llm, "model", "Motor Desconhecido")
+        
+        print(f"\n💡 Dica: Modo Turbo Ativado! (Usando {model_name})")
         print("   Pergunte sobre seus arquivos. Digite 'sair' para encerrar.\n")
         
         while True:

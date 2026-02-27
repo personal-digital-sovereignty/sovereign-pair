@@ -404,7 +404,9 @@ const sendMessage = async () => {
       body: JSON.stringify({
         message: userText,
         stream: true,
-        session_id: currentSessionId.value
+        session_id: currentSessionId.value,
+        provider: systemSettings.value.llm_provider,
+        model: systemSettings.value.llm_model
       })
     })
 

@@ -1,0 +1,40 @@
+# ESTÁGIO 1: Build da Aplicação Vue.js
+FROM node:20-alpine AS build-stage
+
+# Define diretório de trabalho do node
+WORKDIR /app
+
+# Copia os pacotes primeiro para cache
+COPY web-ui/package*.json ./
+
+# Instala as dependências node
+RUN npm install
+
+# Copia o código-fonte inteiro do Vue
+COPY web-ui/ .
+
+# Injeta a variável de ambiente para que o build estático aponte para a CDN/API no compose local
+# A URL vazia faz o Axios usar caminhos relativos ou a base URL do Nginx Proxy
+ENV VITE_API_BASE_URL=""
+
+# Executa o bundler (Vite) para empacotar o software em HTML/CSS/JS minificado
+RUN npm run build
+
+# ESTÁGIO 2: Servidor Web Estático (Nginx) para Velocidade e Segurança
+FROM nginx:alpine AS production-stage
+
+# Remove a página default chata do Nginx
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copia APENAS a pasta "dist" compilada do estágio anterior
+COPY --from=build-stage /app/dist /usr/share/nginx/html
+
+# Copia uma configuração customizada do Nginx para suportar Routers SPA (Vue Router Histórico)
+# Criaremos esse arquivo no host para resolver erros 404 em "Refresh" de página.
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# O Nginx escuta internamente na 80
+EXPOSE 80
+
+# Inicia o servidor Web em Foreground (essencial no Docker)
+CMD ["nginx", "-g", "daemon off;"]

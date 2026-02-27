@@ -7,6 +7,8 @@ class ChatRequest(BaseModel):
     stream: bool = Field(True, description="Se deseja que a resposta seja em streaming usando Server-Sent Events (SSE)")
     active_document: Optional[str] = Field(None, description="Opcional: O conteúdo do documento que o usuário está visualizando no momento")
     session_id: Optional[int] = Field(None, description="Opcional: ID da sessão SQLite para vincular a conversa a um histórico existente")
+    provider: Optional[str] = Field(None, description="Opcional: ID do provedor na Nuvem (openai, anthropic, ollama, groq)")
+    model: Optional[str] = Field(None, description="Opcional: Nome do modelo do LLM a ser invocado na Nuvem")
 
 class Citation(BaseModel):
     source: str = Field(..., description="O caminho ou URL da fonte")

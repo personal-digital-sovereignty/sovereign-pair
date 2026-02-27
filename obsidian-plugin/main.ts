@@ -3,11 +3,13 @@ import { App, Plugin, PluginSettingTab, Setting, ItemView, WorkspaceLeaf, Markdo
 export const VIEW_TYPE_CHAT = "sovereign-pair-chat-view";
 
 interface SovereignPairSettings {
+    apiUrl: string;
     authToken: string;
     historyViewMode: 'mini' | 'minimalist' | 'spotlight';
 }
 
 const DEFAULT_SETTINGS: SovereignPairSettings = {
+    apiUrl: 'https://localhost',
     authToken: '',
     historyViewMode: 'mini'
 }
@@ -378,7 +380,7 @@ export class SovereignPairView extends ItemView {
             btnUp.style.opacity = up ? "1" : "0.3";
             btnDown.style.opacity = down ? "1" : "0.3";
             try {
-                await fetch('http://127.0.0.1:8000/v1/feedback', {
+                await fetch(`${this.plugin.settings.apiUrl}/v1/feedback`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -397,7 +399,7 @@ export class SovereignPairView extends ItemView {
 
     async refreshSessionsList() {
         try {
-            const res = await fetch('http://127.0.0.1:8000/v1/sessions', {
+            const res = await fetch(`${this.plugin.settings.apiUrl}/v1/sessions`, {
                 headers: this.getAuthHeaders()
             });
             if (res.ok) {
@@ -581,7 +583,7 @@ export class SovereignPairView extends ItemView {
 
     async loadSession(id: number) {
         try {
-            const res = await fetch(`http://127.0.0.1:8000/v1/sessions/${id}`, {
+            const res = await fetch(`${this.plugin.settings.apiUrl}/v1/sessions/${id}`, {
                 headers: this.getAuthHeaders()
             });
             if (res.ok) {
@@ -643,7 +645,7 @@ export class SovereignPairView extends ItemView {
             // Capturar documento atual silenciosamente
             const activeContext = await this.getActiveNoteContext();
 
-            const response = await fetch('http://127.0.0.1:8000/v1/chat', {
+            const response = await fetch(`${this.plugin.settings.apiUrl}/v1/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -839,7 +841,7 @@ export default class SovereignPairPlugin extends Plugin {
         }
 
         try {
-            const res = await fetch('http://127.0.0.1:8000/v1/upload', {
+            const res = await fetch(`${this.settings.apiUrl}/v1/upload`, {
                 method: 'POST',
                 headers: this.settings.authToken ? { 'Authorization': `Bearer ${this.settings.authToken}` } : {},
                 body: formData
@@ -937,6 +939,18 @@ class SovereignPairConfigModal extends Modal {
             );
 
         new Setting(contentEl)
+            .setName('URL Base da API do Sovereign Pair')
+            .setDesc('Insira a URL. Use https://localhost ou a URL pública. Com o Caddy, o Node conectará via porta HTTPS 443 implicitamente.')
+            .addText(text => text
+                .setPlaceholder('https://localhost')
+                .setValue(this.plugin.settings.apiUrl)
+                .onChange(async (val) => {
+                    this.plugin.settings.apiUrl = val.replace(/\/+$/, "");
+                    await this.plugin.saveSettings();
+                })
+            );
+
+        new Setting(contentEl)
             .setName('Token de Acesso (API Key)')
             .setDesc('Cole o Sovereign Token exibido na interface Web (Settings -> API Config).')
             .addText(text => text
@@ -951,7 +965,7 @@ class SovereignPairConfigModal extends Modal {
         const loadingMsg = contentEl.createEl("p", { text: "Carregando configurações do Backend RAG..." });
 
         try {
-            const res = await fetch('http://127.0.0.1:8000/v1/config', {
+            const res = await fetch(`${this.plugin.settings.apiUrl}/v1/config`, {
                 headers: this.plugin.settings.authToken ? { 'Authorization': `Bearer ${this.plugin.settings.authToken}` } : {}
             });
             if (res.ok) {
@@ -1246,7 +1260,7 @@ class SovereignPairConfigModal extends Modal {
                         .setCta()
                         .onClick(async () => {
                             btn.setButtonText("Salvando...");
-                            const putRes = await fetch('http://127.0.0.1:8000/v1/config', {
+                            const putRes = await fetch(`${this.plugin.settings.apiUrl}/v1/config`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -1264,7 +1278,7 @@ class SovereignPairConfigModal extends Modal {
                         }));
             }
         } catch (e) {
-            loadingMsg.innerText = "Erro ao conectar-se ao servidor RAG (http://127.0.0.1:8000).";
+            loadingMsg.innerText = `Erro ao conectar-se ao servidor RAG (${this.plugin.settings.apiUrl}).`;
         }
     }
 

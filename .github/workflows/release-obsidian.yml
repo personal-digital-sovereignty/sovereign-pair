@@ -1,0 +1,43 @@
+name: Obsidian Plugin Release
+
+on:
+  push:
+    tags:
+      - 'obsidian-v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './obsidian-plugin/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./obsidian-plugin
+        run: npm ci
+
+      - name: Build Plugin
+        working-directory: ./obsidian-plugin
+        run: npm run build
+
+      - name: Create Release Zip
+        working-directory: ./obsidian-plugin
+        run: zip -r sovereign-pair-obsidian.zip main.js styles.css manifest.json
+
+      - name: Release to GitHub
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./obsidian-plugin/sovereign-pair-obsidian.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
