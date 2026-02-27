@@ -6,7 +6,7 @@ Remove chunks de arquivos modificados ou deletados durante ingestão incremental
 
 import logging
 from pathlib import Path
-from typing import Set, Optional
+from typing import Set
 
 logger = logging.getLogger(__name__)
 

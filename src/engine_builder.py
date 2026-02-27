@@ -5,14 +5,14 @@ from llama_index.core.retrievers.fusion_retriever import QueryFusionRetriever, F
 from llama_index.core.chat_engine import ContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
 from custom_retrievers import CustomBM25Retriever
-from config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm as default_llm, OWNER_NAME, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
+from config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm as default_llm, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
      OWNER_NICKNAME, OCCUPATION, ABOUT_USER, LANGUAGE, GEOLOCATION, REQUEST_TIMEOUT, \
      OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-from llama_index.core.llms import ChatMessage, MessageRole
+from llama_index.core.llms import ChatMessage, MessageRole  # noqa: E402
 
 def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm):
     if not provider or not model_name:

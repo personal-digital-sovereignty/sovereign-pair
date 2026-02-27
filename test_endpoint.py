@@ -9,7 +9,6 @@ async def main():
     engine = build_chat_engine(VectorStoreIndex.from_documents([]))
     
     # Mock search web logic
-    import re
     from src.web_search import search_web
     from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
     from datetime import datetime
@@ -22,7 +21,7 @@ async def main():
     web_result = await asyncio.to_thread(search_web, web_query, timelimit)
     print("Web result bytes:", len(web_result))
     
-    current_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    current_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")  # noqa: F841
     sys_prompt = "..."
     sys_msg = LlamaMsg(role=MessageRole.SYSTEM, content=sys_prompt)
     context_msg = LlamaMsg(role=MessageRole.USER, content=f"Resultados Web: {web_result}")

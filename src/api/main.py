@@ -6,20 +6,19 @@ from fastapi.responses import FileResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 # Resolver PYTHONPATH
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from .routes import router
-from .database import engine, Base
+from .database import engine
 from . import models
 
 # Cria o banquinho de dados e as tabelas CADA VEZ que o app iniciar
 models.Base.metadata.create_all(bind=engine)
 
 # Injetar Filtro de Segurança Obscurecedor de Logs (Reminência de API Keys)
-from .security_logger import setup_security_logging
+from .security_logger import setup_security_logging  # noqa: E402
 setup_security_logging()
 
 # Configurar Rate Limiter (Usa memória RAM temporariamente até termos Redis na Nuvem)
@@ -51,7 +50,7 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 # CORS configuration para permitir plugins Obsidian e Web UIs futuramente
-from src.config import ALLOWED_ORIGINS
+from src.config import ALLOWED_ORIGINS  # noqa: E402
 
 app.add_middleware(
     CORSMiddleware,
@@ -61,8 +60,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi import Depends
-from .auth import router as auth_router, get_current_user
+from fastapi import Depends  # noqa: E402
+from .auth import router as auth_router, get_current_user  # noqa: E402
 app.include_router(auth_router, prefix="/v1/auth", tags=["Authentication"])
 app.include_router(router, prefix="/v1", dependencies=[Depends(get_current_user)])
 

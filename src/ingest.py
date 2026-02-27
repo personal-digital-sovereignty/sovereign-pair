@@ -12,7 +12,7 @@ import chromadb
 from pathlib import Path
 import re
 import yaml
-from typing import Optional, List, Set, Dict, Any
+from typing import Optional, List, Set
 from llama_index.core.schema import Document
 from tqdm import tqdm
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext
@@ -20,7 +20,6 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 
 # Importar configurações centralizadas
 from config import (
-    RAW_DOCS_DIR,
     RAW_DOCS_DIRS,
     VAULT_DIR,
     CHROMA_DIR,
@@ -223,7 +222,7 @@ def load_documents_from_directory(
         logger.info(f"   ✓ Total: {len(documents)} documento(s) carregado(s) de '{dir_name}'")
         
         # Pós-processamento Avançado (Pipeline de Limpeza)
-        logger.info(f"   🧹 Executando pipeline de limpeza (YAML, Dataview, Ruído)...")
+        logger.info("   🧹 Executando pipeline de limpeza (YAML, Dataview, Ruído)...")
         
         # Processar todos os documentos
         for doc in documents:
@@ -711,13 +710,13 @@ def main():
             # Modo incremental: processar apenas mudanças
             files_to_process = new_files | modified_files
             
-            logger.info(f"\n⚡ MODO INCREMENTAL: Processando mudanças...")
+            logger.info("\n⚡ MODO INCREMENTAL: Processando mudanças...")
             logger.info(f"   ✨ Novos: {len(new_files)}")
             logger.info(f"   ✏️  Modificados: {len(modified_files)}")
             
             # Remover chunks obsoletos ANTES de processar
             if modified_files or deleted_files:
-                logger.info(f"\n🗑️  Removendo chunks obsoletos...")
+                logger.info("\n🗑️  Removendo chunks obsoletos...")
                 chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
                 chroma_collection = chroma_client.get_collection(CHROMA_COLLECTION_NAME)
                 remove_obsolete_chunks(modified_files | deleted_files, chroma_collection)
