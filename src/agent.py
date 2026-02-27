@@ -32,28 +32,18 @@ try:
 except ImportError:
     pass
 
-import chromadb
-from typing import Optional
+import chromadb  # noqa: E402
+from typing import Optional  # noqa: E402
 
-from llama_index.core import VectorStoreIndex
-from llama_index.vector_stores.chroma import ChromaVectorStore
-from llama_index.core.tools import QueryEngineTool, ToolMetadata
-from llama_index.core.chat_engine import ContextChatEngine
-from llama_index.core.memory import ChatMemoryBuffer
-from llama_index.core.retrievers import QueryFusionRetriever
-from llama_index.core.retrievers.fusion_retriever import FUSION_MODES
-from llama_index.core.schema import TextNode
-from custom_retrievers import CustomBM25Retriever
-from ddgs import DDGS
+from llama_index.core import VectorStoreIndex  # noqa: E402
+from llama_index.vector_stores.chroma import ChromaVectorStore  # noqa: E402
+from llama_index.core.tools import QueryEngineTool, ToolMetadata  # noqa: E402
 
-from config import (
+from config import (  # noqa: E402
     CHROMA_DIR,
     CHROMA_COLLECTION_NAME,
     OWNER_NAME,
-    SOVEREIGN_NAME,
     AGENT_VERBOSE,
-    INTERACTIVE_MODE,
-    MAX_WEB_SEARCH_RESULTS,
     llm,
     embed_model,
     validate_ollama_connection,
@@ -125,7 +115,7 @@ def initialize_rag_tool() -> Optional[QueryEngineTool]:
         return None
 
 
-from web_search import search_web
+from web_search import search_web  # noqa: E402
 def print_welcome_message():
     """Exibe mensagem de boas-vindas."""
     print("\n" + "=" * 70)

@@ -1,6 +1,5 @@
 import logging
 import re
-from typing import Any
 
 # Regex patterns para capturar chaves sensíveis e tokens
 SENSITIVE_PATTERNS = [

@@ -8,9 +8,6 @@ Versão 1.0
 """
 
 import time
-from datetime import datetime
-from pathlib import Path
-from typing import Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -207,7 +204,7 @@ class ProcessingStats:
             print(f"⚡ Velocidade: {files_per_sec:.2f} arquivos/s")
         
         if self.is_incremental:
-            print(f"\n🚀 Modo incremental:")
+            print("\n🚀 Modo incremental:")
             print(f"   ✨ Novos: {self.new_files}")
             print(f"   ✏️  Modificados: {self.modified_files}")
             print(f"   🗑️  Deletados: {self.deleted_files}")

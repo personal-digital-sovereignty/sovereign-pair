@@ -115,7 +115,7 @@ def validate_chromadb():
             for file_path, count in sorted_files[:5]:
                 print(f"      {count:3d} chunks: {file_path}")
         
-        print(f"\n   ✅ ChromaDB válido")
+        print("\n   ✅ ChromaDB válido")
         return True, chunks_by_file
         
     except Exception as e:
@@ -179,10 +179,10 @@ def validate_consistency(chunks_by_file):
         
         # Resultado
         if not only_history and not only_chromadb and mismatches == 0:
-            print(f"\n   ✅ Histórico e ChromaDB consistentes")
+            print("\n   ✅ Histórico e ChromaDB consistentes")
             return True
         else:
-            print(f"\n   ⚠️  Inconsistências encontradas")
+            print("\n   ⚠️  Inconsistências encontradas")
             return False
             
     except Exception as e:
