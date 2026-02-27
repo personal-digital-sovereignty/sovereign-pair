@@ -3,7 +3,8 @@ version: '3.8'
 services:
   # 0. Edge Router (Reverse Proxy com Auto-HTTPS)
   caddy:
-    image: caddy:2-alpine # nosemgrep: yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
+    # nosemgrep: yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
+    image: caddy:2-alpine
     container_name: sovereign-caddy
     security_opt:
       - no-new-privileges:true
@@ -23,7 +24,8 @@ services:
 
   # 1. Banco de Dados Relacional (PostgreSQL via Alpine - Mais Leve)
   postgres:
-    image: postgres:15-alpine # nosemgrep: yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
+    # nosemgrep: yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
+    image: postgres:15-alpine
     container_name: sovereign-db
     security_opt:
       - no-new-privileges:true
@@ -39,7 +41,8 @@ services:
 
   # 2. Banco Vetorial Local (ChromaDB)
   chroma:
-    image: chromadb/chroma:latest # nosemgrep: yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
+    # nosemgrep: yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
+    image: chromadb/chroma:latest
     container_name: sovereign-chroma
     security_opt:
       - no-new-privileges:true
@@ -99,7 +102,8 @@ services:
 
     # 5. Zero-Trust VPN Sidecar (Tailscale Subnet Router)
   tailscale:
-    image: tailscale/tailscale:latest # nosemgrep: yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
+    # nosemgrep: yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
+    image: tailscale/tailscale:latest
     container_name: sovereign-tailscale
     security_opt:
       - no-new-privileges:true

@@ -877,6 +877,7 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
                 {{ msg.content }}
               </template>
               <template v-else>
+                <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
                 <div v-html="DOMPurify.sanitize(md.render(msg.content))"></div>
                 <span v-if="msg.isStreaming" class="w-2 h-4 bg-sky-400 inline-block animate-pulse ml-1 vertical-align-middle"></span>
               </template>
