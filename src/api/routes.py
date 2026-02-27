@@ -7,9 +7,9 @@ from .dependencies import get_chat_engine
 
 router = APIRouter()
 
-from sqlalchemy.orm import Session
-from .database import get_db
-from .models import ChatSession, ChatMessage, SystemSettings
+from sqlalchemy.orm import Session  # noqa: E402
+from .database import get_db  # noqa: E402
+from .models import ChatSession, ChatMessage, SystemSettings  # noqa: E402
 
 # Importando o limiter configurado no main.py
 try:
@@ -288,9 +288,9 @@ EXTREMA IMPORTÂNCIA:
                 except Exception:
                     pass
 
-from .schemas import SessionResponse, FeedbackRequest, SessionUpdateRequest
-from typing import List
-from fastapi import HTTPException
+from .schemas import SessionResponse, FeedbackRequest, SessionUpdateRequest  # noqa: E402
+from typing import List  # noqa: E402
+from fastapi import HTTPException  # noqa: E402
 
 @router.patch("/sessions/{session_id}", response_model=SessionResponse)
 @limiter.limit("60/minute")
@@ -354,13 +354,12 @@ async def save_feedback(req: FeedbackRequest, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "success"}
 
-import hashlib
-import shutil
-import os
-from pathlib import Path
-from fastapi import File, UploadFile, Form
-from .schemas import UploadResponse
-from .models import DocumentCache
+import hashlib  # noqa: E402
+import os  # noqa: E402
+from pathlib import Path  # noqa: E402
+from fastapi import File, UploadFile, Form  # noqa: E402
+from .schemas import UploadResponse  # noqa: E402
+from .models import DocumentCache  # noqa: E402
 
 @router.post("/upload", response_model=UploadResponse)
 @limiter.limit("20/minute")
@@ -377,9 +376,6 @@ async def upload_document(
     Returns 'conflict' if a file with the same name but different content exists.
     """
     from src.config import RAW_DOCS_DIR
-    import hashlib
-    import os
-    from pathlib import Path
     
     raw_dir = Path(RAW_DOCS_DIR)
     raw_dir.mkdir(parents=True, exist_ok=True)
