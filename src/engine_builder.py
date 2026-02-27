@@ -5,15 +5,43 @@ from llama_index.core.retrievers.fusion_retriever import QueryFusionRetriever, F
 from llama_index.core.chat_engine import ContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
 from custom_retrievers import CustomBM25Retriever
-from config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm, OWNER_NAME, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
-     OWNER_NICKNAME, OCCUPATION, ABOUT_USER, LANGUAGE, GEOLOCATION
+from config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm as default_llm, OWNER_NAME, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
+     OWNER_NICKNAME, OCCUPATION, ABOUT_USER, LANGUAGE, GEOLOCATION, REQUEST_TIMEOUT, \
+     OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 from llama_index.core.llms import ChatMessage, MessageRole
 
-def build_chat_engine(index, history=None):
+def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm):
+    if not provider or not model_name:
+        return fallback_llm
+        
+    p = provider.lower().strip()
+    try:
+        if p == "openai":
+            from llama_index.llms.openai import OpenAI
+            return OpenAI(model=model_name, api_key=OPENAI_API_KEY, request_timeout=REQUEST_TIMEOUT)
+        elif p == "anthropic":
+            from llama_index.llms.anthropic import Anthropic
+            return Anthropic(model=model_name, api_key=ANTHROPIC_API_KEY, timeout=REQUEST_TIMEOUT)
+        elif p == "groq":
+            from llama_index.llms.groq import Groq
+            return Groq(model=model_name, api_key=GROQ_API_KEY, request_timeout=REQUEST_TIMEOUT)
+        elif p == "gemini":
+            from llama_index.llms.gemini import Gemini
+            return Gemini(model=model_name, api_key=GEMINI_API_KEY)
+        elif p == "ollama":
+            from llama_index.llms.ollama import Ollama
+            from config import OLLAMA_BASE_URL
+            return Ollama(model=model_name, base_url=OLLAMA_BASE_URL, request_timeout=REQUEST_TIMEOUT)
+    except ImportError as e:
+        logger.error(f"Failed to load provider {p}: {e} - pip install llama-index-llms-{p} may be required.")
+        
+    return fallback_llm
+
+def build_chat_engine(index, history=None, provider=None, model_name=None):
     """
     Constrói a instância do ContextChatEngine configurada com Hybrid Search
     (Vector + BM25) para recuperação precisa de documentos.
@@ -103,6 +131,12 @@ def build_chat_engine(index, history=None):
         geolocation_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "geolocation").first()
         geolocation = geolocation_setting.setting_value if geolocation_setting and geolocation_setting.setting_value.strip() else GEOLOCATION
         
+        provider_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "llm_provider").first()
+        db_provider = provider_setting.setting_value if provider_setting and provider_setting.setting_value.strip() else None
+        
+        model_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "llm_model").first()
+        db_model = model_setting.setting_value if model_setting and model_setting.setting_value.strip() else None
+        
         db.close()
     except Exception as e:
         logger.error(f"   ❌ Erro ao ler configs dinâmicas: {e}")
@@ -113,6 +147,8 @@ def build_chat_engine(index, history=None):
         about_user = ABOUT_USER
         language = LANGUAGE
         geolocation = GEOLOCATION
+        db_provider = None
+        db_model = None
         
 
     gender_instruction = ""
@@ -131,10 +167,20 @@ def build_chat_engine(index, history=None):
         if geolocation:
             user_context_block += f"- Geolocalização Base do Usuário: {geolocation}\n"
 
+    # Resolve o LLM Ativo (Nuvem ou Local) com base no Request ou no Banco de Dados
+    active_provider = provider or db_provider
+    active_model = model_name or db_model
+    active_llm = resolve_dynamic_llm(active_provider, active_model, default_llm)
+
+    # Log da Mídia utilizada (Para telemetria no terminal FastAPI)
+    provider_log = provider or "Ollama (Default)"
+    model_log = model_name or getattr(active_llm, "model", "Local")
+    logger.info(f"   🧠 Engine inicializada via {provider_log.upper()} com modelo {model_log}")
+
     # Criar Chat Engine com Retriever Híbrido
     chat_engine = ContextChatEngine.from_defaults(
         retriever=hybrid_retriever,
-        llm=llm,
+        llm=active_llm,
         memory=memory, # Memória bufferizada re-hidratada
         system_prompt=(
             f"Você é a inteligência artificial {SOVEREIGN_NAME}, atuando como assistente pessoal corporativa e soberana. "

@@ -11,8 +11,18 @@ from sqlalchemy.orm import Session
 from .database import get_db
 from .models import ChatSession, ChatMessage, SystemSettings
 
+# Importando o limiter configurado no main.py
+try:
+    from .main import limiter
+except ImportError:
+    # Fallback seguro para testes unitários isolados
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+    limiter = Limiter(key_func=get_remote_address)
+
 @router.post("/chat")
-async def chat_endpoint(request: ChatRequest, engine=Depends(get_chat_engine), db: Session = Depends(get_db)):
+@limiter.limit("15/minute")
+async def chat_endpoint(request: Request, body_request: ChatRequest, engine=Depends(get_chat_engine), db: Session = Depends(get_db)):
     """
     Endpoint principal para conversar com o Agente via RAG local.
     Pode retornar tanto um JSON blocante quanto um Event-Stream (SSE) para digitação em tempo real.
@@ -53,7 +63,8 @@ async def chat_endpoint(request: ChatRequest, engine=Depends(get_chat_engine), d
                 if is_web_query:
                     import re
                     from src.web_search import search_web
-                    from src.config import llm
+                    from src.engine_builder import resolve_dynamic_llm
+                    from src.config import llm as default_llm
                     from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
                     
                     from datetime import datetime
@@ -93,7 +104,8 @@ EXTREMA IMPORTÂNCIA:
                         history_msgs = engine._memory.get_all() if engine else []
                         messages_to_send = [sys_msg] + history_msgs + [context_msg]
                         
-                        response_gen = await llm.astream_chat(messages_to_send)
+                        active_llm = resolve_dynamic_llm(request.provider, request.model, default_llm)
+                        response_gen = await active_llm.astream_chat(messages_to_send)
                         
                         full_ai_response = f"🌐 *Buscando na web...{time_info}*\n\n"
                         async for token in response_gen:
@@ -188,7 +200,8 @@ EXTREMA IMPORTÂNCIA:
         if is_web_query:
             import re
             from src.web_search import search_web
-            from src.config import llm
+            from src.engine_builder import resolve_dynamic_llm
+            from src.config import llm as default_llm
             from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
             
             from datetime import datetime
@@ -227,7 +240,8 @@ EXTREMA IMPORTÂNCIA:
                 history_msgs = engine._memory.get_all() if engine else []
                 messages_to_send = [sys_msg] + history_msgs + [context_msg]
                 
-                response = await llm.achat(messages_to_send)
+                active_llm = resolve_dynamic_llm(request.provider, request.model, default_llm)
+                response = await active_llm.achat(messages_to_send)
                 
                 full_ai_response = f"🌐 *Buscando na web...{time_info}*\n\n{str(response)}"
             else:
@@ -279,7 +293,8 @@ from typing import List
 from fastapi import HTTPException
 
 @router.patch("/sessions/{session_id}", response_model=SessionResponse)
-async def update_session(session_id: int, req: SessionUpdateRequest, db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+async def update_session(request: Request, session_id: int, req: SessionUpdateRequest, db: Session = Depends(get_db)):
     """Atualiza metadados da sessão, como Título e Diretório (folder_name)."""
     session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
     if not session:
@@ -298,7 +313,8 @@ async def update_session(session_id: int, req: SessionUpdateRequest, db: Session
     return session
 
 @router.delete("/sessions/{session_id}")
-async def delete_session(session_id: int, db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+async def delete_session(request: Request, session_id: int, db: Session = Depends(get_db)):
     """Remove uma conversa inteira."""
     session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
     if not session:
@@ -308,13 +324,15 @@ async def delete_session(session_id: int, db: Session = Depends(get_db)):
     return {"status": "success"}
 
 @router.get("/sessions", response_model=List[SessionResponse])
-async def get_all_sessions(db: Session = Depends(get_db)):
+@limiter.limit("120/minute")
+async def get_all_sessions(request: Request, db: Session = Depends(get_db)):
     """Lista todas as conversas gravadas no SQLite."""
     sessions = db.query(ChatSession).order_by(ChatSession.updated_at.desc()).limit(20).all()
     return sessions
 
 @router.get("/sessions/{session_id}", response_model=SessionResponse)
-async def get_session_history(session_id: int, db: Session = Depends(get_db)):
+@limiter.limit("120/minute")
+async def get_session_history(request: Request, session_id: int, db: Session = Depends(get_db)):
     """Busca o histórico completo de uma sessão específica para Replay na UI."""
     session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
     if not session:
@@ -345,7 +363,9 @@ from .schemas import UploadResponse
 from .models import DocumentCache
 
 @router.post("/upload", response_model=UploadResponse)
+@limiter.limit("20/minute")
 async def upload_document(
+    request: Request,
     file: UploadFile = File(...), 
     force_overwrite: bool = Form(False),
     rename_if_exists: bool = Form(False),
@@ -448,7 +468,8 @@ def _set_setting_value(db: Session, key: str, value: str):
         db.add(SystemSettings(setting_key=key, setting_value=value))
 
 @router.get("/config", response_model=SettingsResponse)
-def get_settings(db: Session = Depends(get_db)):
+@limiter.limit("120/minute")
+def get_settings(request: Request, db: Session = Depends(get_db)):
     """Retrieve dynamic LLM attributes from the database, falling back to .env variables."""
     from config import LLM_PROVIDER, LLM_MODEL, ASSISTANT_PERSONA
     return SettingsResponse(
@@ -468,27 +489,30 @@ def get_settings(db: Session = Depends(get_db)):
     )
 
 @router.post("/config", response_model=SettingsResponse)
-def update_settings(request: SettingsRequest, db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+def update_settings(request: Request, body_request: SettingsRequest, db: Session = Depends(get_db)):
     """Persist the changes in system behavior using key-value entries in the database."""
-    _set_setting_value(db, "llm_provider", request.llm_provider)
-    _set_setting_value(db, "llm_model", request.llm_model)
-    _set_setting_value(db, "temperature", str(request.temperature))
-    _set_setting_value(db, "system_prompt", request.system_prompt)
-    _set_setting_value(db, "theme", request.theme)
-    _set_setting_value(db, "persona", request.persona)
-    _set_setting_value(db, "formality", request.formality)
-    _set_setting_value(db, "persona_graphic_style", request.persona_graphic_style)
-    _set_setting_value(db, "nickname", request.nickname)
-    _set_setting_value(db, "occupation", request.occupation)
-    _set_setting_value(db, "about_user", request.about_user)
-    _set_setting_value(db, "language", request.language)
-    _set_setting_value(db, "geolocation", request.geolocation)
+    _set_setting_value(db, "llm_provider", body_request.llm_provider)
+    _set_setting_value(db, "llm_model", body_request.llm_model)
+    _set_setting_value(db, "temperature", str(body_request.temperature))
+    _set_setting_value(db, "system_prompt", body_request.system_prompt)
+    _set_setting_value(db, "theme", body_request.theme)
+    _set_setting_value(db, "persona", body_request.persona)
+    _set_setting_value(db, "formality", body_request.formality)
+    _set_setting_value(db, "persona_graphic_style", body_request.persona_graphic_style)
+    _set_setting_value(db, "nickname", body_request.nickname)
+    _set_setting_value(db, "occupation", body_request.occupation)
+    _set_setting_value(db, "about_user", body_request.about_user)
+    _set_setting_value(db, "language", body_request.language)
+    _set_setting_value(db, "geolocation", body_request.geolocation)
     db.commit()
     
-    return get_settings(db)
+    # Fake a request to reuse get_settings which now expects a Request object
+    return get_settings(request, db)
 
 @router.get("/ollama/models")
-async def list_ollama_models():
+@limiter.limit("60/minute")
+async def list_ollama_models(request: Request):
     """Fetches the list of locally pulled models from the Ollama server."""
     import httpx
     from src.config import OLLAMA_BASE_URL

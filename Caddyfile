@@ -1,0 +1,35 @@
+# --- Sovereign Pair RAG: Caddy Edge Router ---
+#
+# Este arquivo configura o Caddy como um Proxy Reverso e terminação TSL/SSL automática.
+# Ele substitui a necessidade do Nginx + Certbot/Cert-Manager para HTTPS no Docker Compose.
+
+# 1. Configuração para Domínio Público (Descomente e mude o domínio se for expor na internet)
+# seudominio.com.br {
+#     # Proxy para o Backend FastAPI (Rotas da API REST e SWAGGER UI)
+#     reverse_proxy /api/* sovereign-api:8000
+#     reverse_proxy /docs* sovereign-api:8000
+#     reverse_proxy /openapi.json sovereign-api:8000
+#
+#     # Todo o resto vai para o Frontend (Nginx Estático servindo Vue SPA)
+#     reverse_proxy * sovereign-web:80
+# }
+
+# 2. Configuração Local / Zero-Trust (Tailscale) com Auto-Assinatura Interna
+# Usado por padrão. O Caddy vai gerar um certificado auto-assinado e forçar HTTPS localmente.
+# Acesse através de https://localhost ou https://[ip-da-sua-maquina]
+:443, localhost {
+    # Gerar certificado TLS local interno
+    tls internal
+
+    # Proxy para o Backend (O Caddy resolve o nome dns "sovereign-api" da rede Docker)
+    handle_path /api/* {
+        reverse_proxy sovereign-api:8000
+    }
+    
+    # Swagger UI necessita de caminhos exatos
+    reverse_proxy /docs* sovereign-api:8000
+    reverse_proxy /openapi.json sovereign-api:8000
+
+    # Catch-All: Roteia o tráfego não-API para o Web UI
+    reverse_proxy * sovereign-web:80
+}

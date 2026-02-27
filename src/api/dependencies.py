@@ -26,7 +26,8 @@ def get_chat_engine(request: Request, db: Session = Depends(get_db)):
     if _index is None:
         _index, _ = initialize_rag_tool()
         
-    history_dicts = None
+    provider = None
+    model_name = None
     
     # Precisamos ler o body manualmente na dependência pois o Pydantic consome o stream depois
     try:
@@ -34,6 +35,8 @@ def get_chat_engine(request: Request, db: Session = Depends(get_db)):
         body_bytes = request._body if hasattr(request, "_body") else b"{}"
         body = json.loads(body_bytes)
         session_id = body.get("session_id")
+        provider = body.get("provider")
+        model_name = body.get("model")
         
         if session_id:
             historical_msgs = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).order_by(ChatMessage.created_at.asc()).all()
@@ -41,4 +44,4 @@ def get_chat_engine(request: Request, db: Session = Depends(get_db)):
     except Exception:
         pass
         
-    return build_chat_engine(_index, history=history_dicts)
+    return build_chat_engine(_index, history=history_dicts, provider=provider, model_name=model_name)

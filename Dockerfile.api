@@ -1,0 +1,42 @@
+# Usa a imagem oficial do Python em versão reduzida (Debian Slim)
+FROM python:3.12-slim
+
+# Evita que o Python grave arquivos .pyc no disco e força o output desbufferizado (para ver logs em tempo real)
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Instala dependências do sistema operacinal necessárias (se o LlamaIndex/Postgres exigirem build no futuro)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Cria usuário não-root por segurança (Best practice Docker)
+RUN groupadd -r soveruser && useradd -r -g soveruser soveruser
+
+# Define o diretório de trabalho no container
+WORKDIR /app
+
+# Copia apenas os requirements primeiro para aproveitar o cache de camada do Docker
+COPY requirements.txt .
+
+# Atualiza pip e instala as dependências Python
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
+
+# Cria a pasta data/ onde o SQLite e ChromaDB viverão e dá permissão pro nosso usuário
+RUN mkdir -p /app/data && chown -R soveruser:soveruser /app/data
+
+# Copia o código-fonte inteiro do projeto para dentro do container
+COPY . .
+
+# Corrige permissões de dono para o código recém-copiado
+RUN chown -R soveruser:soveruser /app
+
+# Troca do usuário Root para o usuário restrito criado
+USER soveruser
+
+# Expõe a porta que o Uvicorn vai usar
+EXPOSE 8000
+
+# Comando para rodar a aplicação em produção
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

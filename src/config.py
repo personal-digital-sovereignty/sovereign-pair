@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
 from llama_index.core import Settings
-from llm_factory import get_llm, get_embedding_model
+from src.llm_factory import get_llm, get_embedding_model
 
 # 1. Carregar variáveis de ambiente do arquivo .env local (sobrescreve o global para dev)
 load_dotenv(override=True)
@@ -111,6 +111,13 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2")
 EMBED_MODEL_NAME = os.getenv("EMBED_MODEL", "bge-m3")
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "300.0"))
+
+# Chaves de API de Terceiros (Cloud Providers)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+
 
 # ============================================================================
 # IDENTIDADE E PERSONALIDADE (Multi-User)
