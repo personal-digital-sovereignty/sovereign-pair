@@ -125,7 +125,7 @@ packaging==26.0
 pandas==2.3.3
 passlib==1.7.4
 pathspec==1.0.4
-pillow==12.1.1
+pillow==10.4.0
 platformdirs==4.9.2
 pluggy==1.6.0
 posthog==5.4.0
