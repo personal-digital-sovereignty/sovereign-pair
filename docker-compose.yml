@@ -49,7 +49,6 @@ services:
   chroma:
     image: chromadb/chroma:latest
     container_name: sovereign-chroma
-    read_only: true
     tmpfs:
       - /tmp
     security_opt:
@@ -139,6 +138,8 @@ volumes:
   pgdata:
   chroma-data:
   tailscale-state:
+  caddy-data:
+  caddy-config:
 
 
 networks:
