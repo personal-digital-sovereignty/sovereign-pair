@@ -28,8 +28,8 @@ jobs:
       - name: Analyze workflow security logic (Zizmor)
         uses: zizmorcore/zizmor-action@v0.5.0
         with:
-          # Break the build if any vulnerability or bad permission is found:
-          flags: "--pedantic"
+          # Break the build if any vulnerability or bad permission is found (pedantic persona):
+          persona: "pedantic"
 
   # ==========================================
   # Gate 1: Secret Scanning
