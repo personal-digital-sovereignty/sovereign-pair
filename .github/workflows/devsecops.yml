@@ -23,7 +23,7 @@ jobs:
         uses: raven-actions/actionlint@v2
 
       - name: Analyze workflow security logic (Zizmor)
-        uses: woodruffw/zizmor-github-action@v1
+        uses: zizmorcore/zizmor-action@v0.5.0
         with:
           # Break the build if any vulnerability or bad permission is found:
           flags: "--pedantic"
