@@ -7,6 +7,23 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [3.1.0] - 2026-02-27
+
+### 🛡️ DevSecOps & Security Hardening (FOSS Enterprise)
+
+### Segurança
+- **Esteira DevSecOps (Gate 0 a 4)**: Implementação e fixação de pipeline estrito no GitHub Actions (`devsecops.yml`) validando integridade com `Actionlint`, `Zizmor`, `Gitleaks`, `Semgrep`, `Trivy` e `Ruff`.
+- **Zero-Warning SAST Compliance**:
+  - Eliminação de vulnerabilidades XSS no frontend Vue utilizando sanitização via `DOMPurify` e encapsulamento em diretiva customizada `v-safe-html`.
+  - Correção de injeção DOM-XSS crítica no Obsidian Plugin, migrando de `innerHTML` para construção segura DOM (`setText()`, `createEl()`).
+- **Hardening de Infraestrutura Docker**:
+  - Aplicação de RootFS imutável (`read_only: true`) em todos os containers, com montagens seguras voláteis (`tmpfs`) no Caddy, PostgreSQL, ChromaDB e Tailscale.
+  - Mitigação de escape de containers negando escalação em executáveis `setuid/setgid` (`no-new-privileges:true`).
+- **Sanitização de Dívida Técnica (SCA/Lint)**:
+  - Resolução da vulnerabilidade `CVE-2026-25990` com atualização forçada da dependência `pillow` v12.1.1 (apontada pelo Trivy).
+  - Conformidade restrita `PEP-8` na engine backend (`Ruff`), ajustando ordem de execução e imports ociosos sem quebrar inicializadores nativos.
+  - Eliminação de Token JWT transacional de testes listado nos rastros do `Gitleaks`.
+
 ## [3.0.0] - 2026-02-26
 
 ### 🚀 Major Release - UX Revolucionária, Concorrência e Integração Obsidian 3.0
