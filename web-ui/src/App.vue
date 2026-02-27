@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
+import DOMPurify from 'dompurify'
 import Setup from './views/Setup.vue'
 import Login from './views/Login.vue'
 
@@ -876,7 +877,7 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
                 {{ msg.content }}
               </template>
               <template v-else>
-                <div v-html="md.render(msg.content)"></div>
+                <div v-html="DOMPurify.sanitize(md.render(msg.content))"></div>
                 <span v-if="msg.isStreaming" class="w-2 h-4 bg-sky-400 inline-block animate-pulse ml-1 vertical-align-middle"></span>
               </template>
             </div>
