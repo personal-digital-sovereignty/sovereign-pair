@@ -54,7 +54,12 @@ interface ChatSession {
   id: number
   title: string
   folder_name?: string | null
+  tags?: string[]
 }
+
+const searchQuery = ref('')
+const sessionToDelete = ref<number | null>(null)
+const editingTagsInput = ref('')
 
 const inputMessage = ref('')
 const currentSessionId = ref<number | null>(null)
@@ -68,7 +73,15 @@ const toggleFolder = (folderName: string) => {
 
 const groupedSessions = computed(() => {
   const groups: Record<string, ChatSession[]> = { '': [] }
+  const query = searchQuery.value.toLowerCase().trim()
+
   sessions.value.forEach(s => {
+    if (query) {
+      const titleMatch = s.title.toLowerCase().includes(query)
+      const tagsMatch = s.tags && s.tags.some(t => t.toLowerCase().includes(query))
+      if (!titleMatch && !tagsMatch) return
+    }
+
     const f = s.folder_name || ''
     if (!groups[f]) {
       groups[f] = []
@@ -82,20 +95,61 @@ const groupedSessions = computed(() => {
 })
 
 const isEditSessionModalOpen = ref(false)
-const editingSession = ref({ id: 0, title: '', folder_name: '' })
+const editingSession = ref({ id: 0, title: '', folder_name: '', tags: [] as string[] })
 
 const openEditSessionModal = (session: ChatSession | undefined) => {
   if (!session) return;
   editingSession.value = {
     id: session.id,
     title: session.title,
-    folder_name: session.folder_name || ''
+    folder_name: session.folder_name || '',
+    tags: session.tags ? [...session.tags] : []
   }
+  editingTagsInput.value = ''
   isEditSessionModalOpen.value = true
+}
+
+const addTag = () => {
+  const tag = editingTagsInput.value.trim()
+  if (tag && !editingSession.value.tags.includes(tag)) {
+    editingSession.value.tags.push(tag)
+  }
+  editingTagsInput.value = ''
+}
+
+const removeTag = (index: number) => {
+  editingSession.value.tags.splice(index, 1)
+}
+
+const deleteSessionConfirmed = async () => {
+  if (!sessionToDelete.value) return
+  
+  try {
+    const res = await fetch(`${API_BASE_URL}/v1/sessions/${sessionToDelete.value}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    })
+    
+    if (res.ok) {
+      if (currentSessionId.value === sessionToDelete.value) {
+        currentSessionId.value = null
+        messages.value = [{ id: 1, role: 'assistant', content: 'Nova conversa iniciada. Como posso ajudar?' }]
+      }
+      await loadSessions()
+    }
+  } catch (e) {
+    console.error("Falha ao deletar sessão", e)
+  } finally {
+    sessionToDelete.value = null
+  }
 }
 
 const saveSessionEdit = async () => {
   try {
+    // Adiciona qualquer tag pendente no input antes de salvar
+    if (editingTagsInput.value.trim()) {
+      addTag()
+    }
     const res = await fetch(`${API_BASE_URL}/v1/sessions/${editingSession.value.id}`, {
       method: 'PATCH',
       headers: {
@@ -104,7 +158,8 @@ const saveSessionEdit = async () => {
       },
       body: JSON.stringify({
         title: editingSession.value.title,
-        folder_name: editingSession.value.folder_name
+        folder_name: editingSession.value.folder_name,
+        tags: editingSession.value.tags
       })
     })
     if (res.ok) {
@@ -127,8 +182,32 @@ const systemSettings = ref({
   llm_model: 'llama3',
   temperature: 0.1,
   system_prompt: '',
-  theme: 'dark'
+  theme: 'dark',
+  persona: 'default',
+  formality: 'neutral',
+  persona_graphic_style: 'emoji',
+  nickname: '',
+  occupation: '',
+  about_user: '',
+  language: 'Português do Brasil',
+  geolocation: ''
 })
+
+const personaOptions = [
+  { id: 'default', icon: '🧠', name: 'Assistente Padrão (Default)', prompt: 'Foco em respostas analíticas, pragmáticas e diretas. Traga conhecimento fundamentado sem enrolação.' },
+  { id: 'developer', icon: '💻', name: 'Desenvolvedor Sênior', prompt: 'Aja como um Arquiteto de Software sênior. Foco em código limpo (Clean Code), design patterns, otimização de performance e explicações técnicas concisas e precisas.' },
+  { id: 'marketing', icon: '📈', name: 'Mestre do Marketing', prompt: 'Você é um especialista em Marketing Digital. Use copywriting persuasivo focado em conversão, métricas, SEO e lançamento de produtos. Adote um tom empolgante.' },
+  { id: 'admin', icon: '👔', name: 'Gestor & Admin', prompt: 'Aja como um administrador de empresas e gerente de projetos sênior. Foco em organização corporativa, planilhas estruturadas, relatórios processuais e finanças limpas.' },
+  { id: 'professor', icon: '🎓', name: 'Professor Acadêmico', prompt: 'Você é um mentor acadêmico compassivo e sagaz. Explique conceitos complexos com metáforas didáticas, passo a passo, fomentando o raciocínio sem dar apenas a resposta pronta imediata.' },
+  { id: 'career', icon: '💼', name: 'Mentor de Carreira', prompt: 'Você é um Headhunter experiente. Foco na evolução profissional do usuário, melhoria de propostas de valor (currículos e portfólios) e dicas cirúrgicas de networking e entrevistas.' },
+  { id: 'productivity', icon: '⚡', name: 'Hacker de Rendimento', prompt: 'Comporte-se como um executor fanático por otimização de tempo. Foco rígido na geração de checklists diretos, métodos ágeis (Kanban/Scrum) e atalhos de produtividade extrema.' },
+  { id: 'creative', icon: '💡', name: 'Brainstormer Criativo', prompt: 'Seja extremamente imaginativo e fora-da-caixa. Seu objetivo é ajudar a encontrar soluções inovadoras para problemas normais, usando um tom entusiasmado e proativo. Proponha cenários alternativos abundantes.' }
+]
+
+const selectPersona = (p: typeof personaOptions[0]) => {
+  systemSettings.value.persona = p.id
+  systemSettings.value.system_prompt = p.prompt
+}
 
 const localModels = ref<string[]>([])
 const isFetchingModels = ref(false)
@@ -250,6 +329,7 @@ const openConfigModal = () => {
 
 const sidebarWidth = ref(288) // w-72 = 18rem = 288px
 const isDraggingSidebar = ref(false)
+const isSidebarOpen = ref(true)
 
 const startDragSidebar = () => {
   isDraggingSidebar.value = true
@@ -565,9 +645,27 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
   
   <div v-else class="flex h-screen w-full bg-surface-900 text-slate-200 overflow-hidden font-sans">
     
+    <!-- Slim Navigation Bar (Gemini Style) -->
+    <nav class="w-14 shrink-0 bg-surface-950 border-r border-slate-800 flex flex-col items-center py-4 z-20">
+      <button @click="isSidebarOpen = !isSidebarOpen" class="p-2 text-slate-400 hover:text-slate-100 hover:bg-surface-800 rounded-lg transition-colors mb-6" title="Menu principal">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      </button>
+
+      <button @click="() => { currentSessionId = null; messages = [{ id: 1, role: 'assistant', content: 'Nova conversa iniciada. Como posso ajudar?' }]; }" class="p-2 text-slate-400 hover:text-sky-400 hover:bg-surface-800 rounded-lg transition-colors" title="Nova Conversa">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+      </button>
+
+      <div class="flex-1"></div>
+
+      <button @click="openConfigModal" class="p-2 text-slate-400 hover:text-slate-100 hover:bg-surface-800 rounded-lg transition-colors mb-2" title="Engine Settings">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+      </button>
+    </nav>
+
     <!-- Sidebar / Navigation -->
     <aside 
-      class="bg-surface-800 border-r border-slate-700/50 flex flex-col transform hidden md:flex shrink-0 relative"
+      v-show="isSidebarOpen"
+      class="bg-surface-800 border-r border-slate-700/50 flex flex-col shrink-0 relative"
       :class="{'transition-all duration-300': !isDraggingSidebar}"
       :style="{ width: sidebarWidth + 'px' }"
     >
@@ -582,13 +680,19 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
       </div>
       
       <div class="flex-1 overflow-y-auto p-3 space-y-1">
-        
-        <button 
-          @click="() => { currentSessionId = null; messages = [{ id: 1, role: 'assistant', content: 'Nova conversa iniciada. Como posso ajudar?' }]; }"
-          class="w-full text-left px-3 py-2 rounded-md bg-emerald-500/20 text-emerald-400 text-sm hover:bg-emerald-500/30 transition-colors flex items-center gap-2 border border-emerald-500/30 font-medium mb-4">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-          Nova Conversa
-        </button>
+        <!-- Removed Nova Conversa from here to Slim Navbar -->
+
+        <div class="mb-3">
+          <div class="relative">
+            <input 
+              v-model="searchQuery" 
+              type="text" 
+              placeholder="Buscar chats ou #tags..." 
+              class="w-full bg-surface-900 border border-slate-700/50 rounded-md py-1.5 pl-8 pr-3 text-xs text-slate-200 focus:outline-none focus:border-sky-500/50 transition-all placeholder-slate-500"
+            />
+            <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </div>
+        </div>
 
         <div class="text-[10px] uppercase font-bold text-slate-500 mb-2 px-2 tracking-wider">Histórico de Sessões</div>
         
@@ -612,12 +716,15 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
                     >
                       <button
                         @click="loadSession(session.id)"
-                        :class="['w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors border', 
+                        :class="['w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors border flex items-center justify-between', 
                                  currentSessionId === session.id 
                                   ? 'bg-surface-700 text-sky-300 border-sky-500/50 shadow-[0_0_10px_rgba(14,165,233,0.1)]' 
                                   : 'bg-transparent text-slate-400 hover:bg-surface-700/50 border-transparent']"
                       >
-                        <span class="truncate block w-full">{{ session.title }}</span>
+                        <span class="truncate block flex-1 pr-2">{{ session.title }}</span>
+                        <div @click.stop="sessionToDelete = session.id" class="p-1 text-slate-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all rounded hover:bg-surface-600 shrink-0" title="Deletar">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </div>
                       </button>
                     </div>
                  </div>
@@ -638,9 +745,14 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
                             ? 'bg-surface-700 text-sky-300 border-sky-500/50 shadow-[0_0_10px_rgba(14,165,233,0.1)]' 
                             : 'bg-surface-700/30 text-slate-300 hover:bg-surface-700/80 border-slate-700/50']"
                 >
-                  <div class="flex items-center gap-2 w-full">
-                     <svg class="w-4 h-4 shrink-0" :class="currentSessionId === session.id ? 'text-sky-400' : 'text-slate-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
-                     <span class="truncate flex-1">{{ session.title }}</span>
+                  <div class="flex items-center gap-2 w-full justify-between">
+                     <div class="flex items-center gap-2 min-w-0 pr-1 truncate flex-1">
+                       <svg class="w-4 h-4 shrink-0" :class="currentSessionId === session.id ? 'text-sky-400' : 'text-slate-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                       <span class="truncate">{{ session.title }}</span>
+                     </div>
+                     <div @click.stop="sessionToDelete = session.id" class="p-1 text-slate-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all rounded hover:bg-surface-600 shrink-0" title="Deletar">
+                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                     </div>
                   </div>
                 </button>
               </div>
@@ -652,15 +764,7 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
         </div>
       </div>
       
-      <div class="p-4 border-t border-slate-700/50">
-        <button 
-          @click="openConfigModal"
-          class="flex items-center justify-center gap-2 text-sm text-slate-300 hover:text-white transition-colors w-full p-2 rounded-lg bg-surface-800 hover:bg-surface-700 border border-surface-600/50 shadow-sm"
-        >
-          <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-          <span class="font-medium">Engine Settings</span>
-        </button>
-      </div>
+      <!-- Removed Engine Settings from here to Slim Navbar -->
       <!-- Resizer Handle -->
       <div 
         class="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-sky-500/50 z-10 transition-colors translate-x-1/2"
@@ -720,13 +824,13 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
           </button>
         </div>
-        <div class="flex items-center gap-2">
-          <span class="flex h-2 w-2">
-            <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
+        <button @click="openConfigModal" class="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-surface-700/50 transition-colors cursor-pointer group" title="Abrir Configurações do Motor">
+          <span class="flex h-2 w-2 relative">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
-          <span class="text-xs font-medium text-slate-400">Motor Pronto</span>
-        </div>
+          <span class="text-xs font-medium text-slate-400 group-hover:text-sky-300 transition-colors">Motor Pronto</span>
+        </button>
       </header>
 
       <!-- Chat Messages Scrollable Box -->
@@ -742,8 +846,15 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
         >
           <!-- Avatar -->
           <div class="shrink-0 flex items-start justify-center mt-1">
-            <div v-if="msg.role === 'assistant'" class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-primary-600 to-primary-400 flex items-center justify-center p-1.5 shadow-lg shadow-primary-500/20">
-              <svg class="w-5 h-5 text-white drop-shadow-sm" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"></path></svg>
+            <div v-if="msg.role === 'assistant'" class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-lg transition-all" :class="systemSettings.persona_graphic_style === 'dots' ? 'bg-primary-500/10 border border-primary-500/20' : 'bg-gradient-to-br from-primary-600 to-primary-400 shadow-primary-500/20 p-1.5'">
+              <span v-if="systemSettings.persona_graphic_style === 'emoji'" class="text-xl md:text-2xl leading-none drop-shadow-sm">{{ personaOptions.find(p => p.id === systemSettings.persona)?.icon || '🧠' }}</span>
+              <svg v-else-if="systemSettings.persona_graphic_style === 'vector'" class="w-5 h-5 md:w-6 md:h-6 text-white drop-shadow-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="11.5" r="11" class="opacity-40" stroke="currentColor" fill="none" />
+                <path d="M12 4.5l-3 3v4l3 3 3-3v-4l-3-3zM9 7.5H5.5l1 3 2.5 2M15 7.5h3.5l-1 3-2.5 2M12 4.5V2M12 14.5v5M9 12.5l-2.5 3M15 12.5l2.5 3" />
+                <circle cx="12" cy="4.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="9" cy="7.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="7.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="9" cy="12.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="12.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="14.5" r="1.5" fill="currentColor" stroke="none"/>
+                <circle cx="5.5" cy="7.5" r="1" fill="currentColor" stroke="none"/><circle cx="18.5" cy="7.5" r="1" fill="currentColor" stroke="none"/><circle cx="6.5" cy="10.5" r="1" fill="currentColor" stroke="none"/><circle cx="17.5" cy="10.5" r="1" fill="currentColor" stroke="none"/><circle cx="6.5" cy="15.5" r="1" fill="currentColor" stroke="none"/><circle cx="17.5" cy="15.5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/>
+              </svg>
+              <div v-else class="w-2 h-2 md:w-3 md:h-3 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(var(--color-primary-500),0.7)]"></div>
             </div>
             <div v-else class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-700 flex items-center justify-center p-2 text-slate-300">
               <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
@@ -877,10 +988,117 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
               </div>
             </div>
 
-            <div class="space-y-2">
-              <label class="block text-sm font-medium text-slate-400">Persona (System Prompt)</label>
-              <textarea v-model="systemSettings.system_prompt" rows="5" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-3 outline-none transition-all resize-none font-mono text-[13px] leading-relaxed" placeholder="Como o assistente deve se comportar..."></textarea>
+            <div class="space-y-4">
+              <label class="block text-sm font-medium text-slate-400 mb-2">Comportamento da IA (Persona)</label>
+              
+              <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-3">
+                <button 
+                  v-for="p in personaOptions" 
+                  :key="p.id"
+                  @click="selectPersona(p)"
+                  class="flex items-start gap-2 p-2.5 rounded-lg border transition-all text-left group"
+                  :class="systemSettings.persona === p.id ? 'bg-primary-500/10 border-primary-500 text-primary-300 ring-1 ring-primary-500/50' : 'bg-surface-800 border-surface-700 text-slate-400 hover:border-surface-600 hover:text-slate-300'"
+                >
+                  <svg v-if="systemSettings.persona_graphic_style === 'vector'" class="w-7 h-7 shrink-0 text-primary-400 opacity-90 transition-all group-hover:scale-105" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="11.5" r="11" class="opacity-40" stroke="currentColor" fill="none" />
+                    <path d="M12 4.5l-3 3v4l3 3 3-3v-4l-3-3zM9 7.5H5.5l1 3 2.5 2M15 7.5h3.5l-1 3-2.5 2M12 4.5V2M12 14.5v5M9 12.5l-2.5 3M15 12.5l2.5 3" />
+                    <circle cx="12" cy="4.5" r="1.5" fill="currentColor" stroke="none"/>
+                    <circle cx="9" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
+                    <circle cx="15" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
+                    <circle cx="9" cy="12.5" r="1.5" fill="currentColor" stroke="none"/>
+                    <circle cx="15" cy="12.5" r="1.5" fill="currentColor" stroke="none"/>
+                    <circle cx="12" cy="14.5" r="1.5" fill="currentColor" stroke="none"/>
+                    <circle cx="5.5" cy="7.5" r="1" fill="currentColor" stroke="none"/>
+                    <circle cx="18.5" cy="7.5" r="1" fill="currentColor" stroke="none"/>
+                    <circle cx="6.5" cy="10.5" r="1" fill="currentColor" stroke="none"/>
+                    <circle cx="17.5" cy="10.5" r="1" fill="currentColor" stroke="none"/>
+                    <circle cx="6.5" cy="15.5" r="1" fill="currentColor" stroke="none"/>
+                    <circle cx="17.5" cy="15.5" r="1" fill="currentColor" stroke="none"/>
+                    <circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/>
+                  </svg>
+                  <div v-else-if="systemSettings.persona_graphic_style === 'dots'" class="w-2.5 h-2.5 shrink-0 rounded-full bg-primary-500 shadow-sm mt-1 shadow-primary-500/50"></div>
+                  <span v-else class="text-xl shrink-0 mt-0.5">{{ p.icon }}</span>
+                  <div class="flex flex-col min-w-0">
+                     <span class="text-xs font-semibold leading-tight truncate group-hover:text-primary-300">{{ p.name }}</span>
+                     <span class="text-[9px] text-slate-500 line-clamp-2 mt-1 leading-tight">{{ p.prompt }}</span>
+                  </div>
+                </button>
+              </div>
+
+              <textarea 
+                v-model="systemSettings.system_prompt" 
+                rows="4" 
+                @input="systemSettings.persona = 'custom'"
+                class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-3 outline-none transition-all resize-none font-mono text-[13px] leading-relaxed" 
+                placeholder="Como o assistente deve se comportar..."></textarea>
+                
+                <div class="space-y-2 mt-4">
+                  <label class="block text-sm font-medium text-slate-400">Tratamento e Formalidade</label>
+                  <div class="flex p-1 bg-surface-800 rounded-lg border border-surface-700 max-w-sm">
+                    <button @click="systemSettings.formality = 'feminine'" :class="systemSettings.formality === 'feminine' ? 'bg-primary-500/20 text-primary-400 font-medium shadow-sm' : 'text-slate-400 hover:text-slate-300'" class="flex-1 py-2 text-xs rounded-md transition-colors">Assistente ♀️</button>
+                    <button @click="systemSettings.formality = 'neutral'" :class="systemSettings.formality === 'neutral' ? 'bg-primary-500/20 text-primary-400 font-medium shadow-sm' : 'text-slate-400 hover:text-slate-300'" class="flex-1 py-2 text-xs rounded-md transition-colors">Neutro 🤖</button>
+                    <button @click="systemSettings.formality = 'masculine'" :class="systemSettings.formality === 'masculine' ? 'bg-primary-500/20 text-primary-400 font-medium shadow-sm' : 'text-slate-400 hover:text-slate-300'" class="flex-1 py-2 text-xs rounded-md transition-colors">Assistente ♂️</button>
+                  </div>
+                </div>
+
+                <div class="space-y-4 pt-4 border-t border-surface-700/50">
+                  <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-400">Nome / Como te chamar?</label>
+                    <input v-model="systemSettings.nickname" type="text" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all" placeholder="Seu apelido/nome preferido">
+                  </div>
+                  <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-400">Ocupação / Atuação</label>
+                    <input v-model="systemSettings.occupation" type="text" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all" placeholder="Ex: Dev Backend Pleno">
+                  </div>
+                  <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-400">Mais sobre você</label>
+                    <textarea v-model="systemSettings.about_user" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all resize-y min-h-[80px]" placeholder="Gosto de explicações curtas em bullet points..."></textarea>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                      <label class="block text-sm font-medium text-slate-400">Idioma da IA</label>
+                      <select v-model="systemSettings.language" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
+                        <option value="Português do Brasil">Português do Brasil</option>
+                        <option value="Português (Carioca)">🇧🇷 Português (Carioca)</option>
+                        <option value="Português (Paulistano)">🇧🇷 Português (Paulistano)</option>
+                        <option value="Português (Mineiro)">🇧🇷 Português (Mineiro)</option>
+                        <option value="Português (Nordestino)">🇧🇷 Português (Nordestino)</option>
+                        <option value="Português de Portugal">🇵🇹 Português de Portugal</option>
+                        <option value="Inglês (EUA)">🇺🇸 Inglês Americano</option>
+                        <option value="Espanhol">🇪🇸 Espanhol</option>
+                      </select>
+                    </div>
+                    <div class="space-y-2">
+                      <label class="block text-sm font-medium text-slate-400">Geolocalização</label>
+                      <input v-model="systemSettings.geolocation" type="text" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all" placeholder="ex: SP, Brasil" title="Permite contexto local para clima ou cultura">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            
+            <!-- Graphic Style -->
+            <div class="space-y-3 mt-4">
+              <label class="block text-sm font-medium text-slate-400">Estilo Visual das Personas</label>
+              <div class="flex p-1 bg-surface-800 rounded-lg border border-surface-700 w-full max-w-sm">
+                <button @click="systemSettings.persona_graphic_style = 'emoji'" :class="systemSettings.persona_graphic_style === 'emoji' ? 'bg-primary-500/20 text-primary-400 font-medium shadow-sm' : 'text-slate-400 hover:text-surface-300'" class="flex-1 py-1.5 text-xs rounded-md transition-colors flex items-center justify-center gap-1.5"><span>🧠</span> Emojis</button>
+                <button @click="systemSettings.persona_graphic_style = 'vector'" :class="systemSettings.persona_graphic_style === 'vector' ? 'bg-primary-500/20 text-primary-400 font-medium shadow-sm' : 'text-slate-400 hover:text-surface-300'" class="flex-1 py-1.5 text-xs rounded-md transition-colors flex items-center justify-center gap-1.5">
+                  <svg class="w-4 h-4 shrink-0 transition-all opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="11.5" r="11" class="opacity-40" stroke="currentColor" fill="none" />
+                    <path d="M12 4.5l-3 3v4l3 3 3-3v-4l-3-3zM9 7.5H5.5l1 3 2.5 2M15 7.5h3.5l-1 3-2.5 2M12 4.5V2M12 14.5v5M9 12.5l-2.5 3M15 12.5l2.5 3" />
+                    <circle cx="12" cy="4.5" r="1.5" fill="currentColor" stroke="none"/>
+                    <circle cx="9" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
+                    <circle cx="15" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
+                    <circle cx="9" cy="12.5" r="1.5" fill="currentColor" stroke="none"/>
+                    <circle cx="15" cy="12.5" r="1.5" fill="currentColor" stroke="none"/>
+                    <circle cx="12" cy="14.5" r="1.5" fill="currentColor" stroke="none"/>
+                  </svg> Cérebro Virtual
+                </button>
+                <button @click="systemSettings.persona_graphic_style = 'dots'" :class="systemSettings.persona_graphic_style === 'dots' ? 'bg-primary-500/20 text-primary-400 font-medium shadow-sm' : 'text-slate-400 hover:text-surface-300'" class="flex-1 py-1.5 text-xs rounded-md transition-colors flex items-center justify-center gap-1.5">
+                  <div class="w-1.5 h-1.5 rounded-full bg-current"></div> Minimal
+                </button>
+              </div>
             </div>
+
             <!-- Theme selector -->
             <div class="space-y-3">
               <label class="block text-sm font-medium text-slate-400">Aparência da Interface</label>
@@ -964,10 +1182,48 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
               <label class="block text-sm font-medium text-slate-400">Pasta (Opcional)</label>
               <input v-model="editingSession.folder_name" type="text" placeholder="Nome da pasta" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
             </div>
+
+            <div class="space-y-2 pt-2 border-t border-surface-700/50">
+              <label class="block text-sm font-medium text-slate-400">Tags / Categorias (Pressione Enter para adicionar)</label>
+              <div class="flex flex-wrap gap-2 mb-2">
+                <span v-for="(tag, idx) in editingSession.tags" :key="idx" class="px-2 py-1 bg-surface-700 border border-surface-600 text-xs text-slate-300 rounded-md flex items-center gap-1">
+                  #{{ tag }}
+                  <button @click="removeTag(idx)" class="hover:text-rose-400 ml-1 transition-colors">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                  </button>
+                </span>
+                <span v-if="editingSession.tags.length === 0" class="text-xs text-slate-500 italic block">Nenhuma tag...</span>
+              </div>
+              <input 
+                v-model="editingTagsInput"
+                @keydown.enter.prevent="addTag"
+                type="text" 
+                placeholder="Ex: python, pesquisa, ideia... (Aperte Enter)" 
+                class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all"
+              >
+            </div>
           </div>
           <div class="px-6 py-4 border-t border-surface-700/50 bg-surface-800/30 flex justify-end gap-3">
             <button @click="isEditSessionModalOpen = false" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancelar</button>
             <button @click="saveSessionEdit" class="px-5 py-2 text-sm bg-primary-500 hover:bg-primary-400 text-white rounded-lg font-medium transition-colors shadow-lg shadow-primary-500/30">Salvar</button>
+          </div>
+        </div>
+      </div>
+
+    <!-- Confirm Delete Modal -->
+      <div v-if="sessionToDelete !== null" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-surface-900 border border-rose-900/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col animate-scale-in">
+          <div class="px-6 py-4 border-b border-surface-700/50 flex items-center gap-3 bg-rose-500/10">
+            <svg class="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <h3 class="text-lg font-medium text-rose-500">Excluir Sessão</h3>
+          </div>
+          <div class="p-6">
+            <p class="text-slate-300 text-sm">Tem certeza que deseja apagar esta sessão e todo o seu histórico de mensagens permanentemente?</p>
+            <p class="text-rose-400 text-xs mt-2 font-medium">Esta ação não pode ser desfeita.</p>
+          </div>
+          <div class="px-6 py-4 border-t border-surface-700/50 bg-surface-800/30 flex justify-end gap-3">
+            <button @click="sessionToDelete = null" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancelar</button>
+            <button @click="deleteSessionConfirmed" class="px-5 py-2 text-sm bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-medium transition-colors shadow-lg shadow-rose-900/50">Sim, excluir</button>
           </div>
         </div>
       </div>

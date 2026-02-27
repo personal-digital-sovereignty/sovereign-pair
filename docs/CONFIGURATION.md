@@ -256,21 +256,41 @@ CHROMA_COLLECTION_NAME=research_papers
 
 ---
 
-### USER_NAME
+### USER_NAME / OWNER_NAME
 
-**Descrição**: Seu nome, usado no prompt do chat
-
+**Descrição**: O nome formal do mestre e dono da máquina, usado para estruturação e saudação técnica.
 **Padrão**: Nome do usuário do sistema
-
 **Exemplo**:
 ```env
-USER_NAME=João
+OWNER_NAME=Jeferson Lopes
 ```
 
-Aparecerá como:
-```
-João > Qual é a temperatura hoje?
-```
+---
+
+### Perfil Biográfico e Injeção de Contexto (v3.0+)
+
+Para garantir uma verdadeira experiência soberana (onde o RAG já sabe quem você é e a sua realidade sem você ter que repetir prompts constantes), adicione essas variáveis. Elas preenchem automaticamente o **System Prompt** do RAG e da inferência Web.
+
+#### `OWNER_NICKNAME`
+**Descrição**: Seu apelido ou como gostaria que o RAG lhe chamasse confortavelmente. Padrão ao `OWNER_NAME`.
+
+#### `SOVEREIGN_NAME`
+**Descrição**: Como você batizou a sua própria Inteligência Artificial.
+**Exemplo**: `Jarvis`, `Neuromancer`, `Sovereign Pair`.
+
+#### `LANGUAGE`
+**Descrição**: Garante que mesmo modelos de língua inglesa (`mixtral`, `qwen`) priorizem respostas na sua gramática regional.
+**Exemplo**: `Português do Brasil`.
+
+#### `GEOLOCATION`
+**Descrição**: Fornece ancoragem geográfica nativa. Quando você perguntar "Qual a previsão do tempo pra amanhã" ou "Locais para passear", a IA e o Web Search herdarão sua origem sem que você necessite soletrar a cidade.
+**Exemplo**: `São Paulo, Brasil`.
+
+#### `OCCUPATION`
+**Descrição**: Direciona o jargão da resposta para o seu campo de proficiência. Respostas a consultas de programação serão formatadas visando `Senior Software Engineers`, por exemplo.
+
+#### `ABOUT_USER`
+**Descrição**: Traços fixos da sua biografia, preferências rígidas ("Sempre responda em tabelas", "Não use emojis artificiais", "Sou intolerante a lactose"). Isso funciona como um Custom Instruction persistente por baixo dos panos.
 
 ---
 
@@ -673,5 +693,4 @@ Após configurar o `.env`:
 ---
 
 **Autor**: Jeferson Lopes
-**Data**: 2026-02-17
-**Versão**: 2.0.0
+**Data**: 2026-02-27

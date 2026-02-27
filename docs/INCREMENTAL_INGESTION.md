@@ -2,7 +2,7 @@
 
 **Status**: MVP (Fase 4 de 5) - Testes End-to-End
 **Versão**: 4.0
-**Data**: 2026-02-17
+**Data**: 2026-02-27
 
 ---
 
@@ -28,12 +28,12 @@ Mantém registro em `data/.ingestion_history.json`:
 ```json
 {
   "version": "1.1",
-  "last_ingestion": "2026-02-16T16:00:00Z",
+  "last_ingestion": "2026-02-27T16:00:00Z",
   "total_documents": 124,
   "total_chunks": 256,
   "files": {
     "/path/to/doc.md": {
-      "indexed_at": "2026-02-16T12:09:41Z",
+      "indexed_at": "2026-02-27T12:09:41Z",
       "modified_at": 1708095581.0,
       "chunks": 3,
       "content_hash": "sha256:9a5fa520f260ee1240cea..."
@@ -399,5 +399,4 @@ Não. O `.gitignore` protege `data/.ingestion_history.json` pois contém paths a
 
 **Autor**: Jeferson Lopes
 **Assistência**: Claude Sonnet 4.5 (Anthropic)
-**Data**: 2026-02-17
-**Versão**: 2.0.0
+**Data**: 2026-02-27

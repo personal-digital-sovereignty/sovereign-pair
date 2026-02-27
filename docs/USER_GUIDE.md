@@ -1,7 +1,7 @@
 # Guia do Usuário - Ingestão Incremental
 
-**Versão**: 2.0.0
-**Data**: 2026-02-17
+**Versão**: 3.0.0
+**Data**: 2026-02-27
 **Status**: MVP Completo
 
 ---
@@ -11,10 +11,11 @@
 1. [Introdução](#introdução)
 2. [Instalação](#instalação)
 3. [Configuração](#configuração)
-4. [Uso Básico](#uso-básico)
-5. [Uso Avançado](#uso-avançado)
-6. [Troubleshooting](#troubleshooting)
-7. [FAQ](#faq)
+4. [Interfaces do RAG (Clientes)](#interfaces-do-rag-clientes-v30)
+5. [Ingestão (Uso Básico)](#uso-básico)
+6. [Ingestão (Uso Avançado)](#uso-avançado)
+7. [Troubleshooting](#troubleshooting)
+8. [FAQ](#faq)
 
 ---
 
@@ -268,6 +269,41 @@ python src/ingest.py
 
 ---
 
+## Interfaces do RAG (Clientes v3.0)
+
+O **Sovereign Pair** possui três vias exclusivas e reativas para invocar o seu RAG e interagir com seu banco de conhecimento. 
+
+### 1. Web UI (Vue 3)
+A aplicação PWA-Ready que você roda via Node. Serve como o painel central do sistema.
+- **Temas**: Oculares Dark e Light nativos, persistidos no LocalStorage.
+- **Chat Folders**: Você pode organizar suas conversas em pastas diretamente na barra lateral (clicando com o botão direito nos ícones ou usando os botões `Nova Pasta`).
+- **Profile Avatar**: A interface usará Avatares Gerados ou seus Emojis biográficos de acordo com as configurações do `Sovereign Context`.
+
+**Como iniciar**:
+```bash
+python src/cli.py start --web
+# Acessar via http://localhost:5173
+```
+
+### 2. Plugin Obsidian Nativo
+O cérebro do projeto! Construído sob TypeScript, ele injeta-se no meio da sua área de anotações. Você pode usar a tela para falar "Resuma meu arquivo atual", e ele lerá o documento aberto no Obsidian *transparentemente*.
+
+- **Mini-Web**: Fixa a interface RAG completa na aba lateral direita do Obsidian (Sidebar View). 
+- **Minimalist**: Esconde a árvore de pastas lateral e foca unicamente na lista e caixa de texto da IA. Perfeito para monitores pequenos.
+- **Spotlight Modal**: Uma tela negra central hiperfocada ativável por paleta de comandos do Obsidian, que ofusca todo o editor apenas para o seu Brainstorm com o RAG.
+
+### 3. Agente CLI (Terminal Hacker)
+Não quer abrir o navegador nem o Obsidian? Fale com a IA direto do seu `bash/zsh`. O bash herdará todas as suas configurações do perfil e a sua temperatura e se conectará à base vetorial.
+- Digite `/v1` ou `/help` no terminal para abrir a lista de comandos.
+- Digite `/web {pesquisa}` para fazer o motor buscar resultados no DuckDuckGo direto do console.
+
+**Como iniciar**:
+```bash
+python src/cli.py chat
+```
+
+---
+
 ## Troubleshooting
 
 ### Problema: "Collection not found"
@@ -373,5 +409,4 @@ RAW_DOCS_DIRS=docs,vault,notes,wiki
 
 **Autor**: Jeferson Lopes
 **Assistência**: Google Gemini 3.
-**Data**: 2026-02-17
-**Versão**: 2.0.0
+**Data**: 2026-02-27

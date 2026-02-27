@@ -1,7 +1,7 @@
 # FAQ - Perguntas Frequentes
 
-**Versão**: 2.0.0
-**Data**: 2026-02-17
+**Versão**: 3.0.0
+**Data**: 2026-02-27
 
 ---
 
@@ -183,11 +183,11 @@ Arquivo que rastreia:
 ```json
 {
   "version": "1.1",
-  "last_updated": "2026-02-16T20:00:00",
+  "last_updated": "2026-02-27T20:00:00",
   "files": {
     "/path/to/file.md": {
       "content_hash": "abc123...",
-      "modified_at": "2026-02-16T19:00:00",
+      "modified_at": "2026-02-27T19:00:00",
       "chunks": 5
     }
   }
@@ -473,5 +473,4 @@ cd projeto2 && python ../src/ingest.py
 ---
 
 **Autor**: Jeferson Lopes
-**Data**: 2026-02-17
-**Versão**: 2.0.0
+**Data**: 2026-02-27

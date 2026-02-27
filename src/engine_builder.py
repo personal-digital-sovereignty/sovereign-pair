@@ -5,7 +5,8 @@ from llama_index.core.retrievers.fusion_retriever import QueryFusionRetriever, F
 from llama_index.core.chat_engine import ContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
 from custom_retrievers import CustomBM25Retriever
-from config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm, OWNER_NAME, SOVEREIGN_NAME, ASSISTANT_PERSONA
+from config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm, OWNER_NAME, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
+     OWNER_NICKNAME, OCCUPATION, ABOUT_USER, LANGUAGE, GEOLOCATION
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -83,10 +84,52 @@ def build_chat_engine(index, history=None):
         db = SessionLocal()
         setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "system_prompt").first()
         active_persona = setting.setting_value if setting and setting.setting_value else ASSISTANT_PERSONA
+        
+        formality_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "formality").first()
+        formality = formality_setting.setting_value if formality_setting else "neutral"
+        
+        nickname_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "nickname").first()
+        nickname = nickname_setting.setting_value if nickname_setting and nickname_setting.setting_value.strip() else OWNER_NICKNAME
+        
+        occupation_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "occupation").first()
+        occupation = occupation_setting.setting_value if occupation_setting else OCCUPATION
+        
+        about_user_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "about_user").first()
+        about_user = about_user_setting.setting_value if about_user_setting else ABOUT_USER
+        
+        language_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "language").first()
+        language = language_setting.setting_value if language_setting and language_setting.setting_value.strip() else LANGUAGE
+
+        geolocation_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "geolocation").first()
+        geolocation = geolocation_setting.setting_value if geolocation_setting and geolocation_setting.setting_value.strip() else GEOLOCATION
+        
         db.close()
     except Exception as e:
-        logger.error(f"   ❌ Erro ao ler `system_prompt` dinâmico: {e}")
+        logger.error(f"   ❌ Erro ao ler configs dinâmicas: {e}")
         active_persona = ASSISTANT_PERSONA
+        formality = "neutral"
+        nickname = OWNER_NICKNAME
+        occupation = OCCUPATION
+        about_user = ABOUT_USER
+        language = LANGUAGE
+        geolocation = GEOLOCATION
+        
+
+    gender_instruction = ""
+    if formality == "feminine":
+        gender_instruction = "\nREGRA DE TRATAMENTO: Sempre responda se referindo a si mesma no gênero feminino e seja cordial.\n"
+    elif formality == "masculine":
+        gender_instruction = "\nREGRA DE TRATAMENTO: Sempre responda se referindo a si mesmo no gênero masculino e evite excesso de formalidade.\n"
+
+    user_context_block = ""
+    if occupation or about_user or geolocation:
+        user_context_block += "\n[CONTEXTO AVANÇADO SOBRE O USUÁRIO ACHADO NA MEMÓRIA]:\n"
+        if occupation:
+            user_context_block += f"- Ocupação / Especialidade: {occupation}\n"
+        if about_user:
+            user_context_block += f"- Preferências / Sobre o usuário: {about_user}\n"
+        if geolocation:
+            user_context_block += f"- Geolocalização Base do Usuário: {geolocation}\n"
 
     # Criar Chat Engine com Retriever Híbrido
     chat_engine = ContextChatEngine.from_defaults(
@@ -96,12 +139,14 @@ def build_chat_engine(index, history=None):
         system_prompt=(
             f"Você é a inteligência artificial {SOVEREIGN_NAME}, atuando como assistente pessoal corporativa e soberana. "
             f"Sua persona de comportamento e alinhamento é estritamente definida como: {active_persona}. "
-            f"O usuário com quem você está conversando e de quem deve receber ordens se chama {OWNER_NAME}. "
-            f"Mantenha sempre pronomes e flexões verbais ao falar de si com consistência à sua identidade {active_persona}. "
+            f"O usuário com quem você está conversando e de quem deve receber ordens se chama {nickname}. "
+            f"O idioma PRINCIPAL no qual ESCRITAMENTE OBRIGATÓRIO responder (mesmo para traduzir o RAG) é: {language}. "
             f"Hoje é: {datetime.now().strftime('%d/%m/%Y, %H:%M')}. "
             "Sua principal fonte de verdade são os fragmentos de contexto fornecidos pelo sistema (RAG). "
             "Sempre que o usuário perguntar sobre projetos, arquivos locais ou informações específicas, "
             "OBRIGATORIAMENTE USE O CONTEXTO fornecido ou o Histórico do Chat.\n"
+            f"{user_context_block}"
+            f"{gender_instruction}"
             "REGRAS CRÍTICAS DE CONDUTA:\n"
             "1. Seja SEMPRE direto, transparente, realista e analítico. Pode haver um leve senso de humor e empatia respeitosa (NÃO seja ácido ou sarcástico).\n"
             "2. NUNCA peça desculpas ou use frases evasivas do tipo 'Infelizmente, não tenho acesso a dados'. Aja com total confiança e extraia a tabela ou dado solicitado sem reclamar.\n"

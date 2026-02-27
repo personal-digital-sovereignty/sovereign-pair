@@ -7,6 +7,29 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [3.0.0] - 2026-02-26
+
+### 🚀 Major Release - UX Revolucionária, Concorrência e Integração Obsidian 3.0
+
+### Adicionado
+- **Arquitetura de Pastas (Chat Folders)**: Hierarquia nativa de diretórios para as sessões de RAG. Criação, renomeio e deleção dinâmica via Web UI e API (`PATCH/DELETE v1/sessions`).
+- **Sovereign Profile Injection**: Novo sistema de injeção biográfica. Acesso e persistência profunda de `OWNER_NICKNAME`, `LANGUAGE`, `GEOLOCATION`, `OCCUPATION` e `ABOUT_USER` nos prompts do sistema e na memória da IA (`v1/settings`).
+- **Terminal Rápido (CLI Chat)**: Comando exclusivo `python src/cli.py chat` que inicia o modo Reativo do Terminal, dispensando a necessidade de iniciar o FastAPI para conversas secas com o RAG e a Web.
+- **Wizard Setup Interativo**: Comando `python src/cli.py setup` completamente redesenhado para guiar o acolhimento do usuário e criar o `sovereign.conf`.
+- **App Vue3 Modernizado**: Web UI reconstruída com suporte responsivo a `Dark Mode / Light Mode`, Barra Lateral Redimensionável (persistente via Session Storage) e design Cyber-Minimalista polido.
+- **Avatar Dinâmico da IA**: Nova direção de arte substituindo emojis por Avatares Vetoriais generativos e ícones customizados no fluxo da conversa.
+
+### Integração Obsidian (3.0)
+- **Três Perfis de Visualização Inéditos**:
+  - `Mini-Web`: Experiência rica 1:1 renderizada idêntica à janela do Web UI moderno na barra direita.
+  - `Minimalist Chat`: Chat enxuto e estrito focando na densidade do texto.
+  - `Spotlight Modal`: Novo pop-up gigante central imersivo para invocar o RAG diretamente sob os holofotes do fluxo de pensamento.
+
+### Otimizado e Alta Performance
+- **Asynchronous LLM Processing (Concurrency)**: Remoção das amarras `asyncio.to_thread`. Refatoração maciça na API `/v1/chat` e Web-Search em FastAPI migrando para o paradigma de *Corroutines Mistas Nativas* do LlamaIndex (`astream_chat` e `achat`), habilitando *High-Throughput e Max-Concurrency* via conexões simultâneas do Uvicorn e batidas diretas no Ollama.
+
+---
+
 ## [2.2.0] - 2026-02-24
 
 ###  Major Release - Backend API, Citações e Modularidade
