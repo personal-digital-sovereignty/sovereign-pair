@@ -807,6 +807,13 @@ export default class SovereignPairPlugin extends Plugin {
 
         await this.loadSettings();
 
+        // 0. Welcome Onboarding for new installations
+        this.app.workspace.onLayoutReady(() => {
+            if (this.settings.apiUrl === 'https://localhost' || !this.settings.authToken) {
+                new WelcomeOnboardingModal(this.app, this).open();
+            }
+        });
+
         this.registerView(
             VIEW_TYPE_CHAT,
             (leaf) => new SovereignPairView(leaf, this)
@@ -919,6 +926,74 @@ export default class SovereignPairPlugin extends Plugin {
         if (leaf) {
             workspace.revealLeaf(leaf);
         }
+    }
+}
+
+class WelcomeOnboardingModal extends Modal {
+    plugin: SovereignPairPlugin;
+
+    constructor(app: App, plugin: SovereignPairPlugin) {
+        super(app);
+        this.plugin = plugin;
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+
+        contentEl.createEl("h1", { text: "Bem-vindo ao Sovereign Pair 👑" }, el => {
+            el.style.textAlign = 'center';
+            el.style.marginBottom = '20px';
+        });
+
+        contentEl.createEl("p", {
+            text: "Seu assistente local RAG soberano está quase pronto! Para que o Obsidian se conecte ao cérebro (Motor LLM), por favor informe o endereço da sua API."
+        });
+
+        const callout = contentEl.createEl("div");
+        callout.style.backgroundColor = 'var(--background-secondary)';
+        callout.style.padding = '10px 15px';
+        callout.style.borderRadius = '5px';
+        callout.style.marginBottom = '20px';
+        callout.createEl("p", { text: "Tip: Se o backend estiver rodando na sua própria máquina, deixe https://localhost. O Token pode ser encontrado nas Configurações da sua Interface Web.", cls: "setting-item-description" }, el => el.style.margin = '0');
+
+        new Setting(contentEl)
+            .setName('URL Base da API')
+            .setDesc('Endereço do seu servidor Sovereign Pair.')
+            .addText(text => text
+                .setPlaceholder('https://localhost')
+                .setValue(this.plugin.settings.apiUrl)
+                .onChange(async (val) => {
+                    this.plugin.settings.apiUrl = val.replace(/\/+$/, "");
+                    await this.plugin.saveSettings();
+                })
+            );
+
+        new Setting(contentEl)
+            .setName('Token de Acesso Soberano')
+            .setDesc('Sua chave de segurança privada.')
+            .addText(text => text
+                .setPlaceholder('Insira seu Token Mestre')
+                .setValue(this.plugin.settings.authToken)
+                .onChange(async (val) => {
+                    this.plugin.settings.authToken = val.trim();
+                    await this.plugin.saveSettings();
+                })
+            );
+
+        new Setting(contentEl)
+            .addButton(btn => btn
+                .setButtonText("Salvar e Conectar")
+                .setCta()
+                .onClick(() => {
+                    this.close();
+                    new Notice("Sovereign Pair conectado! Clique no ícone de Cérebro na barra lateral para abrir o Chat.");
+                }));
+    }
+
+    onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
     }
 }
 
