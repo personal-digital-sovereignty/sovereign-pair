@@ -134,7 +134,7 @@ EXTREMA IMPORTÂNCIA:
                                 yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
                             else:
                                 response = await sys_engine.astream_chat(sys_query)
-                                full_ai_response = f"🧠 *Consultando Sistema Meta-RAG...*\\n\\n"
+                                full_ai_response = "🧠 *Consultando Sistema Meta-RAG...*\\n\\n"
                                 
                                 async_gen = await response.async_response_gen()
                                 async for token in async_gen:

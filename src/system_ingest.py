@@ -1,6 +1,5 @@
 import logging
 import chromadb
-from pathlib import Path
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from config import CHROMA_DIR, CHROMA_SYSTEM_COLLECTION_NAME, embed_model, CHUNK_SIZE, CHUNK_OVERLAP, BASE_DIR
