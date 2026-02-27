@@ -44,9 +44,13 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Gitleaks Scan (FOSS License Bypass)
-        run: |
-          docker run --rm -v ${{ github.workspace }}:/path ghcr.io/gitleaks/gitleaks:latest detect --source="/path" -v
+      - name: Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+          GITLEAKS_ENABLE_SUMMARY: true
 
   # ==========================================
   # Gate 2: SAST (Static Analysis)
