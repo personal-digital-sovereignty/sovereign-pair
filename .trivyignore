@@ -1,0 +1,4 @@
+# Ignore Pillow CVE-2026-25990 (Out-of-bounds Write via PSD Image)
+# Sovereign Pair is a text-based RAG application and does not ingest or process user-uploaded PSD files.
+# Downgrading to Pillow 10.4.0 was required to satisfy llama-index-llms-gemini constraints.
+CVE-2026-25990
