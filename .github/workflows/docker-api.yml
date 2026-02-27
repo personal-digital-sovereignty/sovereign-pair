@@ -17,6 +17,9 @@ env:
   IMAGE_NAME: ${{ github.repository }}-api
 
 jobs:
+  # Opcionalmente aguardar o status do Workflow DevSecOps FOSS via GitHub Actions UI logic, 
+  # ou usar Reusable Workflows se fossem arquivos dependentes.
+  # Para simplificar e rodar paralelo bloqueando pelo Branch Protection no GitHub:
   lint-and-build:
     runs-on: ubuntu-latest
     permissions:

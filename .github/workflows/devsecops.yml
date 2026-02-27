@@ -1,0 +1,101 @@
+name: FOSS Enterprise DevSecOps
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  # Trigger manual
+  workflow_dispatch:
+
+jobs:
+  # ==========================================
+  # Gate 0: Pipeline for Pipelines
+  # ==========================================
+  pipeline-security:
+    name: "Gate 0: Actionlint & Zizmor"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check workflow YAML syntax (Actionlint)
+        uses: raven-actions/actionlint@v2
+
+      - name: Analyze workflow security logic (Zizmor)
+        uses: woodruffw/zizmor-action@v1
+        with:
+          # Break the build if any vulnerability or bad permission is found:
+          flags: "--pedantic"
+
+  # ==========================================
+  # Gate 1: Secret Scanning
+  # ==========================================
+  secret-scanning:
+    name: "Gate 1: Gitleaks"
+    needs: pipeline-security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (com histórico completo para varredura)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+          GITLEAKS_ENABLE_SUMMARY: true
+
+  # ==========================================
+  # Gate 2: SAST (Static Analysis)
+  # ==========================================
+  sast-semgrep:
+    name: "Gate 2: Semgrep (SAST)"
+    needs: secret-scanning
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Semgrep with Strict CI Enforcements
+        run: semgrep scan --config auto --error
+
+  # ==========================================
+  # Gate 3: Dependências e Infraestrutura (SCA)
+  # ==========================================
+  sca-trivy:
+    name: "Gate 3: Trivy (SCA & Config)"
+    needs: sast-semgrep
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner on repo (Requirements / Package.json / Dockerfile)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          # CRITICAL OR HIGH breaks the pipeline instantly (exit 1)
+          exit-code: 1
+          severity: 'CRITICAL,HIGH'
+
+  # ==========================================
+  # Gate 4: Code Quality & Complexity
+  # ==========================================
+  quality-ruff:
+    name: "Gate 4: Ruff (Python Code Quality)"
+    needs: sast-semgrep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      # Fail heavily on Syntax, Cyclomatic Complexity or Bad formatting
+      - run: ruff check .
