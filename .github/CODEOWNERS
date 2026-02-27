@@ -1,0 +1,11 @@
+# Sovereign Pair - CODEOWNERS
+# 
+# This file is used to define individuals or teams that are responsible for code in a repository.
+# For more information, see: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global Owner (Aprovação obrigatória para tudo)
+*       @jefersonlop3s
+
+# Proteção extra e explícita para as Esteiras de CI/CD (DevSecOps)
+/.github/workflows/ @jefersonlop3s
+/.github/actions/ @jefersonlop3s
