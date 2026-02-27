@@ -3,9 +3,12 @@ version: '3.8'
 services:
   # 0. Edge Router (Reverse Proxy com Auto-HTTPS)
   caddy:
-    # nosemgrep: yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
     image: caddy:2-alpine
     container_name: sovereign-caddy
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
     security_opt:
       - no-new-privileges:true
     restart: always
@@ -24,9 +27,12 @@ services:
 
   # 1. Banco de Dados Relacional (PostgreSQL via Alpine - Mais Leve)
   postgres:
-    # nosemgrep: yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
     image: postgres:15-alpine
     container_name: sovereign-db
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
     security_opt:
       - no-new-privileges:true
     restart: always
@@ -41,9 +47,11 @@ services:
 
   # 2. Banco Vetorial Local (ChromaDB)
   chroma:
-    # nosemgrep: yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
     image: chromadb/chroma:latest
     container_name: sovereign-chroma
+    read_only: true
+    tmpfs:
+      - /tmp
     security_opt:
       - no-new-privileges:true
     restart: always
@@ -102,9 +110,13 @@ services:
 
     # 5. Zero-Trust VPN Sidecar (Tailscale Subnet Router)
   tailscale:
-    # nosemgrep: yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
     image: tailscale/tailscale:latest
     container_name: sovereign-tailscale
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run
+      - /var/run
     security_opt:
       - no-new-privileges:true
     hostname: sovereign-rag-cloud
