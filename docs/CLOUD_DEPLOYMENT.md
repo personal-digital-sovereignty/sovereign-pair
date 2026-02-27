@@ -53,6 +53,10 @@ O Tailscale é uma VPN Mesh baseada no protocolo ultrasseguro **WireGuard**. Nó
 
 Nenhum hacker na internet consegue "ver" nem "bater" na sua API, porque ela literalmente *não existe* no mapa de IPs públicos mundiais. Ela existe apenas na sua Dimensão Particular Zero-Trust! 🌌
 
+> [!NOTE]
+> **Sobre o erro `Authorization failed: requested tags [tag:server] are invalid`:**
+> Se no passado você tentou usar a flag `--advertise-tags=tag:server` no docker-compose e recebeu esse erro, isso ocorre por causa do sistema de **ACLs (Access Control Lists)** do Tailscale. Usuários de contas gratuitas (Free/Starter) geralmente não têm permissão para auto-assumir tags corporativas. Para contas pessoais, a autorização padrão (sem tags rígidas) garante que o seu "MagicDNS" funcione perfeitamente sem bloqueios de segurança do painel administrativo.
+
 ---
 
 ## 🚀 Guia de Início Rápido
