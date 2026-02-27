@@ -117,6 +117,11 @@ REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "300.0"))
 # ============================================================================
 OWNER_NAME = os.getenv("OWNER_NAME", "Jeferson").strip()
 SOVEREIGN_NAME = os.getenv("SOVEREIGN_NAME", "Sovereign").strip()
+OWNER_NICKNAME = os.getenv("OWNER_NICKNAME", OWNER_NAME).strip()
+LANGUAGE = os.getenv("LANGUAGE", "Português do Brasil").strip()
+GEOLOCATION = os.getenv("GEOLOCATION", "").strip()
+OCCUPATION = os.getenv("OCCUPATION", "").strip()
+ABOUT_USER = os.getenv("ABOUT_USER", "").strip()
 
 # ============================================================================
 # SEGURANÇA E CORS (Microserviços)

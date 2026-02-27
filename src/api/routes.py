@@ -93,10 +93,10 @@ EXTREMA IMPORTÂNCIA:
                         history_msgs = engine._memory.get_all() if engine else []
                         messages_to_send = [sys_msg] + history_msgs + [context_msg]
                         
-                        response_gen = await asyncio.to_thread(llm.stream_chat, messages_to_send)
+                        response_gen = await llm.astream_chat(messages_to_send)
                         
                         full_ai_response = f"🌐 *Buscando na web...{time_info}*\n\n"
-                        for token in response_gen:
+                        async for token in response_gen:
                             if token.delta:
                                 full_ai_response += token.delta
                                 yield f"data: {json.dumps({'content': token.delta})}\n\n"
@@ -105,16 +105,17 @@ EXTREMA IMPORTÂNCIA:
                         yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
 
                 else:
-                    # Executar query_engine via thread normal (RAG Local) para não bloquear o Async Loop do ASGI
-                    response = await asyncio.to_thread(engine.stream_chat, request.message)
+                    # Executar query_engine via coroutine nativa do LlamaIndex
+                    response = await engine.astream_chat(request.message)
                     
                     full_ai_response = ""
                     
-                    if isinstance(response, str) or not hasattr(response, 'response_gen'):
+                    if isinstance(response, str) or not hasattr(response, 'async_response_gen'):
                         full_ai_response = str(response)
                         yield f"data: {json.dumps({'content': full_ai_response, 'session_id': session_obj.id})}\n\n"
                     else:
-                        for token in response.response_gen:
+                        async_gen = await response.async_response_gen()
+                        async for token in async_gen:
                             full_ai_response += token
                             # Enviando tokens em formato padrão SSE
                             yield f"data: {json.dumps({'content': token})}\n\n"
@@ -132,7 +133,6 @@ EXTREMA IMPORTÂNCIA:
                     ])
                     
                     if not (is_denial or is_trivial_chit_chat):
-                        # Extrair Fontes no Final
                         source_nodes = getattr(response, "source_nodes", [])
                         sources = set()
                         if source_nodes:
@@ -141,10 +141,16 @@ EXTREMA IMPORTÂNCIA:
                                 if not metadata:
                                     continue
                                     
-                                if "file_path" in metadata:
-                                    sources.add(f"📄 {metadata['file_path']}")
-                                elif "file_name" in metadata:
-                                    sources.add(f"📄 {metadata['file_name']}")
+                                file_path = metadata.get("file_path") or ""
+                                file_name = metadata.get("file_name") or ""
+                                
+                                # Heurística: Só cita a fonte na interface se a IA explicitamente 
+                                # usou/mencionou o nome do arquivo, ou parte dele, na resposta.
+                                # Isso evita listar arquivos aleatórios que o BM25 puxou mas a IA ignorou.
+                                nome_base = str(file_name).replace('.md', '').replace('.txt', '').lower()
+                                
+                                if nome_base and nome_base in texto:
+                                    sources.add(f"📄 {file_path if file_path else file_name}")
                                     
                             if sources:
                                 sources_str = "\n".join(sources)
@@ -221,7 +227,7 @@ EXTREMA IMPORTÂNCIA:
                 history_msgs = engine._memory.get_all() if engine else []
                 messages_to_send = [sys_msg] + history_msgs + [context_msg]
                 
-                response = await asyncio.to_thread(llm.chat, messages_to_send)
+                response = await llm.achat(messages_to_send)
                 
                 full_ai_response = f"🌐 *Buscando na web...{time_info}*\n\n{str(response)}"
             else:
@@ -241,7 +247,7 @@ EXTREMA IMPORTÂNCIA:
             engine._memory.put(temp_sys_msg)
 
         try:
-            response = await asyncio.to_thread(engine.chat, request.message)
+            response = await engine.achat(request.message)
             
             # Gravar a mensagem da IA sincrona
             full_ai_response = str(response)
@@ -284,6 +290,8 @@ async def update_session(session_id: int, req: SessionUpdateRequest, db: Session
     if req.folder_name is not None:
         folder = req.folder_name.strip()
         session.folder_name = folder if folder else None
+    if req.tags is not None:
+        session.tags = req.tags
         
     db.commit()
     db.refresh(session)
@@ -448,7 +456,15 @@ def get_settings(db: Session = Depends(get_db)):
         llm_model=_get_setting_value(db, "llm_model", LLM_MODEL),
         temperature=float(_get_setting_value(db, "temperature", "0.1")),
         system_prompt=_get_setting_value(db, "system_prompt", ASSISTANT_PERSONA),
-        theme=_get_setting_value(db, "theme", "dark")
+        theme=_get_setting_value(db, "theme", "dark"),
+        persona=_get_setting_value(db, "persona", "default"),
+        formality=_get_setting_value(db, "formality", "neutral"),
+        persona_graphic_style=_get_setting_value(db, "persona_graphic_style", "emoji"),
+        nickname=_get_setting_value(db, "nickname", ""),
+        occupation=_get_setting_value(db, "occupation", ""),
+        about_user=_get_setting_value(db, "about_user", ""),
+        language=_get_setting_value(db, "language", "Português do Brasil"),
+        geolocation=_get_setting_value(db, "geolocation", "")
     )
 
 @router.post("/config", response_model=SettingsResponse)
@@ -459,6 +475,14 @@ def update_settings(request: SettingsRequest, db: Session = Depends(get_db)):
     _set_setting_value(db, "temperature", str(request.temperature))
     _set_setting_value(db, "system_prompt", request.system_prompt)
     _set_setting_value(db, "theme", request.theme)
+    _set_setting_value(db, "persona", request.persona)
+    _set_setting_value(db, "formality", request.formality)
+    _set_setting_value(db, "persona_graphic_style", request.persona_graphic_style)
+    _set_setting_value(db, "nickname", request.nickname)
+    _set_setting_value(db, "occupation", request.occupation)
+    _set_setting_value(db, "about_user", request.about_user)
+    _set_setting_value(db, "language", request.language)
+    _set_setting_value(db, "geolocation", request.geolocation)
     db.commit()
     
     return get_settings(db)

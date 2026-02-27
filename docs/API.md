@@ -1,7 +1,7 @@
 # API Documentation - Ingestão Incremental
 
-**Versão**: 2.0.0
-**Data**: 2026-02-16
+**Versão**: 3.0.0
+**Data**: 2026-02-27
 
 ---
 
@@ -499,5 +499,4 @@ stats.show_summary()
 ---
 
 **Autor**: Jeferson Lopes
-**Data**: 2026-02-16
-**Versão**: 2.0.0
+**Data**: 2026-02-27

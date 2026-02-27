@@ -423,5 +423,4 @@ Durante a ingestão, o sistema mostra:
 ---
 
 **Autor**: Jeferson Lopes
-**Data**: 2026-02-17
-**Versão**: 2.0.0
+**Data**: 2026-02-27

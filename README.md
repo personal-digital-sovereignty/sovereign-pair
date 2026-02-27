@@ -22,13 +22,15 @@ O sistema superou a fase inicial de "Apenas Ingestão Incremental" e funciona ho
    - **SQLite + SQLAlchemy**: Banco de dados relacional que mantém todo o histórico de conversas e estado da API (`data/sovereign_memory.db`).
 
 3. **Backend RAG e Servidor de Contexto (FastAPI)**
-   - Exposição via API RESTful com rotas de Upload, Ingestão e Chat.
+   - Exposição via API RESTful de alta concorrência gerida por corrotinas assíncronas do LlamaIndex (`astream_chat`).
    - Suporte a **Server-Sent Events (SSE)** nativo para respostas textuais em Streaming Real-Time.
-   - Camada rígida de autenticação e proteção via **JWT (JSON Web Tokens)**.
+   - Camada gerencial unificada: Criação de Chat Folders e Injeção do Perfil (Sovereign Context) via chamadas CRUD.
+   - Segurança e autenticação rigorosa via **JWT (JSON Web Tokens)**.
 
-4. **Clientes Integrados**
-   - **Plugin Obsidian (Nativo)**: Interface ItemView inserida no menu lateral do Obsidian, que acopla a base de conhecimento (Vault) e o documento ativo diretamente à memória do RAG.
-   - **Agente de Terminal (CLI)**: Uma rica e colorida interface de Prompt iterativa para testes e conversas rápidas na raiz do sistema.
+4. **Trindade de Clientes Nativos**
+   - **App Vue 3 (Web UI)**: Uma experiência PWA-Ready com suporte nativo a Dark/Light Mode, barra lateral redimensionável e Árvores de Pastas em tempo-real.
+   - **Plugin Obsidian 3.0**: Interface hiper-integrada oferecendo 3 visualizações (Mini-Web lateral, Minimalista focado no texto, e Spotlight Modal gigantesco para brainstormings).
+   - **Agente Terminal (CLI)**: Uma das mais parrudas interfaces interativas de Terminal. Configure seu RAG via `setup` wizard ou inicie um chat 100% via bash usando o comando `chat`.
 
 ---
 
@@ -85,28 +87,27 @@ Esse script preencherá sua chave de administração JWT direto no `.env`.
 ## Uso Diário
 
 ### Agente Terminal (CLI)
-Para testes ultrarrápidos e debug, invoque o Agente de linha de comando:
+Para testes ultrarrápidos e debug, invoque a CLI oficial do sistema. Ela herda suas configurações globais (Nome, Ocupação, Localização) e não depende do API estar de pé:
 ```bash
-python src/agent.py
+python src/cli.py chat
 ```
-> O agente lerá os dados no seu vector db local, fará pesquisas web (caso o comando /web seja incluído no prompt) e interpelará seu sistema local.
+> O agente lerá os dados no seu vector db local, interagirá com o Ollama nativamente, e fará pesquisas web (através do comando /web).
 
-### Subindo o Servidor de Contexto (Backend API)
-A espinha dorsal para os clientes Front-End e Plugins.
+### Subindo o Motor Central (Full Stack)
+Se você deseja iniciar o Backend FastAPI e o Frontend Web juntos numa tacada só:
 ```bash
-# Inicia em ambiente FastAPI / Uvicorn (Porta 8000)
-python src/api/main.py
+python src/cli.py start --full
 ```
-_Documentação interativa das rotas acessível via **Swagger** em `http://localhost:8000/docs`_.
+_Também é possível subir apenas a infra de API usando `--server` ou apenas o Vue3 com `--web`._
 
 ### Integrando o Obsidian (Plugin Nativo)
-Sovereign Pair vem com um plugin em TypeScript embutido para o aplicativo Obsidian, criando uma Sidebar fixa nativa.
+Sovereign Pair vem com um plugin em TypeScript embutido para Obsidian, criando uma simbiose profunda com sua base de texto.
 ```bash
 cd obsidian-plugin
 npm install
 npm run build
 ```
-Copie a pasta compilada (`main.js`, `manifest.json`, `styles.css`) para o diretório `.obsidian/plugins/sovereign-pair/` no seu Vault. Habilite nas configurações do aplicativo. Você enviará mensagens à IA diretamente de dentro do Obsidian através da janela lateral, contextualizado na nota que você estiver escrevendo.
+O Plugin empacotado reside em `.obsidian/plugins/sovereign-pair/` no seu Vault. Uma vez habilitado no Obsidian, você ganha o controle do histórico de pastas e o superpoder da injeção de contexto ativo diretamente pelo editor, sob as 3 filosofias visuais fornecidas pelo plugin.
 
 ---
 

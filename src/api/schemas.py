@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
+from datetime import datetime
 
 class ChatRequest(BaseModel):
     message: str = Field(..., description="A mensagem ou pergunta enviada pelo usuário")
@@ -34,7 +35,9 @@ class SessionResponse(BaseModel):
     id: int
     title: str
     folder_name: Optional[str] = None
+    tags: List[str] = []
     messages: List[ChatMessageModel] = []
+    updated_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
@@ -42,6 +45,7 @@ class SessionResponse(BaseModel):
 class SessionUpdateRequest(BaseModel):
     title: Optional[str] = None
     folder_name: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 class UploadResponse(BaseModel):
     status: str
@@ -56,6 +60,14 @@ class SettingsRequest(BaseModel):
     temperature: float
     system_prompt: str
     theme: str = "dark"
+    persona: str = "default"
+    formality: str = "neutral"
+    persona_graphic_style: str = "emoji"
+    nickname: Optional[str] = ""
+    occupation: Optional[str] = ""
+    about_user: Optional[str] = ""
+    language: Optional[str] = "Português (BR)"
+    geolocation: Optional[str] = ""
 
 class SettingsResponse(BaseModel):
     llm_provider: str
@@ -63,3 +75,11 @@ class SettingsResponse(BaseModel):
     temperature: float
     system_prompt: str
     theme: str = "dark"
+    persona: str = "default"
+    formality: str = "neutral"
+    persona_graphic_style: str = "emoji"
+    nickname: Optional[str] = ""
+    occupation: Optional[str] = ""
+    about_user: Optional[str] = ""
+    language: Optional[str] = "Português (BR)"
+    geolocation: Optional[str] = ""
