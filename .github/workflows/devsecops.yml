@@ -15,6 +15,9 @@ jobs:
   pipeline-security:
     name: "Gate 0: Actionlint & Zizmor"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
