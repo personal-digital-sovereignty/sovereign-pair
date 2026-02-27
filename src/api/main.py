@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-
+from contextlib import asynccontextmanager
 # Resolver PYTHONPATH
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -25,10 +25,24 @@ setup_security_logging()
 # get_remote_address pega o IP do cliente (ou o IP real via cabeçalhos X-Forwarded-For se atrás de Nginx/Tailscale)
 limiter = Limiter(key_func=get_remote_address)
 
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    # Startup: Disparar Ingestão do Meta-RAG (System Knowledge)
+    from src.system_ingest import ingest_system_knowledge
+    import threading
+    
+    # Roda em thread separada para não bloquear o boot da API
+    ingest_thread = threading.Thread(target=ingest_system_knowledge, daemon=True)
+    ingest_thread.start()
+    
+    yield
+    # Shutdown logic (opcional)
+
 app = FastAPI(
     title="Sovereign Pair RAG API",
     description="Interface REST para o núcleo RAG local-first e híbrido de Nuvem.",
-    version="3.0.0"
+    version="3.0.0",
+    lifespan=app_lifespan
 )
 
 # Adicionar Rate Limiter ao estado global do app
