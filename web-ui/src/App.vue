@@ -1,8 +1,19 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
+import DOMPurify from 'dompurify'
 import Setup from './views/Setup.vue'
 import Login from './views/Login.vue'
+
+// Custom directive to securely render HTML, bypassing the need for unsafe `v-html`
+const vSafeHtml = {
+  mounted(el: HTMLElement, binding: import('vue').DirectiveBinding) {
+    el.innerHTML = DOMPurify.sanitize(binding.value)
+  },
+  updated(el: HTMLElement, binding: import('vue').DirectiveBinding) {
+    el.innerHTML = DOMPurify.sanitize(binding.value)
+  }
+}
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
@@ -876,7 +887,7 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
                 {{ msg.content }}
               </template>
               <template v-else>
-                <div v-html="md.render(msg.content)"></div>
+                <div v-safe-html="md.render(msg.content)"></div>
                 <span v-if="msg.isStreaming" class="w-2 h-4 bg-sky-400 inline-block animate-pulse ml-1 vertical-align-middle"></span>
               </template>
             </div>

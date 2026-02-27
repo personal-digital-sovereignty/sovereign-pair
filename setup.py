@@ -97,7 +97,7 @@ def detect_ollama() -> Optional[str]:
         response = requests.get(f"{default_url}/api/tags", timeout=3)
         if response.status_code == 200:
             return default_url
-    except:
+    except Exception:  # noqa: E722
         pass
     
     return None
@@ -224,7 +224,7 @@ def interactive_setup() -> Dict[str, str]:
     
     if ollama_url:
         print_success(f"Ollama detectado em: {ollama_url}")
-        use_default = input(f"\nUsar esta URL? (S/n): ").strip().lower()
+        use_default = input("\nUsar esta URL? (S/n): ").strip().lower()
         
         if use_default in ['n', 'no', 'não']:
             ollama_url = input("Digite a URL do Ollama: ").strip()
@@ -407,7 +407,7 @@ MAX_WEB_SEARCH_RESULTS={config['MAX_WEB_SEARCH_RESULTS']}
     with open(env_file, 'w', encoding='utf-8') as f:
         f.write(env_content)
     
-    print_success(f"Arquivo .env criado com sucesso!")
+    print_success("Arquivo .env criado com sucesso!")
 
 
 def print_summary(config: Dict[str, str]):

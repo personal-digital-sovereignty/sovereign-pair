@@ -297,7 +297,7 @@ export class SovereignPairView extends ItemView {
         if (sender === 'user') {
             bubble.style.backgroundColor = "var(--interactive-accent)";
             bubble.style.color = "var(--text-on-accent)";
-            bubble.innerHTML = content;
+            bubble.setText(content);
         } else {
             bubble.style.backgroundColor = "var(--background-secondary-alt)";
             bubble.style.border = "1px solid var(--background-modifier-border)";
@@ -407,7 +407,18 @@ export class SovereignPairView extends ItemView {
                 // Helper function to update the main button text
                 const updateMainButton = (text: string) => {
                     if (this.sessionSelectBtn) {
-                        this.sessionSelectBtn.innerHTML = `<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85%;">${text}</span><span style="opacity: 0.5; font-size: 0.8em; flex-shrink: 0;">▼</span>`;
+                        this.sessionSelectBtn.empty();
+                        const titleSpan = this.sessionSelectBtn.createEl('span');
+                        titleSpan.style.whiteSpace = 'nowrap';
+                        titleSpan.style.overflow = 'hidden';
+                        titleSpan.style.textOverflow = 'ellipsis';
+                        titleSpan.style.maxWidth = '85%';
+                        titleSpan.setText(text);
+                        const arrowSpan = this.sessionSelectBtn.createEl('span');
+                        arrowSpan.style.opacity = '0.5';
+                        arrowSpan.style.fontSize = '0.8em';
+                        arrowSpan.style.flexShrink = '0';
+                        arrowSpan.setText('▼');
                     }
                 };
 
@@ -430,10 +441,10 @@ export class SovereignPairView extends ItemView {
 
                 if (viewMode === 'spotlight' && this.spotlightBtn) {
                     if (!isCurrentSet || this.currentSessionId === null) {
-                        this.spotlightBtn.innerHTML = `🔍 Buscar Conversa (Spotlight)`;
+                        this.spotlightBtn.setText(`🔍 Buscar Conversa (Spotlight)`);
                     } else {
                         const curr = this.sessionsList.find(s => s.id === this.currentSessionId);
-                        this.spotlightBtn.innerHTML = `🔍 ${curr?.title || 'Conversa'}`;
+                        this.spotlightBtn.setText(`🔍 ${curr?.title || 'Conversa'}`);
                     }
                     return;
                 }
@@ -775,13 +786,13 @@ export class SovereignPairHistoryModal extends SuggestModal<any> {
         if (item.id === -1) {
             this.view.currentSessionId = null;
             this.view.messageContainer.empty();
-            if (this.view.spotlightBtn) this.view.spotlightBtn.innerHTML = `🔍 --- Nova Conversa ---`;
+            if (this.view.spotlightBtn) this.view.spotlightBtn.setText(`🔍 --- Nova Conversa ---`);
             this.view.addMessage("Nova conversa iniciada. Como posso ajudar?", "ai");
             return;
         }
 
         if (this.view.spotlightBtn) {
-            this.view.spotlightBtn.innerHTML = `🔍 ${item.title}`;
+            this.view.spotlightBtn.setText(`🔍 ${item.title}`);
         }
         await this.view.loadSession(item.id);
     }
@@ -1017,7 +1028,7 @@ class SovereignPairConfigModal extends Modal {
 
                     if (provider === 'ollama') {
                         try {
-                            const res = await fetch('http://127.0.0.1:11434/api/tags');
+                            const res = await fetch('http://127.0.0.1:11434/api/tags'); // nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request
                             if (res.ok) {
                                 const data = await res.json();
                                 const dynamicOptions: Record<string, string> = {};

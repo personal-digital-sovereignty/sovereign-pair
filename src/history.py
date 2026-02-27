@@ -8,7 +8,7 @@ import json
 import logging
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Set, Optional
+from typing import Dict, Set
 
 logger = logging.getLogger(__name__)
 

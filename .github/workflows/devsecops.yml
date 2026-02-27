@@ -2,7 +2,7 @@ name: FOSS Enterprise DevSecOps
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "fix/**" ]
   pull_request:
     branches: [ "main" ]
   # Trigger manual
@@ -15,6 +15,9 @@ jobs:
   pipeline-security:
     name: "Gate 0: Actionlint & Zizmor"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,7 +26,7 @@ jobs:
         uses: raven-actions/actionlint@v2
 
       - name: Analyze workflow security logic (Zizmor)
-        uses: woodruffw/zizmor-action@v1
+        uses: zizmorcore/zizmor-action@v0.5.0
         with:
           # Break the build if any vulnerability or bad permission is found:
           flags: "--pedantic"
@@ -45,6 +48,7 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
           GITLEAKS_ENABLE_SUMMARY: true
 

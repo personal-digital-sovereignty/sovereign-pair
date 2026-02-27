@@ -9,7 +9,6 @@ Versão 2.0: Otimizações de performance
 
 import hashlib
 from pathlib import Path
-from typing import Optional
 from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging

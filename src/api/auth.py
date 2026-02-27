@@ -83,7 +83,7 @@ async def setup_system(req: SetupRequest):
     
     # Adicionar no conf (Append mode para não apagar nada pré-existente sem querer)
     with open(conf_path, "a") as f:
-        f.write(f"\n# Auth Identity\n")
+        f.write("\n# Auth Identity\n")
         f.write(f"OWNER_NAME={req.owner_name}\n")
         f.write(f"SOVEREIGN_NAME={req.sovereign_name}\n")
         f.write(f"VAULT_LOCK_KEY={hash_pwd}\n")
