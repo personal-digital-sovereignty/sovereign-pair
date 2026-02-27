@@ -2,7 +2,7 @@ name: FOSS Enterprise DevSecOps
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "fix/**" ]
   pull_request:
     branches: [ "main" ]
   # Trigger manual
@@ -23,7 +23,7 @@ jobs:
         uses: raven-actions/actionlint@v2
 
       - name: Analyze workflow security logic (Zizmor)
-        uses: woodruffw/zizmor-action@v1
+        uses: woodruffw/zizmor-github-action@v1
         with:
           # Break the build if any vulnerability or bad permission is found:
           flags: "--pedantic"
