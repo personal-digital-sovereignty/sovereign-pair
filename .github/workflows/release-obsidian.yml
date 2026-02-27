@@ -36,7 +36,7 @@ jobs:
         run: zip -r sovereign-pair-obsidian.zip main.js styles.css manifest.json
 
       - name: Release to GitHub
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ./obsidian-plugin/sovereign-pair-obsidian.zip
         env:
