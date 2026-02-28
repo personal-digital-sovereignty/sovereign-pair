@@ -650,13 +650,13 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
 </script>
 
 <template>
-  <div v-if="authPhase === 'loading'" class="flex h-screen w-full bg-surface-900 items-center justify-center">
+  <div v-if="authPhase === 'loading'" class="fixed inset-0 flex w-full bg-surface-900 items-center justify-center">
       <div class="text-white animate-pulse">Invocando o RAG...</div>
   </div>
   <Setup v-else-if="authPhase === 'setup'" @setup-complete="checkAuthStatus" />
   <Login v-else-if="authPhase === 'login'" @login-success="checkAuthStatus" />
   
-  <div v-else class="flex h-screen w-full bg-surface-900 text-slate-200 overflow-hidden font-sans">
+  <div v-else class="fixed inset-0 flex w-full bg-surface-900 text-slate-200 overflow-hidden font-sans">
     
     <!-- Slim Navigation Bar (Gemini Style) -->
     <nav class="w-14 shrink-0 bg-surface-950 border-r border-slate-800 flex flex-col items-center py-4 z-20">
@@ -677,10 +677,8 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
 
     <!-- Sidebar / Navigation -->
     <aside 
-      v-show="isSidebarOpen"
-      class="bg-surface-800 border-r border-slate-700/50 flex flex-col shrink-0 relative"
-      :class="{'transition-all duration-300': !isDraggingSidebar}"
-      :style="{ width: sidebarWidth + 'px' }"
+      class="bg-surface-800 border-r border-surface-700/50 flex flex-col h-full transition-all duration-300 relative z-20 shrink-0"
+      :style="{ width: isSidebarOpen ? `${sidebarWidth}px` : '0px', opacity: isSidebarOpen ? 1 : 0 }"
     >
       <div class="p-4 flex items-center gap-3 border-b border-slate-700/50 shine-effect">
         <div class="w-8 h-8 rounded bg-gradient-to-tr from-primary-600 to-primary-400 flex items-center justify-center shadow-lg shadow-primary-500/20">

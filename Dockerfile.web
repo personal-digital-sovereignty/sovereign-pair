@@ -15,7 +15,7 @@ COPY web-ui/ .
 
 # Injeta a variável de ambiente para que o build estático aponte para a CDN/API no compose local
 # A URL vazia faz o Axios usar caminhos relativos ou a base URL do Nginx Proxy
-ENV VITE_API_BASE_URL=""
+ENV VITE_API_BASE_URL="/api"
 
 # Executa o bundler (Vite) para empacotar o software em HTML/CSS/JS minificado
 RUN npm run build

@@ -59,15 +59,24 @@ No hacker on the internet can "see" or "hit" your API, because it literally *doe
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Quick Start & VPN Pairing Guide (Zero-Trust)
 
 1. Clone the repository.
 2. Create or copy the `.env` file (insert your OpenAI/Gemini/Anthropic API keys).
-3. (Optional) Generate an Ephemeral Authentication Key in your Tailscale dashboard and insert it in `TS_AUTHKEY=` in the `.env` to automate the VPN pairing.
-4. Ignite the engines:
+3. Ignite the engines:
 ```bash
 docker compose up -d
 ```
-5. Open your browser to `https://localhost` and be amazed!
-
-If accessing via Tailscale, use the "MagicDNS" injected by the network (`https://[container-tailscale-ip]`).
+4. **VPN Pairing (Tailscale):** If you haven't configured the optional `TS_AUTHKEY` variable in the `.env`, the container will require your manual authorization the first time it spins up.
+   - Run the command below in the terminal to read the Tailscale logs:
+     ```bash
+     docker logs sovereign-tailscale
+     ```
+   - Look in the logs for a message similar to this:
+     `To authenticate, visit: https://login.tailscale.com/a/xxxxxxx`
+   - Click the generated link, log in with your Tailscale account, and **approve the new machine** (which will be listed as `sovereign-rag-cloud`).
+5. **IP/DNS Access:** On the Tailscale dashboard, copy the IP assigned to the machine (e.g., `100.x.x.x`) or its MagicDNS (e.g., `sovereign-rag-cloud.tailxxxx.ts.net`).
+6. **Configuring Obsidian (Mobile or External Laptop):**
+   - In Obsidian, go to `Settings > Sovereign Pair`.
+   - Change the **API URL** to `https://[YOUR_IP_OR_DNS_HERE]`. Caddy will handle the HTTPS certificate automatically and without any insecure warnings on your corporate device!
+7. Open your browser locally at `https://localhost` (or remotely with the VPN IP above) and be amazed!

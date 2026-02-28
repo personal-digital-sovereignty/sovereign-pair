@@ -145,6 +145,20 @@ CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "sovereign_knowledg
 # Coleção para o Meta-RAG (Auto-conhecimento da arquitetura do Sovereign Pair)
 CHROMA_SYSTEM_COLLECTION_NAME = os.getenv("CHROMA_SYSTEM_COLLECTION_NAME", "system_knowledge")
 
+def get_chroma_client():
+    """
+    Retorna o cliente ChromaDB adequado.
+    Se rodando no Docker (CHROMA_HOST existe), usa HttpClient.
+    Caso contrário, fallback para PersistentClient local.
+    """
+    import chromadb
+    chroma_host = os.getenv("CHROMA_HOST")
+    if chroma_host:
+        port = int(os.getenv("CHROMA_PORT", "8000"))
+        return chromadb.HttpClient(host=chroma_host, port=port)
+    return chromadb.PersistentClient(path=str(CHROMA_DIR))
+
+
 
 # ============================================================================
 # CONFIGURAÇÕES DO AGENTE
