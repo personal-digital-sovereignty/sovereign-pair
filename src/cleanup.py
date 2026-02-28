@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 def remove_obsolete_chunks(
     file_paths: Set[Path],
     chroma_collection,
-    dry_run: bool = False
+    dry_run: bool = False,
+    tenant_id: str = None
 ) -> int:
     """
     Remove chunks de arquivos obsoletos do ChromaDB.
@@ -39,8 +40,17 @@ def remove_obsolete_chunks(
         try:
             # Buscar chunks deste arquivo
             # ChromaDB usa metadata para filtrar
+            where_clause = {"file_path": str(file_path.absolute())}
+            if tenant_id:
+                where_clause = {
+                    "$and": [
+                        {"file_path": str(file_path.absolute())},
+                        {"tenant_id": tenant_id}
+                    ]
+                }
+                
             results = chroma_collection.get(
-                where={"file_path": str(file_path.absolute())}
+                where=where_clause
             )
             
             if results and results.get('ids'):
@@ -68,7 +78,8 @@ def remove_obsolete_chunks(
 
 def count_chunks_for_files(
     file_paths: Set[Path],
-    chroma_collection
+    chroma_collection,
+    tenant_id: str = None
 ) -> dict[Path, int]:
     """
     Conta quantos chunks cada arquivo tem no ChromaDB.
@@ -84,8 +95,16 @@ def count_chunks_for_files(
     
     for file_path in file_paths:
         try:
+            where_clause = {"file_path": str(file_path.absolute())}
+            if tenant_id:
+                where_clause = {
+                    "$and": [
+                        {"file_path": str(file_path.absolute())},
+                        {"tenant_id": tenant_id}
+                    ]
+                }
             results = chroma_collection.get(
-                where={"file_path": str(file_path.absolute())}
+                where=where_clause
             )
             
             if results and results.get('ids'):
@@ -102,7 +121,8 @@ def count_chunks_for_files(
 
 def verify_cleanup(
     file_paths: Set[Path],
-    chroma_collection
+    chroma_collection,
+    tenant_id: str = None
 ) -> bool:
     """
     Verifica se os chunks foram realmente removidos.
@@ -116,8 +136,16 @@ def verify_cleanup(
     """
     for file_path in file_paths:
         try:
+            where_clause = {"file_path": str(file_path.absolute())}
+            if tenant_id:
+                where_clause = {
+                    "$and": [
+                        {"file_path": str(file_path.absolute())},
+                        {"tenant_id": tenant_id}
+                    ]
+                }
             results = chroma_collection.get(
-                where={"file_path": str(file_path.absolute())}
+                where=where_clause
             )
             
             if results and results.get('ids'):

@@ -1197,17 +1197,6 @@ class SovereignPairConfigModal extends Modal {
                         .onChange(async (val) => { settings.formality = val; })
                     );
 
-                new Setting(contentEl)
-                    .setName('Estilo Visual das Personas')
-                    .setDesc('Sincroniza o Avatar visual com a Web UI globalmente.')
-                    .addDropdown(dropdown => dropdown
-                        .addOption('emoji', 'Emojis 🧠')
-                        .addOption('vector', 'Cérebro Virtual 🧬')
-                        .addOption('dots', 'Minimal 🟢')
-                        .setValue(settings.persona_graphic_style || 'emoji')
-                        .onChange(async (val) => { settings.persona_graphic_style = val; })
-                    );
-
                 contentEl.createEl("h3", { text: "Sobre Você (Contexto de Memória)", cls: "sp-settings-section-title" });
 
                 new Setting(contentEl)
