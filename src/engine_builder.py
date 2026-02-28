@@ -35,13 +35,13 @@ def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm):
         elif p == "ollama":
             from llama_index.llms.ollama import Ollama
             from config import OLLAMA_BASE_URL
-            return Ollama(model=model_name, base_url=OLLAMA_BASE_URL, request_timeout=REQUEST_TIMEOUT)
+            return Ollama(model=model_name, base_url=OLLAMA_BASE_URL, request_timeout=REQUEST_TIMEOUT, context_window=4096, additional_kwargs={"num_ctx": 4096})
     except ImportError as e:
         logger.error(f"Failed to load provider {p}: {e} - pip install llama-index-llms-{p} may be required.")
         
     return fallback_llm
 
-def build_chat_engine(index, history=None, provider=None, model_name=None):
+def build_chat_engine(index, history=None, provider=None, model_name=None, tenant_id=None):
     """
     Constrói a instância do ContextChatEngine configurada com Hybrid Search
     (Vector + BM25) para recuperação precisa de documentos.
@@ -51,7 +51,13 @@ def build_chat_engine(index, history=None, provider=None, model_name=None):
     logger.info("⚙️  Configurando Busca Híbrida (Vector + BM25)...")
     
     # 1. Vector Retriever (Semântico) - Top-K conservador para performance
-    vector_retriever = index.as_retriever(similarity_top_k=5)
+    filters = None
+    if tenant_id:
+        from llama_index.core.vector_stores import ExactMatchFilter, MetadataFilters
+        filters = MetadataFilters(filters=[ExactMatchFilter(key="tenant_id", value=tenant_id)])
+        logger.info(f"   🔍 Filtro de Inquecilino aplicado: {tenant_id}")
+        
+    vector_retriever = index.as_retriever(similarity_top_k=5, filters=filters)
     
     # 2. BM25 Retriever (Palavras-chave / Datas exatas)
     logger.info("   📊 Carregando nós para índice BM25...")
@@ -60,7 +66,8 @@ def build_chat_engine(index, history=None, provider=None, model_name=None):
         from config import get_chroma_client
         db_client = get_chroma_client()
         collection = db_client.get_collection(CHROMA_COLLECTION_NAME)
-        result = collection.get()
+        where_clause = {"tenant_id": tenant_id} if tenant_id else None
+        result = collection.get(where=where_clause)
         
         if result and result['documents']:
             ids = result['ids']
@@ -120,6 +127,9 @@ def build_chat_engine(index, history=None, provider=None, model_name=None):
         nickname = settings_dict.get("nickname", OWNER_NICKNAME)
         nickname = nickname if nickname.strip() else OWNER_NICKNAME
         
+        ai_name = settings_dict.get("ai_name", SOVEREIGN_NAME)
+        ai_name = ai_name if ai_name.strip() else SOVEREIGN_NAME
+        
         occupation = settings_dict.get("occupation", OCCUPATION)
         about_user = settings_dict.get("about_user", ABOUT_USER)
         
@@ -140,6 +150,7 @@ def build_chat_engine(index, history=None, provider=None, model_name=None):
         active_persona = ASSISTANT_PERSONA
         formality = "neutral"
         nickname = OWNER_NICKNAME
+        ai_name = SOVEREIGN_NAME
         occupation = OCCUPATION
         about_user = ABOUT_USER
         language = LANGUAGE
@@ -186,7 +197,7 @@ def build_chat_engine(index, history=None, provider=None, model_name=None):
         llm=active_llm,
         memory=memory, # Memória bufferizada re-hidratada
         system_prompt=(
-            f"Você é a inteligência artificial {SOVEREIGN_NAME}, atuando como assistente pessoal corporativa e soberana. "
+            f"Você é a inteligência artificial {ai_name} (da família Sovereign Pair), atuando como assistente pessoal corporativa e soberana. "
             f"Sua persona de comportamento e alinhamento é estritamente definida como: {active_persona}. "
             f"O usuário com quem você está conversando e de quem deve receber ordens se chama {nickname}. "
             f"O idioma PRINCIPAL no qual ESCRITAMENTE OBRIGATÓRIO responder (mesmo para traduzir o RAG) é: {language}. "
@@ -222,7 +233,16 @@ def build_system_chat_engine(provider=None, model_name=None):
         vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
         index = VectorStoreIndex.from_vector_store(vector_store)
         
-        active_llm = resolve_dynamic_llm(provider, model_name, default_llm)
+        # IGNORAR o modelo vindo do Frontend para a aba Sistema (Meta-RAG)
+        # OMeta-RAG deve SEMPRE usar um modelo enxuto e rápido para não dar OOM (Out Of Memory)
+        if provider == "ollama" or not provider:
+            sys_provider = "ollama"
+            sys_model = "llama3.2"
+        else:
+            sys_provider = provider
+            sys_model = model_name
+            
+        active_llm = resolve_dynamic_llm(sys_provider, sys_model, default_llm)
         
         chat_engine = index.as_chat_engine(
             llm=active_llm,

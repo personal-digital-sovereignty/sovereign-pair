@@ -5,9 +5,9 @@ Bem-vindo ao Guia Oficial de Implantação do **Sovereign Pair**. Este documento
 ---
 
 ## 🏗️ A Arquitetura de Contêineres
-Quando você executa `docker compose up -d`, o nosso orquestrador levanta um exército de **6 contêineres** trabalhando em uníssono dentro de uma rede virtual isolada (Ponte chamada `sovereign-net`). 
+Quando você executa `docker compose up -d`, o nosso orquestrador levanta um exército de **6 contêineres** (em breve 7, com a conteinerização nativa do Ollama) trabalhando em uníssono dentro de uma rede virtual isolada (Ponte chamada `sovereign-net`). 
 
-1. **`sovereign-db` (PostgreSQL):** O banco de dados relacional que gerencia usuários, histórico de conversas e configurações corporativas.
+1. **`sovereign-db` (PostgreSQL):** O banco de dados relacional que gerencia usuários, histórico de conversas e configurações corporativas (Multi-Tenant).
 2. **`sovereign-chroma` (ChromaDB):** O nosso "Cérebro Vetorial". É aqui que moram os Embeddings do RAG (Retrieve-Augmented Generation).
 3. **`sovereign-api` (FastAPI/Python):** O núcleo da Inteligência. Hospeda a API RAG, orquestra LLMs e faz a ponte entre o Banco de Dados e as interfaces.
 4. **`sovereign-web` (Vue.js/Nginx):** A nossa interface visual linda, servida de forma extremamente veloz por um Servidor Nginx estático.
@@ -31,6 +31,17 @@ Quando você acessa `https://localhost`:
 3. Se for qualquer outra requisição, ele entrega a página do Vue.js (`sovereign-web`).
 
 **Resultado:** Você navega localmente com tráfego 100% criptografado e rotas unificadas, sem configurar absolutamente nenhum certificado manualmente!
+
+---
+
+## 🛡️ Gestão de Memória Limitada e Prevenção de OOM (Out-Of-Memory)
+
+O Sovereign Pair foi desenhado para rodar em hardware de consumidor e não em data centers trilionários. Um dos maiores desafios na integração com orquestradores como LlamaIndex e Ollama é o gerenciamento silencioso da KV Cache (Memória de Contexto).
+
+Modelos modernos como o `llama3.2` ou `llama3.1` possuem janelas de contexto gigantescas nativas (128.000 tokens). Se o back-end tentar instanciar um streaming de *Chat Engine* RAG sem blindar esse limite, o Ollama nativo tentará alocar **quase 60 GB de RAM/VRAM** instantaneamente para acomodar o cache inteiro, o que resulta na morte imediata do serviço no host.
+
+Para impedir isso e garantir hardware-agnosticismo:
+- **`num_ctx: 4096`**: O Sovereign Back-end injeta parâmetros hiper-rígidos (`additional_kwargs` limitando contexto a 4K) em *todas* as factories de LLM criadas. Isso proíbe o LlamaIndex de alavancar o VRAM excessivo e garante que o Meta-RAG e chats corporativos fluam tranquilamente num Dell com 16GB de RAM sem engasgar e dar o famoso *Status 500: Empty Response*.
 
 ---
 

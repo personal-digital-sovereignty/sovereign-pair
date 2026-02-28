@@ -35,12 +35,13 @@ def get_llm(provider: str, model: str, temperature: float = 0.1, request_timeout
         from llama_index.llms.ollama import Ollama
         base_url = kwargs.get("base_url", "http://localhost:11434")
         
-        # O timeout explícito para o Ollama evita cortes de conexão durante streamings pesados via ASGI/httpx
         return Ollama(
             model=model,
             request_timeout=request_timeout,
             base_url=base_url,
             temperature=temperature,
+            context_window=4096,
+            additional_kwargs={"num_ctx": 4096},
         )
     elif provider == "openai":
         from llama_index.llms.openai import OpenAI

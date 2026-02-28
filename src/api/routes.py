@@ -1,8 +1,8 @@
 import asyncio
 import json
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, BackgroundTasks
 from fastapi.responses import StreamingResponse
-from .schemas import ChatRequest, ChatResponse, Citation, SettingsRequest, SettingsResponse
+from .schemas import ChatRequest, ChatResponse, Citation, SettingsRequest, SettingsResponse, SessionUpdateRequest, UploadResponse
 from .dependencies import get_chat_engine
 
 router = APIRouter()
@@ -10,6 +10,7 @@ router = APIRouter()
 from sqlalchemy.orm import Session  # noqa: E402
 from .database import get_db  # noqa: E402
 from .models import ChatSession, ChatMessage, SystemSettings  # noqa: E402
+from .auth import get_current_user  # noqa: E402
 
 # Importando o limiter configurado no main.py
 try:
@@ -22,7 +23,7 @@ except ImportError:
 
 @router.post("/chat")
 @limiter.limit("15/minute")
-async def chat_endpoint(request: Request, body_request: ChatRequest, engine=Depends(get_chat_engine), db: Session = Depends(get_db)):
+async def chat_endpoint(request: Request, body_request: ChatRequest, engine=Depends(get_chat_engine), db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """
     Endpoint principal para conversar com o Agente via RAG local.
     Pode retornar tanto um JSON blocante quanto um Event-Stream (SSE) para digitação em tempo real.
@@ -30,20 +31,20 @@ async def chat_endpoint(request: Request, body_request: ChatRequest, engine=Depe
     
     # Gerenciamento de Sessão: Criar ou Reaproveitar
     if body_request.session_id:
-        session_obj = db.query(ChatSession).filter(ChatSession.id == body_request.session_id).first()
+        session_obj = db.query(ChatSession).filter(ChatSession.id == body_request.session_id, ChatSession.tenant_id == tenant_id).first()
         if not session_obj:
-            session_obj = ChatSession(title=body_request.message[:50])
+            session_obj = ChatSession(title=body_request.message[:50], tenant_id=tenant_id)
             db.add(session_obj)
             db.commit()
             db.refresh(session_obj)
     else:
-        session_obj = ChatSession(title=body_request.message[:50] + "...")
+        session_obj = ChatSession(title=body_request.message[:50] + "...", tenant_id=tenant_id)
         db.add(session_obj)
         db.commit()
         db.refresh(session_obj)
         
     # Grava a mensagem do Usuário no DB
-    user_msg_db = ChatMessage(session_id=session_obj.id, role="user", content=body_request.message)
+    user_msg_db = ChatMessage(session_id=session_obj.id, role="user", content=body_request.message, tenant_id=tenant_id)
     db.add(user_msg_db)
     db.commit()
 
@@ -127,7 +128,7 @@ EXTREMA IMPORTÂNCIA:
                         full_ai_response = "⚠️  **Uso:** `/sys <pergunta sobre a arquitetura do backend>`"
                         yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
                     else:
-                        yield f"data: {json.dumps({'content': '🧠 *Consultando Sistema Meta-RAG...*\\n\\n'})}\n\n"
+                        yield f"data: {json.dumps({'content': '🧠 *Consultando Sistema Meta-RAG...*\n\n'})}\n\n"
                         try:
                             sys_engine = build_system_chat_engine(body_request.provider, body_request.model)
                             if not sys_engine:
@@ -135,7 +136,7 @@ EXTREMA IMPORTÂNCIA:
                                 yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
                             else:
                                 response = await sys_engine.astream_chat(sys_query)
-                                full_ai_response = "🧠 *Consultando Sistema Meta-RAG...*\\n\\n"
+                                full_ai_response = "🧠 *Consultando Sistema Meta-RAG...*\n\n"
                                 
                                 async_gen = response.async_response_gen()
                                 async for token in async_gen:
@@ -153,8 +154,8 @@ EXTREMA IMPORTÂNCIA:
                                         sources.add(f"🛠️ {filename}")
                                         
                                 if sources:
-                                    sources_str = "\\n".join(sources)
-                                    final_msg = f"\\n\\n**Arquivos Analisados:**\\n{sources_str}"
+                                    sources_str = "\n".join(sources)
+                                    final_msg = f"\n\n**Arquivos Analisados:**\n{sources_str}"
                                     full_ai_response += final_msg
                                     yield f"data: {json.dumps({'content': final_msg})}\n\n"
                         except Exception as e:
@@ -217,7 +218,7 @@ EXTREMA IMPORTÂNCIA:
                                 yield f"data: {json.dumps({'content': final_msg})}\n\n"
                                 
                 # Gravar a mensagem da IA no banco de dados AO FINAL do streaming
-                ai_msg_db = ChatMessage(session_id=session_obj.id, role="assistant", content=full_ai_response)
+                ai_msg_db = ChatMessage(session_id=session_obj.id, role="assistant", content=full_ai_response, tenant_id=tenant_id)
                 db.add(ai_msg_db)
                 db.commit()
                 db.refresh(ai_msg_db)
@@ -295,7 +296,7 @@ EXTREMA IMPORTÂNCIA:
                 full_ai_response = "⚠️  **Uso:** `/web <query>`\n\n**Filtros:** `/web -d` (dia), `/web -w` (semana), `/web -m` (mês), `/web -y` (ano)"
                 
             # Gravar a mensagem da IA sincrona no SQLite
-            ai_msg_db = ChatMessage(session_id=session_obj.id, role="assistant", content=full_ai_response)
+            ai_msg_db = ChatMessage(session_id=session_obj.id, role="assistant", content=full_ai_response, tenant_id=tenant_id)
             db.add(ai_msg_db)
             db.commit()
             
@@ -318,7 +319,7 @@ EXTREMA IMPORTÂNCIA:
                         sources = []
                     else:
                         response = await sys_engine.achat(sys_query)
-                        full_ai_response = f"🧠 *Consultando Sistema Meta-RAG...*\\n\\n{str(response)}"
+                        full_ai_response = f"🧠 *Consultando Sistema Meta-RAG...*\n\n{str(response)}"
                         
                         source_nodes = getattr(response, "source_nodes", [])
                         sources = []
@@ -352,7 +353,7 @@ EXTREMA IMPORTÂNCIA:
             
             # Gravar a mensagem da IA sincrona
             full_ai_response = str(response)
-            ai_msg_db = ChatMessage(session_id=session_obj.id, role="assistant", content=full_ai_response)
+            ai_msg_db = ChatMessage(session_id=session_obj.id, role="assistant", content=full_ai_response, tenant_id=tenant_id)
             db.add(ai_msg_db)
             db.commit()
             
@@ -381,9 +382,9 @@ from fastapi import HTTPException  # noqa: E402
 
 @router.patch("/sessions/{session_id}", response_model=SessionResponse)
 @limiter.limit("60/minute")
-async def update_session(request: Request, session_id: int, req: SessionUpdateRequest, db: Session = Depends(get_db)):
+async def update_session(request: Request, session_id: int, req: SessionUpdateRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Atualiza metadados da sessão, como Título e Diretório (folder_name)."""
-    session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.tenant_id == tenant_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Sessão não encontrada")
     
@@ -401,9 +402,9 @@ async def update_session(request: Request, session_id: int, req: SessionUpdateRe
 
 @router.delete("/sessions/{session_id}")
 @limiter.limit("60/minute")
-async def delete_session(request: Request, session_id: int, db: Session = Depends(get_db)):
+async def delete_session(request: Request, session_id: int, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Remove uma conversa inteira."""
-    session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.tenant_id == tenant_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Sessão não encontrada")
     db.delete(session)
@@ -412,24 +413,24 @@ async def delete_session(request: Request, session_id: int, db: Session = Depend
 
 @router.get("/sessions", response_model=List[SessionResponse])
 @limiter.limit("120/minute")
-async def get_all_sessions(request: Request, db: Session = Depends(get_db)):
+async def get_all_sessions(request: Request, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Lista todas as conversas gravadas no SQLite."""
-    sessions = db.query(ChatSession).order_by(ChatSession.updated_at.desc()).limit(20).all()
+    sessions = db.query(ChatSession).filter(ChatSession.tenant_id == tenant_id).order_by(ChatSession.updated_at.desc()).limit(20).all()
     return sessions
 
 @router.get("/sessions/{session_id}", response_model=SessionResponse)
 @limiter.limit("120/minute")
-async def get_session_history(request: Request, session_id: int, db: Session = Depends(get_db)):
+async def get_session_history(request: Request, session_id: int, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Busca o histórico completo de uma sessão específica para Replay na UI."""
-    session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.tenant_id == tenant_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return session
 
 @router.post("/feedback")
-async def save_feedback(req: FeedbackRequest, db: Session = Depends(get_db)):
+async def save_feedback(req: FeedbackRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Grava o Thumbs Up / Down ou comentário de correção no Database para a AI."""
-    msg = db.query(ChatMessage).filter(ChatMessage.id == req.message_id).first()
+    msg = db.query(ChatMessage).filter(ChatMessage.id == req.message_id, ChatMessage.tenant_id == tenant_id).first()
     if not msg:
         raise HTTPException(status_code=404, detail="Message not found")
         
@@ -455,7 +456,8 @@ async def upload_document(
     file: UploadFile = File(...), 
     force_overwrite: bool = Form(False),
     rename_if_exists: bool = Form(False),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    tenant_id: str = Depends(get_current_user)
 ):
     """
     Ingests a single document on-the-fly into ChromaDB.
@@ -472,7 +474,7 @@ async def upload_document(
     file_size = len(file_content)
     
     # 1. Verificar Hash Exato
-    existing_hash = db.query(DocumentCache).filter(DocumentCache.sha256 == file_hash).first()
+    existing_hash = db.query(DocumentCache).filter(DocumentCache.sha256 == file_hash, DocumentCache.tenant_id == tenant_id).first()
     if existing_hash:
         return UploadResponse(
             status="success",
@@ -483,7 +485,7 @@ async def upload_document(
         
     # 2. Verificar Colisão de Nome de Arquivo (Conteúdo/Hash diferente)
     target_path = raw_dir / file.filename
-    existing_file = db.query(DocumentCache).filter(DocumentCache.file_path == str(target_path.absolute())).first()
+    existing_file = db.query(DocumentCache).filter(DocumentCache.file_path == str(target_path.absolute()), DocumentCache.tenant_id == tenant_id).first()
     
     if existing_file and not force_overwrite:
         if rename_if_exists:
@@ -527,7 +529,8 @@ async def upload_document(
             filename=file.filename,
             file_path=str(target_path.absolute()),
             sha256=file_hash,
-            file_size=file_size
+            file_size=file_size,
+            tenant_id=tenant_id
         )
         db.add(new_doc)
         db.commit()
@@ -539,59 +542,59 @@ async def upload_document(
         sha256=file_hash
     )
 
-def _get_setting_value(db: Session, key: str, default: str) -> str:
-    setting = db.query(SystemSettings).filter(SystemSettings.setting_key == key).first()
+def _get_setting_value(db: Session, key: str, default: str, tenant_id: str) -> str:
+    setting = db.query(SystemSettings).filter(SystemSettings.setting_key == key, SystemSettings.tenant_id == tenant_id).first()
     return setting.setting_value if setting and setting.setting_value else default
 
-def _set_setting_value(db: Session, key: str, value: str):
-    setting = db.query(SystemSettings).filter(SystemSettings.setting_key == key).first()
+def _set_setting_value(db: Session, key: str, value: str, tenant_id: str):
+    setting = db.query(SystemSettings).filter(SystemSettings.setting_key == key, SystemSettings.tenant_id == tenant_id).first()
     if setting:
         setting.setting_value = value
     else:
-        db.add(SystemSettings(setting_key=key, setting_value=value))
+        db.add(SystemSettings(setting_key=key, setting_value=value, tenant_id=tenant_id))
 
 @router.get("/config", response_model=SettingsResponse)
 @limiter.limit("120/minute")
-def get_settings(request: Request, db: Session = Depends(get_db)):
+def get_settings(request: Request, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Retrieve dynamic LLM attributes from the database, falling back to .env variables."""
     from config import LLM_PROVIDER, LLM_MODEL, ASSISTANT_PERSONA
     return SettingsResponse(
-        llm_provider=_get_setting_value(db, "llm_provider", LLM_PROVIDER),
-        llm_model=_get_setting_value(db, "llm_model", LLM_MODEL),
-        temperature=float(_get_setting_value(db, "temperature", "0.1")),
-        system_prompt=_get_setting_value(db, "system_prompt", ASSISTANT_PERSONA),
-        theme=_get_setting_value(db, "theme", "dark"),
-        persona=_get_setting_value(db, "persona", "default"),
-        formality=_get_setting_value(db, "formality", "neutral"),
-        persona_graphic_style=_get_setting_value(db, "persona_graphic_style", "emoji"),
-        nickname=_get_setting_value(db, "nickname", ""),
-        occupation=_get_setting_value(db, "occupation", ""),
-        about_user=_get_setting_value(db, "about_user", ""),
-        language=_get_setting_value(db, "language", "Português do Brasil"),
-        geolocation=_get_setting_value(db, "geolocation", "")
+        llm_provider=_get_setting_value(db, "llm_provider", LLM_PROVIDER, tenant_id),
+        llm_model=_get_setting_value(db, "llm_model", LLM_MODEL, tenant_id),
+        temperature=float(_get_setting_value(db, "temperature", "0.1", tenant_id)),
+        system_prompt=_get_setting_value(db, "system_prompt", ASSISTANT_PERSONA, tenant_id),
+        theme=_get_setting_value(db, "theme", "dark", tenant_id),
+        persona=_get_setting_value(db, "persona", "default", tenant_id),
+        formality=_get_setting_value(db, "formality", "neutral", tenant_id),
+        ai_name=_get_setting_value(db, "ai_name", "", tenant_id),
+        nickname=_get_setting_value(db, "nickname", "", tenant_id),
+        occupation=_get_setting_value(db, "occupation", "", tenant_id),
+        about_user=_get_setting_value(db, "about_user", "", tenant_id),
+        language=_get_setting_value(db, "language", "Português do Brasil", tenant_id),
+        geolocation=_get_setting_value(db, "geolocation", "", tenant_id)
     )
 
 @router.post("/config", response_model=SettingsResponse)
 @limiter.limit("60/minute")
-def update_settings(request: Request, body_request: SettingsRequest, db: Session = Depends(get_db)):
+def update_settings(request: Request, body_request: SettingsRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Persist the changes in system behavior using key-value entries in the database."""
-    _set_setting_value(db, "llm_provider", body_request.llm_provider)
-    _set_setting_value(db, "llm_model", body_request.llm_model)
-    _set_setting_value(db, "temperature", str(body_request.temperature))
-    _set_setting_value(db, "system_prompt", body_request.system_prompt)
-    _set_setting_value(db, "theme", body_request.theme)
-    _set_setting_value(db, "persona", body_request.persona)
-    _set_setting_value(db, "formality", body_request.formality)
-    _set_setting_value(db, "persona_graphic_style", body_request.persona_graphic_style)
-    _set_setting_value(db, "nickname", body_request.nickname)
-    _set_setting_value(db, "occupation", body_request.occupation)
-    _set_setting_value(db, "about_user", body_request.about_user)
-    _set_setting_value(db, "language", body_request.language)
-    _set_setting_value(db, "geolocation", body_request.geolocation)
+    _set_setting_value(db, "llm_provider", body_request.llm_provider, tenant_id)
+    _set_setting_value(db, "llm_model", body_request.llm_model, tenant_id)
+    _set_setting_value(db, "temperature", str(body_request.temperature), tenant_id)
+    _set_setting_value(db, "system_prompt", body_request.system_prompt, tenant_id)
+    _set_setting_value(db, "theme", body_request.theme, tenant_id)
+    _set_setting_value(db, "persona", body_request.persona, tenant_id)
+    _set_setting_value(db, "formality", body_request.formality, tenant_id)
+    _set_setting_value(db, "ai_name", body_request.ai_name, tenant_id)
+    _set_setting_value(db, "nickname", body_request.nickname, tenant_id)
+    _set_setting_value(db, "occupation", body_request.occupation, tenant_id)
+    _set_setting_value(db, "about_user", body_request.about_user, tenant_id)
+    _set_setting_value(db, "language", body_request.language, tenant_id)
+    _set_setting_value(db, "geolocation", body_request.geolocation, tenant_id)
     db.commit()
     
     # Fake a request to reuse get_settings which now expects a Request object
-    return get_settings(request, db)
+    return get_settings(request=request, db=db, tenant_id=tenant_id)
 
 @router.get("/ollama/models")
 @limiter.limit("60/minute")
@@ -611,3 +614,26 @@ async def list_ollama_models(request: Request):
         # Fallback to empty list or known models if Ollama is unreachable
         print(f"Failed to fetch Ollama models: {e}")
         return {"models": []}
+
+from pydantic import BaseModel
+
+class PullModelRequest(BaseModel):
+    model: str
+
+def background_ollama_pull(model_name: str, base_url: str):
+    import httpx
+    try:
+        print(f"Buscando modelo Ollama {model_name} remotamente...")
+        with httpx.Client(timeout=600.0) as client:
+            client.post(f"{base_url}/api/pull", json={"name": model_name, "stream": False})
+        print(f"Download de {model_name} finalizado via background task.")
+    except Exception as e:
+        print(f"Erro efetuando pull do modelo {model_name}: {e}")
+
+@router.post("/ollama/pull")
+@limiter.limit("10/minute")
+async def pull_ollama_model(request: Request, body_request: PullModelRequest, background_tasks: BackgroundTasks, tenant_id: str = Depends(get_current_user)):
+    from src.config import OLLAMA_BASE_URL
+    background_tasks.add_task(background_ollama_pull, body_request.model, OLLAMA_BASE_URL)
+    return {"status": "success", "message": f"Download do modelo {body_request.model} iniciado em background."}
+

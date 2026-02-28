@@ -190,19 +190,34 @@ const isConfigModalOpen = ref(false)
 const isLoadingConfig = ref(false)
 const systemSettings = ref({
   llm_provider: 'ollama',
-  llm_model: 'llama3',
+  llm_model: 'llama3.2',
   temperature: 0.1,
   system_prompt: '',
   theme: 'dark',
   persona: 'default',
   formality: 'neutral',
-  persona_graphic_style: 'emoji',
+  ai_name: '',
   nickname: '',
   occupation: '',
   about_user: '',
   language: 'Português do Brasil',
   geolocation: ''
 })
+
+const getPersonaColorClass = (personaId: string) => {
+  const colors: Record<string, string> = {
+    'default': 'text-emerald-500 bg-emerald-500',
+    'developer': 'text-sky-500 bg-sky-500',
+    'marketing': 'text-purple-500 bg-purple-500',
+    'admin': 'text-amber-500 bg-amber-500',
+    'professor': 'text-indigo-500 bg-indigo-500',
+    'career': 'text-rose-500 bg-rose-500',
+    'productivity': 'text-yellow-400 bg-yellow-400',
+    'creative': 'text-fuchsia-500 bg-fuchsia-500',
+    'custom': 'text-slate-400 bg-slate-400'
+  }
+  return colors[personaId] || colors['default']
+}
 
 const personaOptions = [
   { id: 'default', icon: '🧠', name: 'Assistente Padrão (Default)', prompt: 'Foco em respostas analíticas, pragmáticas e diretas. Traga conhecimento fundamentado sem enrolação.' },
@@ -222,6 +237,32 @@ const selectPersona = (p: typeof personaOptions[0]) => {
 
 const localModels = ref<string[]>([])
 const isFetchingModels = ref(false)
+const modelToPull = ref('')
+const isPulling = ref(false)
+
+const pullModel = async () => {
+  if (!modelToPull.value.trim()) return
+  isPulling.value = true
+  try {
+    const res = await fetch(`${API_BASE_URL}/v1/ollama/pull`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({ model: modelToPull.value.trim() })
+    })
+    if (res.ok) {
+      alert(`Download de ${modelToPull.value} iniciado. O modelo aparecerá na lista ao término.`)
+      modelToPull.value = ''
+    }
+  } catch (error) {
+    console.error('Falha ao acionar pull do modelo', error)
+    alert('Erro ao iniciar download do modelo.')
+  } finally {
+    isPulling.value = false
+  }
+}
 
 const fetchLocalModels = async () => {
   if (systemSettings.value.llm_provider !== 'ollama') return
@@ -857,15 +898,15 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
         >
           <!-- Avatar -->
           <div class="shrink-0 flex items-start justify-center mt-1">
-            <div v-if="msg.role === 'assistant'" class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-lg transition-all" :class="systemSettings.persona_graphic_style === 'dots' ? 'bg-primary-500/10 border border-primary-500/20' : 'bg-gradient-to-br from-primary-600 to-primary-400 shadow-primary-500/20 p-1.5'">
-              <span v-if="systemSettings.persona_graphic_style === 'emoji'" class="text-xl md:text-2xl leading-none drop-shadow-sm">{{ personaOptions.find(p => p.id === systemSettings.persona)?.icon || '🧠' }}</span>
-              <svg v-else-if="systemSettings.persona_graphic_style === 'vector'" class="w-5 h-5 md:w-6 md:h-6 text-white drop-shadow-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="11.5" r="11" class="opacity-40" stroke="currentColor" fill="none" />
-                <path d="M12 4.5l-3 3v4l3 3 3-3v-4l-3-3zM9 7.5H5.5l1 3 2.5 2M15 7.5h3.5l-1 3-2.5 2M12 4.5V2M12 14.5v5M9 12.5l-2.5 3M15 12.5l2.5 3" />
-                <circle cx="12" cy="4.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="9" cy="7.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="7.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="9" cy="12.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="12.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="14.5" r="1.5" fill="currentColor" stroke="none"/>
-                <circle cx="5.5" cy="7.5" r="1" fill="currentColor" stroke="none"/><circle cx="18.5" cy="7.5" r="1" fill="currentColor" stroke="none"/><circle cx="6.5" cy="10.5" r="1" fill="currentColor" stroke="none"/><circle cx="17.5" cy="10.5" r="1" fill="currentColor" stroke="none"/><circle cx="6.5" cy="15.5" r="1" fill="currentColor" stroke="none"/><circle cx="17.5" cy="15.5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/>
-              </svg>
-              <div v-else class="w-2 h-2 md:w-3 md:h-3 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(var(--color-primary-500),0.7)]"></div>
+            <div v-if="msg.role === 'assistant'" class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center relative">
+              <!-- Orbit / Border (faint outer ring) -->
+              <div class="absolute inset-0 rounded-full border border-current opacity-20" :class="getPersonaColorClass(systemSettings.persona)?.split(' ')[0] || ''"></div>
+              
+              <!-- Pulsing animation from center to orbit while streaming (thinking) -->
+              <div v-if="msg.isStreaming" class="absolute inset-0 rounded-full animate-ping opacity-30" :class="getPersonaColorClass(systemSettings.persona)?.split(' ')[1] || ''"></div>
+              
+              <!-- Center Dot (100% filled, solid) -->
+              <div class="w-3.5 h-3.5 md:w-4 md:h-4 rounded-full" :class="getPersonaColorClass(systemSettings.persona)?.split(' ')[1] || ''"></div>
             </div>
             <div v-else class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-700 flex items-center justify-center p-2 text-slate-300">
               <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
@@ -979,6 +1020,12 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
                     <option v-for="mod in localModels" :key="mod" :value="mod">{{ mod }}</option>
                     <option v-if="localModels.length === 0" value="llama3.2" disabled>Nenhum modelo encontrado</option>
                   </select>
+                  <div class="mt-2 flex gap-2">
+                    <input v-model="modelToPull" type="text" placeholder="Baixar modelo (ex: phi3)" class="flex-1 bg-surface-900 border border-surface-700 text-slate-300 rounded px-2.5 py-1 text-xs outline-none focus:border-primary-500 transition-colors">
+                    <button @click="pullModel" :disabled="isPulling" class="bg-surface-700 hover:bg-surface-600 px-3 py-1 rounded text-xs text-slate-300 font-medium transition-colors disabled:opacity-50">
+                      {{ isPulling ? 'Iniciando...' : 'Baixar' }}
+                    </button>
+                  </div>
                 </template>
                 <template v-else>
                   <input v-model="systemSettings.llm_model" type="text" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all" placeholder="ex: llama3, gpt-4o">
@@ -1010,25 +1057,11 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
                   class="flex items-start gap-2 p-2.5 rounded-lg border transition-all text-left group"
                   :class="systemSettings.persona === p.id ? 'bg-primary-500/10 border-primary-500 text-primary-300 ring-1 ring-primary-500/50' : 'bg-surface-800 border-surface-700 text-slate-400 hover:border-surface-600 hover:text-slate-300'"
                 >
-                  <svg v-if="systemSettings.persona_graphic_style === 'vector'" class="w-7 h-7 shrink-0 text-primary-400 opacity-90 transition-all group-hover:scale-105" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="11.5" r="11" class="opacity-40" stroke="currentColor" fill="none" />
-                    <path d="M12 4.5l-3 3v4l3 3 3-3v-4l-3-3zM9 7.5H5.5l1 3 2.5 2M15 7.5h3.5l-1 3-2.5 2M12 4.5V2M12 14.5v5M9 12.5l-2.5 3M15 12.5l2.5 3" />
-                    <circle cx="12" cy="4.5" r="1.5" fill="currentColor" stroke="none"/>
-                    <circle cx="9" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
-                    <circle cx="15" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
-                    <circle cx="9" cy="12.5" r="1.5" fill="currentColor" stroke="none"/>
-                    <circle cx="15" cy="12.5" r="1.5" fill="currentColor" stroke="none"/>
-                    <circle cx="12" cy="14.5" r="1.5" fill="currentColor" stroke="none"/>
-                    <circle cx="5.5" cy="7.5" r="1" fill="currentColor" stroke="none"/>
-                    <circle cx="18.5" cy="7.5" r="1" fill="currentColor" stroke="none"/>
-                    <circle cx="6.5" cy="10.5" r="1" fill="currentColor" stroke="none"/>
-                    <circle cx="17.5" cy="10.5" r="1" fill="currentColor" stroke="none"/>
-                    <circle cx="6.5" cy="15.5" r="1" fill="currentColor" stroke="none"/>
-                    <circle cx="17.5" cy="15.5" r="1" fill="currentColor" stroke="none"/>
-                    <circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/>
-                  </svg>
-                  <div v-else-if="systemSettings.persona_graphic_style === 'dots'" class="w-2.5 h-2.5 shrink-0 rounded-full bg-primary-500 shadow-sm mt-1 shadow-primary-500/50"></div>
-                  <span v-else class="text-xl shrink-0 mt-0.5">{{ p.icon }}</span>
+                  <!-- Dynamic Color Dot for Persona Selection Menu -->
+                  <div class="relative w-4 h-4 shrink-0 flex items-center justify-center mt-1">
+                    <div class="absolute inset-0 rounded-full border border-current opacity-20" :class="getPersonaColorClass(p.id)?.split(' ')[0] || ''"></div>
+                    <div class="w-2 h-2 rounded-full" :class="getPersonaColorClass(p.id)?.split(' ')[1] || ''"></div>
+                  </div>
                   <div class="flex flex-col min-w-0">
                      <span class="text-xs font-semibold leading-tight truncate group-hover:text-primary-300">{{ p.name }}</span>
                      <span class="text-[9px] text-slate-500 line-clamp-2 mt-1 leading-tight">{{ p.prompt }}</span>
@@ -1054,7 +1087,12 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
 
                 <div class="space-y-4 pt-4 border-t border-surface-700/50">
                   <div class="space-y-2">
-                    <label class="block text-sm font-medium text-slate-400">Nome / Como te chamar?</label>
+                    <label class="block text-sm font-medium text-slate-400">Batismo da Inteligência Artificial</label>
+                    <input v-model="systemSettings.ai_name" type="text" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all" placeholder="Nome para a IA (Ex: Jarvis, Friday)">
+                    <p class="text-[10px] text-slate-500">O sobrenome oficial permanecerá como <i>Sovereign Pair</i> corporativamente.</p>
+                  </div>
+                  <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-400">Seu Nome / Como te chamar?</label>
                     <input v-model="systemSettings.nickname" type="text" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all" placeholder="Seu apelido/nome preferido">
                   </div>
                   <div class="space-y-2">
@@ -1086,29 +1124,6 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
                   </div>
                 </div>
               </div>
-            
-            <!-- Graphic Style -->
-            <div class="space-y-3 mt-4">
-              <label class="block text-sm font-medium text-slate-400">Estilo Visual das Personas</label>
-              <div class="flex p-1 bg-surface-800 rounded-lg border border-surface-700 w-full max-w-sm">
-                <button @click="systemSettings.persona_graphic_style = 'emoji'" :class="systemSettings.persona_graphic_style === 'emoji' ? 'bg-primary-500/20 text-primary-400 font-medium shadow-sm' : 'text-slate-400 hover:text-surface-300'" class="flex-1 py-1.5 text-xs rounded-md transition-colors flex items-center justify-center gap-1.5"><span>🧠</span> Emojis</button>
-                <button @click="systemSettings.persona_graphic_style = 'vector'" :class="systemSettings.persona_graphic_style === 'vector' ? 'bg-primary-500/20 text-primary-400 font-medium shadow-sm' : 'text-slate-400 hover:text-surface-300'" class="flex-1 py-1.5 text-xs rounded-md transition-colors flex items-center justify-center gap-1.5">
-                  <svg class="w-4 h-4 shrink-0 transition-all opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="11.5" r="11" class="opacity-40" stroke="currentColor" fill="none" />
-                    <path d="M12 4.5l-3 3v4l3 3 3-3v-4l-3-3zM9 7.5H5.5l1 3 2.5 2M15 7.5h3.5l-1 3-2.5 2M12 4.5V2M12 14.5v5M9 12.5l-2.5 3M15 12.5l2.5 3" />
-                    <circle cx="12" cy="4.5" r="1.5" fill="currentColor" stroke="none"/>
-                    <circle cx="9" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
-                    <circle cx="15" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
-                    <circle cx="9" cy="12.5" r="1.5" fill="currentColor" stroke="none"/>
-                    <circle cx="15" cy="12.5" r="1.5" fill="currentColor" stroke="none"/>
-                    <circle cx="12" cy="14.5" r="1.5" fill="currentColor" stroke="none"/>
-                  </svg> Cérebro Virtual
-                </button>
-                <button @click="systemSettings.persona_graphic_style = 'dots'" :class="systemSettings.persona_graphic_style === 'dots' ? 'bg-primary-500/20 text-primary-400 font-medium shadow-sm' : 'text-slate-400 hover:text-surface-300'" class="flex-1 py-1.5 text-xs rounded-md transition-colors flex items-center justify-center gap-1.5">
-                  <div class="w-1.5 h-1.5 rounded-full bg-current"></div> Minimal
-                </button>
-              </div>
-            </div>
 
             <!-- Theme selector -->
             <div class="space-y-3">

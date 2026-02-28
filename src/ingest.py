@@ -224,9 +224,11 @@ def load_documents_from_directory(
         # Pós-processamento Avançado (Pipeline de Limpeza)
         logger.info("   🧹 Executando pipeline de limpeza (YAML, Dataview, Ruído)...")
         
-        # Processar todos os documentos
         for doc in documents:
             preprocess_document(doc)
+            # Default fallback unless overridden by caller mode
+            if "tenant_id" not in doc.metadata:
+                doc.metadata["tenant_id"] = "default"
     
     return documents
 
@@ -566,7 +568,7 @@ def ingest_data(documents: Optional[list] = None) -> Optional[VectorStoreIndex]:
         return None
 
 
-def process_single_file(file_path: Path, is_update: bool = False) -> Optional[VectorStoreIndex]:
+def process_single_file(file_path: Path, is_update: bool = False, tenant_id: str = "default") -> Optional[VectorStoreIndex]:
     """
     Processa um único documento e atualiza o ChromaDB "on-the-fly".
     Otimizado para ser consumido pelas rotas REST dinâmicas (ex: Upload).
@@ -574,6 +576,7 @@ def process_single_file(file_path: Path, is_update: bool = False) -> Optional[Ve
     Args:
         file_path: Caminho absoluto para o arquivo físico.
         is_update: Se verdadeiro, limpará os chunks anteriores do ChromaDB antes de re-ingerir.
+        tenant_id: ID do proprietário do arquivo para isolamento no RAG.
     """
     if not file_path.exists():
         logger.error(f"❌ Arquivo não encontrado: {file_path}")
@@ -591,7 +594,7 @@ def process_single_file(file_path: Path, is_update: bool = False) -> Optional[Ve
             chroma_client = get_chroma_client()
             try:
                 chroma_collection = chroma_client.get_collection(CHROMA_COLLECTION_NAME)
-                remove_obsolete_chunks(target_files, chroma_collection)
+                remove_obsolete_chunks(target_files, chroma_collection, tenant_id=tenant_id)
                 logger.info("   ✓ Vetores antigos removidos.")
             except Exception as e:
                  logger.warning(f"   ⚠️ Coleção ou vetores não encontrados para limpeza: {e}")
@@ -603,6 +606,10 @@ def process_single_file(file_path: Path, is_update: bool = False) -> Optional[Ve
     if not documents:
         logger.error(f"❌ Falha ao extrair payload de {file_path.name} ou extensão inválida.")
         return None
+        
+    # Injetar metadata do inquilino (Tenant)
+    for doc in documents:
+        doc.metadata["tenant_id"] = tenant_id
         
     # 2. Ingerir no Banco de Dados Vetorial (ChromaDB)
     index = ingest_data(documents=documents)
