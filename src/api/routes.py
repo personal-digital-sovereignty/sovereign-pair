@@ -29,36 +29,37 @@ async def chat_endpoint(request: Request, body_request: ChatRequest, engine=Depe
     """
     
     # Gerenciamento de Sessão: Criar ou Reaproveitar
-    if request.session_id:
-        session_obj = db.query(ChatSession).filter(ChatSession.id == request.session_id).first()
+    if body_request.session_id:
+        session_obj = db.query(ChatSession).filter(ChatSession.id == body_request.session_id).first()
         if not session_obj:
-            session_obj = ChatSession(title=request.message[:50])
+            session_obj = ChatSession(title=body_request.message[:50])
             db.add(session_obj)
             db.commit()
             db.refresh(session_obj)
     else:
-        session_obj = ChatSession(title=request.message[:50] + "...")
+        session_obj = ChatSession(title=body_request.message[:50] + "...")
         db.add(session_obj)
         db.commit()
         db.refresh(session_obj)
         
     # Grava a mensagem do Usuário no DB
-    user_msg_db = ChatMessage(session_id=session_obj.id, role="user", content=request.message)
+    user_msg_db = ChatMessage(session_id=session_obj.id, role="user", content=body_request.message)
     db.add(user_msg_db)
     db.commit()
 
-    if request.stream:
+    if body_request.stream:
         async def event_generator():
             # Injetar o documento ativo como memória do sistema (apenas se existir) para não sujar a busca BM25/Vector
             temp_sys_msg = None
-            if request.active_document:
+            if body_request.active_document:
                 from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
-                temp_sys_msg = LlamaMsg(role=MessageRole.USER, content=f"Aqui está o texto do meu documento ativo no Obsidian, APENAS CONSIDERE ele caso minha próxima pergunta tenha a ver com ele. NÃO invente informações se eu não perguntar:\n{request.active_document}")
+                temp_sys_msg = LlamaMsg(role=MessageRole.USER, content=f"Aqui está o texto do meu documento ativo no Obsidian, APENAS CONSIDERE ele caso minha próxima pergunta tenha a ver com ele. NÃO invente informações se eu não perguntar:\n{body_request.active_document}")
                 engine._memory.put(temp_sys_msg)
 
             try:
                 # Interceptar comando remoto /web
-                is_web_query = request.message.strip().startswith('/web')
+                is_web_query = body_request.message.strip().startswith('/web')
+                response = None
                 
                 if is_web_query:
                     import re
@@ -69,7 +70,7 @@ async def chat_endpoint(request: Request, body_request: ChatRequest, engine=Depe
                     
                     from datetime import datetime
                     
-                    web_args = request.message.strip()[4:].strip()
+                    web_args = body_request.message.strip()[4:].strip()
                     timelimit = None
                     match = re.match(r'^(-[dwmy])\s+(.*)', web_args)
                     if match:
@@ -98,13 +99,13 @@ EXTREMA IMPORTÂNCIA:
 5. Formate a resposta de forma polida e direta, citando os links originais sempre que pertinente."""
                         
                         sys_msg = LlamaMsg(role=MessageRole.SYSTEM, content=sys_prompt)
-                        context_msg = LlamaMsg(role=MessageRole.USER, content=f"Resultados Web (DuckDuckGo):\n{web_result}\n\nPergunta do usuário baseada na pesquisa web: {request.message}")
+                        context_msg = LlamaMsg(role=MessageRole.USER, content=f"Resultados Web (DuckDuckGo):\n{web_result}\n\nPergunta do usuário baseada na pesquisa web: {body_request.message}")
                         
                         # Injetar Histórico Base para a IA se lembrar do contexto da conversa
                         history_msgs = engine._memory.get_all() if engine else []
                         messages_to_send = [sys_msg] + history_msgs + [context_msg]
                         
-                        active_llm = resolve_dynamic_llm(request.provider, request.model, default_llm)
+                        active_llm = resolve_dynamic_llm(body_request.provider, body_request.model, default_llm)
                         response_gen = await active_llm.astream_chat(messages_to_send)
                         
                         full_ai_response = f"🌐 *Buscando na web...{time_info}*\n\n"
@@ -116,11 +117,11 @@ EXTREMA IMPORTÂNCIA:
                         full_ai_response = "⚠️  **Uso:** `/web <query>`\n\n**Filtros:** `/web -d` (dia), `/web -w` (semana), `/web -m` (mês), `/web -y` (ano)"
                         yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
 
-                elif request.message.strip().startswith('/sys'):
+                elif body_request.message.strip().startswith('/sys'):
                     from src.engine_builder import build_system_chat_engine
                     import logging
                     logger_routes = logging.getLogger(__name__)
-                    sys_query = request.message.strip()[4:].strip()
+                    sys_query = body_request.message.strip()[4:].strip()
                     
                     if not sys_query:
                         full_ai_response = "⚠️  **Uso:** `/sys <pergunta sobre a arquitetura do backend>`"
@@ -128,7 +129,7 @@ EXTREMA IMPORTÂNCIA:
                     else:
                         yield f"data: {json.dumps({'content': '🧠 *Consultando Sistema Meta-RAG...*\\n\\n'})}\n\n"
                         try:
-                            sys_engine = build_system_chat_engine(request.provider, request.model)
+                            sys_engine = build_system_chat_engine(body_request.provider, body_request.model)
                             if not sys_engine:
                                 full_ai_response = "❌ Erro: O Motor de Sistema não pôde ser iniciado. O banco vetorial foi criado?"
                                 yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
@@ -136,7 +137,7 @@ EXTREMA IMPORTÂNCIA:
                                 response = await sys_engine.astream_chat(sys_query)
                                 full_ai_response = "🧠 *Consultando Sistema Meta-RAG...*\\n\\n"
                                 
-                                async_gen = await response.async_response_gen()
+                                async_gen = response.async_response_gen()
                                 async for token in async_gen:
                                     full_ai_response += token
                                     yield f"data: {json.dumps({'content': token})}\n\n"
@@ -163,7 +164,7 @@ EXTREMA IMPORTÂNCIA:
 
                 else:
                     # Executar query_engine via coroutine nativa do LlamaIndex
-                    response = await engine.astream_chat(request.message)
+                    response = await engine.astream_chat(body_request.message)
                     
                     full_ai_response = ""
                     
@@ -171,7 +172,7 @@ EXTREMA IMPORTÂNCIA:
                         full_ai_response = str(response)
                         yield f"data: {json.dumps({'content': full_ai_response, 'session_id': session_obj.id})}\n\n"
                     else:
-                        async_gen = await response.async_response_gen()
+                        async_gen = response.async_response_gen()
                         async for token in async_gen:
                             full_ai_response += token
                             # Enviando tokens em formato padrão SSE
@@ -240,8 +241,8 @@ EXTREMA IMPORTÂNCIA:
         
     else:
         # Lógica para resposta sem streaming (síncrona)
-        is_web_query = request.message.strip().startswith('/web')
-        is_sys_query = request.message.strip().startswith('/sys')
+        is_web_query = body_request.message.strip().startswith('/web')
+        is_sys_query = body_request.message.strip().startswith('/sys')
         
         if is_web_query:
             import re
@@ -252,7 +253,7 @@ EXTREMA IMPORTÂNCIA:
             
             from datetime import datetime
             
-            web_args = request.message.strip()[4:].strip()
+            web_args = body_request.message.strip()[4:].strip()
             timelimit = None
             match = re.match(r'^(-[dwmy])\s+(.*)', web_args)
             if match:
@@ -280,13 +281,13 @@ EXTREMA IMPORTÂNCIA:
 5. Formate a resposta de forma polida e direta, citando os links originais sempre que pertinente."""
                 
                 sys_msg = LlamaMsg(role=MessageRole.SYSTEM, content=sys_prompt)
-                context_msg = LlamaMsg(role=MessageRole.USER, content=f"Resultados Web (DuckDuckGo):\n{web_result}\n\nPergunta do usuário baseada na pesquisa web: {request.message}")
+                context_msg = LlamaMsg(role=MessageRole.USER, content=f"Resultados Web (DuckDuckGo):\n{web_result}\n\nPergunta do usuário baseada na pesquisa web: {body_request.message}")
                 
                 # Injetar Histórico Base para a IA se lembrar do contexto da conversa
                 history_msgs = engine._memory.get_all() if engine else []
                 messages_to_send = [sys_msg] + history_msgs + [context_msg]
                 
-                active_llm = resolve_dynamic_llm(request.provider, request.model, default_llm)
+                active_llm = resolve_dynamic_llm(body_request.provider, body_request.model, default_llm)
                 response = await active_llm.achat(messages_to_send)
                 
                 full_ai_response = f"🌐 *Buscando na web...{time_info}*\n\n{str(response)}"

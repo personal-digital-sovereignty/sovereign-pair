@@ -57,7 +57,8 @@ def build_chat_engine(index, history=None, provider=None, model_name=None):
     logger.info("   📊 Carregando nós para índice BM25...")
     nodes = []
     try:
-        db_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+        from config import get_chroma_client
+        db_client = get_chroma_client()
         collection = db_client.get_collection(CHROMA_COLLECTION_NAME)
         result = collection.get()
         
@@ -110,34 +111,30 @@ def build_chat_engine(index, history=None, provider=None, model_name=None):
     from src.api.models import SystemSettings
     try:
         db = SessionLocal()
-        setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "system_prompt").first()
-        active_persona = setting.setting_value if setting and setting.setting_value else ASSISTANT_PERSONA
+        all_settings = db.query(SystemSettings).all()
+        settings_dict = {s.setting_key: s.setting_value for s in all_settings if s.setting_value}
         
-        formality_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "formality").first()
-        formality = formality_setting.setting_value if formality_setting else "neutral"
+        active_persona = settings_dict.get("system_prompt", ASSISTANT_PERSONA)
+        formality = settings_dict.get("formality", "neutral")
         
-        nickname_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "nickname").first()
-        nickname = nickname_setting.setting_value if nickname_setting and nickname_setting.setting_value.strip() else OWNER_NICKNAME
+        nickname = settings_dict.get("nickname", OWNER_NICKNAME)
+        nickname = nickname if nickname.strip() else OWNER_NICKNAME
         
-        occupation_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "occupation").first()
-        occupation = occupation_setting.setting_value if occupation_setting else OCCUPATION
+        occupation = settings_dict.get("occupation", OCCUPATION)
+        about_user = settings_dict.get("about_user", ABOUT_USER)
         
-        about_user_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "about_user").first()
-        about_user = about_user_setting.setting_value if about_user_setting else ABOUT_USER
+        language = settings_dict.get("language", LANGUAGE)
+        language = language if language.strip() else LANGUAGE
         
-        language_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "language").first()
-        language = language_setting.setting_value if language_setting and language_setting.setting_value.strip() else LANGUAGE
-
-        geolocation_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "geolocation").first()
-        geolocation = geolocation_setting.setting_value if geolocation_setting and geolocation_setting.setting_value.strip() else GEOLOCATION
+        geolocation = settings_dict.get("geolocation", GEOLOCATION)
+        geolocation = geolocation if geolocation.strip() else GEOLOCATION
         
-        provider_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "llm_provider").first()
-        db_provider = provider_setting.setting_value if provider_setting and provider_setting.setting_value.strip() else None
+        db_provider = settings_dict.get("llm_provider", None)
+        db_provider = db_provider if db_provider and db_provider.strip() else None
         
-        model_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "llm_model").first()
-        db_model = model_setting.setting_value if model_setting and model_setting.setting_value.strip() else None
+        db_model = settings_dict.get("llm_model", None)
+        db_model = db_model if db_model and db_model.strip() else None
         
-        db.close()
     except Exception as e:
         logger.error(f"   ❌ Erro ao ler configs dinâmicas: {e}")
         active_persona = ASSISTANT_PERSONA
@@ -149,6 +146,12 @@ def build_chat_engine(index, history=None, provider=None, model_name=None):
         geolocation = GEOLOCATION
         db_provider = None
         db_model = None
+    finally:
+        try:
+            db.close()
+        except:
+            pass
+
         
 
     gender_instruction = ""
@@ -202,3 +205,36 @@ def build_chat_engine(index, history=None, provider=None, model_name=None):
     )
     
     return chat_engine
+
+def build_system_chat_engine(provider=None, model_name=None):
+    """
+    Constrói a instância do ChatEngine específica para o Meta-RAG (System Knowledge).
+    Conecta-se à coleção isolada que contém o próprio código fonte do Sovereign.
+    """
+    logger.info("⚙️  Configurando System Chat Engine (Meta-RAG)...")
+    from config import CHROMA_SYSTEM_COLLECTION_NAME, get_chroma_client
+    from llama_index.vector_stores.chroma import ChromaVectorStore
+    from llama_index.core import VectorStoreIndex
+    
+    try:
+        db = get_chroma_client()
+        chroma_collection = db.get_collection(CHROMA_SYSTEM_COLLECTION_NAME)
+        vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+        index = VectorStoreIndex.from_vector_store(vector_store)
+        
+        active_llm = resolve_dynamic_llm(provider, model_name, default_llm)
+        
+        chat_engine = index.as_chat_engine(
+            llm=active_llm,
+            chat_mode="condense_plus_context",
+            system_prompt=(
+                "Você é o Meta-RAG do Sovereign Pair. Seu objetivo é ajudar o usuário a entender as "
+                "configurações, a arquitetura e o código fonte do sistema. Responda apenas com base no "
+                "conhecimento dos arquivos injetados no seu banco vetorial. Seja direto e escreva em "
+                "Português do Brasil."
+            )
+        )
+        return chat_engine
+    except Exception as e:
+        logger.error(f"❌ Erro ao construir System Chat Engine: {e}")
+        return None

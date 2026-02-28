@@ -59,7 +59,8 @@ def ingest_system_knowledge():
 
         # Setup isolated ChromaDB Collection
         CHROMA_DIR.mkdir(parents=True, exist_ok=True)
-        db = chromadb.PersistentClient(path=str(CHROMA_DIR))
+        from config import get_chroma_client
+        db = get_chroma_client()
         
         # Clear existing collection to ensure fresh code state on every boot
         try:

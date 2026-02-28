@@ -517,7 +517,8 @@ def ingest_data(documents: Optional[list] = None) -> Optional[VectorStoreIndex]:
         # Garantir que o diretório existe
         CHROMA_DIR.mkdir(parents=True, exist_ok=True)
         
-        db = chromadb.PersistentClient(path=str(CHROMA_DIR))
+        from config import get_chroma_client
+        db = get_chroma_client()
         chroma_collection = db.get_or_create_collection(CHROMA_COLLECTION_NAME)
         vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
@@ -586,7 +587,8 @@ def process_single_file(file_path: Path, is_update: bool = False) -> Optional[Ve
     if is_update:
         try:
             logger.info(f"🗑️ Removendo vetores antigos do arquivo {file_path.name}...")
-            chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+            from config import get_chroma_client
+            chroma_client = get_chroma_client()
             try:
                 chroma_collection = chroma_client.get_collection(CHROMA_COLLECTION_NAME)
                 remove_obsolete_chunks(target_files, chroma_collection)
@@ -669,7 +671,8 @@ def main():
             # Apenas limpar deletados
             if deleted_files:
                 logger.info(f"\n🗑️  Limpando {len(deleted_files)} arquivo(s) deletado(s)...")
-                chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+                from config import get_chroma_client
+                chroma_client = get_chroma_client()
                 chroma_collection = chroma_client.get_collection(CHROMA_COLLECTION_NAME)
                 remove_obsolete_chunks(deleted_files, chroma_collection)
                 
@@ -687,7 +690,8 @@ def main():
             # Limpar coleção existente no ChromaDB para evitar duplicatas/lixo
             try:
                 logger.info("   🗑️  Limpando banco de dados vetorial...")
-                chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+                from config import get_chroma_client
+                chroma_client = get_chroma_client()
                 try:
                     chroma_client.delete_collection(CHROMA_COLLECTION_NAME)
                     logger.info("      ✓ Coleção removida")
@@ -717,7 +721,8 @@ def main():
             # Remover chunks obsoletos ANTES de processar
             if modified_files or deleted_files:
                 logger.info("\n🗑️  Removendo chunks obsoletos...")
-                chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+                from config import get_chroma_client
+                chroma_client = get_chroma_client()
                 chroma_collection = chroma_client.get_collection(CHROMA_COLLECTION_NAME)
                 remove_obsolete_chunks(modified_files | deleted_files, chroma_collection)
             
