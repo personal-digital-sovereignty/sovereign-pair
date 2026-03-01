@@ -23,8 +23,15 @@
       </div>
 
       <!-- Editor Canvas -->
-      <div class="flex-1 overflow-y-auto relative">
-        <BlockEditor v-if="activeTabId" :fileId="activeTabId" :key="activeTabId" @editor-stats="handleEditorStats" />
+      <div class="flex-1 overflow-y-auto relative bg-[#0E0E10]">
+        <BlockEditor 
+           v-if="activeTabId" 
+           :fileId="activeTabId" 
+           :key="activeTabId" 
+           :viewMode="activeTabObject?.viewMode || 'visual'"
+           @editor-stats="handleEditorStats" 
+           @update-view-mode="handleUpdateViewMode"
+        />
         <div v-else class="absolute inset-0 flex flex-col items-center justify-center text-zinc-500">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-dashed opacity-20 mb-4"><path d="M20 22h-2"/><path d="M20 15v2"/><path d="M20 8v2"/><path d="M20 2v2"/><path d="M15 2h2"/><path d="M8 2h2"/><path d="M2 2h2"/><path d="M2 9v2"/><path d="M2 16v2"/><path d="M2 22h2"/><path d="M15 22h2"/><path d="m14 16-4-4"/><path d="m14 10-4 4"/></svg>
           <p class="text-lg font-light tracking-wide">Sensus Vault</p>
@@ -77,10 +84,19 @@ import SophiBar from '../components/Vault/SophiBar.vue'
 interface Tab {
   id: string
   name: string
+  viewMode?: 'visual' | 'source' | 'split'
 }
 
 const tabs = ref<Tab[]>([])
 const activeTabId = ref<string | null>(null)
+
+import { computed } from 'vue'
+const activeTabObject = computed(() => tabs.value.find(t => t.id === activeTabId.value))
+
+const handleUpdateViewMode = (mode: 'visual' | 'source' | 'split') => {
+  const tab = tabs.value.find(t => t.id === activeTabId.value)
+  if (tab) tab.viewMode = mode
+}
 
 // Status Bar State
 const editorStats = ref({ words: 0, links: 0, path: 'Carregando...' })
@@ -102,7 +118,7 @@ const handleSelectFile = (file: { id: string, name?: string }) => {
     activeTabId.value = targetId
   } else {
     // Abre nova tab
-    tabs.value.push({ id: targetId, name: fallbackName })
+    tabs.value.push({ id: targetId, name: fallbackName, viewMode: 'visual' })
     activeTabId.value = targetId
   }
 }

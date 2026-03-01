@@ -799,6 +799,53 @@ async def update_vault_document(doc_id: str, request: DocumentUpdateRequest, db:
         
     return {"message": "Document saved successfully", "id": doc.id}
 
+class TableCalcRequest(BaseModel):
+    cells: dict[str, str]
+    deleted_column: str | None = None
+
+class TableCalcResponse(BaseModel):
+    results: dict[str, str]
+    errors: dict[str, str]
+
+@router.post("/vault/table/evaluate", response_model=TableCalcResponse)
+@limiter.limit("60/minute")
+async def evaluate_table(request: Request, body: TableCalcRequest, tenant_id: str = Depends(get_current_user)):
+    """
+    Roteia o Input de Fórmulas da Tabela Vue (TipTap) para o AST Motor (The Accountant).
+    Avalia em tempo-real somas, referências e propaga Erros de Deleção.
+    """
+    from src.core.the_accountant import TheAccountant
+    
+    engine = TheAccountant()
+    
+    # Registra todas as células na RAM (Constrói a Grafo de Dependências)
+    for coord, content in body.cells.items():
+        engine.register_cell(coord, content)
+        
+    updates = {}
+    errors = {}
+    
+    # Se o front-end notificar que uma Coluna foi deletada (Ex: 'B')
+    if body.deleted_column:
+        # Puxa o efeito cascata no DAG
+        cascade_updates = engine.handle_cell_deletion(body.deleted_column)
+        for c_id, n_cont in cascade_updates:
+            updates[c_id] = n_cont
+            errors[c_id] = "#REF!"
+            
+    # Avalia matematicamente a nova topologia da tabela AST
+    eval_results = engine.evaluate_all()
+    
+    # Processa os resultados para enviar ao Frontend
+    for c_id, val in eval_results.items():
+        if c_id not in updates: # Evita sobrescrever uma detonação de coluna já feita
+            val_str = str(val)
+            updates[c_id] = val_str
+            if val_str in ["#REF!", "#CIRCULAR_REF!", "#ERROR!", "#DIV/0!"]:
+                errors[c_id] = val_str
+            
+    return TableCalcResponse(results=updates, errors=errors)
+
 @router.get("/vault/search")
 async def search_vault(q: str, db: Session = Depends(get_db)):
     """Pesquisa heurística super-rápida via SQLite LIKE no Título, Resumo Semântico e Tags."""
