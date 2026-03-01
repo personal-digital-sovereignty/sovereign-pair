@@ -133,6 +133,7 @@ primp==1.1.1
 propcache==0.4.1
 proto-plus==1.27.1
 protobuf==5.29.6
+prompt_toolkit==3.0.43
 psycopg2-binary==2.9.11
 pyasn1==0.6.2
 pyasn1_modules==0.4.2

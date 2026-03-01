@@ -53,6 +53,12 @@ from config import (  # noqa: E402
 # Configurar logger
 logger = logging.getLogger(__name__)
 
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
+
+console = Console()
+
 # Configuração do Logger
 if AGENT_VERBOSE:
     logging.getLogger().setLevel(logging.INFO)
@@ -118,70 +124,88 @@ def initialize_rag_tool() -> Optional[QueryEngineTool]:
 from web_search import search_web  # noqa: E402
 def print_welcome_message():
     """Exibe mensagem de boas-vindas."""
-    print("\n" + "=" * 70)
-    print("🤖 SOVEREIGN PAIR - Agente de Pair Programming")
-    print("=" * 70)
-    print(f"\nOlá, {OWNER_NAME}! 👋")
-    print("\nEu posso ajudar você com:")
-    print("  • Buscar informações nos seus arquivos locais")
-    print("  • Buscar informações atualizadas na internet")
-    print("  • Responder perguntas e auxiliar no desenvolvimento")
-    print("\nComandos especiais:")
-    print("  /help          - Mostrar esta mensagem")
-    print("  /clear         - Limpar histórico de conversação")
-    print("  /web <query>   - Buscar na internet (DuckDuckGo)")
-    print("  sair           - Encerrar o programa")
-    print("\n" + "=" * 70 + "\n")
+    welcome_text = f"""
+Oi, **{OWNER_NAME}**! 👋
+
+Eu posso ajudar você com:
+- Buscar informações nos seus **arquivos locais**
+- Buscar informações atualizadas na **internet**
+- Responder perguntas e auxiliar no desenvolvimento
+
+**Comandos especiais:**
+- `/help`          - Mostrar esta mensagem
+- `/clear`         - Limpar histórico de conversação
+- `/web <query>`   - Buscar na internet (DuckDuckGo)
+- `sair`           - Encerrar o programa
+    """
+    console.print(Panel(
+        Markdown(welcome_text.strip()), 
+        title="🤖 SOVEREIGN PAIR - Agente de Pair Programming", 
+        border_style="cyan"
+    ))
 
 
 def print_help():
     """Exibe mensagem de ajuda."""
-    print("\n" + "=" * 70)
-    print("📖 AJUDA - Sovereign Pair")
-    print("=" * 70)
-    print("\nComandos disponíveis:")
-    print("  /help   - Mostrar esta mensagem de ajuda")
-    print("  /clear  - Limpar o histórico de conversação")
-    print("  sair    - Encerrar o programa")
-    print("\nDicas:")
-    print("  • Seja específico nas suas perguntas")
-    print("  • O agente escolherá automaticamente entre busca local ou web")
-    print("  • Para forçar busca local, mencione 'nos meus arquivos'")
-    print("  • Para forçar busca web, mencione 'na internet' ou 'atualizado'")
-    print("=" * 70 + "\n")
+    help_text = """
+**Comandos disponíveis:**
+- `/help`   - Mostrar esta mensagem de ajuda
+- `/clear`  - Limpar o histórico de conversação
+- `sair`    - Encerrar o programa
+
+**Dicas:**
+- Seja específico nas suas perguntas
+- O agente escolherá automaticamente entre busca local ou web
+- Para forçar busca local, mencione "nos meus arquivos"
+- Para forçar busca web, mencione "na internet" ou "atualizado"
+    """
+    console.print(Panel(
+        Markdown(help_text.strip()),
+        title="📖 AJUDA - Sovereign Pair",
+        border_style="blue"
+    ))
 
 
 async def main():
     """Função principal do agente (Assíncrona)."""
     try:
+        from config import OLLAMA_BASE_URL
+        import config
+        # Fallback local para testes da CLI fora da Docker network
+        if "http://ollama:" in config.OLLAMA_BASE_URL:
+            config.OLLAMA_BASE_URL = config.OLLAMA_BASE_URL.replace("http://ollama:", "http://localhost:")
+            logger.info(f"Substituição de rede Docker ativada para modo CLI puro. Ollama em {config.OLLAMA_BASE_URL}")
+
         # Validar conexão com Ollama
+        console.print("[yellow]🔍 Validando conexão com Ollama...[/yellow]")
         logger.info("🔍 Validando conexão com Ollama...")
         if not validate_ollama_connection():
-            print("\n❌ Erro: Não foi possível conectar ao Ollama.")
-            print("   Certifique-se de que o Ollama está rodando:")
-            print("   $ ollama serve")
+            console.print("\n[bold red]❌ Erro: Não foi possível conectar ao Ollama.[/bold red]")
+            console.print("   Certifique-se de que o Ollama está rodando:")
+            console.print("   [cyan]$ ollama serve[/cyan]")
             sys.exit(1)
         
         # Validar modelos
+        console.print("[yellow]🔍 Validando modelos Ollama...[/yellow]")
         logger.info("🔍 Validando modelos Ollama...")
         models_ok, missing_models = validate_ollama_models()
         if not models_ok:
-            print(f"\n⚠️  Modelos faltando no Ollama: {', '.join(missing_models)}")
-            print("   Iniciando download automático (isso pode demorar minutos ou horas dependendo da sua conexão)...")
+            console.print(f"\n[bold yellow]⚠️  Modelos faltando no Ollama: {', '.join(missing_models)}[/bold yellow]")
+            console.print("   Iniciando download automático (isso pode demorar minutos ou horas dependendo da sua conexão)...")
             for model in missing_models:
-                print(f"   Baixando {model}...")
+                console.print(f"   Baixando {model}...")
                 try:
                     subprocess.run(["ollama", "pull", model], check=True)
-                    print(f"   ✓ {model} baixado com sucesso!")
+                    console.print(f"   [bold green]✓ {model} baixado com sucesso![/bold green]")
                 except FileNotFoundError:
-                    print("\n❌ Erro: O comando 'ollama' não foi encontrado no seu sistema.")
-                    print("   Por favor, instale o Ollama em https://ollama.com/")
+                    console.print("\n[bold red]❌ Erro: O comando 'ollama' não foi encontrado no seu sistema.[/bold red]")
+                    console.print("   Por favor, instale o Ollama em https://ollama.com/")
                     sys.exit(1)
                 except subprocess.CalledProcessError:
-                    print(f"\n❌ Erro ao baixar o modelo {model}.")
-                    print(f"   Por favor, rode manualmente: ollama pull {model}")
+                    console.print(f"\n[bold red]❌ Erro ao baixar o modelo {model}.[/bold red]")
+                    console.print(f"   Por favor, rode manualmente: ollama pull {model}")
                     sys.exit(1)
-            print("   ✓ Todos os modelos prontos!")
+            console.print("   [bold green]✓ Todos os modelos prontos![/bold green]")
         
         logger.info("   ✓ Ollama configurado corretamente")
         
@@ -199,8 +223,8 @@ async def main():
         #     tools.append(web_tool)
         
         if not tools:
-            print("\n❌ Erro: Nenhuma ferramenta disponível.")
-            print("   Execute 'python ingest.py' para indexar documentos.")
+            console.print("\n[bold red]❌ Erro: Nenhuma ferramenta disponível.[/bold red]")
+            console.print("   Execute 'python ingest.py' para indexar documentos.")
             sys.exit(1)
         
         # MODO DIRETO (Fast RAG) - Sem ReAct Loop
@@ -216,32 +240,49 @@ async def main():
         
         print_welcome_message()
         
-        model_name = getattr(chat_engine.llm, "model", "Motor Desconhecido")
+        model_name = getattr(chat_engine._llm, "model", "Motor Desconhecido")
         
-        print(f"\n💡 Dica: Modo Turbo Ativado! (Usando {model_name})")
-        print("   Pergunte sobre seus arquivos. Digite 'sair' para encerrar.\n")
+        console.print(f"\n[bold cyan]💡 Dica:[/bold cyan] Modo Turbo Ativado! (Usando {model_name})")
+        console.print("   Pergunte sobre seus arquivos. Digite 'sair' para encerrar.\n")
+        
+        # Configurar prompt_toolkit
+        from prompt_toolkit import PromptSession
+        from prompt_toolkit.completion import WordCompleter
+        from prompt_toolkit.history import InMemoryHistory
+        
+        command_completer = WordCompleter([
+            '/help', '/clear', '/web', 'sair', 'exit', 'quit'
+        ], ignore_case=True)
+        
+        session = PromptSession(
+            history=InMemoryHistory(),
+            completer=command_completer,
+        )
+
         
         while True:
             try:
-                prompt = input(f"\n{OWNER_NAME} > ").strip()
-                if not prompt:
+                # Usar prompt_toolkit em vez de input()
+                prompt_text = session.prompt(f"\n{OWNER_NAME} > ").strip()
+                
+                if not prompt_text:
                     continue
                 
-                if prompt.lower() in ['sair', 'exit', 'quit']:
-                    print(f"\n👋 Até logo, {OWNER_NAME}!")
+                if prompt_text.lower() in ['sair', 'exit', 'quit']:
+                    console.print(f"\n👋 [bold green]Até logo, {OWNER_NAME}![/bold green]")
                     break
                 
-                if prompt == '/help':
+                if prompt_text == '/help':
                     print_welcome_message()
                     continue
                 
-                if prompt == '/clear':
-                    print("\n🧹 Limpando histórico local...")
+                if prompt_text == '/clear':
+                    console.print("\n🧹 Limpando histórico local...")
                     chat_engine.reset()
                     continue
                 
-                if prompt.startswith('/web'):
-                    web_args = prompt[4:].strip()
+                if prompt_text.startswith('/web'):
+                    web_args = prompt_text[4:].strip()
                     # Parsear filtro temporal com regex para lidar com múltiplos espaços: /web -d query
                     timelimit = None
                     match = re.match(r'^(-[dwmy])\s+(.*)', web_args)
@@ -254,24 +295,28 @@ async def main():
                     if web_query:
                         time_labels = {'d': '24h', 'w': 'semana', 'm': 'mês', 'y': 'ano'}
                         time_info = f" 🕐 {time_labels[timelimit]}" if timelimit else ""
-                        print(f"\n🌐 Buscando na web...{time_info}\n")
+                        console.print(f"\n🌐 Buscando na web...{time_info}\n")
                         web_result = search_web(web_query, timelimit=timelimit)
-                        print(web_result)
+                        console.print(Markdown(web_result))
                         print()
                     else:
-                        print("\n⚠️  Uso: /web <query>")
-                        print("   Filtros: /web -d (dia), /web -w (semana), /web -m (mês), /web -y (ano)")
+                        console.print("\n⚠️  [yellow]Uso: /web <query>[/yellow]")
+                        console.print("   Filtros: /web -d (dia), /web -w (semana), /web -m (mês), /web -y (ano)")
                     continue
 
                 # Processar pergunta (Stream para velocidade percebida)
                 # Gerar resposta (Streaming para evitar timeout visual e dar feedback imediato)
-                streaming_response = chat_engine.stream_chat(prompt)
+                streaming_response = chat_engine.stream_chat(prompt_text)
                 
-                print("Sovereign IA > ", end="", flush=True)
+                console.print("[bold purple]Sovereign IA >[/bold purple]", end=" ")
                 full_response = ""
-                for token in streaming_response.response_gen:
-                    print(token, end="", flush=True)
-                    full_response += token
+                
+                from rich.live import Live
+                
+                with Live(Markdown(""), refresh_per_second=15, console=console) as live:
+                    for token in streaming_response.response_gen:
+                        full_response += token
+                        live.update(Markdown(full_response))
                 
                 # ---- EXTRAÇÃO DE CITAÇÕES E FONTES ----
                 source_nodes = getattr(streaming_response, "source_nodes", [])
@@ -289,26 +334,29 @@ async def main():
                             unique_sources.add(f"📄 {metadata['file_name']}")
                     
                     if unique_sources:
-                        print("\n\n**Fontes:**")
+                        console.print("\n\n**Fontes:**")
                         for source in sorted(unique_sources):
-                            print(f"  - {source}")
+                            console.print(f"  - [cyan]{source}[/cyan]")
                 
                 print("\n")
             except KeyboardInterrupt:
-                print(f"\n👋 Até logo, {OWNER_NAME}!")
+                console.print(f"\n👋 [bold green]Até logo, {OWNER_NAME}![/bold green]")
                 break
-            
+            except EOFError:
+                # Ctrl+D
+                console.print(f"\n👋 [bold green]Até logo, {OWNER_NAME}![/bold green]")
+                break
             except Exception as e:
                 logger.error(f"❌ Erro ao processar pergunta: {e}")
-                print(f"\n❌ Erro: {e}")
-                print("Tente novamente ou digite '/help' para ajuda.\n")
+                console.print(f"\n[bold red]❌ Erro: {e}[/bold red]")
+                console.print("Tente novamente ou digite '/help' para ajuda.\n")
         
     except KeyboardInterrupt:
         logger.info("\n\n👋 Encerrando o programa...")
         sys.exit(0)
     except Exception as e:
         logger.exception("❌ Erro fatal não tratado:")
-        print(f"\n❌ Erro fatal: {e}")
+        console.print(f"\n[bold red]❌ Erro fatal: {e}[/bold red]")
         sys.exit(1)
 
 
