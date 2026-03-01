@@ -13,8 +13,8 @@ from dotenv import load_dotenv
 from llama_index.core import Settings
 from src.llm_factory import get_llm, get_embedding_model
 
-# 1. Carregar variáveis de ambiente do arquivo .env local (sobrescreve o global para dev)
-load_dotenv(override=True)
+# 1. Carregar variáveis de ambiente do arquivo .env local (Não sobrescreve envs já injetados, ex: pela CLI)
+load_dotenv(override=False)
 
 # 2. Carregar configuração global do SO (se existir e preencher o que faltar)
 global_conf = Path(os.environ.get("SOVEREIGN_CONF", "~/.config/sovereign.conf")).expanduser()
@@ -101,13 +101,25 @@ INTERACTIVE_MODE = os.getenv("INTERACTIVE_MODE", "true").lower() == "true"
 
 
 # ============================================================================
-# CONFIGURAÇÕES DE PROVIDERS (API & LLM)
+# LLM & EMBEDDING CONFIGURATION
 # ============================================================================
 
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama").strip().lower()
 EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", LLM_PROVIDER).strip().lower()
 
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").strip()
+
+# Correção Automática de Hostname se rodando Nativo (Fora do Docker)
+# Se o .env tiver "http://ollama:11434" mas rodarmos via CLI nativa, o request falharia silenciosamente no LlamaIndex ("Empty Response").
+if "ollama:11434" in OLLAMA_BASE_URL and not os.path.exists('/.dockerenv'):
+    OLLAMA_BASE_URL = OLLAMA_BASE_URL.replace("ollama:11434", "localhost:11434")
+
+# LlamaIndex env vars global behavior
+os.environ["OLLAMA_BASE_URL"] = OLLAMA_BASE_URL
+# Fallback local para CLI e scripts rodando na máquina hospedeira
+if "http://ollama:" in OLLAMA_BASE_URL and not os.getenv("CHROMA_HOST"):
+    OLLAMA_BASE_URL = OLLAMA_BASE_URL.replace("http://ollama:", "http://localhost:")
+    
 LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2")
 EMBED_MODEL_NAME = os.getenv("EMBED_MODEL", "bge-m3")
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "300.0"))

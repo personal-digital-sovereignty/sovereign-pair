@@ -164,20 +164,46 @@ EXTREMA IMPORTÂNCIA:
                             yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
 
                 else:
-                    # Executar query_engine via coroutine nativa do LlamaIndex
-                    response = await engine.astream_chat(body_request.message)
+                    from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
+                    import asyncio
+                    
+                    # 1. Recuperar contexto do banco vetorial via Async
+                    try:
+                        source_nodes = await engine._retriever.aretrieve(body_request.message)
+                    except Exception:
+                        source_nodes = await asyncio.to_thread(engine._retriever.retrieve, body_request.message)
+                        
+                    # 2. Formatar o contexto
+                    context_str = "\n\n".join([f"Documento (Path: {n.node.metadata.get('file_path', 'N/A')}):\n{n.node.get_content()}" for n in source_nodes]) if source_nodes else "Nenhum documento vetorial encontrado."
+                    
+                    # 3. Montar mensagens manuais para BYPASS no LlamaIndex ChatEngine Buggy
+                    sys_prompt = "Você é a inteligência artificial Sovereign Pair."
+                    try:
+                        # Extrai o system prompt verdadeiro injetado na engine_builder
+                        sys_prompt = engine.memory.get_all()[0].content if engine.memory.get_all()[0].role == MessageRole.SYSTEM else sys_prompt
+                    except Exception:
+                        pass
+                        
+                    sys_msg = LlamaMsg(role=MessageRole.SYSTEM, content=sys_prompt)
+                    user_rag_msg = LlamaMsg(role=MessageRole.USER, content=f"Contexto do Sistema (RAG Vault):\n-------------------\n{context_str}\n-------------------\n\nResponda strictamente baseando-se no contexto acima.\nPergunta: {body_request.message}")
+                    
+                    history_msgs = engine.memory.get_all() if getattr(engine, 'memory', None) else []
+                    history_msgs = [m for m in history_msgs if m.role != MessageRole.SYSTEM] # avoid duplicate system prompts
+                    
+                    messages_to_send = [sys_msg] + history_msgs + [user_rag_msg]
+                    
+                    from src.engine_builder import resolve_dynamic_llm
+                    from src.config import llm as default_llm
+                    active_llm = resolve_dynamic_llm(body_request.provider, body_request.model, default_llm)
+                    
+                    print(f"[DEBUG RAG] Executando Inference bypass LlamaIndex via {getattr(active_llm, 'model', 'N/A')}...", flush=True)
+                    response_gen = await active_llm.astream_chat(messages_to_send)
                     
                     full_ai_response = ""
-                    
-                    if isinstance(response, str) or not hasattr(response, 'async_response_gen'):
-                        full_ai_response = str(response)
-                        yield f"data: {json.dumps({'content': full_ai_response, 'session_id': session_obj.id})}\n\n"
-                    else:
-                        async_gen = response.async_response_gen()
-                        async for token in async_gen:
-                            full_ai_response += token
-                            # Enviando tokens em formato padrão SSE
-                            yield f"data: {json.dumps({'content': token})}\n\n"
+                    async for token in response_gen:
+                        if token.delta:
+                            full_ai_response += token.delta
+                            yield f"data: {json.dumps({'content': token.delta})}\n\n"
                         
                 # Após o streaming, verifique se a resposta foi apenas um aviso de que não achou o documento.
                 if full_ai_response:
@@ -186,36 +212,27 @@ EXTREMA IMPORTÂNCIA:
                         "não sei", "não tenho", "não encontrei", "não consigo", "desculpe", "fora do contexto", "não menciona", "não há informações", "não possui informações"
                     ])
                     
-                    # Sinais de que é apenas conversa ou resposta curta
                     is_trivial_chit_chat = len(texto) < 400 and not any(word in texto for word in [
                         "contexto", "documento", "arquivo", "anotação", "base", "projeto", "código", "relatório", "anexo"
                     ])
                     
                     if not (is_denial or is_trivial_chit_chat):
-                        source_nodes = getattr(response, "source_nodes", [])
+                        # Usa a variável source_nodes alimentada manualmente no bloco normal, ou mocka se for /web!
+                        s_nodes = locals().get('source_nodes', [])
                         sources = set()
-                        if source_nodes:
-                            for node_w_score in source_nodes:
-                                metadata = node_w_score.node.metadata
-                                if not metadata:
-                                    continue
-                                    
-                                file_path = metadata.get("file_path") or ""
-                                file_name = metadata.get("file_name") or ""
-                                
-                                # Heurística: Só cita a fonte na interface se a IA explicitamente 
-                                # usou/mencionou o nome do arquivo, ou parte dele, na resposta.
-                                # Isso evita listar arquivos aleatórios que o BM25 puxou mas a IA ignorou.
-                                nome_base = str(file_name).replace('.md', '').replace('.txt', '').lower()
-                                
+                        for node_w_score in s_nodes:
+                            metadata = node_w_score.node.metadata
+                            if metadata:
+                                file_path = metadata.get("file_path") or metadata.get("file_name") or ""
+                                nome_base = str(file_path).replace('.md', '').replace('.txt', '').split('/')[-1].lower()
                                 if nome_base and nome_base in texto:
-                                    sources.add(f"📄 {file_path if file_path else file_name}")
+                                    sources.add(f"📄 {file_path}")
                                     
-                            if sources:
-                                sources_str = "\n".join(sources)
-                                final_msg = f"\n\n**Fontes:**\n{sources_str}"
-                                full_ai_response += final_msg
-                                yield f"data: {json.dumps({'content': final_msg})}\n\n"
+                        if sources:
+                            sources_str = "\n".join(sources)
+                            final_msg = f"\n\n**Fontes:**\n{sources_str}"
+                            full_ai_response += final_msg
+                            yield f"data: {json.dumps({'content': final_msg})}\n\n"
                                 
                 # Gravar a mensagem da IA no banco de dados AO FINAL do streaming
                 ai_msg_db = ChatMessage(session_id=session_obj.id, role="assistant", content=full_ai_response, tenant_id=tenant_id)
@@ -578,23 +595,36 @@ def get_settings(request: Request, db: Session = Depends(get_db), tenant_id: str
 @limiter.limit("60/minute")
 def update_settings(request: Request, body_request: SettingsRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Persist the changes in system behavior using key-value entries in the database."""
-    _set_setting_value(db, "llm_provider", body_request.llm_provider, tenant_id)
-    _set_setting_value(db, "llm_model", body_request.llm_model, tenant_id)
-    _set_setting_value(db, "temperature", str(body_request.temperature), tenant_id)
-    _set_setting_value(db, "system_prompt", body_request.system_prompt, tenant_id)
-    _set_setting_value(db, "theme", body_request.theme, tenant_id)
-    _set_setting_value(db, "persona", body_request.persona, tenant_id)
-    _set_setting_value(db, "formality", body_request.formality, tenant_id)
-    _set_setting_value(db, "ai_name", body_request.ai_name, tenant_id)
-    _set_setting_value(db, "nickname", body_request.nickname, tenant_id)
-    _set_setting_value(db, "occupation", body_request.occupation, tenant_id)
-    _set_setting_value(db, "about_user", body_request.about_user, tenant_id)
-    _set_setting_value(db, "language", body_request.language, tenant_id)
-    _set_setting_value(db, "geolocation", body_request.geolocation, tenant_id)
-    db.commit()
+    try:
+        _set_setting_value(db, "llm_provider", body_request.llm_provider, tenant_id)
+        _set_setting_value(db, "llm_model", body_request.llm_model, tenant_id)
+        _set_setting_value(db, "temperature", str(body_request.temperature), tenant_id)
+        _set_setting_value(db, "system_prompt", body_request.system_prompt, tenant_id)
+        _set_setting_value(db, "theme", body_request.theme, tenant_id)
+        _set_setting_value(db, "persona", body_request.persona, tenant_id)
+        _set_setting_value(db, "formality", body_request.formality, tenant_id)
+        _set_setting_value(db, "ai_name", body_request.ai_name, tenant_id)
+        _set_setting_value(db, "nickname", body_request.nickname, tenant_id)
+        _set_setting_value(db, "occupation", body_request.occupation, tenant_id)
+        _set_setting_value(db, "about_user", body_request.about_user, tenant_id)
+        _set_setting_value(db, "language", body_request.language, tenant_id)
+        _set_setting_value(db, "geolocation", body_request.geolocation, tenant_id)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        from fastapi import HTTPException
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail=str(e))
     
     # Fake a request to reuse get_settings which now expects a Request object
-    return get_settings(request=request, db=db, tenant_id=tenant_id)
+    try:
+        return get_settings(request=request, db=db, tenant_id=tenant_id)
+    except Exception as e:
+        from fastapi import HTTPException
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail="Error inside get_settings: " + str(e))
 
 @router.get("/ollama/models")
 @limiter.limit("60/minute")
@@ -632,8 +662,42 @@ def background_ollama_pull(model_name: str, base_url: str):
 
 @router.post("/ollama/pull")
 @limiter.limit("10/minute")
-async def pull_ollama_model(request: Request, body_request: PullModelRequest, background_tasks: BackgroundTasks, tenant_id: str = Depends(get_current_user)):
+async def pull_ollama_model(request: Request, body_request: PullModelRequest, tenant_id: str = Depends(get_current_user)):
+    """
+    Inicia o pull de um modelo Ollama e retorna o progresso do download via SSE (Server-Sent Events).
+    """
     from src.config import OLLAMA_BASE_URL
-    background_tasks.add_task(background_ollama_pull, body_request.model, OLLAMA_BASE_URL)
-    return {"status": "success", "message": f"Download do modelo {body_request.model} iniciado em background."}
+    import httpx
+    import json
+    from fastapi.responses import StreamingResponse
+
+    async def event_generator():
+        try:
+            # Conexão Async com timeout grande para downloads massivos (1h = 3600s)
+            async with httpx.AsyncClient(timeout=3600.0) as client:
+                async with client.stream("POST", f"{OLLAMA_BASE_URL}/api/pull", json={"name": body_request.model, "stream": True}) as response:
+                    response.raise_for_status()
+                    async for chunk in response.aiter_lines():
+                        if chunk:
+                            try:
+                                # Ollama envia um JSON para cada atualização de progresso
+                                data = json.loads(chunk)
+                                # Encapsulando o chunk original dentro do formato SSE do nosso frontend
+                                yield f"data: {json.dumps(data)}\n\n"
+                                
+                                # Se terminou o download com sucesso
+                                if data.get("status") == "success":
+                                    break
+                            except json.JSONDecodeError:
+                                print(f"Erro no parse de Chunk de Pull do Ollama: {chunk}")
+                                yield f"data: {json.dumps({'status': 'error', 'error': 'JSON Chunk Error'})}\n\n"
+                                continue
+        except httpx.HTTPStatusError as e:
+             yield f"data: {json.dumps({'status': 'error', 'error': f'Ollama HTTP Error: {e.response.status_code}'})}\n\n"
+        except Exception as e:
+             yield f"data: {json.dumps({'status': 'error', 'error': str(e)})}\n\n"
+        finally:
+             yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 

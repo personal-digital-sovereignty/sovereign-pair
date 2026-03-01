@@ -2,7 +2,7 @@ import logging
 import chromadb
 from llama_index.core.schema import TextNode
 from llama_index.core.retrievers.fusion_retriever import QueryFusionRetriever, FUSION_MODES
-from llama_index.core.chat_engine import ContextChatEngine
+from llama_index.core.chat_engine import CondensePlusContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
 from custom_retrievers import CustomBM25Retriever
 from config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm as default_llm, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
@@ -191,8 +191,8 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
     model_log = model_name or getattr(active_llm, "model", "Local")
     logger.info(f"   🧠 Engine inicializada via {provider_log.upper()} com modelo {model_log}")
 
-    # Criar Chat Engine com Retriever Híbrido
-    chat_engine = ContextChatEngine.from_defaults(
+    # Criar Chat Engine com Retriever Híbrido e Condensador Explícito
+    chat_engine = CondensePlusContextChatEngine.from_defaults(
         retriever=hybrid_retriever,
         llm=active_llm,
         memory=memory, # Memória bufferizada re-hidratada
