@@ -17,6 +17,7 @@ def main():
     # Comando 'start'
     parser_start = subparsers.add_parser("start", help="Inicia o Sovereign Pair")
     parser_start.add_argument("--full", action="store_true", help="Inicia Backend API e Web UI simultaneamente")
+    parser_start.add_argument("--desktop", action="store_true", help="Inicia Backend e Web UI de forma combinada como um App Nativo isolado")
     parser_start.add_argument("--web", action="store_true", help="Inicia apenas o Front-end Web UI")
     parser_start.add_argument("--server", "--local", action="store_true", help="Inicia apenas o Backend (Padrão)")
     parser_start.add_argument("--port", type=int, default=8000, help="Porta para o RAG Backend (Padrão: 8000)")
@@ -44,7 +45,7 @@ def main():
     parser_setup = subparsers.add_parser("setup", help="Assistente passo a passo da CLI para Gerar ~/.config/sovereign.conf")  # noqa: F841
 
     # Comando 'chat'
-    parser_chat = subparsers.add_parser("chat", help="Modo Interativo 100% Terminal (Agente RAG Local)")
+    parser_chat = subparsers.add_parser("chat", help="Modo Interativo 100%% Terminal (Agente RAG Local)")
     # Argumentos Override para Chat
     parser_chat.add_argument("--provider", type=str, help="Força provedor LLM (ex: ollama, openai)")
     parser_chat.add_argument("--model", type=str, help="Força o modelo LLM")
@@ -75,11 +76,12 @@ def main():
     # Comportamento padrão se não enviar sub-comando: assume 'start --server'
     if not args.command:
         # Verifica se passou flags soltas sem "start", como `python cli.py --full`
-        if "--full" in sys.argv or "--web" in sys.argv or "--server" in sys.argv or "--local" in sys.argv:
+        if "--full" in sys.argv or "--web" in sys.argv or "--server" in sys.argv or "--local" in sys.argv or "--desktop" in sys.argv:
              parser.parse_args(["start"] + sys.argv[1:], namespace=args)
         else:
              setattr(args, "server", True)
              setattr(args, "full", False)
+             setattr(args, "desktop", False)
              setattr(args, "web", False)
              setattr(args, "port", 8000)
 
@@ -111,7 +113,7 @@ def main():
     import src.config as config
 
     # Se chamou start explícito ou fallback via sys.argv flags
-    if args.command == "start" or getattr(args, "full", False) or getattr(args, "web", False) or getattr(args, "server", False):
+    if args.command == "start" or getattr(args, "full", False) or getattr(args, "web", False) or getattr(args, "server", False) or getattr(args, "desktop", False):
         if hasattr(args, "full") and args.full:
             port = getattr(args, "port", 8000)
             print(f"🚀 Iniciando Sovereign Pair ({config.SOVEREIGN_NAME}) no modo FULL na porta {port}...")
@@ -120,6 +122,47 @@ def main():
                 subprocess.run(["npm", "run", "dev"], cwd=str(config.BASE_DIR / "web-ui"))
             except KeyboardInterrupt:
                 api_process.terminate()
+        elif hasattr(args, "desktop") and args.desktop:
+            port = getattr(args, "port", 8000)
+            print(f"🚀 Iniciando Sovereign Pair ({config.SOVEREIGN_NAME}) no Modo DESKTOP STANDALONE...")
+            api_process = subprocess.Popen([sys.executable, "-m", "uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", str(port)])
+            
+            # Rodar o Vite em background suprimindo os logs massivos
+            import time
+            web_process = subprocess.Popen(
+                ["npm", "run", "dev"], 
+                cwd=str(config.BASE_DIR / "web-ui"),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            
+            time.sleep(2) # Dar tempo do Vite subir rápido na RAM
+            print(f"🖥️  Invocando Interface Gráfica Nativa...")
+            
+            try:
+                # Tenta chamar o google-chrome ou chromium em modo aplicativo isolado (sem barras de URL)
+                chrome_cmds = ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"]
+                launched = False
+                for cmd in chrome_cmds:
+                    import shutil
+                    if shutil.which(cmd):
+                        subprocess.run([cmd, "--app=http://localhost:5173", "--window-size=1200,900"])
+                        launched = True
+                        break
+                
+                if not launched:
+                    print("⚠️  Nenhum navegador compatível com modo Standalone '--app' foi encontrado.")
+                    print("Por favor, abra 'http://localhost:5173' manualmente.")
+                    # Fallback segurar processo aberto
+                    web_process.wait()
+                    
+            except KeyboardInterrupt:
+                api_process.terminate()
+                web_process.terminate()
+            finally:
+                api_process.terminate()
+                web_process.terminate()
+                
         elif hasattr(args, "web") and args.web:
             print("🚀 Iniciando Web UI de forma isolada...")
             subprocess.run(["npm", "run", "dev"], cwd=str(config.BASE_DIR / "web-ui"))
