@@ -176,34 +176,54 @@ EXTREMA IMPORTÂNCIA:
                     # 2. Formatar o contexto
                     context_str = "\n\n".join([f"Documento (Path: {n.node.metadata.get('file_path', 'N/A')}):\n{n.node.get_content()}" for n in source_nodes]) if source_nodes else "Nenhum documento vetorial encontrado."
                     
-                    # 3. Montar mensagens manuais para BYPASS no LlamaIndex ChatEngine Buggy
-                    sys_prompt = "Você é a inteligência artificial Sovereign Pair."
-                    try:
-                        # Extrai o system prompt verdadeiro injetado na engine_builder
-                        sys_prompt = engine.memory.get_all()[0].content if engine.memory.get_all()[0].role == MessageRole.SYSTEM else sys_prompt
-                    except Exception:
-                        pass
+                    # --- NEW: Phase 16.5 - The Semantic Router (Nurse Triage) ---
+                    from src.core.the_nurse import TheNurse
+                    nurse = TheNurse(body_request.provider, body_request.model)
+                    intent_data = await nurse.evaluate_intent(body_request.message)
+                    
+                    if not intent_data.get("requires_doctor", True):
+                        # Execução Tática Ultra-Rápida pela "Enfermeira"
+                        response_gen = await nurse.execute_tactical_task(body_request.message, context_str, intent_data)
                         
-                    sys_msg = LlamaMsg(role=MessageRole.SYSTEM, content=sys_prompt)
-                    user_rag_msg = LlamaMsg(role=MessageRole.USER, content=f"Contexto do Sistema (RAG Vault):\n-------------------\n{context_str}\n-------------------\n\nResponda strictamente baseando-se no contexto acima.\nPergunta: {body_request.message}")
-                    
-                    history_msgs = engine.memory.get_all() if getattr(engine, 'memory', None) else []
-                    history_msgs = [m for m in history_msgs if m.role != MessageRole.SYSTEM] # avoid duplicate system prompts
-                    
-                    messages_to_send = [sys_msg] + history_msgs + [user_rag_msg]
-                    
-                    from src.engine_builder import resolve_dynamic_llm
-                    from src.config import llm as default_llm
-                    active_llm = resolve_dynamic_llm(body_request.provider, body_request.model, default_llm)
-                    
-                    print(f"[DEBUG RAG] Executando Inference bypass LlamaIndex via {getattr(active_llm, 'model', 'N/A')}...", flush=True)
-                    response_gen = await active_llm.astream_chat(messages_to_send)
-                    
-                    full_ai_response = ""
-                    async for token in response_gen:
-                        if token.delta:
-                            full_ai_response += token.delta
-                            yield f"data: {json.dumps({'content': token.delta})}\n\n"
+                        full_ai_response = f"*(✨ Tarefa Tática Executada pela The Nurse ({intent_data.get('task_type', 'extraction')}))*\n\n"
+                        yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
+                        
+                        async for token in response_gen:
+                            if token:
+                                full_ai_response += token
+                                yield f"data: {json.dumps({'content': token})}\n\n"
+                    else:
+                        # --- EXECUÇÃO CLÁSSICA: O Doutor (Heavy LLM) ---
+                        # 3. Montar mensagens manuais para BYPASS no LlamaIndex ChatEngine Buggy
+                        sys_prompt = "Você é a inteligência artificial Sovereign Pair."
+                        try:
+                            # Extrai o system prompt verdadeiro injetado na engine_builder
+                            sys_prompt = engine.memory.get_all()[0].content if engine.memory.get_all()[0].role == MessageRole.SYSTEM else sys_prompt
+                        except Exception:
+                            pass
+                            
+                        sys_msg = LlamaMsg(role=MessageRole.SYSTEM, content=sys_prompt)
+                        user_rag_msg = LlamaMsg(role=MessageRole.USER, content=f"Contexto do Sistema (RAG Vault):\n-------------------\n{context_str}\n-------------------\n\nResponda strictamente baseando-se no contexto acima.\nPergunta: {body_request.message}")
+                        
+                        history_msgs = engine.memory.get_all() if getattr(engine, 'memory', None) else []
+                        history_msgs = [m for m in history_msgs if m.role != MessageRole.SYSTEM] # avoid duplicate system prompts
+                        
+                        messages_to_send = [sys_msg] + history_msgs + [user_rag_msg]
+                        
+                        from src.engine_builder import resolve_dynamic_llm
+                        from src.config import llm as default_llm
+                        active_llm = resolve_dynamic_llm(body_request.provider, body_request.model, default_llm)
+                        
+                        yield f"data: {json.dumps({'content': '*(🧠 Raciocínio Profundo do The Doctor ativado...)*\n\n'})}\n\n"
+                        
+                        print(f"[DEBUG RAG] Executando Inference bypass LlamaIndex via {getattr(active_llm, 'model', 'N/A')}...", flush=True)
+                        response_gen = await active_llm.astream_chat(messages_to_send)
+                        
+                        full_ai_response = "*(🧠 Raciocínio Profundo do The Doctor ativado...)*\n\n"
+                        async for token in response_gen:
+                            if token.delta:
+                                full_ai_response += token.delta
+                                yield f"data: {json.dumps({'content': token.delta})}\n\n"
                         
                 # Após o streaming, verifique se a resposta foi apenas um aviso de que não achou o documento.
                 if full_ai_response:

@@ -4,8 +4,8 @@ from llama_index.core.schema import TextNode
 from llama_index.core.retrievers.fusion_retriever import QueryFusionRetriever, FUSION_MODES
 from llama_index.core.chat_engine import CondensePlusContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
-from custom_retrievers import CustomBM25Retriever
-from config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm as default_llm, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
+from src.custom_retrievers import CustomBM25Retriever
+from src.config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm as default_llm, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
      OWNER_NICKNAME, OCCUPATION, ABOUT_USER, LANGUAGE, GEOLOCATION, REQUEST_TIMEOUT, \
      OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY
 from datetime import datetime
@@ -34,8 +34,15 @@ def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm):
             return Gemini(model=model_name, api_key=GEMINI_API_KEY)
         elif p == "ollama":
             from llama_index.llms.ollama import Ollama
-            from config import OLLAMA_BASE_URL
-            return Ollama(model=model_name, base_url=OLLAMA_BASE_URL, request_timeout=REQUEST_TIMEOUT, context_window=4096, additional_kwargs={"num_ctx": 4096})
+            from src.config import OLLAMA_BASE_URL
+            return Ollama(
+                model=model_name, 
+                base_url=OLLAMA_BASE_URL, 
+                request_timeout=REQUEST_TIMEOUT, 
+                context_window=4096, 
+                client_kwargs={"timeout": REQUEST_TIMEOUT},
+                additional_kwargs={"num_ctx": 4096}
+            )
     except ImportError as e:
         logger.error(f"Failed to load provider {p}: {e} - pip install llama-index-llms-{p} may be required.")
         
@@ -63,7 +70,7 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
     logger.info("   📊 Carregando nós para índice BM25...")
     nodes = []
     try:
-        from config import get_chroma_client
+        from src.config import get_chroma_client
         db_client = get_chroma_client()
         collection = db_client.get_collection(CHROMA_COLLECTION_NAME)
         where_clause = {"tenant_id": tenant_id} if tenant_id else None
@@ -223,7 +230,7 @@ def build_system_chat_engine(provider=None, model_name=None):
     Conecta-se à coleção isolada que contém o próprio código fonte do Sovereign.
     """
     logger.info("⚙️  Configurando System Chat Engine (Meta-RAG)...")
-    from config import CHROMA_SYSTEM_COLLECTION_NAME, get_chroma_client
+    from src.config import CHROMA_SYSTEM_COLLECTION_NAME, get_chroma_client
     from llama_index.vector_stores.chroma import ChromaVectorStore
     from llama_index.core import VectorStoreIndex
     
