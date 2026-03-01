@@ -36,9 +36,76 @@
       </div>
     </div>
 
-    <div class="max-w-4xl mx-auto px-8 py-12 h-full flex flex-col">
-      <!-- Meta/Header -->
-      <div class="mb-8 border-b border-[#222] pb-6 relative group">
+    <div class="h-full flex flex-col pt-12 relative">
+      <!-- Floating Header Toolbar -->
+      <div class="absolute top-4 left-6 z-40 bg-surface-900 rounded-lg border border-surface-700 p-1 flex gap-1 shadow-lg pointer-events-auto transition-all">
+         <button @click="emit('update-view-mode', 'visual')" :class="viewMode === 'visual' ? 'bg-surface-700 text-white' : 'text-surface-600 hover:text-white'" class="px-3 py-1 text-xs rounded font-medium transition-colors">Visual</button>
+         <button @click="emit('update-view-mode', 'split')" :class="viewMode === 'split' ? 'bg-surface-700 text-white' : 'text-surface-600 hover:text-white'" class="px-3 py-1 text-xs rounded font-medium transition-colors">Split</button>
+         <button @click="emit('update-view-mode', 'source')" :class="viewMode === 'source' ? 'bg-surface-700 text-white' : 'text-surface-600 hover:text-white'" class="px-3 py-1 text-xs rounded font-medium transition-colors">Código</button>
+         <div class="w-px h-4 bg-zinc-700 mx-1 self-center"></div>
+         <button @click="showProperties = !showProperties" :class="showProperties ? 'bg-emerald-500/20 text-emerald-400' : 'text-emerald-500 hover:bg-zinc-800'" class="px-2 py-1 text-xs rounded font-medium transition-colors flex items-center gap-1" title="Propriedades do Documento">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            Props
+         </button>
+      </div>
+
+      <!-- Cell Coordinate Tooltip -->
+      <Teleport to="body">
+          <div v-show="hoveredCellCoordinate" 
+               class="fixed z-[9999] pointer-events-none px-1.5 py-0.5 rounded text-[10px] bg-emerald-400 text-emerald-950 font-black tracking-widest shadow-xl transition-all duration-75"
+               :style="{ top: hoveredCellPosition.y + 'px', left: hoveredCellPosition.x + 'px' }">
+             {{ hoveredCellCoordinate }}
+          </div>
+      </Teleport>
+
+      <!-- Split Container -->
+      <div class="flex-1 w-full flex overflow-hidden" 
+           @mousemove="handleEditorMouseMove" 
+           @mouseleave="hoveredCellCoordinate = null">
+        
+        <!-- SOURCE PANE -->
+        <div v-show="viewMode === 'source' || viewMode === 'split'" 
+             :class="viewMode === 'split' ? 'w-1/2 border-r border-surface-800' : 'w-full max-w-4xl mx-auto'" 
+             class="h-full flex flex-col p-8 overflow-y-auto">
+            <textarea 
+               v-model="rawMarkdown"
+               @input="handleSourceInput"
+               class="flex-1 w-full bg-transparent text-primary-400 font-mono text-[13px] leading-relaxed resize-none outline-none" 
+               spellcheck="false" 
+               placeholder="Escreva seu Markdown aqui..."></textarea>
+        </div>
+
+        <!-- VISUAL PANE (TipTap) -->
+        <div v-show="viewMode === 'visual' || viewMode === 'split'" 
+             :class="viewMode === 'split' ? 'w-1/2' : 'w-full max-w-4xl mx-auto'"
+             class="h-full flex flex-col p-8 overflow-y-auto relative custom-scrollbar">
+             
+          <!-- Document Properties UI -->
+          <div v-if="showProperties" class="mb-6 p-4 rounded-xl bg-surface-800 border border-surface-700 shadow-inner animate-in fade-in slide-in-from-top-2 flex-shrink-0">
+             <div class="flex justify-between items-center mb-3">
+                 <h3 class="text-[10px] font-bold uppercase tracking-widest text-surface-600 flex items-center gap-2">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> Frontmatter YAML
+                 </h3>
+                 <button @click="showProperties = false" class="text-surface-600 hover:text-white transition-colors">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                 </button>
+             </div>
+             <div class="flex flex-col gap-2">
+                 <div v-for="(_, key) in documentProperties" :key="key" class="flex items-center gap-2">
+                     <input :value="key" @change="e => renameProperty(String(key), (e.target as HTMLInputElement).value)" class="text-xs bg-transparent text-surface-600 w-28 text-right font-mono outline-none focus:text-primary-400 transition-colors" placeholder="chave" />
+                     <input v-model="documentProperties[key]" @change="syncPropertiesToSource" class="text-sm bg-surface-900 px-3 py-1.5 rounded-md text-slate-200 flex-1 outline-none border border-transparent focus:border-primary-500/30 transition-all font-mono" placeholder="valor" />
+                     <button @click="removeProperty(key)" class="text-zinc-600 hover:text-red-400 p-1 rounded transition-colors" title="Remover propriedade">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                     </button>
+                 </div>
+             </div>
+             <button @click="addProperty" class="text-xs text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 px-2 py-1 rounded transition-colors mt-3 font-medium flex items-center gap-1">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Adicionar Propriedade
+             </button>
+          </div>
+
+          <!-- Meta/Header -->
+          <div class="mb-8 border-b border-[#222] pb-6 relative group flex-shrink-0">
         <input 
           type="text" 
           v-model="docData.name"
@@ -70,34 +137,77 @@
         </div>
       </div>
       
-      <!-- TipTap Bubble Menu (Floating Formatter) -->
+      <!-- TipTap Table Advanced Menu -->
       <bubble-menu 
         v-if="editor" 
         :editor="editor" 
-        :tippy-options="{ duration: 150 }"
-        class="flex items-center gap-1 bg-[#222225] border border-[#333] shadow-2xl rounded-lg px-2 py-1.5 backdrop-blur-md"
+        :should-show="shouldShowTableMenu"
+        pluginKey="tableBubbleMenu"
+        :tippy-options="{ duration: 150, placement: 'top' }"
+        class="flex items-center gap-1 bg-surface-800 border border-surface-700 shadow-2xl rounded-lg px-2 py-1.5 backdrop-blur-md relative z-50 mb-2"
       >
-        <button @click="editor.chain().focus().toggleBold().run()" :class="{ 'text-emerald-400 bg-zinc-800': editor.isActive('bold'), 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800': !editor.isActive('bold') }" class="p-1.5 rounded transition-colors" title="Negrito (Cmd+B)">
+        <!-- Columns Management -->
+        <button @click="editor.chain().focus().addColumnBefore().run()" class="flex items-center gap-1 text-xs px-2 py-1 rounded text-surface-600 hover:text-white hover:bg-surface-700 transition-colors" title="Inserir Coluna à Esquerda">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h8"/><path d="M4 12h3M17 12h3M4 12H3"/><path d="M17 12h1"/></svg> Col +
+        </button>
+        <button @click="editor.chain().focus().deleteColumn().run()" class="flex items-center gap-1 text-xs px-2 py-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors" title="Excluir Coluna Atual">
+           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg> Col
+        </button>
+
+        <div class="h-4 w-px bg-zinc-600 mx-0.5"></div>
+
+        <!-- Rows Management -->
+        <button @click="editor.chain().focus().addRowAfter().run()" class="flex items-center gap-1 text-xs px-2 py-1 rounded text-zinc-300 hover:text-white hover:bg-zinc-700 transition-colors" title="Inserir Linha Abaixo">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/><path d="M8 8v8"/><path d="M12 8v8"/><path d="M16 8v8"/><path d="M12 4v3M12 17v3M12 4V3"/><path d="M12 17v1"/></svg> Lin +
+        </button>
+        <button @click="editor.chain().focus().deleteRow().run()" class="flex items-center gap-1 text-xs px-2 py-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors" title="Excluir Linha Atual">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg> Lin
+        </button>
+
+        <div class="h-4 w-px bg-zinc-600 mx-0.5"></div>
+
+        <!-- Merging & Utilities -->
+        <button @click="editor.chain().focus().mergeCells().run()" class="flex items-center gap-1 text-xs px-2 py-1 rounded text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors" title="Mesclar Células Selecionadas">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 12h18"/><path d="M12 3v9"/></svg> Merge
+        </button>
+        
+        <div class="h-4 w-px bg-zinc-600 mx-0.5"></div>
+
+        <!-- Delete Entire Table -->
+        <button @click="editor.chain().focus().deleteTable().run()" class="flex items-center gap-1 text-xs p-1.5 rounded text-red-500 hover:text-red-400 hover:bg-red-500/20 transition-colors" title="Excluir Tabela Inteira">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        </button>
+      </bubble-menu>
+
+      <!-- TipTap Bubble Menu (Floating Formatter - Oculto em Tabelas e Links) -->
+      <bubble-menu 
+        v-if="editor" 
+        :editor="editor" 
+        :should-show="shouldShowFormattingMenu"
+        :tippy-options="{ duration: 150 }"
+        class="flex items-center gap-1 bg-surface-900 border border-surface-700 shadow-2xl rounded-lg px-2 py-1.5 backdrop-blur-md"
+      >
+        <button @click="editor.chain().focus().toggleBold().run()" :class="{ 'text-primary-400 bg-surface-700': editor.isActive('bold'), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('bold') }" class="p-1.5 rounded transition-colors" title="Negrito (Cmd+B)">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 12a4 4 0 0 0 0-8H6v8"/><path d="M15 20a4 4 0 0 0 0-8H6v8Z"/></svg>
         </button>
-        <button @click="editor.chain().focus().toggleItalic().run()" :class="{ 'text-emerald-400 bg-zinc-800': editor.isActive('italic'), 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800': !editor.isActive('italic') }" class="p-1.5 rounded transition-colors" title="Itálico (Cmd+I)">
+        <button @click="editor.chain().focus().toggleItalic().run()" :class="{ 'text-primary-400 bg-surface-700': editor.isActive('italic'), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('italic') }" class="p-1.5 rounded transition-colors" title="Itálico (Cmd+I)">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg>
         </button>
-        <button @click="editor.chain().focus().toggleStrike().run()" :class="{ 'text-emerald-400 bg-zinc-800': editor.isActive('strike'), 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800': !editor.isActive('strike') }" class="p-1.5 rounded transition-colors" title="Tachado">
+        <button @click="editor.chain().focus().toggleStrike().run()" :class="{ 'text-primary-400 bg-surface-700': editor.isActive('strike'), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('strike') }" class="p-1.5 rounded transition-colors" title="Tachado">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" x2="20" y1="12" y2="12"/></svg>
         </button>
-        <div class="h-4 w-px bg-zinc-700 mx-1"></div>
-        <button @click="editor.chain().focus().toggleCode().run()" :class="{ 'text-violet-400 bg-zinc-800': editor.isActive('code'), 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800': !editor.isActive('code') }" class="p-1.5 rounded transition-colors" title="Código Inline">
+        <div class="h-4 w-px bg-surface-700 mx-1"></div>
+        <button @click="editor.chain().focus().toggleCode().run()" :class="{ 'text-indigo-400 bg-surface-700': editor.isActive('code'), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('code') }" class="p-1.5 rounded transition-colors" title="Código Inline">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
         </button>
-        <button @click="editor.chain().focus().toggleBlockquote().run()" :class="{ 'text-emerald-400 bg-zinc-800': editor.isActive('blockquote'), 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800': !editor.isActive('blockquote') }" class="p-1.5 rounded transition-colors" title="Citação">
+        <button @click="editor.chain().focus().toggleBlockquote().run()" :class="{ 'text-primary-400 bg-surface-700': editor.isActive('blockquote'), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('blockquote') }" class="p-1.5 rounded transition-colors" title="Citação">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
         </button>
-        <div class="h-4 w-px bg-zinc-700 mx-1"></div>
+        <div class="h-4 w-px bg-surface-700 mx-1"></div>
         <!-- Typography -->
-        <button @click="editor.chain().focus().toggleHeading({ level: 1 }).run()" :class="{ 'text-emerald-400 bg-zinc-800': editor.isActive('heading', { level: 1 }), 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800': !editor.isActive('heading', { level: 1 }) }" class="p-1.5 rounded transition-colors font-bold text-xs" title="Título 1">H1</button>
-        <button @click="editor.chain().focus().toggleHeading({ level: 2 }).run()" :class="{ 'text-emerald-400 bg-zinc-800': editor.isActive('heading', { level: 2 }), 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800': !editor.isActive('heading', { level: 2 }) }" class="p-1.5 rounded transition-colors font-bold text-xs" title="Título 2">H2</button>
-        <button @click="editor.chain().focus().toggleHeading({ level: 3 }).run()" :class="{ 'text-emerald-400 bg-zinc-800': editor.isActive('heading', { level: 3 }), 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800': !editor.isActive('heading', { level: 3 }) }" class="p-1.5 rounded transition-colors font-bold text-xs" title="Título 3">H3</button>
+        <button @click="editor.chain().focus().toggleHeading({ level: 1 }).run()" :class="{ 'text-primary-400 bg-surface-700': editor.isActive('heading', { level: 1 }), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('heading', { level: 1 }) }" class="p-1.5 rounded transition-colors font-bold text-xs" title="Título 1">H1</button>
+        <button @click="editor.chain().focus().toggleHeading({ level: 2 }).run()" :class="{ 'text-primary-400 bg-surface-700': editor.isActive('heading', { level: 2 }), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('heading', { level: 2 }) }" class="p-1.5 rounded transition-colors font-bold text-xs" title="Título 2">H2</button>
+        <button @click="editor.chain().focus().toggleHeading({ level: 3 }).run()" :class="{ 'text-primary-400 bg-surface-700': editor.isActive('heading', { level: 3 }), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('heading', { level: 3 }) }" class="p-1.5 rounded transition-colors font-bold text-xs" title="Título 3">H3</button>
       </bubble-menu>
 
       <!-- TipTap Floating Menu (Block Inserter) -->
@@ -105,50 +215,50 @@
         v-if="editor" 
         :editor="editor" 
         :tippy-options="{ duration: 150, placement: 'left' }"
-        class="flex flex-col gap-1 bg-[#1A1A1D] border border-[#333] shadow-2xl rounded-lg p-1.5 backdrop-blur-md w-48"
+        class="flex flex-col gap-1 bg-surface-900 border border-surface-700 shadow-2xl rounded-lg p-1.5 backdrop-blur-md w-48"
       >
-        <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 px-2 pt-1 flex items-center justify-between">
+        <div class="text-[10px] font-bold text-surface-500 uppercase tracking-wider mb-1 px-2 pt-1 flex items-center justify-between">
            <span>Inserir Bloco</span>
-           <span class="text-[8px] opacity-50 px-1 border border-zinc-700 rounded bg-zinc-800">Markdown</span>
+           <span class="text-[8px] opacity-50 px-1 border border-surface-700 rounded bg-surface-800 text-surface-400">Markdown</span>
         </div>
         
         <!-- Headings -->
         <div class="grid grid-cols-3 gap-1 px-1 mb-1">
-          <button @click="editor.chain().focus().toggleHeading({ level: 1 }).run()" class="flex justify-center items-center py-1.5 rounded text-xs font-bold text-emerald-500 hover:text-white hover:bg-emerald-500/20 transition-colors">H1</button>
-          <button @click="editor.chain().focus().toggleHeading({ level: 2 }).run()" class="flex justify-center items-center py-1.5 rounded text-xs font-bold text-emerald-500 hover:text-white hover:bg-emerald-500/20 transition-colors">H2</button>
-          <button @click="editor.chain().focus().toggleHeading({ level: 3 }).run()" class="flex justify-center items-center py-1.5 rounded text-xs font-bold text-emerald-500 hover:text-white hover:bg-emerald-500/20 transition-colors">H3</button>
+          <button @click="editor.chain().focus().toggleHeading({ level: 1 }).run()" class="flex justify-center items-center py-1.5 rounded text-xs font-bold text-primary-500 hover:text-white hover:bg-primary-500/20 transition-colors">H1</button>
+          <button @click="editor.chain().focus().toggleHeading({ level: 2 }).run()" class="flex justify-center items-center py-1.5 rounded text-xs font-bold text-primary-500 hover:text-white hover:bg-primary-500/20 transition-colors">H2</button>
+          <button @click="editor.chain().focus().toggleHeading({ level: 3 }).run()" class="flex justify-center items-center py-1.5 rounded text-xs font-bold text-primary-500 hover:text-white hover:bg-primary-500/20 transition-colors">H3</button>
         </div>
 
-        <div class="h-px bg-zinc-700/50 my-1 mx-1"></div>
+        <div class="h-px bg-surface-700/50 my-1 mx-1"></div>
 
         <!-- Lists & Structure -->
-        <button @click="editor.chain().focus().toggleBulletList().run()" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors text-left w-full">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-zinc-500 w-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg> Lista
+        <button @click="editor.chain().focus().toggleBulletList().run()" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-surface-400 hover:text-white hover:bg-surface-800 transition-colors text-left w-full">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-surface-500 w-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg> Lista
         </button>
-        <button @click="editor.chain().focus().toggleOrderedList().run()" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors text-left w-full">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-zinc-500 w-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" x2="21" y1="6" y2="6"/><line x1="10" x2="21" y1="12" y2="12"/><line x1="10" x2="21" y1="18" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg> Numerada
+        <button @click="editor.chain().focus().toggleOrderedList().run()" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-surface-400 hover:text-white hover:bg-surface-800 transition-colors text-left w-full">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-surface-500 w-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" x2="21" y1="6" y2="6"/><line x1="10" x2="21" y1="12" y2="12"/><line x1="10" x2="21" y1="18" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg> Numerada
         </button>
-        <button @click="editor.chain().focus().toggleTaskList().run()" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors text-left w-full">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-zinc-500 w-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Tarefas (To-Do)
+        <button @click="editor.chain().focus().toggleTaskList().run()" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-surface-400 hover:text-white hover:bg-surface-800 transition-colors text-left w-full">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-surface-500 w-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Tarefas (To-Do)
         </button>
-        <button @click="editor.chain().focus().toggleBlockquote().run()" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors text-left w-full">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-zinc-500 w-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg> Citação
+        <button @click="editor.chain().focus().toggleBlockquote().run()" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-surface-400 hover:text-white hover:bg-surface-800 transition-colors text-left w-full">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-surface-500 w-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg> Citação
         </button>
-        <button @click="editor.chain().focus().toggleCodeBlock().run()" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors text-left w-full">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-zinc-500 w-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Bloco de Código
+        <button @click="editor.chain().focus().toggleCodeBlock().run()" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-surface-400 hover:text-white hover:bg-surface-800 transition-colors text-left w-full">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-surface-500 w-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Bloco de Código
         </button>
-        <button @click="editor.chain().focus().setHorizontalRule().run()" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors text-left w-full">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-zinc-500 w-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" x2="19" y1="12" y2="12"/></svg> Divisor Horizontal
+        <button @click="editor.chain().focus().setHorizontalRule().run()" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-surface-400 hover:text-white hover:bg-surface-800 transition-colors text-left w-full">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-surface-500 w-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" x2="19" y1="12" y2="12"/></svg> Divisor Horizontal
         </button>
 
-        <div class="h-px bg-zinc-700/50 my-1 mx-1"></div>
+        <div class="h-px bg-surface-700/50 my-1 mx-1"></div>
 
         <!-- Tables -->
-        <button @click="editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors text-left w-full">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 text-emerald-500"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg> Tabela (3x3)
+        <button @click="editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-surface-400 hover:text-white hover:bg-surface-800 transition-colors text-left w-full">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 text-primary-500"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg> Tabela (3x3)
         </button>
 
-        <div class="h-px bg-zinc-700/50 my-1 mx-1"></div>
+        <div class="h-px bg-surface-700/50 my-1 mx-1"></div>
         
         <!-- Extensões -->
         <button @click="insertPresentationBlock" class="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors text-left w-full font-medium">
@@ -157,7 +267,10 @@
       </floating-menu>
 
       <!-- TipTap Editor -->
-      <editor-content :editor="editor" class="prose prose-invert prose-emerald max-w-none focus:outline-none" />
+      <editor-content :editor="editor" class="flex-1 w-full prose max-w-none focus:outline-none pb-32" />
+
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -176,12 +289,14 @@ import TableCell from '@tiptap/extension-table-cell'
 import { Markdown } from 'tiptap-markdown'
 import { VaultSyntaxHighlighter } from './decorators'
 import { PresentationBlock } from './extensions/PresentationBlock'
+import yaml from 'js-yaml'
 
 const props = defineProps({
-  fileId: { type: String, required: true }
+  fileId: { type: String, required: true },
+  viewMode: { type: String as () => 'visual' | 'source' | 'split', default: 'visual' }
 })
 
-const emit = defineEmits(['editor-stats'])
+const emit = defineEmits(['editor-stats', 'update-view-mode'])
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const isLoading = ref(true)
@@ -193,7 +308,134 @@ let saveTimeout: ReturnType<typeof setTimeout> | null = null
 const showSpellcheckPrompt = ref(false)
 const spellcheckEnabled = ref(false)
 
+// Document Properties State
+const showProperties = ref(false)
+const documentProperties = ref<Record<string, any>>({})
+
 const docData = ref<any>({})
+const rawMarkdown = ref('')
+let sourceUpdateTimeout: ReturnType<typeof setTimeout> | null = null
+
+const parseFrontmatter = (markdown: string | undefined) => {
+    if (!markdown) return { frontmatter: {}, content: '' }
+    const yamlRegex = /^---\n([\s\S]*?)\n---(?:\n([\s\S]*))?$/
+    const match = markdown.match(yamlRegex)
+    if (match) {
+        try {
+            return {
+                frontmatter: yaml.load(match[1]) || {},
+                content: match[2] ? match[2].trimStart() : ''
+            }
+        } catch(e) {
+            console.error("YAML Parse Error", e)
+            return { frontmatter: {}, content: markdown }
+        }
+    }
+    return { frontmatter: {}, content: markdown }
+}
+
+const buildMarkdownWithFrontmatter = (content: string, propsObj: Record<string, any>) => {
+    if (Object.keys(propsObj).length === 0) return content;
+    try {
+        const yamlString = yaml.dump(propsObj)
+        return `---\n${yamlString}---\n${content}`
+    } catch(e) {
+        console.error("YAML Dump Error", e)
+        return content
+    }
+}
+
+const syncPropertiesToSource = () => {
+    if (!editor.value) return;
+    // @ts-expect-error
+    const markdownContent = editor.value.storage.markdown.getMarkdown()
+    const fullMarkdown = buildMarkdownWithFrontmatter(markdownContent, documentProperties.value)
+    rawMarkdown.value = fullMarkdown
+    debounceSave(fullMarkdown)
+    computeEditorStats(fullMarkdown)
+}
+
+const renameProperty = (oldKey: string, newKey: string) => {
+    if (!newKey || newKey === oldKey) return;
+    const value = documentProperties.value[oldKey]
+    delete documentProperties.value[oldKey]
+    documentProperties.value[newKey] = value
+    syncPropertiesToSource()
+}
+
+const removeProperty = (key: string) => {
+    delete documentProperties.value[key]
+    syncPropertiesToSource()
+}
+
+const addProperty = () => {
+    let key = "nova_prop"
+    let counter = 1
+    while (documentProperties.value[key]) {
+        key = `nova_prop_${counter++}`
+    }
+    documentProperties.value[key] = ""
+    syncPropertiesToSource()
+}
+
+// Cell Tracking for Smart Tables
+const hoveredCellCoordinate = ref<string | null>(null)
+const hoveredCellPosition = ref({ x: 0, y: 0 })
+
+const handleEditorMouseMove = (e: MouseEvent) => {
+    if (props.viewMode === 'source') {
+        hoveredCellCoordinate.value = null; return;
+    }
+    
+    const target = e.target as HTMLElement
+    const cell = target.closest('td, th') as HTMLTableCellElement | null
+    
+    if (cell) {
+        const row = cell.parentElement as HTMLTableRowElement
+        const colLetter = String.fromCharCode(65 + cell.cellIndex)
+        const rowNumber = row.rowIndex + 1
+        
+        hoveredCellCoordinate.value = `${colLetter}${rowNumber}`
+        
+        const rect = cell.getBoundingClientRect()
+        // Anchor to Top-Right inside the cell
+        hoveredCellPosition.value = {
+            x: rect.right - 26,
+            y: rect.top + 4
+        }
+    } else {
+        hoveredCellCoordinate.value = null
+    }
+}
+
+// Menu Visibility Handlers
+const shouldShowTableMenu = ({ editor }: any) => {
+    return editor.isActive('table')
+}
+
+const shouldShowFormattingMenu = ({ editor, state, from, to }: any) => {
+    // Only show if there's a text selection and we are NOT in a table
+    const isTable = editor.isActive('table')
+    const hasSelection = from !== to
+    return hasSelection && !isTable
+}
+
+const handleSourceInput = () => {
+    debounceSave(rawMarkdown.value)
+    computeEditorStats(rawMarkdown.value)
+    
+    const parsed = parseFrontmatter(rawMarkdown.value)
+    documentProperties.value = parsed.frontmatter as Record<string, any>
+    
+    if (editor.value && props.viewMode === 'split') {
+        if (sourceUpdateTimeout) clearTimeout(sourceUpdateTimeout)
+        sourceUpdateTimeout = setTimeout(() => {
+            // Sincroniza TipTap com Source sem triggar onUpdate infinito e sem Frontmatter
+            editor.value?.commands.setContent(parsed.content, { emitUpdate: false })
+            computeEditorStats(rawMarkdown.value)
+        }, 500)
+    }
+}
 
 const editor = useEditor({
   content: '', 
@@ -203,30 +445,47 @@ const editor = useEditor({
         // Extract raw markdown instead of HTML
     }),
     TaskList,
-    TaskItem.configure({
-      nested: true,
+    TaskItem.configure({ nested: true }),
+    Table.configure({ 
+        resizable: true,
+        HTMLAttributes: {
+          class: 'border-collapse table-auto w-full my-6 bg-surface-800/50 rounded overflow-hidden shadow-sm border border-surface-700'
+        }
     }),
-    Table.configure({
-      resizable: true,
+    TableRow.configure({
+        HTMLAttributes: {
+           class: 'border-b border-surface-700 hover:bg-surface-700/50 transition-colors'
+        }
     }),
-    TableRow,
-    TableHeader,
-    TableCell,
+    TableHeader.configure({
+        HTMLAttributes: {
+           class: 'border border-surface-600 bg-surface-700/80 text-surface-200 font-semibold p-2 text-left text-sm'
+        }
+    }),
+    TableCell.configure({
+        HTMLAttributes: {
+           class: 'border border-surface-700 p-2 text-surface-300 text-sm align-top break-words'
+        }
+    }),
     VaultSyntaxHighlighter,
     PresentationBlock,
   ],
   editorProps: {
     attributes: {
       class: 'focus:outline-none min-h-[500px] text-lg leading-relaxed text-zinc-300',
-      spellcheck: spellcheckEnabled.value ? 'true' : 'false',
     },
   },
   onUpdate: ({ editor }) => {
     // Convert current TipTap Editor State into pure Markdown
     // @ts-expect-error extension typings inject this dynamically
     const markdownContent = editor.storage.markdown.getMarkdown() 
-    debounceSave(markdownContent)
-    computeEditorStats(markdownContent)
+    const fullMarkdown = buildMarkdownWithFrontmatter(markdownContent, documentProperties.value)
+    
+    if (props.viewMode === 'visual' || props.viewMode === 'split') {
+        rawMarkdown.value = fullMarkdown
+    }
+    debounceSave(fullMarkdown)
+    computeEditorStats(fullMarkdown)
   }
 })
 
@@ -266,8 +525,12 @@ const fetchDocument = async () => {
         docData.value = await res.json()
         
         // Atualiza o TipTap com o Markdown puro e diz pra não emitir update para evitar loop de savar inicial
+        rawMarkdown.value = docData.value.content
+        const parsed = parseFrontmatter(docData.value.content)
+        documentProperties.value = parsed.frontmatter as Record<string, any>
+        
         if (editor.value) {
-           editor.value.commands.setContent(docData.value.content, { emitUpdate: false }) 
+           editor.value.commands.setContent(parsed.content, { emitUpdate: false }) 
            computeEditorStats(docData.value.content)
         }
         

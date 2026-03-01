@@ -187,7 +187,7 @@ body {
 
 /* Markdown prose styling */
 .prose {
-  @apply text-slate-300;
+  @apply text-surface-300;
 }
 
 .prose p {
@@ -203,13 +203,14 @@ body {
 }
 
 .prose pre code {
-  @apply bg-transparent p-0 text-slate-300;
+  @apply bg-transparent p-0 text-surface-300;
 }
 
 .prose h1,
 .prose h2,
-.prose h3 {
-  @apply text-white font-bold mt-6 mb-3;
+.prose h3,
+.prose h4 {
+  @apply text-surface-100 font-bold mb-3;
 }
 
 .prose a {
@@ -225,17 +226,28 @@ body {
 }
 
 .prose li {
-  @apply pl-1;
+  @apply pl-1 marker:text-surface-500;
 }
 
 .prose blockquote {
-  @apply border-l-4 border-emerald-500/50 pl-4 py-1 my-6 italic text-zinc-400 bg-surface-800/30 rounded-r-lg;
+  @apply border-l-4 border-primary-500/50 pl-4 py-1 my-6 italic text-surface-400 bg-surface-800/30 rounded-r-lg;
 }
 
-.prose h1 { @apply text-4xl; }
-.prose h2 { @apply text-3xl mt-8; }
-.prose h3 { @apply text-2xl mt-6; }
-.prose h4 { @apply text-xl mt-4; }
+.prose h1 {
+  @apply text-4xl;
+}
+
+.prose h2 {
+  @apply text-3xl mt-8;
+}
+
+.prose h3 {
+  @apply text-2xl mt-6;
+}
+
+.prose h4 {
+  @apply text-xl mt-4;
+}
 
 /* TipTap Tables CSS */
 .tiptap table {
