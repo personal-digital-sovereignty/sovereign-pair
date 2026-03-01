@@ -413,11 +413,57 @@ const shouldShowTableMenu = ({ editor }: any) => {
     return editor.isActive('table')
 }
 
-const shouldShowFormattingMenu = ({ editor, state, from, to }: any) => {
+const shouldShowFormattingMenu = ({ editor, from, to }: any) => {
     // Only show if there's a text selection and we are NOT in a table
     const isTable = editor.isActive('table')
     const hasSelection = from !== to
     return hasSelection && !isTable
+}
+
+let tableEvaluateTimeout: ReturnType<typeof setTimeout> | null = null
+
+const debounceTableEvaluate = (editorInstance: any) => {
+    if (tableEvaluateTimeout) clearTimeout(tableEvaluateTimeout)
+    tableEvaluateTimeout = setTimeout(async () => {
+        try {
+            const tableEl = editorInstance.view.dom.querySelector('table')
+            if (!tableEl) return;
+            
+            const cells: Record<string, string> = {}
+            const rows = tableEl.querySelectorAll('tr')
+            rows.forEach((row: any, rIdx: number) => {
+                const cols = row.querySelectorAll('td, th')
+                cols.forEach((col: any, cIdx: number) => {
+                     const colLetter = String.fromCharCode(65 + cIdx)
+                     const rowNumber = rIdx + 1
+                     cells[`${colLetter}${rowNumber}`] = col.textContent.trim()
+                })
+            })
+
+            const token = localStorage.getItem('sovereign_token')
+            const headers: Record<string, string> = { "Content-Type": "application/json" }
+            if (token) headers['Authorization'] = `Bearer ${token}`
+            
+            // Tenta enviar para avaliação matemática no Back-end
+            const res = await fetch(`${API_BASE_URL}/v1/vault/table/evaluate`, {
+                method: "POST",
+                headers,
+                body: JSON.stringify({ cells, deleted_column: null })
+            })
+            
+            if (res.ok) {
+                const data = await res.json()
+                // Futuro: Injectar os Resultados visuais (data.results) e cores de Erros (data.errors) de volta na UI do TipTap
+                // console.log("Sensus Calc Engine Results:", data)
+                if (Object.keys(data.errors).length > 0) {
+                    // Notificando o sistema de que há uma referência falha
+                    console.warn("Table AST Errors Detected:", data.errors)
+                }
+            }
+        } catch(e) {
+            console.error("The Accountant Sync Error", e)
+        }
+    }, 1500) // Aguarda a edicação acalmar (1.5s)
 }
 
 const handleSourceInput = () => {
@@ -486,6 +532,10 @@ const editor = useEditor({
     }
     debounceSave(fullMarkdown)
     computeEditorStats(fullMarkdown)
+    
+    if (editor.isActive('table')) {
+        debounceTableEvaluate(editor)
+    }
   }
 })
 

@@ -34,17 +34,16 @@ class DependencyGraph:
         """
         affected = list(self.adjacency_list.get(node, []))
         # Limpa os elos
-        if node in self.adjacency_list:
-            del self.adjacency_list[node]
+        self.adjacency_list.pop(node, None)
         if node in self.reverse_adj:
             for source in self.reverse_adj[node]:
                 if source in self.adjacency_list and node in self.adjacency_list[source]:
                     self.adjacency_list[source].remove(node)
-            del self.reverse_adj[node]
+            self.reverse_adj.pop(node, None)
             
         return affected
 
-    def detect_cycle(self, start_node: str, visited: Set[str] = None, stack: Set[str] = None) -> bool:
+    def detect_cycle(self, start_node: str, visited: Set[str] | None = None, stack: Set[str] | None = None) -> bool:
         """Detecta erro de referência circular se A depende de B e B depende de A"""
         if visited is None:
             visited = set()
@@ -157,4 +156,75 @@ class TheAccountant:
                 cell.value = "#REF!"
                 updates.append((node, new_formula))
                 
+        return updates
+
+    def evaluate_all(self) -> Dict[str, str]:
+        """
+        Avalia todas as células da tabela após a resolução da DAG.
+        Converte as fórmulas em valores matemáticos.
+        Retorna o dicionário de Resultados.
+        """
+        updates = {}
+        
+        def resolve_value(coord: str, visited: Set[str]) -> float | str:
+            cell = self.cells.get(coord)
+            if not cell:
+                return 0.0
+                
+            if cell.value is not None:
+                if str(cell.value) in ["#REF!", "#CIRCULAR_REF!", "#ERROR!"]:
+                    return cell.value
+                try:
+                    return float(cell.value)
+                except ValueError:
+                    return 0.0
+
+            if not cell.is_formula:
+                try:
+                    cell.value = float(cell.raw_content)
+                except ValueError:
+                    cell.value = 0.0
+                return cell.value
+                
+            # É Fórmula. Previne loop recursivo
+            if coord in visited:
+                cell.value = "#CIRCULAR_REF!"
+                return cell.value
+                
+            visited.add(coord)
+            
+            formula_str = cell.raw_content[1:] # Tira o '='
+            
+            # Para cada referencia (Ex: A1), resolve recursivamente
+            def replace_ref(match):
+                ref_coord = match.group(1)
+                val = resolve_value(ref_coord, visited)
+                return str(val) if not isinstance(val, str) or val not in ["#REF!", "#CIRCULAR_REF!", "#ERROR!"] else '0' # Ignorar quebra na mat, let root fail
+
+            # Isso varre A1, B2 e substitui pelos números reais.
+            resolved_formula = re.sub(r"([A-Z]+\d+)", replace_ref, formula_str)
+            
+            # Verifica se herdou algum erro nas dependencias imediatas
+            # Simples proxy para #REF!
+            if any(str(resolve_value(ref, set())) in ["#REF!", "#CIRCULAR_REF!"] for ref in self.dag.reverse_adj.get(coord, [])):
+                 cell.value = "#REF!"
+                 updates[coord] = str(cell.value)
+                 return cell.value
+
+            try:
+                # Usar EVAL puro apenas para escopo numérico restrito provisório
+                # Fase 17 restringe entrada via tipTap a números e operações básicas.
+                # A implementação real de The Accountant usará `ast.parse` e caminhada na AST Tree.
+                cell.value = float(eval(resolved_formula, {"__builtins__": {}}, {}))
+            except ZeroDivisionError:
+                 cell.value = "#DIV/0!"
+            except Exception:
+                 cell.value = "#ERROR!"
+                 
+            updates[coord] = str(cell.value)
+            return cell.value
+
+        for coord in self.cells.keys():
+             resolve_value(coord, set())
+             
         return updates
