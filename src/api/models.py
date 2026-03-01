@@ -48,6 +48,26 @@ class DocumentCache(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
+class SensusDocumentModel(Base):
+    __tablename__ = "sensus_documents"
+
+    id = Column(String(36), primary_key=True, index=True) # UUID
+    tenant_id = Column(String(50), nullable=False, index=True, default="default")
+    file_path = Column(String(1024), nullable=False, unique=True, index=True)
+    
+    # Deterministic Data (The Mom)
+    frontmatter = Column(JSON, default=dict)
+    extracted_todos = Column(JSON, default=list)
+    extracted_tags = Column(JSON, default=list)
+    extracted_links = Column(JSON, default=list)
+    
+    # Semantic Data (The Dad)
+    vector_id = Column(String(100), nullable=True) # ID no Chroma
+    semantic_summary = Column(Text, nullable=True)
+    
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
 class SystemSettings(Base):
     __tablename__ = "system_settings"
 

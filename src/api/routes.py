@@ -2,14 +2,14 @@ import asyncio
 import json
 from fastapi import APIRouter, Depends, Request, BackgroundTasks
 from fastapi.responses import StreamingResponse
-from .schemas import ChatRequest, ChatResponse, Citation, SettingsRequest, SettingsResponse, SessionUpdateRequest, UploadResponse
+from .schemas import ChatRequest, ChatResponse, Citation, SettingsRequest, SettingsResponse, SessionUpdateRequest, UploadResponse, DocumentUpdateRequest
 from .dependencies import get_chat_engine
 
 router = APIRouter()
 
 from sqlalchemy.orm import Session  # noqa: E402
 from .database import get_db  # noqa: E402
-from .models import ChatSession, ChatMessage, SystemSettings  # noqa: E402
+from .models import ChatSession, ChatMessage, SystemSettings, SensusDocumentModel  # noqa: E402
 from .auth import get_current_user  # noqa: E402
 
 # Importando o limiter configurado no main.py
@@ -701,3 +701,110 @@ async def pull_ollama_model(request: Request, body_request: PullModelRequest, te
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
+@router.get("/vault/tree")
+async def get_vault_tree(db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """
+    Retorna a árvore de arquivos do Sensus Vault (Markdown) para a Sidebar do Frontend Vue.
+    Agrupa os arquivos por pasta pai.
+    """
+    import os
+    # Temporariamente forçando o tenant 'default' que The Mom usa
+    docs = db.query(SensusDocumentModel).filter(SensusDocumentModel.tenant_id == "default").all()
+    
+    # Estrutura: { "folder_name": [ { "name": "file.md", "path": "/full...", "vector_id": "xyz", "synced": true } ] }
+    tree = {"": []} # Raiz (Root)
+    
+    for doc in docs:
+        filename = os.path.basename(doc.file_path)
+        # Tenta inferir a pasta pegando o penúltimo elemento do path original do Cofre (SharedBrain)
+        path_parts = doc.file_path.split(os.sep)
+        folder = ""
+        if len(path_parts) > 2:
+            possible_folder = path_parts[-2]
+            # Se a pasta imediatamente anterior não for o vault base, agrupa nela
+            if possible_folder.lower() not in ["vault", "sharedbrain", "data"]:
+                folder = possible_folder
+                
+        if folder not in tree:
+            tree[folder] = []
+            
+        tree[folder].append({
+            "name": filename,
+            "path": doc.file_path,
+            "tags": doc.extracted_tags,
+            "has_vector": doc.vector_id is not None,
+            "id": doc.id
+        })
+        
+    return tree
+
+@router.get("/vault/document/{doc_id}")
+async def get_vault_document(doc_id: str, db: Session = Depends(get_db)):
+    """Busca o conteúdo cru do respectivo markdown no disco."""
+    import os
+    from fastapi import HTTPException
+    
+    doc = db.query(SensusDocumentModel).filter(SensusDocumentModel.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado no DB")
+        
+    if not os.path.exists(doc.file_path):
+        raise HTTPException(status_code=404, detail="Arquivo físico não encontrado no cofre")
+        
+    with open(doc.file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+        
+    return {
+        "id": doc.id,
+        "name": os.path.basename(doc.file_path),
+        "path": doc.file_path,
+        "content": content,
+        "tags": doc.extracted_tags,
+        "has_vector": doc.vector_id is not None,
+        "vector_id": doc.vector_id
+    }
+
+@router.put("/vault/document/{doc_id}")
+async def update_vault_document(doc_id: str, request: DocumentUpdateRequest, db: Session = Depends(get_db)):
+    """Atualiza o conteúdo físico do markdown no disco. O Watchdog 'The Mom' se encarrega do sync SQLite e Vetor."""
+    import os
+    from fastapi import HTTPException
+    
+    doc = db.query(SensusDocumentModel).filter(SensusDocumentModel.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado no DB")
+
+    with open(doc.file_path, 'w', encoding='utf-8') as f:
+        f.write(request.content)
+        
+    return {"message": "Document saved successfully", "id": doc.id}
+
+@router.get("/vault/search")
+async def search_vault(q: str, db: Session = Depends(get_db)):
+    """Pesquisa heurística super-rápida via SQLite LIKE no Título, Resumo Semântico e Tags."""
+    import os
+    from sqlalchemy import or_
+    
+    # Limita a busca em 10 resultados para a Sophi Bar não travar
+    query = f"%{q}%"
+    docs = db.query(SensusDocumentModel).filter(
+        SensusDocumentModel.tenant_id == "default",
+        or_(
+            SensusDocumentModel.file_path.ilike(query),
+            SensusDocumentModel.semantic_summary.ilike(query)
+        )
+    ).limit(10).all()
+
+    # Se a filtragem JSON do SQLite for complexa, fazemos try-catch ou filtramos na mão
+    
+    results = []
+    for doc in docs:
+        results.append({
+            "id": doc.id,
+            "name": os.path.basename(doc.file_path),
+            "summary": doc.semantic_summary or "Sem resumo semântico gerado ainda.",
+            "tags": doc.extracted_tags,
+            "has_vector": doc.vector_id is not None
+        })
+        
+    return results

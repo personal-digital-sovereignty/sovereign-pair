@@ -66,6 +66,31 @@ async def app_lifespan(app: FastAPI):
     pull_thread = threading.Thread(target=auto_pull_ollama_models, daemon=True)
     pull_thread.start()
     
+    # Iniciar "The Mom" (Predictor/Watcher silêncioso no background)
+    from src.core.the_mom import VaultWatcher
+    from src.config import VAULT_DIR
+    import os
+    
+    # Garantir que a pasta Vault exista
+    os.makedirs(VAULT_DIR, exist_ok=True)
+    # The Mom vai escutar esse diretório e parsear qualquer Markdown
+    mom_watcher = VaultWatcher(vault_path=str(VAULT_DIR), tenant_id="default")
+    mom_watcher.start()
+    
+    # Iniciar "The Dad" (SLM Context Pre-Fetcher & Vectorizer)
+    from src.core.the_dad import TheDadWorker
+    dad_worker = TheDadWorker(check_interval_seconds=15)
+    dad_worker.start()
+    
+    yield
+    
+    # Shutdown logic
+    mom_watcher.stop()
+    dad_worker.stop()
+    # Auto-Pull dos Ollama Models (Thread separada para não bloquear e lidar com gigabytes de I/O)
+    pull_thread = threading.Thread(target=auto_pull_ollama_models, daemon=True)
+    pull_thread.start()
+    
     yield
     # Shutdown logic (opcional)
 
