@@ -239,10 +239,19 @@ const localModels = ref<string[]>([])
 const isFetchingModels = ref(false)
 const modelToPull = ref('')
 const isPulling = ref(false)
+const pullStatus = ref('')
+const pullProgress = ref(0)
+const pullTotal = ref(0)
+const pullCompleted = ref(0)
 
 const pullModel = async () => {
-  if (!modelToPull.value.trim()) return
+  if (!modelToPull.value.trim() || isPulling.value) return
   isPulling.value = true
+  pullStatus.value = 'Iniciando download...'
+  pullProgress.value = 0
+  pullTotal.value = 0
+  pullCompleted.value = 0
+  
   try {
     const res = await fetch(`${API_BASE_URL}/v1/ollama/pull`, {
       method: 'POST',
@@ -252,14 +261,65 @@ const pullModel = async () => {
       },
       body: JSON.stringify({ model: modelToPull.value.trim() })
     })
-    if (res.ok) {
-      alert(`Download de ${modelToPull.value} iniciado. O modelo aparecerá na lista ao término.`)
-      modelToPull.value = ''
+    
+    if (!res.body) throw new Error("Sem resposta do corpo")
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+
+      const chunk = decoder.decode(value, { stream: true })
+      const lines = chunk.split('\n')
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const dataStr = line.slice(6).trim()
+          if (dataStr === '[DONE]') {
+             pullStatus.value = 'Finalizando extração...'
+             continue
+          }
+          
+          try {
+            const data = JSON.parse(dataStr)
+            if (data.status === 'error') {
+               throw new Error(data.error)
+            }
+            
+            pullStatus.value = data.status || 'Baixando...'
+            
+            if (data.total) {
+              pullTotal.value = data.total
+            }
+            if (data.completed) {
+              pullCompleted.value = data.completed
+            }
+            if (pullTotal.value > 0) {
+              pullProgress.value = Math.round((pullCompleted.value / pullTotal.value) * 100)
+            }
+            
+            if (data.status === 'success') {
+               pullStatus.value = 'Modelo baixado com sucesso!'
+               pullProgress.value = 100
+               setTimeout(() => {
+                 modelToPull.value = ''
+                 isPulling.value = false
+                 fetchLocalModels()
+               }, 2000)
+               return
+            }
+            
+          } catch (e) {
+            console.error("Erro no parse SSE JSON [Pull]", e, dataStr)
+          }
+        }
+      }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Falha ao acionar pull do modelo', error)
-    alert('Erro ao iniciar download do modelo.')
-  } finally {
+    pullStatus.value = `Erro: ${error.message || 'Falha ao baixar'}`
     isPulling.value = false
   }
 }
@@ -344,9 +404,14 @@ const saveConfig = async () => {
       systemSettings.value = await res.json()
       isConfigModalOpen.value = false
       applyTheme(systemSettings.value.theme)
+      alert("Configurações salvas com sucesso!")
+    } else {
+      const errTxt = await res.text()
+      alert("Erro do Backend: " + res.status + " " + errTxt)
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Falha ao salvar configurações', error)
+    alert("Falha de Exceção JS: " + error.message)
   } finally {
     isLoadingConfig.value = false
   }
@@ -979,24 +1044,33 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
           Sovereign Pair AI pode cometer erros. Considere verificar informações com as fontes anexadas.
         </p>
       </div>
-
-      <!-- Config Modal -->
-      <div v-if="isConfigModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-surface-900 border border-surface-700/50 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+    </main>
+  </div>
+  
+  <!-- Config Modal (Moved outside of main/aside for true Fullscreen) -->
+  <div v-if="isConfigModalOpen" class="fixed inset-0 z-[100] flex flex-col bg-surface-900 overflow-hidden animate-scale-in">
           
-          <!-- Header -->
-          <div class="px-6 py-4 border-b border-surface-700/50 flex justify-between items-center bg-surface-800/50">
-            <h3 class="text-lg font-medium text-slate-200 flex items-center gap-2">
-              <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          <!-- Header (Fullscreen) -->
+          <div class="px-6 py-5 flex justify-between items-center bg-surface-800 border-b border-surface-700/80 shadow-sm shrink-0">
+            <h3 class="text-xl font-semibold text-slate-100 flex items-center gap-3">
+              <div class="p-2 bg-primary-500/10 rounded-lg text-primary-400">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              </div>
               Engine Settings
             </h3>
-            <button @click="isConfigModalOpen = false" class="text-slate-400 hover:text-white transition-colors">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
+            <div class="flex items-center gap-4">
+              <button @click="saveConfig" :disabled="isLoadingConfig" class="px-6 py-2.5 text-sm bg-primary-500 hover:bg-primary-400 text-white rounded-lg font-medium transition-colors shadow-lg shadow-primary-500/30 disabled:opacity-50 flex items-center gap-2">
+                <svg v-if="isLoadingConfig" class="w-4 h-4 animate-spin flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                {{ isLoadingConfig ? 'Salvando...' : 'Salvar Alterações' }}
+              </button>
+              <button @click="isConfigModalOpen = false" class="p-2 text-slate-400 hover:text-white bg-surface-700 hover:bg-rose-500 transition-colors rounded-lg" title="Fechar Configurações">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
           </div>
           
           <!-- Body -->
-          <div class="px-6 py-6 overflow-y-auto space-y-6">
+          <div class="p-6 md:p-10 flex-1 overflow-y-auto w-full max-w-5xl mx-auto space-y-10 pb-20">
             
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-2">
@@ -1021,10 +1095,23 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
                     <option v-if="localModels.length === 0" value="llama3.2" disabled>Nenhum modelo encontrado</option>
                   </select>
                   <div class="mt-2 flex gap-2">
-                    <input v-model="modelToPull" type="text" placeholder="Baixar modelo (ex: phi3)" class="flex-1 bg-surface-900 border border-surface-700 text-slate-300 rounded px-2.5 py-1 text-xs outline-none focus:border-primary-500 transition-colors">
-                    <button @click="pullModel" :disabled="isPulling" class="bg-surface-700 hover:bg-surface-600 px-3 py-1 rounded text-xs text-slate-300 font-medium transition-colors disabled:opacity-50">
-                      {{ isPulling ? 'Iniciando...' : 'Baixar' }}
+                    <input v-model="modelToPull" type="text" placeholder="Baixar nova extração (ex: phi3:mini)" class="flex-1 bg-surface-900 border border-surface-700 text-slate-300 rounded px-2.5 py-1.5 text-sm outline-none focus:border-primary-500 transition-colors">
+                    <button v-if="!isPulling" @click="pullModel" class="bg-primary-500/20 text-primary-400 border border-primary-500/50 hover:bg-primary-500/30 px-4 py-1.5 rounded text-sm font-medium transition-colors">
+                      Baixar
                     </button>
+                  </div>
+                  <!-- Progress Bar for Download -->
+                  <div v-if="isPulling" class="mt-2 text-xs space-y-1 bg-surface-900 p-2 rounded border border-surface-700">
+                     <div class="flex justify-between text-slate-400 font-medium">
+                        <span>{{ pullStatus }}</span>
+                        <span v-if="pullProgress > 0" class="text-sky-400">{{ pullProgress }}%</span>
+                     </div>
+                     <div class="w-full bg-surface-800 rounded-full h-1.5">
+                        <div class="bg-sky-500 h-1.5 rounded-full transition-all duration-300 ease-out" :style="{ width: `${pullProgress}%` }"></div>
+                     </div>
+                     <div v-if="pullTotal > 0" class="text-[10px] text-slate-500 tracking-wider">
+                        {{ (pullCompleted / 1e9).toFixed(2) }} GB / {{ (pullTotal / 1e9).toFixed(2) }} GB
+                     </div>
                   </div>
                 </template>
                 <template v-else>
@@ -1177,85 +1264,71 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
             </div>
 
           </div>
-
-          <!-- Footer -->
-          <div class="px-6 py-4 border-t border-surface-700/50 bg-surface-800/30 flex justify-end gap-3">
-            <button @click="isConfigModalOpen = false" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancelar</button>
-            <button @click="saveConfig" :disabled="isLoadingConfig" class="px-5 py-2 text-sm bg-primary-500 hover:bg-primary-400 text-white rounded-lg font-medium transition-colors shadow-lg shadow-primary-500/30 disabled:opacity-50 flex items-center gap-2">
-              <svg v-if="isLoadingConfig" class="w-4 h-4 animate-spin flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-              {{ isLoadingConfig ? 'Salvando...' : 'Salvar no Banco' }}
-            </button>
-          </div>
-          
-        </div>
       </div>
-
-      <!-- Edit Session Modal -->
-      <div v-if="isEditSessionModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-surface-900 border border-surface-700/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
-          <div class="px-6 py-4 border-b border-surface-700/50 flex justify-between items-center bg-surface-800/50">
-            <h3 class="text-lg font-medium text-slate-200">Editar Sessão</h3>
-            <button @click="isEditSessionModalOpen = false" class="text-slate-400 hover:text-white transition-colors">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-          </div>
-          <div class="p-6 space-y-4">
-            <div class="space-y-2">
-              <label class="block text-sm font-medium text-slate-400">Título</label>
-              <input v-model="editingSession.title" type="text" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
-            </div>
-            <div class="space-y-2">
-              <label class="block text-sm font-medium text-slate-400">Pasta (Opcional)</label>
-              <input v-model="editingSession.folder_name" type="text" placeholder="Nome da pasta" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
-            </div>
-
-            <div class="space-y-2 pt-2 border-t border-surface-700/50">
-              <label class="block text-sm font-medium text-slate-400">Tags / Categorias (Pressione Enter para adicionar)</label>
-              <div class="flex flex-wrap gap-2 mb-2">
-                <span v-for="(tag, idx) in editingSession.tags" :key="idx" class="px-2 py-1 bg-surface-700 border border-surface-600 text-xs text-slate-300 rounded-md flex items-center gap-1">
-                  #{{ tag }}
-                  <button @click="removeTag(idx)" class="hover:text-rose-400 ml-1 transition-colors">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                  </button>
-                </span>
-                <span v-if="editingSession.tags.length === 0" class="text-xs text-slate-500 italic block">Nenhuma tag...</span>
-              </div>
-              <input 
-                v-model="editingTagsInput"
-                @keydown.enter.prevent="addTag"
-                type="text" 
-                placeholder="Ex: python, pesquisa, ideia... (Aperte Enter)" 
-                class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all"
-              >
-            </div>
-          </div>
-          <div class="px-6 py-4 border-t border-surface-700/50 bg-surface-800/30 flex justify-end gap-3">
-            <button @click="isEditSessionModalOpen = false" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancelar</button>
-            <button @click="saveSessionEdit" class="px-5 py-2 text-sm bg-primary-500 hover:bg-primary-400 text-white rounded-lg font-medium transition-colors shadow-lg shadow-primary-500/30">Salvar</button>
-          </div>
-        </div>
-      </div>
-
     <!-- Confirm Delete Modal -->
-      <div v-if="sessionToDelete !== null" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-surface-900 border border-rose-900/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col animate-scale-in">
-          <div class="px-6 py-4 border-b border-surface-700/50 flex items-center gap-3 bg-rose-500/10">
-            <svg class="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-            <h3 class="text-lg font-medium text-rose-500">Excluir Sessão</h3>
-          </div>
-          <div class="p-6">
-            <p class="text-slate-300 text-sm">Tem certeza que deseja apagar esta sessão e todo o seu histórico de mensagens permanentemente?</p>
-            <p class="text-rose-400 text-xs mt-2 font-medium">Esta ação não pode ser desfeita.</p>
-          </div>
-          <div class="px-6 py-4 border-t border-surface-700/50 bg-surface-800/30 flex justify-end gap-3">
-            <button @click="sessionToDelete = null" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancelar</button>
-            <button @click="deleteSessionConfirmed" class="px-5 py-2 text-sm bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-medium transition-colors shadow-lg shadow-rose-900/50">Sim, excluir</button>
-          </div>
+    <div v-if="sessionToDelete !== null" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div class="bg-surface-900 border border-rose-900/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col animate-scale-in">
+        <div class="px-6 py-4 border-b border-surface-700/50 flex items-center gap-3 bg-rose-500/10">
+          <svg class="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          <h3 class="text-lg font-medium text-rose-500">Excluir Sessão</h3>
+        </div>
+        <div class="p-6">
+          <p class="text-slate-300 text-sm">Tem certeza que deseja apagar esta sessão e todo o seu histórico de mensagens permanentemente?</p>
+          <p class="text-rose-400 text-xs mt-2 font-medium">Esta ação não pode ser desfeita.</p>
+        </div>
+        <div class="px-6 py-4 border-t border-surface-700/50 bg-surface-800/30 flex justify-end gap-3">
+          <button @click="sessionToDelete = null" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancelar</button>
+          <button @click="deleteSessionConfirmed" class="px-5 py-2 text-sm bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-medium transition-colors shadow-lg shadow-rose-900/50">Sim, excluir</button>
         </div>
       </div>
+    </div>
+    
+    <!-- Edit Session Modal -->
+    <div v-if="isEditSessionModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div class="bg-surface-900 border border-surface-700/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+        <div class="px-6 py-4 border-b border-surface-700/50 flex justify-between items-center bg-surface-800/50">
+          <h3 class="text-lg font-medium text-slate-200">Editar Sessão</h3>
+          <button @click="isEditSessionModalOpen = false" class="text-slate-400 hover:text-white transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        <div class="p-6 space-y-4">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-slate-400">Título</label>
+            <input v-model="editingSession.title" type="text" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
+          </div>
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-slate-400">Pasta (Opcional)</label>
+            <input v-model="editingSession.folder_name" type="text" placeholder="Nome da pasta" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
+          </div>
 
-    </main>
-  </div>
+          <div class="space-y-2 pt-2 border-t border-surface-700/50">
+            <label class="block text-sm font-medium text-slate-400">Tags / Categorias (Pressione Enter para adicionar)</label>
+            <div class="flex flex-wrap gap-2 mb-2">
+              <span v-for="(tag, idx) in editingSession.tags" :key="idx" class="px-2 py-1 bg-surface-700 border border-surface-600 text-xs text-slate-300 rounded-md flex items-center gap-1">
+                #{{ tag }}
+                <button @click="removeTag(idx)" class="hover:text-rose-400 ml-1 transition-colors">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+              </span>
+              <span v-if="editingSession.tags.length === 0" class="text-xs text-slate-500 italic block">Nenhuma tag...</span>
+            </div>
+            <input 
+              v-model="editingTagsInput"
+              @keydown.enter.prevent="addTag"
+              type="text" 
+              placeholder="Ex: python, pesquisa, ideia... (Aperte Enter)" 
+              class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all"
+            >
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-surface-700/50 bg-surface-800/30 flex justify-end gap-3">
+          <button @click="isEditSessionModalOpen = false" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancelar</button>
+          <button @click="saveSessionEdit" class="px-5 py-2 text-sm bg-primary-500 hover:bg-primary-400 text-white rounded-lg font-medium transition-colors shadow-lg shadow-primary-500/30">Salvar</button>
+        </div>
+      </div>
+    </div>
+
 </template>
 
 <style scoped>

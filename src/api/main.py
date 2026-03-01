@@ -25,6 +25,33 @@ setup_security_logging()
 # get_remote_address pega o IP do cliente (ou o IP real via cabeçalhos X-Forwarded-For se atrás de Nginx/Tailscale)
 limiter = Limiter(key_func=get_remote_address)
 
+def auto_pull_ollama_models():
+    """Baixa automaticamente os modelos definidos no config.py se eles faltarem no contêiner do Ollama."""
+    import logging
+    from src.config import validate_ollama_models, OLLAMA_BASE_URL
+    import time
+    from ollama import Client
+    
+    # Aguarda o Ollama subir caso estejam inicializando juntos
+    time.sleep(10)
+    
+    try:
+        is_valid, missing = validate_ollama_models()
+        if not is_valid and missing:
+            logging.info(f"🚀 Modelos ausentes no Ollama em rede isolada detectados: {missing}. Iniciando Auto-Pull via SDK...")
+            
+            client = Client(host=OLLAMA_BASE_URL)
+            for model in missing:
+                logging.info(f"📥 Baixando pesos do modelo {model}... (Isso pode demorar dependendo da banda larga e do tamanho do modelo)")
+                try:
+                    # O Client.pull bloqueia de forma segura até terminar
+                    client.pull(model)
+                    logging.info(f"✅ Modelo {model} foi baixado e ingerido no cache do Ollama com sucesso!")
+                except Exception as pull_err:
+                    logging.error(f"❌ Erro ao conectar no endpoint pull do {model}: {pull_err}")
+    except Exception as e:
+        logging.error(f"❌ Erro na rotina de Auto-Pull nativa do Ollama: {e}")
+
 @asynccontextmanager
 async def app_lifespan(app: FastAPI):
     # Startup: Disparar Ingestão do Meta-RAG (System Knowledge)
@@ -34,6 +61,10 @@ async def app_lifespan(app: FastAPI):
     # Roda em thread separada para não bloquear o boot da API
     ingest_thread = threading.Thread(target=ingest_system_knowledge, daemon=True)
     ingest_thread.start()
+    
+    # Auto-Pull dos Ollama Models (Thread separada para não bloquear e lidar com gigabytes de I/O)
+    pull_thread = threading.Thread(target=auto_pull_ollama_models, daemon=True)
+    pull_thread.start()
     
     yield
     # Shutdown logic (opcional)
