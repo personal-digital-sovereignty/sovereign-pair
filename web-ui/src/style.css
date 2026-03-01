@@ -217,9 +217,44 @@ body {
 }
 
 .prose ul {
-  @apply list-disc list-inside my-4 space-y-1;
+  @apply list-disc list-outside ml-6 my-4 space-y-2;
 }
 
 .prose ol {
-  @apply list-decimal list-inside my-4 space-y-1;
+  @apply list-decimal list-outside ml-6 my-4 space-y-2;
+}
+
+.prose li {
+  @apply pl-1;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-emerald-500/50 pl-4 py-1 my-6 italic text-zinc-400 bg-surface-800/30 rounded-r-lg;
+}
+
+.prose h1 { @apply text-4xl; }
+.prose h2 { @apply text-3xl mt-8; }
+.prose h3 { @apply text-2xl mt-6; }
+.prose h4 { @apply text-xl mt-4; }
+
+/* TipTap Tables CSS */
+.tiptap table {
+  @apply border-collapse table-auto w-full max-w-full my-6 overflow-hidden rounded-lg;
+}
+
+.tiptap table td,
+.tiptap table th {
+  @apply border border-surface-600/50 p-3 min-w-[100px] text-left align-top bg-surface-900/40;
+}
+
+.tiptap table th {
+  @apply font-bold bg-surface-800/80 text-white;
+}
+
+.tiptap table .selectedCell:-after {
+  @apply content-[''] absolute inset-0 bg-primary-500/10 pointer-events-none;
+}
+
+.tiptap table .column-resize-handle {
+  @apply absolute right-[-2px] top-0 bottom-0 w-1 bg-primary-500/50 cursor-col-resize z-20 pointer-events-auto hover:bg-primary-500;
 }

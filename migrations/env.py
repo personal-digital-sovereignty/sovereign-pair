@@ -11,7 +11,9 @@ from sqlalchemy import pool
 from alembic import context
 
 from src.api.models import Base
-from src.api.database import DATABASE_URL
+from src.api.database import engine
+
+DATABASE_URL = str(engine.url)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
