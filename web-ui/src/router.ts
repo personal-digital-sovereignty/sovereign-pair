@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import ChatView from './views/ChatView.vue'
 import VaultView from './views/VaultView.vue'
 import DashboardView from './views/DashboardView.vue'
 import ProjectsHubView from './views/ProjectsHubView.vue'
@@ -14,6 +15,11 @@ const router = createRouter({
             path: '/dashboard',
             name: 'dashboard',
             component: DashboardView
+        },
+        {
+            path: '/chat',
+            name: 'chat',
+            component: ChatView
         },
         {
             path: '/vault',

@@ -21,6 +21,9 @@
         <router-link to="/dashboard" class="text-zinc-500 hover:text-emerald-400 p-2 rounded-lg hover:bg-white/5 transition-all" title="Sensus Home" active-class="text-emerald-400 bg-emerald-500/10">
           <span class="i-ph-house-duotone text-xl block"></span>
         </router-link>
+        <router-link to="/chat" class="text-zinc-500 hover:text-purple-400 p-2 rounded-lg hover:bg-white/5 transition-all" title="Sovereign Chat" active-class="text-purple-400 bg-purple-500/10">
+          <span class="i-ph-chats-teardrop-duotone text-xl block"></span>
+        </router-link>
         <router-link to="/projects" class="text-zinc-500 hover:text-cyan-400 p-2 rounded-lg hover:bg-white/5 transition-all" title="Virtual Hub" active-class="text-cyan-400 bg-cyan-500/10">
           <span class="i-ph-folders-duotone text-xl block"></span>
         </router-link>
