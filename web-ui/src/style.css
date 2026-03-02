@@ -8,6 +8,11 @@
   --color-surface-800: #1e293b;
   --color-surface-700: #334155;
   --color-surface-600: #475569;
+  --color-surface-500: #64748b;
+  --color-surface-400: #94a3b8;
+  --color-surface-300: #cbd5e1;
+  --color-surface-200: #e2e8f0;
+  --color-surface-100: #f1f5f9;
 }
 
 /* 1. Slate (Default Dark) */
@@ -27,6 +32,16 @@
   /* slate-700 */
   --color-surface-600: #475569;
   /* slate-600 */
+  --color-surface-500: #64748b;
+  /* slate-500 */
+  --color-surface-400: #94a3b8;
+  /* slate-400 */
+  --color-surface-300: #cbd5e1;
+  /* slate-300 */
+  --color-surface-200: #e2e8f0;
+  /* slate-200 */
+  --color-surface-100: #f1f5f9;
+  /* slate-100 */
 }
 
 /* 2. Ocean (Deep Blue) */
@@ -187,7 +202,7 @@ body {
 
 /* Markdown prose styling */
 .prose {
-  @apply text-slate-300;
+  @apply text-surface-300;
 }
 
 .prose p {
@@ -203,13 +218,14 @@ body {
 }
 
 .prose pre code {
-  @apply bg-transparent p-0 text-slate-300;
+  @apply bg-transparent p-0 text-surface-300;
 }
 
 .prose h1,
 .prose h2,
-.prose h3 {
-  @apply text-white font-bold mt-6 mb-3;
+.prose h3,
+.prose h4 {
+  @apply text-surface-100 font-bold mb-3;
 }
 
 .prose a {
@@ -217,9 +233,76 @@ body {
 }
 
 .prose ul {
-  @apply list-disc list-inside my-4 space-y-1;
+  @apply list-disc list-outside ml-6 my-4 space-y-2;
 }
 
 .prose ol {
-  @apply list-decimal list-inside my-4 space-y-1;
+  @apply list-decimal list-outside ml-6 my-4 space-y-2;
+}
+
+.prose li {
+  @apply pl-1 marker:text-surface-500;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-primary-500/50 pl-4 py-1 my-6 italic text-surface-400 bg-surface-800/30 rounded-r-lg;
+}
+
+.prose h1 {
+  @apply text-4xl;
+}
+
+.prose h2 {
+  @apply text-3xl mt-8;
+}
+
+.prose h3 {
+  @apply text-2xl mt-6;
+}
+
+.prose h4 {
+  @apply text-xl mt-4;
+}
+
+/* TipTap Tables CSS */
+.tiptap table {
+  @apply border-collapse table-auto w-full max-w-full my-6 overflow-hidden rounded-lg;
+}
+
+.tiptap table td,
+.tiptap table th {
+  @apply border border-surface-600/50 p-3 min-w-[100px] text-left align-top bg-surface-900/40;
+}
+
+.tiptap table th {
+  @apply font-bold bg-surface-800/80 text-white;
+}
+
+.tiptap table .selectedCell:-after {
+  @apply content-[''] absolute inset-0 bg-primary-500/10 pointer-events-none;
+}
+
+.tiptap table .column-resize-handle {
+  @apply absolute right-[-2px] top-0 bottom-0 w-1 bg-primary-500/50 cursor-col-resize z-20 pointer-events-auto hover:bg-primary-500;
+}
+
+/* Sensus Table Calculation Overlays */
+.tiptap table td[data-sensus-value]:not(:focus-within) p,
+.tiptap table th[data-sensus-value]:not(:focus-within) p {
+  display: none !important;
+}
+
+.tiptap table td[data-sensus-value]:not(:focus-within)::before,
+.tiptap table th[data-sensus-value]:not(:focus-within)::before {
+  content: attr(data-sensus-value);
+  display: block !important;
+  /* Use Primary theme color to distinguish calculated values from raw strings */
+  color: var(--color-primary-400);
+  font-weight: 500;
+}
+
+.tiptap table td[data-sensus-error="true"]:not(:focus-within)::before,
+.tiptap table th[data-sensus-error="true"]:not(:focus-within)::before {
+  color: #ef4444;
+  /* Tailwind red-500 */
 }

@@ -16,7 +16,9 @@ import json
 # Intância Global do Índice (Para não recarregar o ChromaDB a cada request)
 _index = None
 
-def get_chat_engine(request: Request, db: Session = Depends(get_db)):
+from .auth import get_current_user
+
+async def get_chat_engine(request: Request, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """
     Dependency Injection for FastAPI. 
     Lê o `session_id` do Request e remonta o ContextChatEngine dinamicamente
@@ -28,20 +30,24 @@ def get_chat_engine(request: Request, db: Session = Depends(get_db)):
         
     provider = None
     model_name = None
+    history_dicts = []
     
-    # Precisamos ler o body manualmente na dependência pois o Pydantic consome o stream depois
+    # É perfeitamente seguro chamar await request.body() em uma dependência do FastAPI.
+    # O framework guarda os bytes em cache para que o Pydantic parser lide bem depois.
     try:
-        # Recupera o body cacheados pelo middleware ou lê de forma segura
-        body_bytes = request._body if hasattr(request, "_body") else b"{}"
-        body = json.loads(body_bytes)
+        body_bytes = await request.body()
+        body = json.loads(body_bytes) if body_bytes else {}
         session_id = body.get("session_id")
         provider = body.get("provider")
         model_name = body.get("model")
         
         if session_id:
-            historical_msgs = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).order_by(ChatMessage.created_at.asc()).all()
+            historical_msgs = db.query(ChatMessage).filter(
+                ChatMessage.session_id == session_id,
+                ChatMessage.tenant_id == tenant_id
+            ).order_by(ChatMessage.created_at.asc()).all()
             history_dicts = [{"role": msg.role, "content": msg.content} for msg in historical_msgs]
     except Exception:
         pass
         
-    return build_chat_engine(_index, history=history_dicts, provider=provider, model_name=model_name)
+    return build_chat_engine(_index, history=history_dicts, provider=provider, model_name=model_name, tenant_id=tenant_id)

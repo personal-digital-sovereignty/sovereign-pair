@@ -2,10 +2,10 @@ import logging
 import chromadb
 from llama_index.core.schema import TextNode
 from llama_index.core.retrievers.fusion_retriever import QueryFusionRetriever, FUSION_MODES
-from llama_index.core.chat_engine import ContextChatEngine
+from llama_index.core.chat_engine import CondensePlusContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
-from custom_retrievers import CustomBM25Retriever
-from config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm as default_llm, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
+from src.custom_retrievers import CustomBM25Retriever
+from src.config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm as default_llm, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
      OWNER_NICKNAME, OCCUPATION, ABOUT_USER, LANGUAGE, GEOLOCATION, REQUEST_TIMEOUT, \
      OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY
 from datetime import datetime
@@ -34,14 +34,21 @@ def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm):
             return Gemini(model=model_name, api_key=GEMINI_API_KEY)
         elif p == "ollama":
             from llama_index.llms.ollama import Ollama
-            from config import OLLAMA_BASE_URL
-            return Ollama(model=model_name, base_url=OLLAMA_BASE_URL, request_timeout=REQUEST_TIMEOUT)
+            from src.config import OLLAMA_BASE_URL
+            return Ollama(
+                model=model_name, 
+                base_url=OLLAMA_BASE_URL, 
+                request_timeout=REQUEST_TIMEOUT, 
+                context_window=4096, 
+                client_kwargs={"timeout": REQUEST_TIMEOUT},
+                additional_kwargs={"num_ctx": 4096}
+            )
     except ImportError as e:
         logger.error(f"Failed to load provider {p}: {e} - pip install llama-index-llms-{p} may be required.")
         
     return fallback_llm
 
-def build_chat_engine(index, history=None, provider=None, model_name=None):
+def build_chat_engine(index, history=None, provider=None, model_name=None, tenant_id=None):
     """
     Constrói a instância do ContextChatEngine configurada com Hybrid Search
     (Vector + BM25) para recuperação precisa de documentos.
@@ -51,15 +58,23 @@ def build_chat_engine(index, history=None, provider=None, model_name=None):
     logger.info("⚙️  Configurando Busca Híbrida (Vector + BM25)...")
     
     # 1. Vector Retriever (Semântico) - Top-K conservador para performance
-    vector_retriever = index.as_retriever(similarity_top_k=5)
+    filters = None
+    if tenant_id:
+        from llama_index.core.vector_stores import ExactMatchFilter, MetadataFilters
+        filters = MetadataFilters(filters=[ExactMatchFilter(key="tenant_id", value=tenant_id)])
+        logger.info(f"   🔍 Filtro de Inquecilino aplicado: {tenant_id}")
+        
+    vector_retriever = index.as_retriever(similarity_top_k=5, filters=filters)
     
     # 2. BM25 Retriever (Palavras-chave / Datas exatas)
     logger.info("   📊 Carregando nós para índice BM25...")
     nodes = []
     try:
-        db_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+        from src.config import get_chroma_client
+        db_client = get_chroma_client()
         collection = db_client.get_collection(CHROMA_COLLECTION_NAME)
-        result = collection.get()
+        where_clause = {"tenant_id": tenant_id} if tenant_id else None
+        result = collection.get(where=where_clause)
         
         if result and result['documents']:
             ids = result['ids']
@@ -110,45 +125,51 @@ def build_chat_engine(index, history=None, provider=None, model_name=None):
     from src.api.models import SystemSettings
     try:
         db = SessionLocal()
-        setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "system_prompt").first()
-        active_persona = setting.setting_value if setting and setting.setting_value else ASSISTANT_PERSONA
+        all_settings = db.query(SystemSettings).all()
+        settings_dict = {s.setting_key: s.setting_value for s in all_settings if s.setting_value}
         
-        formality_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "formality").first()
-        formality = formality_setting.setting_value if formality_setting else "neutral"
+        active_persona = settings_dict.get("system_prompt", ASSISTANT_PERSONA)
+        formality = settings_dict.get("formality", "neutral")
         
-        nickname_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "nickname").first()
-        nickname = nickname_setting.setting_value if nickname_setting and nickname_setting.setting_value.strip() else OWNER_NICKNAME
+        nickname = settings_dict.get("nickname", OWNER_NICKNAME)
+        nickname = nickname if nickname.strip() else OWNER_NICKNAME
         
-        occupation_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "occupation").first()
-        occupation = occupation_setting.setting_value if occupation_setting else OCCUPATION
+        ai_name = settings_dict.get("ai_name", SOVEREIGN_NAME)
+        ai_name = ai_name if ai_name.strip() else SOVEREIGN_NAME
         
-        about_user_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "about_user").first()
-        about_user = about_user_setting.setting_value if about_user_setting else ABOUT_USER
+        occupation = settings_dict.get("occupation", OCCUPATION)
+        about_user = settings_dict.get("about_user", ABOUT_USER)
         
-        language_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "language").first()
-        language = language_setting.setting_value if language_setting and language_setting.setting_value.strip() else LANGUAGE
-
-        geolocation_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "geolocation").first()
-        geolocation = geolocation_setting.setting_value if geolocation_setting and geolocation_setting.setting_value.strip() else GEOLOCATION
+        language = settings_dict.get("language", LANGUAGE)
+        language = language if language.strip() else LANGUAGE
         
-        provider_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "llm_provider").first()
-        db_provider = provider_setting.setting_value if provider_setting and provider_setting.setting_value.strip() else None
+        geolocation = settings_dict.get("geolocation", GEOLOCATION)
+        geolocation = geolocation if geolocation.strip() else GEOLOCATION
         
-        model_setting = db.query(SystemSettings).filter(SystemSettings.setting_key == "llm_model").first()
-        db_model = model_setting.setting_value if model_setting and model_setting.setting_value.strip() else None
+        db_provider = settings_dict.get("llm_provider", None)
+        db_provider = db_provider if db_provider and db_provider.strip() else None
         
-        db.close()
+        db_model = settings_dict.get("llm_model", None)
+        db_model = db_model if db_model and db_model.strip() else None
+        
     except Exception as e:
         logger.error(f"   ❌ Erro ao ler configs dinâmicas: {e}")
         active_persona = ASSISTANT_PERSONA
         formality = "neutral"
         nickname = OWNER_NICKNAME
+        ai_name = SOVEREIGN_NAME
         occupation = OCCUPATION
         about_user = ABOUT_USER
         language = LANGUAGE
         geolocation = GEOLOCATION
         db_provider = None
         db_model = None
+    finally:
+        try:
+            db.close()
+        except:
+            pass
+
         
 
     gender_instruction = ""
@@ -177,13 +198,13 @@ def build_chat_engine(index, history=None, provider=None, model_name=None):
     model_log = model_name or getattr(active_llm, "model", "Local")
     logger.info(f"   🧠 Engine inicializada via {provider_log.upper()} com modelo {model_log}")
 
-    # Criar Chat Engine com Retriever Híbrido
-    chat_engine = ContextChatEngine.from_defaults(
+    # Criar Chat Engine com Retriever Híbrido e Condensador Explícito
+    chat_engine = CondensePlusContextChatEngine.from_defaults(
         retriever=hybrid_retriever,
         llm=active_llm,
         memory=memory, # Memória bufferizada re-hidratada
         system_prompt=(
-            f"Você é a inteligência artificial {SOVEREIGN_NAME}, atuando como assistente pessoal corporativa e soberana. "
+            f"Você é a inteligência artificial {ai_name} (da família Sovereign Pair), atuando como assistente pessoal corporativa e soberana. "
             f"Sua persona de comportamento e alinhamento é estritamente definida como: {active_persona}. "
             f"O usuário com quem você está conversando e de quem deve receber ordens se chama {nickname}. "
             f"O idioma PRINCIPAL no qual ESCRITAMENTE OBRIGATÓRIO responder (mesmo para traduzir o RAG) é: {language}. "
@@ -202,3 +223,45 @@ def build_chat_engine(index, history=None, provider=None, model_name=None):
     )
     
     return chat_engine
+
+def build_system_chat_engine(provider=None, model_name=None):
+    """
+    Constrói a instância do ChatEngine específica para o Meta-RAG (System Knowledge).
+    Conecta-se à coleção isolada que contém o próprio código fonte do Sovereign.
+    """
+    logger.info("⚙️  Configurando System Chat Engine (Meta-RAG)...")
+    from src.config import CHROMA_SYSTEM_COLLECTION_NAME, get_chroma_client
+    from llama_index.vector_stores.chroma import ChromaVectorStore
+    from llama_index.core import VectorStoreIndex
+    
+    try:
+        db = get_chroma_client()
+        chroma_collection = db.get_collection(CHROMA_SYSTEM_COLLECTION_NAME)
+        vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+        index = VectorStoreIndex.from_vector_store(vector_store)
+        
+        # IGNORAR o modelo vindo do Frontend para a aba Sistema (Meta-RAG)
+        # OMeta-RAG deve SEMPRE usar um modelo enxuto e rápido para não dar OOM (Out Of Memory)
+        if provider == "ollama" or not provider:
+            sys_provider = "ollama"
+            sys_model = "llama3.2"
+        else:
+            sys_provider = provider
+            sys_model = model_name
+            
+        active_llm = resolve_dynamic_llm(sys_provider, sys_model, default_llm)
+        
+        chat_engine = index.as_chat_engine(
+            llm=active_llm,
+            chat_mode="condense_plus_context",
+            system_prompt=(
+                "Você é o Meta-RAG do Sovereign Pair. Seu objetivo é ajudar o usuário a entender as "
+                "configurações, a arquitetura e o código fonte do sistema. Responda apenas com base no "
+                "conhecimento dos arquivos injetados no seu banco vetorial. Seja direto e escreva em "
+                "Português do Brasil."
+            )
+        )
+        return chat_engine
+    except Exception as e:
+        logger.error(f"❌ Erro ao construir System Chat Engine: {e}")
+        return None

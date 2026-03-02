@@ -1,0 +1,47 @@
+name: "Deploy Sovereign Cibrid Cloud (OCI)"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/terraform/**'
+  workflow_dispatch:
+
+jobs:
+  opentofu-apply:
+    name: "OpenTofu Apply (Oracle ARM A1)"
+    runs-on: ubuntu-latest
+    environment: Oracle_Cloud
+
+    defaults:
+      run:
+        working-directory: ./infra/terraform
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_wrapper: false
+          tofu_version: latest
+
+      - name: OpenTofu Init
+        run: tofu init
+
+      - name: OpenTofu Validate
+        run: tofu validate
+
+      - name: OpenTofu Apply
+        env:
+          TF_VAR_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
+          TF_VAR_user_ocid: ${{ secrets.OCI_USER_OCID }}
+          TF_VAR_fingerprint: ${{ secrets.OCI_FINGERPRINT }}
+          # The Private Key should be stored exactly as it is (PEM format multiline) inside GitHub Secrets
+          TF_VAR_private_key: ${{ secrets.OCI_PRIVATE_KEY }}
+          TF_VAR_region: ${{ secrets.OCI_REGION || 'sa-saopaulo-1' }}
+          TF_VAR_compartment_ocid: ${{ secrets.OCI_COMPARTMENT_OCID || secrets.OCI_TENANCY_OCID }}
+          TF_VAR_tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
+        run: tofu apply -auto-approve

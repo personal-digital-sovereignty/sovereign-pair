@@ -13,8 +13,8 @@ from dotenv import load_dotenv
 from llama_index.core import Settings
 from src.llm_factory import get_llm, get_embedding_model
 
-# 1. Carregar variáveis de ambiente do arquivo .env local (sobrescreve o global para dev)
-load_dotenv(override=True)
+# 1. Carregar variáveis de ambiente do arquivo .env local (Não sobrescreve envs já injetados, ex: pela CLI)
+load_dotenv(override=False)
 
 # 2. Carregar configuração global do SO (se existir e preencher o que faltar)
 global_conf = Path(os.environ.get("SOVEREIGN_CONF", "~/.config/sovereign.conf")).expanduser()
@@ -48,13 +48,12 @@ VAULT_PATH_CUSTOM = os.getenv("VAULT_PATH", "").strip()
 RAW_DOCS_PATHS_CUSTOM = os.getenv("RAW_DOCS_PATHS", "").strip()
 FOLLOW_SYMLINKS = os.getenv("FOLLOW_SYMLINKS", "true").lower() == "true"
 
-# Determinar caminhos finais
-if VAULT_PATH_CUSTOM:
+if VAULT_PATH_CUSTOM and not os.path.exists('/.dockerenv'):
     VAULT_DIR = Path(VAULT_PATH_CUSTOM).expanduser().resolve()
 else:
     VAULT_DIR = DATA_DIR / "vault"
 
-if RAW_DOCS_PATHS_CUSTOM:
+if RAW_DOCS_PATHS_CUSTOM and not os.path.exists('/.dockerenv'):
     # Suportar múltiplos caminhos separados por vírgula
     RAW_DOCS_DIRS = [
         Path(p.strip()).expanduser().resolve() 
@@ -101,13 +100,25 @@ INTERACTIVE_MODE = os.getenv("INTERACTIVE_MODE", "true").lower() == "true"
 
 
 # ============================================================================
-# CONFIGURAÇÕES DE PROVIDERS (API & LLM)
+# LLM & EMBEDDING CONFIGURATION
 # ============================================================================
 
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama").strip().lower()
 EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", LLM_PROVIDER).strip().lower()
 
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").strip()
+
+# Correção Automática de Hostname se rodando Nativo (Fora do Docker)
+# Se o .env tiver "http://ollama:11434" mas rodarmos via CLI nativa, o request falharia silenciosamente no LlamaIndex ("Empty Response").
+if "ollama:11434" in OLLAMA_BASE_URL and not os.path.exists('/.dockerenv'):
+    OLLAMA_BASE_URL = OLLAMA_BASE_URL.replace("ollama:11434", "localhost:11434")
+
+# LlamaIndex env vars global behavior
+os.environ["OLLAMA_BASE_URL"] = OLLAMA_BASE_URL
+# Fallback local para CLI e scripts rodando na máquina hospedeira
+if "http://ollama:" in OLLAMA_BASE_URL and not os.getenv("CHROMA_HOST"):
+    OLLAMA_BASE_URL = OLLAMA_BASE_URL.replace("http://ollama:", "http://localhost:")
+    
 LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2")
 EMBED_MODEL_NAME = os.getenv("EMBED_MODEL", "bge-m3")
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "300.0"))
@@ -144,6 +155,20 @@ CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "sovereign_knowledg
 
 # Coleção para o Meta-RAG (Auto-conhecimento da arquitetura do Sovereign Pair)
 CHROMA_SYSTEM_COLLECTION_NAME = os.getenv("CHROMA_SYSTEM_COLLECTION_NAME", "system_knowledge")
+
+def get_chroma_client():
+    """
+    Retorna o cliente ChromaDB adequado.
+    Se rodando no Docker (CHROMA_HOST existe), usa HttpClient.
+    Caso contrário, fallback para PersistentClient local.
+    """
+    import chromadb
+    chroma_host = os.getenv("CHROMA_HOST")
+    if chroma_host:
+        port = int(os.getenv("CHROMA_PORT", "8000"))
+        return chromadb.HttpClient(host=chroma_host, port=port)
+    return chromadb.PersistentClient(path=str(CHROMA_DIR))
+
 
 
 # ============================================================================

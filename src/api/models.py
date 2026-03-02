@@ -10,6 +10,7 @@ class ChatSession(Base):
     title = Column(String(200), default="Nova Conversa")
     folder_name = Column(String(100), nullable=True, default=None)
     tags = Column(JSON, default=list)
+    tenant_id = Column(String(50), nullable=False, index=True, default="default")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
@@ -21,6 +22,7 @@ class ChatMessage(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(Integer, ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(String(50), nullable=False, index=True, default="default")
     
     role = Column(String(50), nullable=False) # 'user' ou 'assistant' ou 'system'
     content = Column(Text, nullable=False)
@@ -41,6 +43,27 @@ class DocumentCache(Base):
     file_path = Column(String(1024), nullable=False, unique=True)
     sha256 = Column(String(64), nullable=False, index=True)
     file_size = Column(Integer, nullable=False) # em bytes
+    tenant_id = Column(String(50), nullable=False, index=True, default="default")
+    
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+class SensusDocumentModel(Base):
+    __tablename__ = "sensus_documents"
+
+    id = Column(String(36), primary_key=True, index=True) # UUID
+    tenant_id = Column(String(50), nullable=False, index=True, default="default")
+    file_path = Column(String(1024), nullable=False, unique=True, index=True)
+    
+    # Deterministic Data (The Mom)
+    frontmatter = Column(JSON, default=dict)
+    extracted_todos = Column(JSON, default=list)
+    extracted_tags = Column(JSON, default=list)
+    extracted_links = Column(JSON, default=list)
+    
+    # Semantic Data (The Dad)
+    vector_id = Column(String(100), nullable=True) # ID no Chroma
+    semantic_summary = Column(Text, nullable=True)
     
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
@@ -49,6 +72,7 @@ class SystemSettings(Base):
     __tablename__ = "system_settings"
 
     id = Column(Integer, primary_key=True, index=True)
-    setting_key = Column(String(100), unique=True, nullable=False, index=True)
+    setting_key = Column(String(100), nullable=False, index=True) # REMOVED UNIQUE=True
     setting_value = Column(Text, nullable=True)
+    tenant_id = Column(String(50), nullable=False, index=True, default="default")
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

@@ -1,6 +1,26 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
+from uuid import UUID
+
+class SensusDocument(BaseModel):
+    id: UUID
+    tenant_id: str
+    file_path: str
+    content: str
+    
+    # Deterministic Extraction (The Mom)
+    frontmatter: Dict[str, Any] = Field(default_factory=dict)
+    extracted_todos: List[str] = Field(default_factory=list)
+    extracted_tags: List[str] = Field(default_factory=list)
+    extracted_links: List[str] = Field(default_factory=list)
+    
+    # Semantic Extraction (The Dad)
+    vector_id: Optional[str] = None
+    semantic_summary: Optional[str] = None
+
+class DocumentUpdateRequest(BaseModel):
+    content: str = Field(..., description="Novo conteúdo Markdown raw")
 
 class ChatRequest(BaseModel):
     message: str = Field(..., description="A mensagem ou pergunta enviada pelo usuário")
@@ -64,7 +84,7 @@ class SettingsRequest(BaseModel):
     theme: str = "dark"
     persona: str = "default"
     formality: str = "neutral"
-    persona_graphic_style: str = "emoji"
+    ai_name: Optional[str] = ""
     nickname: Optional[str] = ""
     occupation: Optional[str] = ""
     about_user: Optional[str] = ""
@@ -79,7 +99,7 @@ class SettingsResponse(BaseModel):
     theme: str = "dark"
     persona: str = "default"
     formality: str = "neutral"
-    persona_graphic_style: str = "emoji"
+    ai_name: Optional[str] = ""
     nickname: Optional[str] = ""
     occupation: Optional[str] = ""
     about_user: Optional[str] = ""

@@ -1,10 +1,10 @@
 version: '3.8'
 
 services:
-  # 0. Edge Router (Reverse Proxy com Auto-HTTPS)
   caddy:
     image: caddy:2-alpine
     container_name: sovereign-caddy
+    network_mode: service:tailscale
     read_only: true
     tmpfs:
       - /tmp
@@ -12,16 +12,12 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: always
-    ports:
-      - "80:80"
-      - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy-data:/data
       - caddy-config:/config
-    networks:
-      - sovereign-net
     depends_on:
+      - tailscale
       - api
       - web
 
@@ -49,7 +45,6 @@ services:
   chroma:
     image: chromadb/chroma:latest
     container_name: sovereign-chroma
-    read_only: true
     tmpfs:
       - /tmp
     security_opt:
@@ -68,31 +63,37 @@ services:
       context: .
       dockerfile: Dockerfile.api
     container_name: sovereign-api
+    user: "1000:1000"
     restart: always
     depends_on:
       - postgres
       - chroma
+      - ollama
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-sovereign}:${POSTGRES_PASSWORD:-master_pwd}@postgres:5432/${POSTGRES_DB:-sovereign_db}
       - CHROMA_HOST=chroma
       - CHROMA_PORT=8000
+      - OLLAMA_BASE_URL=http://ollama:11434
       - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - GROQ_API_KEY=${GROQ_API_KEY}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://sovereign-pair.local,https://localhost,https://127.0.0.1}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://sovereign-pair.local,https://localhost,https://127.0.0.1,app://obsidian.md,capacitor://localhost,http://localhost}
+      - SOVEREIGN_CONF=/app/data/sovereign.conf
+      - VAULT_PATH=/app/data/vault
     # Montagem Bind para espelhar a pasta data local caso o SQLite precise sobreviver por qualquer motivo legal,
     # e para leitura rápida de arquivos em lote.
     volumes:
       - ./data:/app/data
       - ./.env:/app/.env
+      - ${VAULT_PATH:-./data/vault}:/app/data/vault
     networks:
       - sovereign-net
     # PORTA Ocultada de propósito! Quem fará o port forward será o Tailscale e o Caddy.
-    # ports:
-    #   - "8000:8000"
-
+    # Exposta temporariamente para testes locais do npm run dev
+    ports:
+      - "8000:8000"
     # 4. Frontend Web App (Vue 3 + Vite -> Nginx)
   web:
     build:
@@ -123,9 +124,9 @@ services:
     restart: always
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_ROUTES=172.28.0.0/16 # Propaga as rotas da bridge soberana para os membros da VPN
-      - TS_EXTRA_ARGS=--advertise-tags=tag:server --accept-dns=true
+      - TS_EXTRA_ARGS=--accept-dns=true
       - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=true
     volumes:
       - tailscale-state:/var/lib/tailscale
       - /dev/net/tun:/dev/net/tun
@@ -134,11 +135,37 @@ services:
       - sys_module
     networks:
       - sovereign-net
+    ports:
+      - "127.0.0.1:80:80"
+      - "127.0.0.1:443:443"
+
+  # 6. Motor Local de Inteligência (Ollama)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: sovereign-ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - sovereign-net
+    # A capacidade GPU será inferida mas pode ser forçada caso necessário:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
 
 volumes:
   pgdata:
   chroma-data:
+  ollama-data:
   tailscale-state:
+  caddy-data:
+  caddy-config:
 
 
 networks:

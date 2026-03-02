@@ -9,29 +9,30 @@
         <p class="text-gray-400 text-sm mt-1">Insira a credencial mestra do Sovereign Pair.</p>
       </div>
 
-      <div class="space-y-4">
+      <form @submit.prevent="doLogin" class="space-y-6">
         <div>
           <label class="block text-sm font-medium text-gray-400 mb-1">Senha (Master Auth)</label>
           <input 
             v-model="password" 
-            @keyup.enter="doLogin"
             type="password" 
+            autocomplete="current-password"
+            name="password"
             class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none transition" 
             placeholder="Sua senha secreta inviolável..."
           >
         </div>
-      </div>
 
-      <div class="mt-6 flex justify-end">
-        <button 
-          @click="doLogin" 
-          :disabled="isSubmitting || !password" 
-          class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition disabled:opacity-50 flex justify-center"
-        >
-          <span v-if="isSubmitting">Conectando...</span>
-          <span v-else>Desbloquear Acesso</span>
-        </button>
-      </div>
+        <div class="flex justify-end">
+          <button 
+            type="submit"
+            :disabled="isSubmitting || !password" 
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition disabled:opacity-50 flex justify-center"
+          >
+            <span v-if="isSubmitting">Conectando...</span>
+            <span v-else>Desbloquear Acesso</span>
+          </button>
+        </div>
+      </form>
       
     </div>
   </div>
