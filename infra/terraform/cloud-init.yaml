@@ -1,0 +1,46 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - wget
+  - git
+  - zram-tools
+
+write_files:
+  - path: /etc/default/zramswap
+    content: |
+      ALGO=lz4
+      PERCENT=33
+    owner: root:root
+    permissions: '0644'
+
+  - path: /etc/systemd/system/ollama.service.d/override.conf
+    content: |
+      [Service]
+      Environment="OLLAMA_HOST=0.0.0.0:11434"
+      Environment="OLLAMA_FLASH_ATTENTION=1"
+      Environment="OLLAMA_NUM_PARALLEL=4"
+      Environment="OLLAMA_KEEP_ALIVE=24h"
+    owner: root:root
+    permissions: '0644'
+
+runcmd:
+  # 1. Apply ZRAM Config for Heavy LLMs
+  - systemctl restart zramswap
+
+  # 2. Install Tailscale and join Sovereign Mesh
+  - curl -fsSL https://tailscale.com/install.sh | sh
+  - tailscale up --authkey=${tailscale_auth_key} --ssh --accept-dns=true
+
+  # 3. Install Ollama Engine
+  - curl -fsSL https://ollama.com/install.sh | sh
+  - systemctl daemon-reload
+  - systemctl enable ollama
+  - systemctl restart ollama
+
+  # 4. Pull The Coder (and The Doctor) Models Asynchronously
+  # We use detached processes so the VM finishes booting quickly
+  - runuser -l root -c "nohup ollama pull qwen2.5-coder:7b > /var/log/ollama_pull_coder.log 2>&1 &"
+  - runuser -l root -c "nohup ollama pull llama3.2:3b > /var/log/ollama_pull_doctor.log 2>&1 &"
