@@ -883,3 +883,46 @@ async def search_vault(q: str, db: Session = Depends(get_db)):
         })
         
     return results
+
+@router.get("/vault/recent")
+async def get_recent_documents(db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Retorna os documentos ordenados por modificação (Recent Activities)"""
+    import os
+    docs = db.query(SensusDocumentModel).filter(
+        SensusDocumentModel.tenant_id == tenant_id
+    ).order_by(SensusDocumentModel.updated_at.desc()).limit(15).all()
+    
+    results = []
+    for doc in docs:
+        results.append({
+            "name": os.path.basename(doc.file_path),
+            "path": doc.file_path,
+            "updated_at": doc.updated_at.isoformat()
+        })
+    return results
+
+@router.get("/vault/tasks")
+async def get_vault_tasks(db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Escaneia todos os documentos atrás de Tarefas Pendentes `[ ]`"""
+    docs = db.query(SensusDocumentModel).filter(
+        SensusDocumentModel.tenant_id == tenant_id
+    ).all()
+    
+    tasks = []
+    for doc in docs:
+        if not doc.extracted_todos: 
+            continue
+            
+        for todo in doc.extracted_todos:
+            # Filtra apenas os pendentes (excluindo os [x])
+            if todo.startswith("[x]") or todo.startswith("[X]"):
+                continue
+            
+            # Remove o cast bruto "[ ] " deixando apenas o texto nativo
+            clean_text = todo[3:].strip()
+            if clean_text:
+                tasks.append({
+                    "text": clean_text,
+                    "file": doc.file_path
+                })
+    return tasks

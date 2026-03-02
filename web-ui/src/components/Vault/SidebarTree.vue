@@ -12,24 +12,6 @@
       </div>
     </div>
 
-    <!-- Global Navigation -->
-    <div class="px-4 py-2 flex flex-col gap-1 border-b border-[#222]">
-      <router-link to="/dashboard" class="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-zinc-800 text-zinc-300 hover:text-emerald-400 transition-colors cursor-pointer group">
-        <span class="i-ph-house-duotone text-lg opacity-70 group-hover:opacity-100"></span>
-        <span class="font-medium tracking-wide">Sensus Home</span>
-      </router-link>
-      
-      <router-link to="/projects" class="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-zinc-800 text-zinc-300 hover:text-cyan-400 transition-colors cursor-pointer group">
-        <span class="i-ph-folders-duotone text-lg opacity-70 group-hover:opacity-100"></span>
-        <span class="font-medium tracking-wide">Virtual Hub</span>
-      </router-link>
-      
-      <router-link to="/vault" class="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer group">
-        <span class="i-ph-books-duotone text-lg opacity-70 group-hover:opacity-100"></span>
-        <span class="font-medium tracking-wide">Explore Vault</span>
-      </router-link>
-    </div>
-
     <!-- Dynamic File Tree -->
     <div class="flex-1 overflow-y-auto pt-2 px-2 space-y-4">
       
