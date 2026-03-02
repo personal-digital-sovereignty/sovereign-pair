@@ -1,7 +1,5 @@
 <template>
-  <div class="flex h-screen w-screen bg-[#0E0E10] text-[#E0E0E0] overflow-hidden">
-    <!-- Sidebar / File Tree -->
-    <SidebarTree @select-file="handleSelectFile" @open-toc="handleOpenToc" class="w-64 border-r border-[#222222] bg-[#121214] flex-shrink-0" />
+  <div class="flex h-screen w-full bg-[#0E0E10] text-[#E0E0E0] overflow-hidden">
     
     <!-- Main Editor Area -->
     <main class="flex-1 flex flex-col h-full bg-[#0E0E10]">
@@ -85,8 +83,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import SidebarTree from '../components/Vault/SidebarTree.vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import BlockEditor from '../components/Vault/BlockEditor.vue'
 import SophiBar from '../components/Vault/SophiBar.vue'
 import TocModal from '../components/Vault/TocModal.vue'
@@ -135,6 +133,30 @@ const handleSelectFile = (file: { id: string, name?: string }) => {
   }
 }
 
+// Router Watcher for Global Sidebar Integration
+const route = useRoute()
+const router = useRouter()
+
+const processRouteQuery = () => {
+    if (route.query.file) {
+        handleSelectFile({
+            id: route.query.file as string,
+            name: route.query.name as string | undefined
+        })
+        // Clear query to avoid re-triggering on local tab switch
+        router.replace({ path: '/vault' })
+    }
+}
+
+watch(() => route.query.file, () => {
+    processRouteQuery()
+})
+
+onMounted(() => {
+    processRouteQuery()
+    window.addEventListener('sensus-toc-ready', handleTocReady)
+})
+
 const closeTab = (tabId: string) => {
   const index = tabs.value.findIndex(t => t.id === tabId)
   if (index === -1) return
@@ -145,7 +167,8 @@ const closeTab = (tabId: string) => {
   if (activeTabId.value === tabId) {
     if (tabs.value.length > 0) {
       // Vai pra tab anterior
-      activeTabId.value = tabs.value[Math.max(0, index - 1)].id
+      const previousIndex = Math.max(0, index - 1)
+      activeTabId.value = tabs.value[previousIndex]?.id || null
     } else {
       activeTabId.value = null
     }
@@ -159,38 +182,10 @@ const isTocOpen = ref(false)
 const tocActiveTitle = ref<string | null>(null)
 const tocItems = ref<Array<{level: number, text: string, id: string}>>([])
 
-const handleOpenToc = async (file: { id: string, name?: string }) => {
-  // Somente permite abrir o TOC do arquivo que já está ativo na tela principal
-  if (activeTabId.value !== file.id) {
-     handleSelectFile(file)
-     // Pequeno delay para garantir que a aba monte o editor antes de pedir o TOC
-     setTimeout(() => {
-         window.dispatchEvent(new CustomEvent('sensus-request-toc'))
-     }, 100)
-  } else {
-     // Se já ta carregado, pede direto
-     window.dispatchEvent(new CustomEvent('sensus-request-toc'))
-  }
-  
-  let popName = 'Untitled'
-  const pathParts = file.id.split('/')
-  if (pathParts.length > 0) {
-      popName = pathParts[pathParts.length - 1] || 'Untitled'
-  }
-  tocActiveTitle.value = file.name || popName
-  isTocOpen.value = true
-}
-
-import { onMounted, onBeforeUnmount } from 'vue'
-
 const handleTocReady = (e: Event) => {
    const customEvent = e as CustomEvent
    tocItems.value = customEvent.detail?.items || []
 }
-
-onMounted(() => {
-   window.addEventListener('sensus-toc-ready', handleTocReady)
-})
 
 onBeforeUnmount(() => {
    window.removeEventListener('sensus-toc-ready', handleTocReady)
