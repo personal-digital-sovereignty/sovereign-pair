@@ -12,7 +12,6 @@ jobs:
   opentofu-apply:
     name: "OpenTofu Apply (Oracle ARM A1)"
     runs-on: ubuntu-latest
-    environment: Oracle_Cloud
 
     defaults:
       run:
