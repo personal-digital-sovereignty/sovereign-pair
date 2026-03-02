@@ -155,6 +155,7 @@ watch(() => route.query.file, () => {
 onMounted(() => {
     processRouteQuery()
     window.addEventListener('sensus-toc-ready', handleTocReady)
+    window.addEventListener('sensus-open-toc-modal', handleOpenTocModal)
 })
 
 const closeTab = (tabId: string) => {
@@ -187,8 +188,19 @@ const handleTocReady = (e: Event) => {
    tocItems.value = customEvent.detail?.items || []
 }
 
+const handleOpenTocModal = (e: Event) => {
+   const customEvent = e as CustomEvent
+   const file = customEvent.detail?.file
+   if (file) {
+       tocActiveTitle.value = file.name || 'Sumário'
+       isTocOpen.value = true
+       window.dispatchEvent(new CustomEvent('sensus-request-toc'))
+   }
+}
+
 onBeforeUnmount(() => {
    window.removeEventListener('sensus-toc-ready', handleTocReady)
+   window.removeEventListener('sensus-open-toc-modal', handleOpenTocModal)
 })
 
 const handleTocNavigate = (item: {level: number, text: string}) => {

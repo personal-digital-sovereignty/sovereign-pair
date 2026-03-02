@@ -3,6 +3,7 @@ import ChatView from './views/ChatView.vue'
 import VaultView from './views/VaultView.vue'
 import DashboardView from './views/DashboardView.vue'
 import ProjectsHubView from './views/ProjectsHubView.vue'
+import SettingsView from './views/SettingsView.vue'
 
 const router = createRouter({
     history: createWebHistory(),
@@ -30,6 +31,11 @@ const router = createRouter({
             path: '/projects',
             name: 'projects',
             component: ProjectsHubView
+        },
+        {
+            path: '/settings',
+            name: 'settings',
+            component: SettingsView
         }
     ]
 })

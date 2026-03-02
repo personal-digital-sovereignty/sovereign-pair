@@ -5,53 +5,99 @@
   <Setup v-else-if="authPhase === 'setup'" @setup-complete="checkAuthStatus" />
   <Login v-else-if="authPhase === 'login'" @login-success="checkAuthStatus" />
   
-  <!-- Render the active route (Chat or Vault) when Authenticated -->
-  <div v-else class="flex w-full h-full bg-[#0E0E10] text-[#E0E0E0] overflow-hidden">
+  <!-- Render the active route when Authenticated -->
+  <div v-else class="flex w-full h-screen bg-[#0E0E10] text-[#E0E0E0] overflow-hidden font-sans">
     
-    <!-- Activity Bar (Vertical Bar with Hamburger Menu) -->
-    <div class="w-14 h-full bg-[#09090B] border-r border-[#222222] flex flex-col items-center py-4 gap-6 flex-shrink-0 z-20">
+    <!-- Global Wrapper for Sidebar + Content -->
+    <div class="flex h-full w-full relative z-10">
       
-      <!-- Hamburger Toggle -->
-      <button @click="isSidebarOpen = !isSidebarOpen" class="text-zinc-400 hover:text-white transition-colors p-1.5 rounded hover:bg-white/5" title="Menu">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-      </button>
+      <!-- 1. Permanent Activity Bar (Always 64px) -->
+      <nav class="w-[64px] bg-[#0E0E10] border-r border-[#222222] flex flex-col h-full shrink-0 z-30 relative">
+        <!-- Top Identity Logo (Toggles Context Panel) -->
+        <div class="h-14 flex items-center justify-center border-b border-[#222222] shrink-0">
+          <button @click="isSidebarOpen = !isSidebarOpen" class="text-emerald-500 hover:scale-110 transition-transform p-2 rounded-lg" :title="isSidebarOpen ? 'Ocultar Contexto' : 'Mostrar Contexto'">
+             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" class="shrink-0">
+               <circle cx="12" cy="12" r="4.5" fill="currentColor"/>
+               <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.3"/>
+             </svg>
+          </button>
+        </div>
 
-      <!-- Global Navigation Icons -->
-      <div class="flex flex-col gap-4 mt-2">
-        <router-link to="/dashboard" class="text-zinc-500 hover:text-emerald-400 p-2 rounded-lg hover:bg-white/5 transition-all" title="Sensus Home" active-class="text-emerald-400 bg-emerald-500/10">
-          <span class="i-ph-house-duotone text-xl block"></span>
-        </router-link>
-        <router-link to="/chat" class="text-zinc-500 hover:text-purple-400 p-2 rounded-lg hover:bg-white/5 transition-all" title="Sovereign Chat" active-class="text-purple-400 bg-purple-500/10">
-          <span class="i-ph-chats-teardrop-duotone text-xl block"></span>
-        </router-link>
-        <router-link to="/projects" class="text-zinc-500 hover:text-cyan-400 p-2 rounded-lg hover:bg-white/5 transition-all" title="Virtual Hub" active-class="text-cyan-400 bg-cyan-500/10">
-          <span class="i-ph-folders-duotone text-xl block"></span>
-        </router-link>
-        <router-link to="/vault" class="text-zinc-500 hover:text-white p-2 rounded-lg hover:bg-white/5 transition-all" title="Explore Vault" active-class="text-white bg-white/10">
-          <span class="i-ph-books-duotone text-xl block"></span>
-        </router-link>
-      </div>
+        <!-- Global Navigation Icons -->
+        <div class="p-3 flex flex-col gap-2 shrink-0 items-center">
+          <router-link to="/dashboard" @click="isSidebarOpen = true" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path === '/dashboard' ? 'text-emerald-400 bg-[#151517] shadow-[inset_3px_0_0_0_#34d399,inset_0_0_15px_0_rgba(52,211,153,0.1)]' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5']" title="Sensus Dashboard">
+            <Home class="w-6 h-6 shrink-0" />
+          </router-link>
+          
+          <router-link to="/chat" @click="isSidebarOpen = true" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path.startsWith('/chat') ? 'text-purple-400 bg-[#151517] shadow-[inset_3px_0_0_0_#a855f7,inset_0_0_15px_0_rgba(168,85,247,0.1)]' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5']" title="Sovereign Chat">
+            <MessageCircle class="w-6 h-6 shrink-0" />
+          </router-link>
+          
+          <router-link to="/vault" @click="isSidebarOpen = true" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path.startsWith('/vault') ? 'text-cyan-400 bg-[#151517] shadow-[inset_3px_0_0_0_#22d3ee,inset_0_0_15px_0_rgba(34,211,238,0.1)]' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5']" title="Sensus Vault / Explorador">
+            <Folder class="w-6 h-6 shrink-0" />
+          </router-link>
+          
+          <router-link to="/projects" @click="isSidebarOpen = true" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path.startsWith('/projects') ? 'text-blue-400 bg-[#151517] shadow-[inset_3px_0_0_0_#3b82f6,inset_0_0_15px_0_rgba(59,130,246,0.1)]' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5']" title="Sensus Projects / Hub">
+            <LayoutGrid class="w-6 h-6 shrink-0" />
+          </router-link>
+        </div>
+
+        <div class="mt-auto p-3 flex flex-col items-center border-t border-[#222222]">
+          <router-link to="/settings" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path.startsWith('/settings') ? 'text-slate-300 bg-[#151517] shadow-[inset_3px_0_0_0_#cbd5e1,inset_0_0_15px_0_rgba(203,213,225,0.1)]' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5']" title="Configurações e Identidade">
+            <Settings class="w-6 h-6 shrink-0" />
+          </router-link>
+        </div>
+      </nav>
+
+      <!-- 2. Sliding Context Panel (Trees, Chat History, Settings) -->
+      <aside 
+        class="bg-[#121214] flex flex-col h-full transition-all duration-300 relative z-20 shrink-0 overflow-x-hidden overflow-y-auto border-r border-[#222222]"
+        :class="isSidebarOpen ? 'w-[260px]' : 'w-0 border-r-0 pointer-events-none opacity-0'"
+      >
+        <div class="min-w-[260px] w-[260px] flex flex-col h-full shrink-0">
+          
+          <!-- Context Header -->
+          <div class="h-14 px-4 flex items-center border-b border-[#222222] shrink-0">
+            <span class="font-semibold text-zinc-300 tracking-wide text-sm truncate">
+              <!-- Dynamic Title based on Route -->
+              {{ $route.path === '/dashboard' ? 'Overview' : 
+                 $route.path.startsWith('/chat') ? 'Conversas Recentes' : 
+                 $route.path.startsWith('/vault') ? 'Explorer' : 
+                 $route.path.startsWith('/projects') ? 'Projetos' :
+                 $route.path === '/settings' ? 'Configurações' : 'Contexto' 
+              }}
+            </span>
+          </div>
+
+          <!-- Dynamic Context Area -->
+          <div id="sidebar-context-area" class="flex-1 w-full overflow-hidden flex flex-col relative min-h-0">
+             <!-- Inject Vault Tree if in Vault -->
+             <SidebarTree v-show="$route.path.startsWith('/vault')" class="w-full h-full" />
+             
+             <!-- Teleport target for Chat History -->
+             <!-- Teleport target for Settings Layout -->
+             <!-- Placeholder for Dashboard overview / Hub -->
+             <div v-if="$route.path === '/dashboard'" class="p-4 text-xs text-zinc-500 flex flex-col gap-2">
+                 <p>Sensus System Active.</p>
+                 <p>All nodes responding.</p>
+             </div>
+          </div>
+          
+        </div>
+      </aside>
       
-      <!-- Bottom Icons -->
-      <div class="mt-auto flex flex-col gap-4 mb-2">
-        <button class="text-zinc-500 hover:text-white p-2 rounded-lg hover:bg-white/5 transition-all" title="Settings">
-          <span class="i-ph-gear-duotone text-xl block"></span>
-        </button>
-      </div>
-
+      <!-- Main Area -->
+      <main class="flex-1 flex flex-col overflow-hidden relative min-w-0 focus:outline-none bg-[#0E0E10] shadow-[inset_10px_0_30px_rgba(0,0,0,0.5)]">
+        <router-view />
+      </main>
+      
     </div>
-
-    <!-- Main Collapsible Sidebar -->
-    <SidebarTree v-show="isSidebarOpen" class="w-64 border-r border-[#222222] bg-[#121214] flex-shrink-0 transition-all" />
-    
-    <main class="flex-1 overflow-hidden relative focus:outline-none">
-      <router-view />
-    </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { Home, MessageCircle, Folder, LayoutGrid, Settings } from 'lucide-vue-next'
 import Setup from './views/Setup.vue'
 import Login from './views/Login.vue'
 import SidebarTree from './components/Vault/SidebarTree.vue'
