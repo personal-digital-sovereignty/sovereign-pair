@@ -12,6 +12,24 @@
       </div>
     </div>
 
+    <!-- Global Navigation -->
+    <div class="px-4 py-2 flex flex-col gap-1 border-b border-[#222]">
+      <router-link to="/dashboard" class="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-zinc-800 text-zinc-300 hover:text-emerald-400 transition-colors cursor-pointer group">
+        <span class="i-ph-house-duotone text-lg opacity-70 group-hover:opacity-100"></span>
+        <span class="font-medium tracking-wide">Sensus Home</span>
+      </router-link>
+      
+      <router-link to="/projects" class="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-zinc-800 text-zinc-300 hover:text-cyan-400 transition-colors cursor-pointer group">
+        <span class="i-ph-folders-duotone text-lg opacity-70 group-hover:opacity-100"></span>
+        <span class="font-medium tracking-wide">Virtual Hub</span>
+      </router-link>
+      
+      <router-link to="/vault" class="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer group">
+        <span class="i-ph-books-duotone text-lg opacity-70 group-hover:opacity-100"></span>
+        <span class="font-medium tracking-wide">Explore Vault</span>
+      </router-link>
+    </div>
+
     <!-- Dynamic File Tree -->
     <div class="flex-1 overflow-y-auto pt-2 px-2 space-y-4">
       
@@ -29,7 +47,7 @@
            <div 
               v-for="file in files" 
               :key="file.id"
-              @click="$emit('select-file', file)"
+              @click="openFile(file)"
               @dblclick="$emit('open-toc', file)"
               class="py-1.5 px-2 rounded hover:bg-zinc-800 cursor-pointer text-zinc-300 flex items-center gap-2 group transition-colors"
             >
@@ -48,12 +66,18 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const isLoading = ref(true)
 const vaultTree = ref<Record<string, any[]>>({})
 
-const emit = defineEmits(['select-file', 'open-toc'])
+const emit = defineEmits(['open-toc'])
+
+const openFile = (file: any) => {
+    router.push({ path: '/vault', query: { file: file.id, name: file.name } })
+}
 
 const loadVaultTree = async () => {
   try {
