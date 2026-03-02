@@ -290,6 +290,56 @@ import { Markdown } from 'tiptap-markdown'
 import { VaultSyntaxHighlighter } from './decorators'
 import { PresentationBlock } from './extensions/PresentationBlock'
 import yaml from 'js-yaml'
+import TurndownService from 'turndown'
+
+// TipTap Extended Plugins for Data Ingestion
+const SensusTableCell = TableCell.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      sensusValue: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-sensus-value'),
+        renderHTML: attributes => {
+          if (!attributes.sensusValue) return {}
+          return { 'data-sensus-value': attributes.sensusValue }
+        }
+      },
+      sensusError: {
+        default: false,
+        parseHTML: element => element.getAttribute('data-sensus-error') === 'true',
+        renderHTML: attributes => {
+          if (!attributes.sensusError) return {}
+          return { 'data-sensus-error': attributes.sensusError }
+        }
+      }
+    }
+  }
+})
+
+const SensusTableHeader = TableHeader.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      sensusValue: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-sensus-value'),
+        renderHTML: attributes => {
+          if (!attributes.sensusValue) return {}
+          return { 'data-sensus-value': attributes.sensusValue }
+        }
+      },
+      sensusError: {
+        default: false,
+        parseHTML: element => element.getAttribute('data-sensus-error') === 'true',
+        renderHTML: attributes => {
+          if (!attributes.sensusError) return {}
+          return { 'data-sensus-error': attributes.sensusError }
+        }
+      }
+    }
+  }
+})
 
 const props = defineProps({
   fileId: { type: String, required: true },
@@ -322,15 +372,39 @@ const parseFrontmatter = (markdown: string | undefined) => {
     const match = markdown.match(yamlRegex)
     if (match) {
         try {
-            return {
+            const safeMatchContent = match[2] || '';
+            const contentAfterFrontmatter = safeMatchContent.trimStart();
+            const linesData = contentAfterFrontmatter.split('\n');
+
+            // Detect Title fallback if Frontmatter title empty
+            const rawFirstLine = linesData[0];
+            const autoTitle = rawFirstLine ? rawFirstLine.trim().replace(/^#{1,6}\s/, '') : 'Untitled Document';
+            
+            docData.value = {
                 frontmatter: yaml.load(match[1]) || {},
-                content: match[2] ? match[2].trimStart() : ''
+                content: contentAfterFrontmatter,
+                autoTitle: autoTitle
+            };
+
+            return {
+                frontmatter: docData.value.frontmatter,
+                content: docData.value.content
             }
         } catch(e) {
             console.error("YAML Parse Error", e)
             return { frontmatter: {}, content: markdown }
         }
     }
+    const linesData = markdown ? markdown.split('\n') : [''];
+    const rawFirstLine = linesData.length > 0 ? linesData[0] : '';
+    const safeFirstLine = rawFirstLine || '';
+    const autoTitle = safeFirstLine ? safeFirstLine.trim().replace(/^#{1,6}\s/, '') : 'Untitled Document';
+
+    docData.value = {
+        frontmatter: {},
+        content: markdown,
+        autoTitle: autoTitle
+    };
     return { frontmatter: {}, content: markdown }
 }
 
@@ -453,8 +527,59 @@ const debounceTableEvaluate = (editorInstance: any) => {
             
             if (res.ok) {
                 const data = await res.json()
-                // Futuro: Injectar os Resultados visuais (data.results) e cores de Erros (data.errors) de volta na UI do TipTap
-                // console.log("Sensus Calc Engine Results:", data)
+                
+                // Inject Results visuais (data.results) e Erros (data.errors) de volta na UI via ProseMirror (Não polui undo-history)
+                const { state, view } = editorInstance;
+                let tr = state.tr;
+                let modified = false;
+                
+                let rIdx = 0;
+                let cIdx = 0;
+                state.doc.descendants((node: any, pos: number) => {
+                    if (node.type.name === 'table') rIdx = 0;
+                    if (node.type.name === 'tableRow') {
+                        rIdx++;
+                        cIdx = 0;
+                    }
+                    if (node.type.name === 'tableCell' || node.type.name === 'tableHeader') {
+                        const colLetter = String.fromCharCode(65 + cIdx);
+                        const cellId = `${colLetter}${rIdx}`;
+                        const rawContent = cells[cellId] || "";
+                        
+                        const result = data.results[cellId];
+                        const hasError = data.errors[cellId] !== undefined;
+                        
+                        console.log("AST Sync ->", cellId, "raw:", rawContent, "res:", result, "attrs:", node.attrs);
+                        
+                        // O Visor Matemático de cálculo só cobre células cujo conteúdo inicia com '=' ou tem erros
+                        if (rawContent.startsWith('=') || hasError) {
+                            if (node.attrs.sensusValue !== result || !!node.attrs.sensusError !== hasError) {
+                               tr = tr.setNodeMarkup(pos, null, {
+                                   ...node.attrs,
+                                   sensusValue: result,
+                                   sensusError: hasError
+                               });
+                               modified = true;
+                            }
+                        } else {
+                            if (node.attrs.sensusValue !== null || node.attrs.sensusError !== false) {
+                               tr = tr.setNodeMarkup(pos, null, { ...node.attrs, sensusValue: null, sensusError: false });
+                               modified = true;
+                            }
+                        }
+                        
+                        cIdx++;
+                    }
+                });
+                
+                if (modified) {
+                    view.dispatch(tr);
+                    setTimeout(() => {
+                        console.log("FINAL C1 MATCH ->", document.querySelector('[data-sensus-value]')?.outerHTML)
+                        console.log("FULL TABLE DOM ->", editorInstance.view.dom.querySelector('table')?.outerHTML)
+                    }, 100)
+                }
+                
                 if (Object.keys(data.errors).length > 0) {
                     // Notificando o sistema de que há uma referência falha
                     console.warn("Table AST Errors Detected:", data.errors)
@@ -503,12 +628,12 @@ const editor = useEditor({
            class: 'border-b border-surface-700 hover:bg-surface-700/50 transition-colors'
         }
     }),
-    TableHeader.configure({
+    SensusTableHeader.configure({
         HTMLAttributes: {
            class: 'border border-surface-600 bg-surface-700/80 text-surface-200 font-semibold p-2 text-left text-sm'
         }
     }),
-    TableCell.configure({
+    SensusTableCell.configure({
         HTMLAttributes: {
            class: 'border border-surface-700 p-2 text-surface-300 text-sm align-top break-words'
         }
@@ -518,7 +643,7 @@ const editor = useEditor({
   ],
   editorProps: {
     attributes: {
-      class: 'focus:outline-none min-h-[500px] text-lg leading-relaxed text-zinc-300',
+      class: 'tiptap ProseMirror focus:outline-none min-h-[500px] text-lg leading-relaxed text-zinc-300',
     },
   },
   onUpdate: ({ editor }) => {
@@ -591,34 +716,127 @@ const fetchDocument = async () => {
     }
 }
 
+const handleTocRequest = () => {
+    if (!editor.value) {
+        window.dispatchEvent(new CustomEvent('sensus-toc-ready', { detail: { items: [] } }))
+        return
+    }
+
+    const jsonContent = editor.value.getJSON()
+    if (!jsonContent.content) {
+        window.dispatchEvent(new CustomEvent('sensus-toc-ready', { detail: { items: [] } }))
+        return
+    }
+
+    const headings: Array<{level: number, text: string, id: string}> = []
+    let counter = 0
+    
+    // Varredura Linear no AST do TipTap
+    const traverse = (nodes: any[]) => {
+       for (const node of nodes) {
+           if (node.type === 'heading' && node.content && node.content.length > 0) {
+              const text = node.content.map((n: any) => n.text).join('')
+              headings.push({
+                 level: node.attrs?.level || 1,
+                 text: text,
+                 id: `heading-${counter++}`
+              })
+           }
+           if (node.content) {
+              traverse(node.content)
+           }
+       }
+    }
+    
+    traverse(jsonContent.content)
+    
+    // Responde ao Vue Root
+    window.dispatchEvent(new CustomEvent('sensus-toc-ready', { detail: { items: headings } }))
+}
+
 const debounceSave = (content: string) => {
     isSaving.value = true
     if (saveTimeout) clearTimeout(saveTimeout)
-    saveTimeout = setTimeout(async () => {
-        try {
-            const token = localStorage.getItem('sovereign_token')
-            const headers: Record<string, string> = { "Content-Type": "application/json" }
-            if (token) headers['Authorization'] = `Bearer ${token}`
-            
-            const res = await fetch(`${API_BASE_URL}/v1/vault/document/${props.fileId}`, {
-                method: "PUT",
-                headers,
-                body: JSON.stringify({ content })
-            })
-            
-            if (!res.ok) console.error("Auto-save falhou. Status:", res.status)
-        } catch(e) {
-            console.error("Auto-save Exception", e)
-        } finally {
-            isSaving.value = false
+    saveTimeout = setTimeout(() => {
+        saveDocument(content)
+    }, 1500) // 1.5s debounce local
+}
+
+const saveDocument = async (htmlContent: string) => {
+    if (!props.fileId) return
+    
+    try {
+        const token = localStorage.getItem('sovereign_token')
+        const turndownService = new TurndownService({
+           headingStyle: 'atx',
+           codeBlockStyle: 'fenced'
+        })
+        const finalMarkdownContent = turndownService.turndown(htmlContent)
+        
+        // Reconstrói com frontmatter se existir
+        let finalOutput = finalMarkdownContent
+        if (Object.keys(docData.value.frontmatter).length > 0) {
+            const yamlStr = yaml.dump(docData.value.frontmatter)
+            finalOutput = `---\n${yamlStr}---\n${finalMarkdownContent}`
         }
-    }, 1200) // Debounce delay 1.2s após parar de digitar
+
+        const res = await fetch(`${API_BASE_URL}/v1/vault/document`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({
+                 file_path: props.fileId,
+                 content: finalOutput
+            })
+        })
+        
+        if (!res.ok) throw new Error('Falha ao salvar')
+        console.log(`Pushed to Disk: ${props.fileId}`)
+    } catch(e) {
+        console.error("Auto-Save error", e)
+    } finally {
+        isSaving.value = false
+    }
 }
 
 // Em caso de troca de documento com o mesmo componente Editor montado
 watch(() => props.fileId, (newId) => {
     if (newId) fetchDocument()
 })
+
+const handleTocNavigate = (e: Event) => {
+  const customEvent = e as CustomEvent
+  const targetText = customEvent.detail?.text
+  
+  if (!targetText || !editor.value) return
+  
+  const proseMirrorRawDom = document.querySelector('.ProseMirror')
+  if (!proseMirrorRawDom) return
+  
+  const headers = proseMirrorRawDom.querySelectorAll('h1, h2, h3')
+  for (const header of headers) {
+    if (header.textContent === targetText) {
+       header.scrollIntoView({ behavior: 'smooth', block: 'start' })
+       
+       const htmlHeader = header as HTMLElement
+       const originalBg = htmlHeader.style.backgroundColor
+       const originalColor = htmlHeader.style.color
+       
+       htmlHeader.style.transition = 'all 0.3s ease'
+       htmlHeader.style.backgroundColor = 'rgba(16, 185, 129, 0.2)' 
+       htmlHeader.style.color = '#10B981'
+       
+       setTimeout(() => {
+         htmlHeader.style.backgroundColor = originalBg
+         htmlHeader.style.color = originalColor
+       }, 1200)
+       
+       break
+    }
+  }
+}
 
 const checkSpellcheckPreference = () => {
     const pref = localStorage.getItem('sensus_spellcheck')
@@ -647,7 +865,7 @@ const updateEditorSpellcheck = () => {
                 attributes: {
                     ...editor.value.options.editorProps?.attributes,
                     spellcheck: spellcheckEnabled.value ? 'true' : 'false',
-                    class: 'focus:outline-none min-h-[500px] text-lg leading-relaxed text-zinc-300',
+                    class: 'tiptap ProseMirror focus:outline-none min-h-[500px] text-lg leading-relaxed text-zinc-300',
                 }
             }
         })
@@ -657,10 +875,17 @@ const updateEditorSpellcheck = () => {
 onMounted(() => {
     fetchDocument()
     checkSpellcheckPreference()
+    
+    // Registra ouvinte global para o Table_Of_Contents (TOC) Modal
+    window.addEventListener('sensus-toc-navigate', handleTocNavigate)
+    window.addEventListener('sensus-request-toc', handleTocRequest)
 })
 
 onBeforeUnmount(() => {
     if (saveTimeout) clearTimeout(saveTimeout)
+    
+    window.removeEventListener('sensus-toc-navigate', handleTocNavigate)
+    window.removeEventListener('sensus-request-toc', handleTocRequest)
 })
 </script>
 
@@ -685,5 +910,40 @@ onBeforeUnmount(() => {
 .tiptap li[data-type="taskItem"] > label {
   margin-right: 0.5rem;
   user-select: none;
+}
+
+/* Tabela Sensus - Visualização Mágica de Fórmulas */
+.tiptap td[data-sensus-value]:not([data-sensus-value=""]),
+.tiptap th[data-sensus-value]:not([data-sensus-value=""]) {
+  position: relative;
+}
+.tiptap td[data-sensus-value]:not([data-sensus-value=""]) > p,
+.tiptap th[data-sensus-value]:not([data-sensus-value=""]) > p {
+  opacity: 0 !important; /* Esconde a formula original =A1+B2 mas mantém texto existindo e editavel */
+  min-height: 1.5rem;
+}
+.tiptap td[data-sensus-value]:not([data-sensus-value=""])::before,
+.tiptap th[data-sensus-value]:not([data-sensus-value=""])::before {
+  content: attr(data-sensus-value);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: inherit;
+  padding-left: 0.75em;
+  padding-top: 0.57em;
+  background-color: transparent;
+  color: #10B981 !important; /* Verde esmeralda para valores matematicos */
+  font-weight: bold;
+  pointer-events: none; /* Deixa o clique passar pro parágrafo P escondido */
+}
+
+/* Erros de Fórmula */
+.tiptap td[data-sensus-error="true"]::before,
+.tiptap th[data-sensus-error="true"]::before {
+  color: #EF4444 !important; /* Vermelho para erro */
 }
 </style>

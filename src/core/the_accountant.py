@@ -30,10 +30,20 @@ class DependencyGraph:
     def remove_node(self, node: str) -> List[str]:
         """
         Usuario deletou a Coluna de `node`. 
-        Retorna lista de dependentes que vão quebrar e virar `#REF!`.
+        Retorna lista de TODOS OS dependentes (diretos e indiretos) que vão quebrar e virar `#REF!`.
         """
-        affected = list(self.adjacency_list.get(node, []))
-        # Limpa os elos
+        affected = set()
+        queue = [node]
+        
+        while queue:
+            current = queue.pop(0)
+            direct_deps = self.adjacency_list.get(current, [])
+            for dep in direct_deps:
+                if dep not in affected:
+                    affected.add(dep)
+                    queue.append(dep)
+
+        # Limpa os elos do nó deletado
         self.adjacency_list.pop(node, None)
         if node in self.reverse_adj:
             for source in self.reverse_adj[node]:
@@ -41,7 +51,7 @@ class DependencyGraph:
                     self.adjacency_list[source].remove(node)
             self.reverse_adj.pop(node, None)
             
-        return affected
+        return list(affected)
 
     def detect_cycle(self, start_node: str, visited: Set[str] | None = None, stack: Set[str] | None = None) -> bool:
         """Detecta erro de referência circular se A depende de B e B depende de A"""
@@ -138,20 +148,24 @@ class TheAccountant:
             if self.dag.detect_cycle(coordinate):
                 node.value = "#CIRCULAR_REF!"
 
-    def handle_cell_deletion(self, deleted_coordinate: str) -> List[Tuple[str, str]]:
+    def handle_cell_deletion(self, deleted_column: str) -> List[Tuple[str, str]]:
         """
         Quando uma Coluna inteira é apagada e o Front Notifica:
-        Identifica todo mundo que dependia dessa coord e converte para #REF!
-        Retorna a lista de celulas a atualizar no arquivo.
+        Identifica todas as células que começam com essa coluna (ex: "C" -> "C1", "C2"),
+        remove-as do DAG e converte todos os dependentes para #REF!
         """
-        affected_nodes = self.dag.remove_node(deleted_coordinate)
+        affected_nodes = []
+        for coord in list(self.cells.keys()):
+            if coord.startswith(deleted_column):
+                affected_nodes.extend(self.dag.remove_node(coord))
+                
         updates = []
         
         for node in affected_nodes:
             cell = self.cells.get(node)
             if cell and cell.is_formula:
                 # Substitui a velha Ref por #REF! para gerar panic no evaluate
-                new_formula = re.sub(fr"\b{deleted_coordinate}\b", "#REF!", cell.raw_content)
+                new_formula = re.sub(fr"\b{deleted_column}\d+\b", "#REF!", cell.raw_content)
                 cell.raw_content = new_formula
                 cell.value = "#REF!"
                 updates.append((node, new_formula))
@@ -172,11 +186,15 @@ class TheAccountant:
                 return 0.0
                 
             if cell.value is not None:
-                if str(cell.value) in ["#REF!", "#CIRCULAR_REF!", "#ERROR!"]:
+                if str(cell.value) in ["#REF!", "#CIRCULAR_REF!", "#ERROR!", "#DIV/0!"]:
+                    updates[coord] = str(cell.value)
                     return cell.value
                 try:
-                    return float(cell.value)
+                    val = float(cell.value)
+                    updates[coord] = str(val)
+                    return val
                 except ValueError:
+                    updates[coord] = "0.0"
                     return 0.0
 
             if not cell.is_formula:
@@ -184,6 +202,7 @@ class TheAccountant:
                     cell.value = float(cell.raw_content)
                 except ValueError:
                     cell.value = 0.0
+                updates[coord] = str(cell.value)
                 return cell.value
                 
             # É Fórmula. Previne loop recursivo
@@ -199,23 +218,22 @@ class TheAccountant:
             def replace_ref(match):
                 ref_coord = match.group(1)
                 val = resolve_value(ref_coord, visited)
-                return str(val) if not isinstance(val, str) or val not in ["#REF!", "#CIRCULAR_REF!", "#ERROR!"] else '0' # Ignorar quebra na mat, let root fail
-
-            # Isso varre A1, B2 e substitui pelos números reais.
-            resolved_formula = re.sub(r"([A-Z]+\d+)", replace_ref, formula_str)
-            
-            # Verifica se herdou algum erro nas dependencias imediatas
-            # Simples proxy para #REF!
-            if any(str(resolve_value(ref, set())) in ["#REF!", "#CIRCULAR_REF!"] for ref in self.dag.reverse_adj.get(coord, [])):
-                 cell.value = "#REF!"
-                 updates[coord] = str(cell.value)
-                 return cell.value
+                if isinstance(val, str) and val in ["#REF!", "#CIRCULAR_REF!", "#ERROR!"]:
+                    raise ValueError(val) # Aborta a Regex imediatamente c/ o código do erro
+                return str(val) if not isinstance(val, str) else val
 
             try:
-                # Usar EVAL puro apenas para escopo numérico restrito provisório
-                # Fase 17 restringe entrada via tipTap a números e operações básicas.
-                # A implementação real de The Accountant usará `ast.parse` e caminhada na AST Tree.
+                # Isso varre A1, B2 e substitui pelos números reais.
+                # Se encontrar #REF!, exibe Exception e quebra o bloco.
+                resolved_formula = re.sub(r"([A-Z]+\d+)", replace_ref, formula_str)
+                # Escopo seguro para Math básica
                 cell.value = float(eval(resolved_formula, {"__builtins__": {}}, {}))
+            except ValueError as ve:
+                err_code = str(ve)
+                if err_code in ["#REF!", "#CIRCULAR_REF!", "#ERROR!"]:
+                    cell.value = err_code
+                else:
+                    cell.value = "#ERROR!"
             except ZeroDivisionError:
                  cell.value = "#DIV/0!"
             except Exception:

@@ -837,14 +837,22 @@ async def evaluate_table(request: Request, body: TableCalcRequest, tenant_id: st
     eval_results = engine.evaluate_all()
     
     # Processa os resultados para enviar ao Frontend
+    final_updates = dict(updates)
+    
     for c_id, val in eval_results.items():
-        if c_id not in updates: # Evita sobrescrever uma detonação de coluna já feita
-            val_str = str(val)
-            updates[c_id] = val_str
-            if val_str in ["#REF!", "#CIRCULAR_REF!", "#ERROR!", "#DIV/0!"]:
-                errors[c_id] = val_str
+        val_str = str(val)
+        if "#REF!" in val_str:
+            val_str = "#REF!"
             
-    return TableCalcResponse(results=updates, errors=errors)
+        # Sobrescreve apenas se não for um override manual via detonação
+        if c_id not in final_updates or final_updates[c_id] != "#REF!":
+            final_updates[c_id] = val_str
+
+    for c_id, val_str in final_updates.items():
+        if val_str in ["#REF!", "#CIRCULAR_REF!", "#ERROR!", "#DIV/0!"]:
+            errors[c_id] = val_str
+            
+    return TableCalcResponse(results=final_updates, errors=errors)
 
 @router.get("/vault/search")
 async def search_vault(q: str, db: Session = Depends(get_db)):
