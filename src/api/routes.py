@@ -193,37 +193,20 @@ EXTREMA IMPORTÂNCIA:
                                 full_ai_response += token
                                 yield f"data: {json.dumps({'content': token})}\n\n"
                     else:
-                        # --- EXECUÇÃO CLÁSSICA: O Doutor (Heavy LLM) ---
-                        # 3. Montar mensagens manuais para BYPASS no LlamaIndex ChatEngine Buggy
-                        sys_prompt = "Você é a inteligência artificial Sovereign Pair."
-                        try:
-                            # Extrai o system prompt verdadeiro injetado na engine_builder
-                            sys_prompt = engine.memory.get_all()[0].content if engine.memory.get_all()[0].role == MessageRole.SYSTEM else sys_prompt
-                        except Exception:
-                            pass
-                            
-                        sys_msg = LlamaMsg(role=MessageRole.SYSTEM, content=sys_prompt)
-                        user_rag_msg = LlamaMsg(role=MessageRole.USER, content=f"Contexto do Sistema (RAG Vault):\n-------------------\n{context_str}\n-------------------\n\nResponda strictamente baseando-se no contexto acima.\nPergunta: {body_request.message}")
+                        # --- EXECUÇÃO TIER 4: O Médico (Heavy LLM & Deep Synthesis) ---
+                        from src.core.the_doctor import TheDoctor
+                        doctor = TheDoctor(body_request.provider, body_request.model, engine)
                         
-                        history_msgs = engine.memory.get_all() if getattr(engine, 'memory', None) else []
-                        history_msgs = [m for m in history_msgs if m.role != MessageRole.SYSTEM] # avoid duplicate system prompts
+                        yield f"data: {json.dumps({'content': '*(🧠 Raciocínio Profundo do The Doctor ativado...)*\\n\\n'})}\n\n"
                         
-                        messages_to_send = [sys_msg] + history_msgs + [user_rag_msg]
-                        
-                        from src.engine_builder import resolve_dynamic_llm
-                        from src.config import llm as default_llm
-                        active_llm = resolve_dynamic_llm(body_request.provider, body_request.model, default_llm)
-                        
-                        yield f"data: {json.dumps({'content': '*(🧠 Raciocínio Profundo do The Doctor ativado...)*\n\n'})}\n\n"
-                        
-                        print(f"[DEBUG RAG] Executando Inference bypass LlamaIndex via {getattr(active_llm, 'model', 'N/A')}...", flush=True)
-                        response_gen = await active_llm.astream_chat(messages_to_send)
+                        print(f"[DEBUG RAG] Executando The Doctor (Tier 4) via {getattr(doctor.llm, 'model', 'N/A')}...", flush=True)
+                        response_gen = await doctor.execute_deep_reasoning(body_request.message, context_str, intent_data)
                         
                         full_ai_response = "*(🧠 Raciocínio Profundo do The Doctor ativado...)*\n\n"
                         async for token in response_gen:
-                            if token.delta:
-                                full_ai_response += token.delta
-                                yield f"data: {json.dumps({'content': token.delta})}\n\n"
+                            if token:
+                                full_ai_response += token
+                                yield f"data: {json.dumps({'content': token})}\n\n"
                         
                 # Após o streaming, verifique se a resposta foi apenas um aviso de que não achou o documento.
                 if full_ai_response:
@@ -926,3 +909,53 @@ async def get_vault_tasks(db: Session = Depends(get_db), tenant_id: str = Depend
                     "file": doc.file_path
                 })
     return tasks
+
+# ---------------------------------------------------------
+# MCP (Model Context Protocol) Endpoints - Phase 21
+# ---------------------------------------------------------
+from pydantic import BaseModel, Field
+
+class MCPToolRequest(BaseModel):
+    tool: str
+    parameters: dict = Field(default_factory=dict)
+
+@router.post("/mcp/tool")
+async def execute_mcp_tool(request: Request, body: MCPToolRequest):
+    """
+    Executa ferramentas expostas via MCP (VSCode OpenCode / Cline).
+    Permite que o Editor consuma o RAG e o Context7 do Sovereign Pair.
+    """
+    import os
+    import json
+    
+    if body.tool == "sensus_vault_search":
+        # Simula uma busca heurística rápida para o Coder na IDE
+        query = body.parameters.get("query", "")
+        # Em produção, chamaremos o The Dad Vector Search, mas por ora um simples heuristics
+        return {"result": f"Busca MCP recebida para '{query}'. (Integração do The Dad em andamento na Sprint 21)."}
+        
+    elif body.tool == "sensus_project_context":
+        from src.config import VAULT_DIR
+        project = body.parameters.get("project_name", "default")
+        
+        # Mapeamento do Context7 (Árvore de arquivos básica por hora)
+        tree = {}
+        target_dir = VAULT_DIR
+        
+        if os.path.exists(target_dir):
+            for root, dirs, files in os.walk(target_dir):
+                dirs[:] = [d for d in dirs if not d.startswith('.')]
+                rel_path = os.path.relpath(root, target_dir)
+                if rel_path == '.':
+                    tree['/'] = files
+                else:
+                    tree[rel_path] = files
+                    
+        return {
+            "project": project,
+            "architecture": "Cibrid Agentic Architecture (Phase 21)",
+            "context7_depth": "Layer 3 (File Tree Map / Structural Awareness)",
+            "tree": tree
+        }
+
+    raise HTTPException(status_code=404, detail=f"Tool '{body.tool}' not found in MCP registry.")

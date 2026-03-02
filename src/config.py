@@ -48,13 +48,12 @@ VAULT_PATH_CUSTOM = os.getenv("VAULT_PATH", "").strip()
 RAW_DOCS_PATHS_CUSTOM = os.getenv("RAW_DOCS_PATHS", "").strip()
 FOLLOW_SYMLINKS = os.getenv("FOLLOW_SYMLINKS", "true").lower() == "true"
 
-# Determinar caminhos finais
-if VAULT_PATH_CUSTOM:
+if VAULT_PATH_CUSTOM and not os.path.exists('/.dockerenv'):
     VAULT_DIR = Path(VAULT_PATH_CUSTOM).expanduser().resolve()
 else:
     VAULT_DIR = DATA_DIR / "vault"
 
-if RAW_DOCS_PATHS_CUSTOM:
+if RAW_DOCS_PATHS_CUSTOM and not os.path.exists('/.dockerenv'):
     # Suportar múltiplos caminhos separados por vírgula
     RAW_DOCS_DIRS = [
         Path(p.strip()).expanduser().resolve() 
