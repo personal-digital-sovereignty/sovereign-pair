@@ -106,18 +106,30 @@ const recentDocs = ref<RecentDoc[]>([])
 const pendingTasks = ref<VaultTask[]>([])
 
 const fetchDashboardData = async () => {
-    // Phase 23: Integravel via API calls posteriormente para "The Mom / The Tracker"
-    // Mock Data Temporario para UI Prototyping
-    recentDocs.value = [
-        { name: "Reunião de Alinhamento", path: "Projetos/Acme/Reunião de Alinhamento.md", timeAgo: "10 min atrás" },
-        { name: "Anotações do Livro", path: "Estudos/Anotações do Livro.md", timeAgo: "2 horas atrás" },
-        { name: "Sem título", path: "Sem título.md", timeAgo: "Ontem" }
-    ]
-
-    pendingTasks.value = [
-        { text: "Revisar o contrato da OCI", file: "Projetos/Acme/Contratos.md" },
-        { text: "Comprar servidor novo (Ryzen) ou manter ARM?", file: "Hardware.md" }
-    ]
+    try {
+        const token = localStorage.getItem('sovereign_token') || ''
+        const headers = { 'Authorization': `Bearer ${token}` }
+        
+        const [recentRes, tasksRes] = await Promise.all([
+            fetch(`${API_BASE_URL}/v1/vault/recent`, { headers }),
+            fetch(`${API_BASE_URL}/v1/vault/tasks`, { headers })
+        ])
+        
+        if (recentRes.ok) {
+            const data = await recentRes.json()
+            recentDocs.value = data.map((d: any) => ({
+                name: d.name,
+                path: d.path,
+                timeAgo: new Date(d.updated_at).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'}) + ' ' + new Date(d.updated_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})
+            }))
+        }
+        
+        if (tasksRes.ok) {
+            pendingTasks.value = await tasksRes.json()
+        }
+    } catch(e) {
+        console.error("Erro ao puxar dados do Dashboard:", e)
+    }
 }
 
 const openInVault = (doc: any) => {
