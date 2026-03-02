@@ -2,9 +2,6 @@
   <div class="p-8 h-full overflow-y-auto w-full bg-[#111111] text-zinc-100 flex flex-col gap-6">
     <header class="flex flex-col gap-1 pb-4 border-b border-white/5">
       <h1 class="text-3xl font-light tracking-tight text-white flex items-center gap-3">
-        <div class="px-2 py-1 bg-white/5 border border-white/10 rounded-md shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
-            <span class="text-emerald-400">⚡</span>
-        </div>
         Sensus Dashboard
       </h1>
       <p class="text-sm text-zinc-500 font-mono tracking-wider ml-1">COGNITIVE HUB & ACTIVITY STREAM</p>
