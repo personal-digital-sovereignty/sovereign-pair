@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-screen w-screen bg-[#0E0E10] text-[#E0E0E0] overflow-hidden">
     <!-- Sidebar / File Tree -->
-    <SidebarTree @select-file="handleSelectFile" class="w-64 border-r border-[#222222] bg-[#121214] flex-shrink-0" />
+    <SidebarTree @select-file="handleSelectFile" @open-toc="handleOpenToc" class="w-64 border-r border-[#222222] bg-[#121214] flex-shrink-0" />
     
     <!-- Main Editor Area -->
     <main class="flex-1 flex flex-col h-full bg-[#0E0E10]">
@@ -72,14 +72,24 @@
     </main>
     
     <SophiBar @select-file="handleSelectFile" />
+
+    <!-- Table of Contents Modal -->
+    <TocModal 
+      :isOpen="isTocOpen"
+      :title="tocActiveTitle"
+      :items="tocItems"
+      @close="isTocOpen = false"
+      @navigate="handleTocNavigate"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import SidebarTree from '../components/Vault/SidebarTree.vue'
 import BlockEditor from '../components/Vault/BlockEditor.vue'
 import SophiBar from '../components/Vault/SophiBar.vue'
+import TocModal from '../components/Vault/TocModal.vue'
 
 interface Tab {
   id: string
@@ -90,7 +100,6 @@ interface Tab {
 const tabs = ref<Tab[]>([])
 const activeTabId = ref<string | null>(null)
 
-import { computed } from 'vue'
 const activeTabObject = computed(() => tabs.value.find(t => t.id === activeTabId.value))
 
 const handleUpdateViewMode = (mode: 'visual' | 'source' | 'split') => {
@@ -107,9 +116,12 @@ const handleEditorStats = (stats: { words: number, links: number, path: string }
 
 const handleSelectFile = (file: { id: string, name?: string }) => {
   // Se o Sidebar/Sophi enviar nome, usa ele, senão faz um fallback pegando do basename doc
-  const fallbackParts = file.id.split('/')
-  const rawFallback = fallbackParts.pop()
-  const fallbackName = file.name || rawFallback || 'Untitled.md'
+  let fallbackName = file.name
+  if (!fallbackName) {
+      const parts = file.id.split('/')
+      const lastPart = parts.length > 0 ? parts[parts.length - 1] : undefined
+      fallbackName = lastPart || 'Untitled.md'
+  }
   const targetId = file.id
 
   // Checa se já ta aberto
@@ -139,6 +151,61 @@ const closeTab = (tabId: string) => {
     }
   }
 }
+
+// ==========================================
+// Table of Contents (Active Outline) Logic
+// ==========================================
+const isTocOpen = ref(false)
+const tocActiveTitle = ref<string | null>(null)
+const tocItems = ref<Array<{level: number, text: string, id: string}>>([])
+
+const handleOpenToc = async (file: { id: string, name?: string }) => {
+  // Somente permite abrir o TOC do arquivo que já está ativo na tela principal
+  if (activeTabId.value !== file.id) {
+     handleSelectFile(file)
+     // Pequeno delay para garantir que a aba monte o editor antes de pedir o TOC
+     setTimeout(() => {
+         window.dispatchEvent(new CustomEvent('sensus-request-toc'))
+     }, 100)
+  } else {
+     // Se já ta carregado, pede direto
+     window.dispatchEvent(new CustomEvent('sensus-request-toc'))
+  }
+  
+  let popName = 'Untitled'
+  const pathParts = file.id.split('/')
+  if (pathParts.length > 0) {
+      popName = pathParts[pathParts.length - 1] || 'Untitled'
+  }
+  tocActiveTitle.value = file.name || popName
+  isTocOpen.value = true
+}
+
+import { onMounted, onBeforeUnmount } from 'vue'
+
+const handleTocReady = (e: Event) => {
+   const customEvent = e as CustomEvent
+   tocItems.value = customEvent.detail?.items || []
+}
+
+onMounted(() => {
+   window.addEventListener('sensus-toc-ready', handleTocReady)
+})
+
+onBeforeUnmount(() => {
+   window.removeEventListener('sensus-toc-ready', handleTocReady)
+})
+
+const handleTocNavigate = (item: {level: number, text: string}) => {
+   // Fechar modal
+   isTocOpen.value = false
+   
+   // Emitir um evento nativo para que o componente BlockEditor filho pegue
+   // ou fazer um dispatch de DOM, pois o TipTap mora numa sub-árvore
+   const event = new CustomEvent('sensus-toc-navigate', { detail: { text: item.text } })
+   window.dispatchEvent(event)
+}
+
 </script>
 
 <style scoped>
