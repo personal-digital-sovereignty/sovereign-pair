@@ -19,13 +19,13 @@ from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
 logger = logging.getLogger("synesis_core.the_nurse")
 
 class TheNurse:
-    def __init__(self, llm_provider: str, llm_model: str):
+    def __init__(self, llm_provider: str, llm_model: str, api_keys: dict = None):
         # Initializing The Nurse means she uses either the default model
         # or a specifically tuned smaller model if the user requested a heavy one natively.
         # For V1, she runs on the same config but with a strict "Intent Parsing" system prompt.
         from src.engine_builder import resolve_dynamic_llm
         from src.config import llm as default_llm
-        self.llm = resolve_dynamic_llm(llm_provider, llm_model, default_llm)
+        self.llm = resolve_dynamic_llm(llm_provider, llm_model, default_llm, api_keys)
         
     async def evaluate_intent(self, user_prompt: str) -> dict:
         """
@@ -45,8 +45,8 @@ You must reply ONLY in valid raw JSON format:
   "reason": "short explanation",
   "task_type": "extraction" | "table_formatting" | "translation" | "deep_reasoning" | "coding" | "conversation"
 }}
-Rule: If the request asks to summarize, translate, list items, format data into a table, or perform basic extraction, requires_doctor is FALSE.
-If the request asks to architect, program complex logic, debate philosophy, or needs deep creative thinking, requires_doctor is TRUE.
+Rule: If the request asks to summarize, translate, list items, format data into a table, perform basic extraction, or answer simple daily/conversational questions, requires_doctor is FALSE.
+If the request asks to architect systems, program complex code, debate philosophy, or needs deep creative multi-step thinking, requires_doctor is TRUE.
 '''
         
         # We enforce the JSON output via the user prompt itself to prevent the SLM from being hijacked

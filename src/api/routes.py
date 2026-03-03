@@ -175,9 +175,17 @@ EXTREMA IMPORTÂNCIA:
                     # 2. Formatar o contexto
                     context_str = "\n\n".join([f"Documento (Path: {n.node.metadata.get('file_path', 'N/A')}):\n{n.node.get_content()}" for n in source_nodes]) if source_nodes else "Nenhum documento vetorial encontrado."
                     
+                    # --- NEW: Fetch BYOK API Keys from SQLite ---
+                    api_keys = {
+                        "openai_api_key": _get_setting_value(db, "openai_api_key", "", tenant_id),
+                        "anthropic_api_key": _get_setting_value(db, "anthropic_api_key", "", tenant_id),
+                        "gemini_api_key": _get_setting_value(db, "gemini_api_key", "", tenant_id),
+                        "custom_ollama_url": _get_setting_value(db, "custom_ollama_url", "", tenant_id)
+                    }
+                    
                     # --- NEW: Phase 16.5 - The Semantic Router (Nurse Triage) ---
                     from src.core.the_nurse import TheNurse
-                    nurse = TheNurse(body_request.provider, body_request.model)
+                    nurse = TheNurse(body_request.provider, body_request.model, api_keys)
                     intent_data = await nurse.evaluate_intent(body_request.message)
                     
                     if not intent_data.get("requires_doctor", True):
@@ -194,7 +202,7 @@ EXTREMA IMPORTÂNCIA:
                     else:
                         # --- EXECUÇÃO TIER 4: O Médico (Heavy LLM & Deep Synthesis) ---
                         from src.core.the_doctor import TheDoctor
-                        doctor = TheDoctor(body_request.provider, body_request.model, engine)
+                        doctor = TheDoctor(body_request.provider, body_request.model, engine, api_keys)
                         
                         yield f"data: {json.dumps({'content': '*(🧠 Raciocínio Profundo do The Doctor ativado...)*\\n\\n'})}\n\n"
                         
@@ -485,7 +493,10 @@ async def upload_document(
     """
     from src.config import RAW_DOCS_DIR
     
-    raw_dir = Path(RAW_DOCS_DIR)
+    intake_setting = _get_setting_value(db, "default_intake_vault", str(RAW_DOCS_DIR), tenant_id)
+    intake_dir = intake_setting.strip() if intake_setting and intake_setting.strip() else str(RAW_DOCS_DIR)
+    
+    raw_dir = Path(intake_dir).absolute()
     raw_dir.mkdir(parents=True, exist_ok=True)
     
     file_content = await file.read()
@@ -590,7 +601,13 @@ def get_settings(request: Request, db: Session = Depends(get_db), tenant_id: str
         occupation=_get_setting_value(db, "occupation", "", tenant_id),
         about_user=_get_setting_value(db, "about_user", "", tenant_id),
         language=_get_setting_value(db, "language", "Português do Brasil", tenant_id),
-        geolocation=_get_setting_value(db, "geolocation", "", tenant_id)
+        geolocation=_get_setting_value(db, "geolocation", "", tenant_id),
+        openai_api_key=_get_setting_value(db, "openai_api_key", "", tenant_id),
+        anthropic_api_key=_get_setting_value(db, "anthropic_api_key", "", tenant_id),
+        gemini_api_key=_get_setting_value(db, "gemini_api_key", "", tenant_id),
+        custom_ollama_url=_get_setting_value(db, "custom_ollama_url", "", tenant_id),
+        default_intake_vault=_get_setting_value(db, "default_intake_vault", "", tenant_id),
+        workspaces=json.loads(_get_setting_value(db, "workspaces", "[]", tenant_id))
     )
 
 @router.post("/config", response_model=SettingsResponse)
@@ -611,6 +628,17 @@ def update_settings(request: Request, body_request: SettingsRequest, db: Session
         _set_setting_value(db, "about_user", body_request.about_user, tenant_id)
         _set_setting_value(db, "language", body_request.language, tenant_id)
         _set_setting_value(db, "geolocation", body_request.geolocation, tenant_id)
+        
+        # --- Multi-LLM BYOK ---
+        _set_setting_value(db, "openai_api_key", body_request.openai_api_key, tenant_id)
+        _set_setting_value(db, "anthropic_api_key", body_request.anthropic_api_key, tenant_id)
+        _set_setting_value(db, "gemini_api_key", body_request.gemini_api_key, tenant_id)
+        _set_setting_value(db, "custom_ollama_url", body_request.custom_ollama_url, tenant_id)
+        
+        # --- Global Workspace Architecture ---
+        _set_setting_value(db, "default_intake_vault", body_request.default_intake_vault, tenant_id)
+        _set_setting_value(db, "workspaces", json.dumps(body_request.workspaces), tenant_id)
+        
         db.commit()
     except Exception as e:
         db.rollback()
@@ -627,6 +655,39 @@ def update_settings(request: Request, body_request: SettingsRequest, db: Session
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=400, detail="Error inside get_settings: " + str(e))
+
+def get_authorized_workspaces(db: Session, tenant_id: str) -> list:
+    from src.config import RAW_DOCS_DIR
+    import json
+    import os
+    intake = _get_setting_value(db, "default_intake_vault", str(RAW_DOCS_DIR), tenant_id)
+    ws_str = _get_setting_value(db, "workspaces", "[]", tenant_id)
+    try:
+        workspaces = json.loads(ws_str)
+    except:
+        workspaces = []
+        
+    auth_dirs = [intake] if intake else []
+    auth_dirs.extend(workspaces)
+    
+    # Mapear e retornar apenas se existirem na máquina local e caminhos absolutos
+    valid_dirs = []
+    for d in auth_dirs:
+        if d and d.strip():
+            abs_d = os.path.abspath(d.strip())
+            if os.path.exists(abs_d):
+                valid_dirs.append(abs_d)
+                
+    # Remove duplicates
+    return list(set(valid_dirs))
+
+def is_path_authorized(target_path: str, auth_dirs: list) -> bool:
+    import os
+    abs_target = os.path.abspath(target_path)
+    for auth_dir in auth_dirs:
+        if abs_target.startswith(auth_dir):
+            return True
+    return False
 
 @router.get("/ollama/models")
 @limiter.limit("60/minute")
@@ -748,10 +809,17 @@ async def get_vault_tree(db: Session = Depends(get_db), tenant_id: str = Depends
         return node
         
     # Inicializa da pasta Base e retorna o Root Array como topo
-    root_os_tree = build_tree(str(RAW_DOCS_DIR), "Sensus Vault")
+    # 2. Resgata e protege Múltiplos Diretórios
+    auth_dirs = get_authorized_workspaces(db, tenant_id)
+    trees = []
     
-    # Retorna o array de filhos diretament para não criar um nó "Sensus Vault" falso na raiz
-    return root_os_tree.get("children", [])
+    for directory in auth_dirs:
+        base_name = os.path.basename(directory) or directory
+        root_tree = build_tree(directory, base_name)
+        # Ao invés de root_tree["children"], envia a raiz em si para que a UI agrupe por Pastas base
+        trees.append(root_tree)
+        
+    return trees
 
 class FSCreateRequest(BaseModel):
     path: str # Absolute path da pasta pai onde criar
@@ -766,14 +834,14 @@ class FSDeleteRequest(BaseModel):
     path: str # Caminho absoluto do arquivo/pasta a ser deletado
 
 @router.post("/vault/fs/create")
-async def fs_create(req: FSCreateRequest, tenant_id: str = Depends(get_current_user)):
+async def fs_create(req: FSCreateRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     import os
-    from src.config import RAW_DOCS_DIR
     
-    # Validação de Segurança Básica: Impedir travessia de diretório maligna
+    auth_dirs = get_authorized_workspaces(db, tenant_id)
     target_dir = os.path.abspath(req.path)
-    if not target_dir.startswith(str(RAW_DOCS_DIR)):
-        raise HTTPException(status_code=403, detail="Acesso negado: Caminho fora da Vault.")
+    
+    if not is_path_authorized(target_dir, auth_dirs):
+        raise HTTPException(status_code=403, detail="Sovereign Shield: Access Denied. Path Traversal Detectado.")
         
     new_path = os.path.join(target_dir, req.name)
     
@@ -790,13 +858,14 @@ async def fs_create(req: FSCreateRequest, tenant_id: str = Depends(get_current_u
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/vault/fs/rename")
-async def fs_rename(req: FSRenameRequest, tenant_id: str = Depends(get_current_user)):
+async def fs_rename(req: FSRenameRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     import os
-    from src.config import RAW_DOCS_DIR
     
+    auth_dirs = get_authorized_workspaces(db, tenant_id)
     target_path = os.path.abspath(req.path)
-    if not target_path.startswith(str(RAW_DOCS_DIR)):
-        raise HTTPException(status_code=403, detail="Acesso negado: Caminho fora da Vault.")
+    
+    if not is_path_authorized(target_path, auth_dirs):
+        raise HTTPException(status_code=403, detail="Sovereign Shield: Access Denied. Path Traversal Detectado.")
         
     new_path = os.path.join(os.path.dirname(target_path), req.new_name)
     
@@ -807,14 +876,15 @@ async def fs_rename(req: FSRenameRequest, tenant_id: str = Depends(get_current_u
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/vault/fs/delete")
-async def fs_delete(req: FSDeleteRequest, tenant_id: str = Depends(get_current_user)):
+async def fs_delete(req: FSDeleteRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     import os
     import shutil
-    from src.config import RAW_DOCS_DIR
     
+    auth_dirs = get_authorized_workspaces(db, tenant_id)
     target_path = os.path.abspath(req.path)
-    if not target_path.startswith(str(RAW_DOCS_DIR)):
-        raise HTTPException(status_code=403, detail="Acesso negado: Caminho fora da Vault.")
+    
+    if not is_path_authorized(target_path, auth_dirs):
+        raise HTTPException(status_code=403, detail="Sovereign Shield: Access Denied. Path Traversal Detectado.")
         
     try:
         if os.path.isdir(target_path):
@@ -1096,6 +1166,148 @@ async def get_vault_tasks(db: Session = Depends(get_db), tenant_id: str = Depend
                     "file": doc.file_path
                 })
     return tasks
+
+@router.get("/vault/agenda")
+async def get_vault_agenda(db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Retorna documentos e tarefas aglomerados por buckets de tempo (Hoje, Semana, Mês, Ano)."""
+    from datetime import datetime, timezone, timedelta
+    import os
+    
+    docs = db.query(SensusDocumentModel).filter(
+        SensusDocumentModel.tenant_id == tenant_id
+    ).all()
+    
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=now.weekday())
+    last_week_start = week_start - timedelta(days=7)
+    month_start = today_start.replace(day=1)
+    year_start = today_start.replace(month=1, day=1)
+    
+    agenda = {
+        "today": {"docs": [], "tasks": []},
+        "this_week": {"docs": [], "tasks": []},
+        "last_week": {"docs": [], "tasks": []},
+        "this_month": {"docs": [], "tasks": []},
+        "this_year": {"docs": [], "tasks": []},
+        "older": {"docs": [], "tasks": []}
+    }
+    
+    for doc in docs:
+        doc_dt = doc.updated_at
+        if not doc_dt:
+            continue
+            
+        # Ensure doc_dt is timezone-aware for comparison
+        if doc_dt.tzinfo is None:
+            doc_dt = doc_dt.replace(tzinfo=timezone.utc)
+            
+        bucket = "older"
+        if doc_dt >= today_start:
+            bucket = "today"
+        elif doc_dt >= week_start:
+            bucket = "this_week"
+        elif doc_dt >= last_week_start and doc_dt < week_start:
+            bucket = "last_week"
+        elif doc_dt >= month_start:
+            bucket = "this_month"
+        elif doc_dt >= year_start:
+            bucket = "this_year"
+            
+        doc_info = {
+            "name": os.path.basename(doc.file_path),
+            "path": doc.file_path,
+            "dt": doc_dt.isoformat()
+        }
+        agenda[bucket]["docs"].append(doc_info)
+        
+        if doc.extracted_todos:
+            for todo in doc.extracted_todos:
+                if not (todo.startswith("[x]") or todo.startswith("[X]")):
+                    clean_text = todo[3:].strip()
+                    if clean_text:
+                        agenda[bucket]["tasks"].append({
+                            "text": clean_text,
+                            "file_name": doc_info["name"],
+                            "file": doc.file_path
+                        })
+                        
+    return agenda
+
+@router.get("/vault/graph")
+async def get_vault_graph(db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Retorna nós e vértices para o Sovereign Cognitive Graph."""
+    import os
+    docs = db.query(SensusDocumentModel).filter(SensusDocumentModel.tenant_id == tenant_id).all()
+    
+    nodes = []
+    links = []
+    
+    # Map paths and basenames to Node IDs
+    path_to_id = {}
+    basename_to_id = {}
+    folder_nodes = set()
+    
+    for doc in docs:
+        node_id = doc.id
+        path_to_id[doc.file_path] = node_id
+        basename = os.path.basename(doc.file_path)
+        basename_without_ext = os.path.splitext(basename)[0]
+        
+        basename_to_id[basename] = node_id
+        basename_to_id[basename_without_ext] = node_id
+        
+        # Add file node
+        nodes.append({
+            "id": node_id,
+            "name": basename,
+            "path": doc.file_path,
+            "val": 1.5,
+            "type": "file",
+            "tags": doc.extracted_tags or []
+        })
+        
+        # Add parent folder node if applicable
+        dirname = os.path.basename(os.path.dirname(doc.file_path))
+        if dirname and dirname != "data" and dirname != "RAW_DOCS_DIR":
+            folder_id = f"folder_{dirname}"
+            if folder_id not in folder_nodes:
+                folder_nodes.add(folder_id)
+                nodes.append({
+                    "id": folder_id,
+                    "name": dirname,
+                    "val": 3,
+                    "type": "folder",
+                    "tags": []
+                })
+            # Link file to its folder
+            links.append({
+                "source": node_id,
+                "target": folder_id,
+                "type": "hierarchy"
+            })
+
+    # Add edges based on extracted Wikilinks ([[Nota]])
+    for doc in docs:
+        if not doc.extracted_links:
+            continue
+            
+        source_id = doc.id
+        for raw_link in doc.extracted_links:
+            # Clean up [[link]]
+            link_target = raw_link.replace("[[", "").replace("]]", "").strip()
+            
+            # Tenta achar o target
+            target_id = basename_to_id.get(link_target) or basename_to_id.get(f"{link_target}.md")
+            
+            if target_id and target_id != source_id:
+                links.append({
+                    "source": source_id,
+                    "target": target_id,
+                    "type": "semantic"
+                })
+
+    return {"nodes": nodes, "links": links}
 
 # ---------------------------------------------------------
 # MCP (Model Context Protocol) Endpoints - Phase 21

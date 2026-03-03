@@ -49,13 +49,17 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+defineOptions({ name: 'SidebarTreeNode' })
+
 const props = defineProps<{ nodes: any[] }>()
 const emit = defineEmits(['show-context-menu'])
 const router = useRouter()
 
 const getPersistedState = () => {
   try {
-    return JSON.parse(localStorage.getItem('sensus-vault-folders') || '{}')
+    const raw = localStorage.getItem('sensus-vault-folders')
+    if (!raw || raw === 'null') return {}
+    return JSON.parse(raw) || {}
   } catch {
     return {}
   }
@@ -75,7 +79,7 @@ const toggleFolder = (path: string) => {
 const localState = ref<Record<string, boolean>>(getPersistedState())
 
 const isOpen = (path: string) => {
-  return localState.value[path] === true
+  return localState.value && localState.value[path] === true
 }
 
 const openGlobalToc = (file: any) => {

@@ -1,7 +1,7 @@
 <template>
-  <div class="h-full flex flex-col text-sm pt-4 relative" @click="closeContextMenu">
+  <div class="flex flex-col text-sm pt-4 relative w-full" style="min-height: 200px;" @click="closeContextMenu">
     <!-- Header -->
-    <div class="px-4 pb-4 border-b border-[#222]">
+    <div class="px-4 pb-4 border-b border-[#222] cursor-context-menu hover:bg-zinc-800/30 transition-colors" @contextmenu.prevent="handleRootContextMenu($event, true)">
       <div class="flex items-center gap-2 mb-2 text-zinc-100 font-semibold tracking-wide">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-open opacity-75"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
         Sensus Vault
@@ -13,7 +13,7 @@
     </div>
 
     <!-- Dynamic File Tree -->
-    <div class="flex-1 overflow-y-auto pt-2 px-2 space-y-4 pb-12">
+    <div class="flex-1 w-full overflow-y-auto pt-2 px-2 space-y-4 pb-12">
       
       <!-- Loading State -->
       <div v-if="isLoading" class="text-xs text-zinc-500 text-center py-4 animate-pulse">
@@ -85,9 +85,9 @@ const handleContextMenu = (payload: { event: MouseEvent, node: any }) => {
   }
 }
 
-const handleRootContextMenu = (event: MouseEvent) => {
-  // Se clicar com direito no vazio da sidebar, assume root
-  if (event.target === event.currentTarget) {
+const handleRootContextMenu = (event: MouseEvent, forceRoot: boolean = false) => {
+  // Se for forceRoot (clique no header) ou no vazio da sidebar, assume root
+  if (forceRoot || event.target === event.currentTarget) {
     contextMenu.value = {
       visible: true,
       x: event.clientX,
@@ -134,9 +134,14 @@ const createNewFolder = async () => {
     const res = await fetch(`${API_BASE_URL}/v1/vault/fs/create`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ type: 'folder', name, path: parentPath || '/' })
+      body: JSON.stringify({ type: 'folder', name, path: parentPath })
     })
+    
     if (res.ok) await loadVaultTree()
+    else {
+        const errorData = await res.json()
+        alert(`Erro ao criar pasta: ${errorData.detail}`)
+    }
   } catch (e) {
     console.error(e)
   } finally {
@@ -154,9 +159,14 @@ const createNewFile = async () => {
     const res = await fetch(`${API_BASE_URL}/v1/vault/fs/create`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ type: 'file', name, path: parentPath || '/' })
+      body: JSON.stringify({ type: 'file', name, path: parentPath })
     })
+    
     if (res.ok) await loadVaultTree()
+    else {
+        const errorData = await res.json()
+        alert(`Erro ao criar arquivo: ${errorData.detail}`)
+    }
   } catch (e) {
     console.error(e)
   } finally {
@@ -181,7 +191,12 @@ const renameItem = async () => {
       headers: getHeaders(),
       body: JSON.stringify({ path: contextMenu.value.node.path, new_name: newName })
     })
+    
     if (res.ok) await loadVaultTree()
+    else {
+        const errorData = await res.json()
+        alert(`Erro ao renomear: ${errorData.detail}`)
+    }
   } catch (e) {
     console.error(e)
   } finally {
@@ -199,7 +214,12 @@ const deleteItem = async () => {
       headers: getHeaders(),
       body: JSON.stringify({ path: contextMenu.value.node.path })
     })
+    
     if (res.ok) await loadVaultTree()
+    else {
+        const errorData = await res.json()
+        alert(`Erro ao deletar: ${errorData.detail}`)
+    }
   } catch (e) {
     console.error(e)
   } finally {
@@ -212,13 +232,26 @@ const loadVaultTree = async () => {
   isLoading.value = true
   try {
     const res = await fetch(`${API_BASE_URL}/v1/vault/tree`, {
+      method: 'GET',
       headers: getHeaders()
     })
+    
     if (res.ok) {
-        vaultTree.value = await res.json()
+        const text = await res.text()
+        try {
+            const data = JSON.parse(text)
+            // Force vue reactivity by re-assigning a new array object
+            vaultTree.value = Array.isArray(data) ? [...data] : []
+        } catch (parseErr) {
+            console.error("[Vault API] Failed to parse:", parseErr)
+            vaultTree.value = []
+        }
+    } else {
+        vaultTree.value = []
     }
   } catch (error) {
-    console.error("Failed to load Sensus Vault Tree", error)
+    console.error("[Vault API] Network fetch failed:", error)
+    vaultTree.value = []
   } finally {
     isLoading.value = false
   }

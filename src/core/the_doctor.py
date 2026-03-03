@@ -20,7 +20,7 @@ from llama_index.core.chat_engine.types import BaseChatEngine
 logger = logging.getLogger("synesis_core.the_doctor")
 
 class TheDoctor:
-    def __init__(self, llm_provider: str, llm_model: str, chat_engine: BaseChatEngine):
+    def __init__(self, llm_provider: str, llm_model: str, chat_engine: BaseChatEngine, api_keys: dict = None):
         """
         The Doctor requires the fully assembled Chat Engine (with its Hybrid Retriever
         and Memory Buffer) to access context, but interacts with the dynamic LLM
@@ -29,7 +29,7 @@ class TheDoctor:
         from src.engine_builder import resolve_dynamic_llm
         from src.config import llm as default_llm
         
-        self.llm = resolve_dynamic_llm(llm_provider, llm_model, default_llm)
+        self.llm = resolve_dynamic_llm(llm_provider, llm_model, default_llm, api_keys)
         self.engine = chat_engine
 
     async def execute_deep_reasoning(self, user_prompt: str, context_str: str, intent_data: dict):
