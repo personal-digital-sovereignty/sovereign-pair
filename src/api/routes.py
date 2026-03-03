@@ -706,39 +706,124 @@ async def pull_ollama_model(request: Request, body_request: PullModelRequest, te
 @router.get("/vault/tree")
 async def get_vault_tree(db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """
-    Retorna a árvore de arquivos do Sensus Vault (Markdown) para a Sidebar do Frontend Vue.
-    Agrupa os arquivos por pasta pai.
+    Retorna a árvore do File System real (RAW_DOCS_DIR) convertida em JSON hierárquico.
+    cruza a existência dos arquivos com a Database para informar o 'has_vector'.
     """
     import os
-    # Temporariamente forçando o tenant 'default' que The Mom usa
-    docs = db.query(SensusDocumentModel).filter(SensusDocumentModel.tenant_id == "default").all()
+    from src.config import RAW_DOCS_DIR
     
-    # Estrutura: { "folder_name": [ { "name": "file.md", "path": "/full...", "vector_id": "xyz", "synced": true } ] }
-    tree = {"": []} # Raiz (Root)
+    # 1. Puxa todos os arquivos sincronizados da DB
+    docs = db.query(SensusDocumentModel.file_path, SensusDocumentModel.vector_id, SensusDocumentModel.id, SensusDocumentModel.extracted_tags).filter(SensusDocumentModel.tenant_id == "default").all()
     
-    for doc in docs:
-        filename = os.path.basename(doc.file_path)
-        # Tenta inferir a pasta pegando o penúltimo elemento do path original do Cofre (SharedBrain)
-        path_parts = doc.file_path.split(os.sep)
-        folder = ""
-        if len(path_parts) > 2:
-            possible_folder = path_parts[-2]
-            # Se a pasta imediatamente anterior não for o vault base, agrupa nela
-            if possible_folder.lower() not in ["vault", "sharedbrain", "data"]:
-                folder = possible_folder
+    # Mapa O(1) para buscar status do vetor e ID
+    db_map = {str(d.file_path): {"vector_id": d.vector_id, "id": d.id, "tags": d.extracted_tags} for d in docs}
+    
+    def build_tree(current_path: str, name: str = "Root") -> dict:
+        node = {"name": name, "type": "dir", "path": current_path, "children": []}
+        try:
+            # Lista diretórios primeiro, arquivos depois (ordenação visual)
+            with os.scandir(current_path) as it:
+                entries = sorted(list(it), key=lambda e: (not e.is_dir(), e.name.lower()))
                 
-        if folder not in tree:
-            tree[folder] = []
+            for entry in entries:
+                if entry.name.startswith("."): # ignore hidden like .git, .obsidian
+                    continue
+                    
+                if entry.is_dir():
+                    node["children"].append(build_tree(entry.path, entry.name))
+                elif entry.is_file() and entry.name.endswith(".md"):
+                    db_info = db_map.get(entry.path, {})
+                    file_node = {
+                        "name": entry.name,
+                        "type": "file",
+                        "path": entry.path,
+                        "id": db_info.get("id", None), # Se None, Front deve lidar
+                        "has_vector": db_info.get("vector_id") is not None,
+                        "tags": db_info.get("tags", [])
+                    }
+                    node["children"].append(file_node)
+        except OSError:
+            pass # Ignora Pastas sem permissão
             
-        tree[folder].append({
-            "name": filename,
-            "path": doc.file_path,
-            "tags": doc.extracted_tags,
-            "has_vector": doc.vector_id is not None,
-            "id": doc.id
-        })
+        return node
         
-    return tree
+    # Inicializa da pasta Base e retorna o Root Array como topo
+    root_os_tree = build_tree(str(RAW_DOCS_DIR), "Sensus Vault")
+    
+    # Retorna o array de filhos diretament para não criar um nó "Sensus Vault" falso na raiz
+    return root_os_tree.get("children", [])
+
+class FSCreateRequest(BaseModel):
+    path: str # Absolute path da pasta pai onde criar
+    name: str # Nome do novo item
+    type: str # 'file' ou 'folder'
+
+class FSRenameRequest(BaseModel):
+    path: str # Caminho absoluto atual
+    new_name: str # Novo nome base (ex: 'nova_pasta' ou 'novo_arquivo.md')
+
+class FSDeleteRequest(BaseModel):
+    path: str # Caminho absoluto do arquivo/pasta a ser deletado
+
+@router.post("/vault/fs/create")
+async def fs_create(req: FSCreateRequest, tenant_id: str = Depends(get_current_user)):
+    import os
+    from src.config import RAW_DOCS_DIR
+    
+    # Validação de Segurança Básica: Impedir travessia de diretório maligna
+    target_dir = os.path.abspath(req.path)
+    if not target_dir.startswith(str(RAW_DOCS_DIR)):
+        raise HTTPException(status_code=403, detail="Acesso negado: Caminho fora da Vault.")
+        
+    new_path = os.path.join(target_dir, req.name)
+    
+    try:
+        if req.type == "folder":
+            os.makedirs(new_path, exist_ok=False)
+        else: # file
+            if not req.name.endswith(".md"):
+                new_path += ".md"
+            with open(new_path, "w", encoding="utf-8") as f:
+                f.write(f"# {req.name.replace('.md', '')}\n")
+        return {"status": "success", "path": new_path}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/vault/fs/rename")
+async def fs_rename(req: FSRenameRequest, tenant_id: str = Depends(get_current_user)):
+    import os
+    from src.config import RAW_DOCS_DIR
+    
+    target_path = os.path.abspath(req.path)
+    if not target_path.startswith(str(RAW_DOCS_DIR)):
+        raise HTTPException(status_code=403, detail="Acesso negado: Caminho fora da Vault.")
+        
+    new_path = os.path.join(os.path.dirname(target_path), req.new_name)
+    
+    try:
+        os.rename(target_path, new_path)
+        return {"status": "success", "new_path": new_path}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/vault/fs/delete")
+async def fs_delete(req: FSDeleteRequest, tenant_id: str = Depends(get_current_user)):
+    import os
+    import shutil
+    from src.config import RAW_DOCS_DIR
+    
+    target_path = os.path.abspath(req.path)
+    if not target_path.startswith(str(RAW_DOCS_DIR)):
+        raise HTTPException(status_code=403, detail="Acesso negado: Caminho fora da Vault.")
+        
+    try:
+        if os.path.isdir(target_path):
+            shutil.rmtree(target_path)
+        elif os.path.isfile(target_path):
+            os.remove(target_path)
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/vault/tags")
 async def get_vault_tags(db: Session = Depends(get_db)):
