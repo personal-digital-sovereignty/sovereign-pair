@@ -43,9 +43,29 @@ const systemSettings = ref({
   language: 'Português do Brasil',
   geolocation: '',
   formality: 'neutral',
-  theme: 'slate',
-  persona: 'custom'
+  theme: 'dark',
+  persona: 'custom',
+  openai_api_key: '',
+  anthropic_api_key: '',
+  gemini_api_key: '',
+  custom_ollama_url: '',
+  default_intake_vault: '',
+  workspaces: [] as string[]
 })
+
+const activeTab = ref('identity') // 'identity' | 'byok' | 'workspaces'
+
+const newWorkspacePath = ref('')
+const addWorkspace = () => {
+   if (newWorkspacePath.value.trim() && !systemSettings.value.workspaces.includes(newWorkspacePath.value.trim())) {
+      systemSettings.value.workspaces.push(newWorkspacePath.value.trim())
+      newWorkspacePath.value = ''
+   }
+}
+
+const removeWorkspace = (index: number) => {
+   systemSettings.value.workspaces.splice(index, 1)
+}
 
 const getPersonaColorClass = (id: string) => {
   const p = personaOptions.value.find(o => o.id === id)
@@ -205,7 +225,22 @@ onMounted(() => {
       </div>
       
       <!-- Body -->
-      <div class="p-6 md:p-10 flex-1 overflow-y-auto w-full max-w-5xl mx-auto space-y-10 pb-20">
+      <div class="px-6 md:px-10 pt-4 flex gap-6 shrink-0 border-b border-[#222222]">
+          <button @click="activeTab = 'identity'" :class="activeTab === 'identity' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200'" class="pb-3 border-b-2 text-sm font-medium transition-colors flex items-center gap-2">
+              <span class="i-ph-user-focus-duotone text-lg"></span> Identidade Digital
+          </button>
+          <button @click="activeTab = 'byok'" :class="activeTab === 'byok' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200'" class="pb-3 border-b-2 text-sm font-medium transition-colors flex items-center gap-2">
+              <span class="i-ph-key-duotone text-lg"></span> Multi-LLM (BYOK)
+          </button>
+          <button @click="activeTab = 'workspaces'" :class="activeTab === 'workspaces' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200'" class="pb-3 border-b-2 text-sm font-medium transition-colors flex items-center gap-2">
+              <span class="i-ph-folders-duotone text-lg"></span> Workspaces O.S.
+          </button>
+      </div>
+      
+      <div class="p-6 md:p-10 flex-1 overflow-y-auto w-full max-w-5xl mx-auto pb-20">
+        
+        <!-- ================= IDENTIDADE TAB ================= -->
+        <div v-show="activeTab === 'identity'" class="space-y-10">
         
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-2">
@@ -307,6 +342,28 @@ onMounted(() => {
               </div>
             </div>
 
+            <div class="space-y-2 mt-6">
+              <label class="block text-sm font-medium text-slate-400">Tema Visual (Sovereign OS)</label>
+              <div class="flex gap-3 max-w-2xl">
+                <button @click="systemSettings.theme = 'dark'" :class="systemSettings.theme === 'dark' ? 'ring-2 ring-emerald-500 border-transparent shadow-lg shadow-emerald-500/20' : 'border-[#333] hover:border-emerald-500/50'" class="flex-1 py-3 px-3 rounded-lg border bg-[#09090b] text-zinc-300 flex flex-col items-center gap-2 transition-all">
+                  <div class="w-full h-10 bg-[#18181b] rounded flex items-center justify-center border border-[#27272a] shadow-inner"><div class="w-4 h-4 rounded-full bg-emerald-500 shadow-sm"></div></div>
+                  <span class="text-xs font-semibold mt-1">Dark Hacker</span>
+                </button>
+                <button @click="systemSettings.theme = 'blue'" :class="systemSettings.theme === 'blue' ? 'ring-2 ring-sky-500 border-transparent shadow-lg shadow-sky-500/20' : 'border-[#333] hover:border-sky-500/50'" class="flex-1 py-3 px-3 rounded-lg border bg-[#020617] text-slate-300 flex flex-col items-center gap-2 transition-all">
+                  <div class="w-full h-10 bg-[#0f172a] rounded flex items-center justify-center border border-[#1e293b] shadow-inner"><div class="w-4 h-4 rounded-full bg-sky-500 shadow-sm"></div></div>
+                  <span class="text-xs font-semibold mt-1">Deep Blue</span>
+                </button>
+                <button @click="systemSettings.theme = 'cream'" :class="systemSettings.theme === 'cream' ? 'ring-2 ring-amber-500 border-transparent shadow-lg shadow-amber-500/20' : 'border-[#333] hover:border-amber-500/50'" class="flex-1 py-3 px-3 rounded-lg border bg-[#fefce8] text-amber-900 flex flex-col items-center gap-2 transition-all">
+                  <div class="w-full h-10 bg-[#fef3c7] rounded flex items-center justify-center border border-[#fde047] shadow-inner"><div class="w-4 h-4 rounded-full bg-amber-600 shadow-sm"></div></div>
+                  <span class="text-xs font-semibold mt-1">Cream Reading</span>
+                </button>
+                <button @click="systemSettings.theme = 'white'" :class="systemSettings.theme === 'white' ? 'ring-2 ring-slate-400 border-transparent shadow-lg shadow-slate-400/20' : 'border-[#333] hover:border-slate-500/50'" class="flex-1 py-3 px-3 rounded-lg border bg-[#ffffff] text-slate-800 flex flex-col items-center gap-2 transition-all">
+                  <div class="w-full h-10 bg-[#f8fafc] rounded flex items-center justify-center border border-[#e2e8f0] shadow-inner"><div class="w-4 h-4 rounded-full bg-slate-500 shadow-sm"></div></div>
+                  <span class="text-xs font-semibold mt-1">Clean White</span>
+                </button>
+              </div>
+            </div>
+
             <div class="space-y-4 pt-4 border-t border-[#222222]">
               <div class="space-y-2">
                 <label class="block text-sm font-medium text-slate-400">Batismo da Inteligência Artificial</label>
@@ -367,6 +424,104 @@ onMounted(() => {
             </button>
           </div>
           <p class="text-[11px] text-slate-500">Cole este token nas configurações do seu plugin Sovereign Pair no Obsidian.</p>
+        </div>
+        </div>
+        
+        <!-- ================= MULTI-LLM (BYOK) TAB ================= -->
+        <div v-show="activeTab === 'byok'" class="space-y-8">
+           
+           <div class="bg-rose-500/10 border border-rose-500/30 rounded-lg p-5 flex items-start gap-4">
+              <span class="i-ph-warning-octagon-duotone text-3xl text-rose-400 shrink-0"></span>
+              <div>
+                 <h4 class="text-rose-400 font-semibold text-sm mb-1">Paradoxo do BYOK & Privacidade Extrema</h4>
+                 <p class="text-xs text-rose-300/80 leading-relaxed">
+                    Sovereign foi criada para rodar localmente limitando seus dados ao seu hardware. 
+                    Ao inserir chaves do <b>OpenAI, Gemini ou Anthropic</b> os seus Arquivos/Chunks 
+                    serão fisicamente enviados via HTTP para a Nuvem de Big-Techs para que a IA processe a RAG.
+                    <b>Habilite apenas se possuir confiança nestes provedores.</b>
+                 </p>
+              </div>
+           </div>
+
+           <div class="space-y-6 max-w-2xl">
+              <div class="space-y-2">
+                <label class="flex items-center gap-2 text-sm font-medium text-slate-300">
+                   <span class="i-ph-openai-logo text-lg text-emerald-500"></span> OpenAI API Key
+                </label>
+                <input v-model="systemSettings.openai_api_key" type="password" placeholder="sk-proj-..." class="w-full bg-[#18181B] border border-[#222222] text-[#E0E0E0] text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none transition-all font-mono">
+              </div>
+
+              <div class="space-y-2">
+                <label class="flex items-center gap-2 text-sm font-medium text-slate-300">
+                   <span class="i-ph-google-logo text-lg text-blue-500"></span> Google Gemini API Key
+                </label>
+                <input v-model="systemSettings.gemini_api_key" type="password" placeholder="AIzaSy..." class="w-full bg-[#18181B] border border-[#222222] text-[#E0E0E0] text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none transition-all font-mono">
+              </div>
+
+              <div class="space-y-2">
+                <label class="flex items-center gap-2 text-sm font-medium text-slate-300">
+                   <span class="i-ph-brain-duotone text-lg text-purple-500"></span> Anthropic API Key
+                </label>
+                <input v-model="systemSettings.anthropic_api_key" type="password" placeholder="sk-ant-api03-..." class="w-full bg-[#18181B] border border-[#222222] text-[#E0E0E0] text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none transition-all font-mono">
+              </div>
+
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-slate-400">Custom Ollama Remote URL (Opcional)</label>
+                <input v-model="systemSettings.custom_ollama_url" type="url" placeholder="http://192.168.0.100:11434" class="w-full bg-[#18181B] border border-[#222222] text-[#E0E0E0] text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none transition-all font-mono">
+                <p class="text-[11px] text-slate-500">Deixe em branco para forçar o endpoint nativo em \`http://ollama-ia:11434\` ou o localhost atual.</p>
+              </div>
+           </div>
+        </div>
+
+        <!-- ================= WORKSPACES (O.S. Native) TAB ================= -->
+        <div v-show="activeTab === 'workspaces'" class="space-y-8">
+           
+           <div class="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-5 flex items-start gap-4">
+              <span class="i-ph-hard-drives-duotone text-3xl text-indigo-400 shrink-0"></span>
+              <div>
+                 <h4 class="text-indigo-400 font-semibold text-sm mb-1">Workspaces Nativos do O.S.</h4>
+                 <p class="text-xs text-indigo-300/80 leading-relaxed">
+                    Você pode mapear qualquer diretório do seu computador local (ex: <code class="bg-[#18181B] text-slate-300 px-1 py-0.5 rounded">/home/user/Documentos</code>). 
+                    A Sovereign lerá os dados nativos destas pastas sem copiar os arquivos.
+                 </p>
+              </div>
+           </div>
+
+           <div class="space-y-4 max-w-3xl">
+              <div class="p-4 bg-[#18181B] border border-[#222222] rounded-xl space-y-3">
+                 <label class="block text-sm font-semibold text-emerald-400">Bandeja de Entrada Primária (Intake Vault)</label>
+                 <p class="text-xs text-slate-400 leading-relaxed">
+                    Quando você fizer Upload de um novo arquivo pela interface web, arrastar uma imagem no chat, 
+                    ou criar um arquivo Novo, ele será fisicamente persistido neste único caminho absoluto do seu Sistema Operacional.
+                 </p>
+                 <input v-model="systemSettings.default_intake_vault" type="text" placeholder="/caminho/absoluto/Vault-Principal" class="w-full bg-[#121214] border border-[#333] text-[#E0E0E0] text-sm rounded focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none font-mono">
+              </div>
+
+              <div class="space-y-3 pt-6 border-t border-[#222222]">
+                 <label class="block text-sm font-medium text-slate-300">Diretórios Indexados Adicionais (Somente Leitura Dinâmica)</label>
+                 
+                 <div class="flex gap-2">
+                    <input v-model="newWorkspacePath" @keyup.enter="addWorkspace" type="text" placeholder="Adicionar caminho absoluto (/opt/projetos/notas)" class="flex-1 bg-[#18181B] border border-[#222222] text-[#E0E0E0] text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none font-mono">
+                    <button @click="addWorkspace" class="px-4 bg-emerald-500 text-white rounded-lg hover:bg-emerald-400 font-medium text-sm transition-colors">Vincular</button>
+                 </div>
+
+                 <div v-if="systemSettings.workspaces.length === 0" class="text-xs text-slate-500 py-4 text-center border border-dashed border-[#333] rounded-lg">
+                    Nenhum diretório adicional vinculado. O Motor agirá apenas na Inbox Primária.
+                 </div>
+                 
+                 <ul v-else class="space-y-2">
+                    <li v-for="(ws, index) in systemSettings.workspaces" :key="ws" class="flex justify-between items-center p-3 bg-[#18181B] border border-slate-700/50 rounded-lg group">
+                       <div class="flex items-center gap-3">
+                          <span class="i-ph-folder-open-duotone text-slate-400 text-xl"></span>
+                          <span class="text-sm font-mono text-slate-300">{{ ws }}</span>
+                       </div>
+                       <button @click="removeWorkspace(index)" class="text-rose-400 hover:text-rose-300 opacity-0 group-hover:opacity-100 transition-opacity" title="Desvincular Diretório">
+                          <span class="i-ph-trash-duotone text-lg"></span>
+                       </button>
+                    </li>
+                 </ul>
+              </div>
+           </div>
         </div>
 
       </div>

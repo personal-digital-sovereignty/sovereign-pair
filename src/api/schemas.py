@@ -90,6 +90,16 @@ class SettingsRequest(BaseModel):
     about_user: Optional[str] = ""
     language: Optional[str] = "Português (BR)"
     geolocation: Optional[str] = ""
+    
+    # --- Multi-LLM BYOK ---
+    openai_api_key: Optional[str] = ""
+    anthropic_api_key: Optional[str] = ""
+    gemini_api_key: Optional[str] = ""
+    custom_ollama_url: Optional[str] = ""
+    
+    # --- Global Workspace Architecture ---
+    default_intake_vault: Optional[str] = ""
+    workspaces: Optional[List[str]] = Field(default_factory=list)
 
 class SettingsResponse(BaseModel):
     llm_provider: str
@@ -105,3 +115,13 @@ class SettingsResponse(BaseModel):
     about_user: Optional[str] = ""
     language: Optional[str] = "Português (BR)"
     geolocation: Optional[str] = ""
+    
+    # --- Multi-LLM BYOK ---
+    openai_api_key: Optional[str] = ""
+    anthropic_api_key: Optional[str] = ""
+    gemini_api_key: Optional[str] = ""
+    custom_ollama_url: Optional[str] = ""
+    
+    # --- Global Workspace Architecture ---
+    default_intake_vault: Optional[str] = ""
+    workspaces: Optional[List[str]] = Field(default_factory=list)

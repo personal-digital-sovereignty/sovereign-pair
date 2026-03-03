@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full bg-[#0E0E10] text-zinc-200 flex flex-col items-center justify-center" v-if="isLoading">
+  <div class="h-full bg-surface-900 text-surface-200 flex flex-col items-center justify-center" v-if="isLoading">
      <div class="animate-pulse flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-emerald-500/50"></div> Carregando Documento Neural...
      </div>
@@ -9,7 +9,7 @@
      {{ fetchError }}
   </div>
 
-  <div v-else class="h-full bg-[#0E0E10] text-zinc-200 relative">
+  <div v-else class="h-full bg-surface-900 text-surface-200 relative">
     <!-- Discreet Spellcheck Notification -->
     <div v-if="showSpellcheckPrompt" class="absolute top-4 right-8 z-50 bg-[#1A1A1D] border border-[#333] rounded-lg shadow-2xl p-4 max-w-xs animate-in slide-in-from-top-4 fade-in duration-300">
       <div class="flex items-start gap-3">
@@ -18,19 +18,19 @@
         </div>
         <div class="flex-1">
           <h4 class="text-sm font-medium text-white mb-1">Dicionário Ortográfico</h4>
-          <p class="text-xs text-zinc-400 leading-relaxed mb-3">
+          <p class="text-xs text-surface-400 leading-relaxed mb-3">
             O corretor do navegador está desativado para evitar falsos positivos no Markdown. Deseja reativar o dicionário Pt-BR?
           </p>
           <div class="flex items-center gap-2">
             <button @click="setSpellcheck(true)" class="text-xs bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 px-3 py-1.5 rounded transition-colors font-medium">
               Ativar Corretor
             </button>
-            <button @click="setSpellcheck(false)" class="text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded transition-colors">
+            <button @click="setSpellcheck(false)" class="text-xs text-surface-400 hover:text-white px-3 py-1.5 rounded transition-colors">
               Ignorar
             </button>
           </div>
         </div>
-        <button @click="showSpellcheckPrompt = false" class="text-zinc-500 hover:text-white">
+        <button @click="showSpellcheckPrompt = false" class="text-surface-500 hover:text-white">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
       </div>
@@ -42,8 +42,8 @@
          <button @click="emit('update-view-mode', 'visual')" :class="viewMode === 'visual' ? 'bg-surface-700 text-white' : 'text-surface-600 hover:text-white'" class="px-3 py-1 text-xs rounded font-medium transition-colors">Visual</button>
          <button @click="emit('update-view-mode', 'split')" :class="viewMode === 'split' ? 'bg-surface-700 text-white' : 'text-surface-600 hover:text-white'" class="px-3 py-1 text-xs rounded font-medium transition-colors">Split</button>
          <button @click="emit('update-view-mode', 'source')" :class="viewMode === 'source' ? 'bg-surface-700 text-white' : 'text-surface-600 hover:text-white'" class="px-3 py-1 text-xs rounded font-medium transition-colors">Código</button>
-         <div class="w-px h-4 bg-zinc-700 mx-1 self-center"></div>
-         <button @click="showProperties = !showProperties" :class="showProperties ? 'bg-emerald-500/20 text-emerald-400' : 'text-emerald-500 hover:bg-zinc-800'" class="px-2 py-1 text-xs rounded font-medium transition-colors flex items-center gap-1" title="Propriedades do Documento">
+         <div class="w-px h-4 bg-surface-700 mx-1 self-center"></div>
+         <button @click="showProperties = !showProperties" :class="showProperties ? 'bg-emerald-500/20 text-emerald-400' : 'text-emerald-500 hover:bg-surface-800'" class="px-2 py-1 text-xs rounded font-medium transition-colors flex items-center gap-1" title="Propriedades do Documento">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
             Props
          </button>
@@ -94,7 +94,7 @@
                  <div v-for="(_, key) in documentProperties" :key="key" class="flex items-center gap-2">
                      <input :value="key" @change="e => renameProperty(String(key), (e.target as HTMLInputElement).value)" class="text-xs bg-transparent text-surface-600 w-28 text-right font-mono outline-none focus:text-primary-400 transition-colors" placeholder="chave" />
                      <input v-model="documentProperties[key]" @change="syncPropertiesToSource" class="text-sm bg-surface-900 px-3 py-1.5 rounded-md text-slate-200 flex-1 outline-none border border-transparent focus:border-primary-500/30 transition-all font-mono" placeholder="valor" />
-                     <button @click="removeProperty(key)" class="text-zinc-600 hover:text-red-400 p-1 rounded transition-colors" title="Remover propriedade">
+                     <button @click="removeProperty(key)" class="text-surface-600 hover:text-red-400 p-1 rounded transition-colors" title="Remover propriedade">
                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                      </button>
                  </div>
@@ -105,22 +105,17 @@
           </div>
 
           <!-- Meta/Header -->
-          <div class="mb-8 border-b border-[#222] pb-6 relative group flex-shrink-0">
+          <div class="mb-8 border-b border-surface-700 pb-6 relative group flex-shrink-0">
         <input 
           type="text" 
           v-model="docData.name"
-          class="bg-transparent text-4xl font-bold tracking-tight text-white w-full outline-none placeholder:text-zinc-600 focus:border-b focus:border-emerald-500/30 transition-colors"
+          class="bg-transparent text-4xl font-bold tracking-tight text-white w-full outline-none placeholder:text-surface-600 focus:border-b focus:border-emerald-500/30 transition-colors"
           placeholder="New Document Title"
           disabled
         />
-        <div class="mt-4 flex flex-wrap gap-4 text-xs text-zinc-500 items-center">
+        <div class="mt-4 flex flex-wrap gap-4 text-xs text-surface-500 items-center">
            <span class="max-w-[50%] flex items-center" :title="docData.path">
              <span class="truncate" dir="rtl">&lrm;{{ docData.path }}</span>
-           </span>
-           <span class="flex items-center gap-1">
-               <!-- Auto Save Status Indicator -->
-               <div :class="['w-1.5 h-1.5 rounded-full transition-colors', isSaving ? 'bg-amber-400 animate-pulse' : 'bg-zinc-600']"></div> 
-               {{ isSaving ? 'Salvando...' : 'Auto-Saved a alguns segundos' }}
            </span>
            <span v-if="docData.has_vector" class="flex items-center gap-1.5 ml-2 text-emerald-500/80 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[10px] font-medium border border-emerald-500/20" title="Indexado para IA">
                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -131,7 +126,7 @@
         
         <!-- Tags -->
         <div class="mt-3 flex gap-2" v-if="docData.tags && docData.tags.length > 0">
-           <span v-for="tag in docData.tags" :key="tag" class="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-[11px] rounded uppercase font-medium tracking-wide border border-zinc-700">
+           <span v-for="tag in docData.tags" :key="tag" class="px-2 py-0.5 bg-surface-800 text-surface-400 text-[11px] rounded uppercase font-medium tracking-wide border border-zinc-700">
              #{{ tag }}
            </span>
         </div>
@@ -154,24 +149,24 @@
            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg> Col
         </button>
 
-        <div class="h-4 w-px bg-zinc-600 mx-0.5"></div>
+        <div class="h-4 w-px bg-surface-600 mx-0.5"></div>
 
         <!-- Rows Management -->
-        <button @click="editor.chain().focus().addRowAfter().run()" class="flex items-center gap-1 text-xs px-2 py-1 rounded text-zinc-300 hover:text-white hover:bg-zinc-700 transition-colors" title="Inserir Linha Abaixo">
+        <button @click="editor.chain().focus().addRowAfter().run()" class="flex items-center gap-1 text-xs px-2 py-1 rounded text-surface-300 hover:text-white hover:bg-surface-700 transition-colors" title="Inserir Linha Abaixo">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/><path d="M8 8v8"/><path d="M12 8v8"/><path d="M16 8v8"/><path d="M12 4v3M12 17v3M12 4V3"/><path d="M12 17v1"/></svg> Lin +
         </button>
         <button @click="editor.chain().focus().deleteRow().run()" class="flex items-center gap-1 text-xs px-2 py-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors" title="Excluir Linha Atual">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg> Lin
         </button>
 
-        <div class="h-4 w-px bg-zinc-600 mx-0.5"></div>
+        <div class="h-4 w-px bg-surface-600 mx-0.5"></div>
 
         <!-- Merging & Utilities -->
         <button @click="editor.chain().focus().mergeCells().run()" class="flex items-center gap-1 text-xs px-2 py-1 rounded text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors" title="Mesclar Células Selecionadas">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 12h18"/><path d="M12 3v9"/></svg> Merge
         </button>
         
-        <div class="h-4 w-px bg-zinc-600 mx-0.5"></div>
+        <div class="h-4 w-px bg-surface-600 mx-0.5"></div>
 
         <!-- Delete Entire Table -->
         <button @click="editor.chain().focus().deleteTable().run()" class="flex items-center gap-1 text-xs p-1.5 rounded text-red-500 hover:text-red-400 hover:bg-red-500/20 transition-colors" title="Excluir Tabela Inteira">
@@ -184,30 +179,36 @@
         v-if="editor" 
         :editor="editor" 
         :should-show="shouldShowFormattingMenu"
-        :tippy-options="{ duration: 150 }"
-        class="flex items-center gap-1 bg-surface-900 border border-surface-700 shadow-2xl rounded-lg px-2 py-1.5 backdrop-blur-md"
+        :tippy-options="{ duration: 150, zIndex: 50 }"
+        class="flex items-center gap-0.5 bg-surface-900/85 backdrop-blur-xl border border-surface-700/60 shadow-2xl rounded-xl px-1.5 py-1 animate-in fade-in zoom-in-95"
       >
-        <button @click="editor.chain().focus().toggleBold().run()" :class="{ 'text-primary-400 bg-surface-700': editor.isActive('bold'), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('bold') }" class="p-1.5 rounded transition-colors" title="Negrito (Cmd+B)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 12a4 4 0 0 0 0-8H6v8"/><path d="M15 20a4 4 0 0 0 0-8H6v8Z"/></svg>
+        <button @click="editor.chain().focus().toggleBold().run()" :class="{ 'text-primary-400 bg-primary-500/10 shadow-sm border border-primary-500/20': editor.isActive('bold'), 'text-surface-300 hover:text-white hover:bg-surface-700/50 border border-transparent': !editor.isActive('bold') }" class="p-1.5 rounded-lg transition-all" title="Negrito (Cmd+B)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 12a4 4 0 0 0 0-8H6v8"/><path d="M15 20a4 4 0 0 0 0-8H6v8Z"/></svg>
         </button>
-        <button @click="editor.chain().focus().toggleItalic().run()" :class="{ 'text-primary-400 bg-surface-700': editor.isActive('italic'), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('italic') }" class="p-1.5 rounded transition-colors" title="Itálico (Cmd+I)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg>
+        <button @click="editor.chain().focus().toggleItalic().run()" :class="{ 'text-primary-400 bg-primary-500/10 shadow-sm border border-primary-500/20': editor.isActive('italic'), 'text-surface-300 hover:text-white hover:bg-surface-700/50 border border-transparent': !editor.isActive('italic') }" class="p-1.5 rounded-lg transition-all" title="Itálico (Cmd+I)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg>
         </button>
-        <button @click="editor.chain().focus().toggleStrike().run()" :class="{ 'text-primary-400 bg-surface-700': editor.isActive('strike'), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('strike') }" class="p-1.5 rounded transition-colors" title="Tachado">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" x2="20" y1="12" y2="12"/></svg>
+        <button @click="editor.chain().focus().toggleStrike().run()" :class="{ 'text-primary-400 bg-primary-500/10 shadow-sm border border-primary-500/20': editor.isActive('strike'), 'text-surface-300 hover:text-white hover:bg-surface-700/50 border border-transparent': !editor.isActive('strike') }" class="p-1.5 rounded-lg transition-all" title="Tachado">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" x2="20" y1="12" y2="12"/></svg>
         </button>
-        <div class="h-4 w-px bg-surface-700 mx-1"></div>
-        <button @click="editor.chain().focus().toggleCode().run()" :class="{ 'text-indigo-400 bg-surface-700': editor.isActive('code'), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('code') }" class="p-1.5 rounded transition-colors" title="Código Inline">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        <div class="h-5 w-px bg-surface-700/60 mx-1"></div>
+        <button @click="editor.chain().focus().toggleCode().run()" :class="{ 'text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 shadow-sm': editor.isActive('code'), 'text-surface-300 hover:text-white hover:bg-surface-700/50 border border-transparent': !editor.isActive('code') }" class="p-1.5 rounded-lg transition-all" title="Código Inline">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
         </button>
-        <button @click="editor.chain().focus().toggleBlockquote().run()" :class="{ 'text-primary-400 bg-surface-700': editor.isActive('blockquote'), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('blockquote') }" class="p-1.5 rounded transition-colors" title="Citação">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
+        <button @click="editor.chain().focus().toggleBlockquote().run()" :class="{ 'text-primary-400 bg-primary-500/10 border border-primary-500/20 shadow-sm': editor.isActive('blockquote'), 'text-surface-300 hover:text-white hover:bg-surface-700/50 border border-transparent': !editor.isActive('blockquote') }" class="p-1.5 rounded-lg transition-all" title="Citação">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
         </button>
-        <div class="h-4 w-px bg-surface-700 mx-1"></div>
+        <div class="h-5 w-px bg-surface-700/60 mx-1"></div>
         <!-- Typography -->
-        <button @click="editor.chain().focus().toggleHeading({ level: 1 }).run()" :class="{ 'text-primary-400 bg-surface-700': editor.isActive('heading', { level: 1 }), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('heading', { level: 1 }) }" class="p-1.5 rounded transition-colors font-bold text-xs" title="Título 1">H1</button>
-        <button @click="editor.chain().focus().toggleHeading({ level: 2 }).run()" :class="{ 'text-primary-400 bg-surface-700': editor.isActive('heading', { level: 2 }), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('heading', { level: 2 }) }" class="p-1.5 rounded transition-colors font-bold text-xs" title="Título 2">H2</button>
-        <button @click="editor.chain().focus().toggleHeading({ level: 3 }).run()" :class="{ 'text-primary-400 bg-surface-700': editor.isActive('heading', { level: 3 }), 'text-surface-600 hover:text-white hover:bg-surface-800': !editor.isActive('heading', { level: 3 }) }" class="p-1.5 rounded transition-colors font-bold text-xs" title="Título 3">H3</button>
+        <button @click="editor.chain().focus().toggleHeading({ level: 1 }).run()" :class="{ 'text-primary-400 bg-primary-500/10 border border-primary-500/20 shadow-sm': editor.isActive('heading', { level: 1 }), 'text-surface-400 hover:text-white hover:bg-surface-700/50 border border-transparent': !editor.isActive('heading', { level: 1 }) }" class="p-1.5 rounded-lg transition-all font-bold text-xs" title="Título 1">H1</button>
+        <button @click="editor.chain().focus().toggleHeading({ level: 2 }).run()" :class="{ 'text-primary-400 bg-primary-500/10 border border-primary-500/20 shadow-sm': editor.isActive('heading', { level: 2 }), 'text-surface-400 hover:text-white hover:bg-surface-700/50 border border-transparent': !editor.isActive('heading', { level: 2 }) }" class="p-1.5 rounded-lg transition-all font-bold text-xs" title="Título 2">H2</button>
+        <button @click="editor.chain().focus().toggleHeading({ level: 3 }).run()" :class="{ 'text-primary-400 bg-primary-500/10 border border-primary-500/20 shadow-sm': editor.isActive('heading', { level: 3 }), 'text-surface-400 hover:text-white hover:bg-surface-700/50 border border-transparent': !editor.isActive('heading', { level: 3 }) }" class="p-1.5 rounded-lg transition-all font-bold text-xs" title="Título 3">H3</button>
+
+        <div class="h-5 w-px bg-surface-700/60 mx-1"></div>
+        <!-- AI Spotlight Injector -->
+        <button @click="injectToSpotlight" class="flex items-center gap-1.5 px-2 py-1.5 text-[11px] font-bold tracking-wide rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-all whitespace-nowrap" title="Consultar AI sobre o trecho selecionado">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" class="animate-pulse" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> AI Ask
+        </button>
       </bubble-menu>
 
       <!-- TipTap Floating Menu (Block Inserter) -->
@@ -289,6 +290,8 @@ import TableCell from '@tiptap/extension-table-cell'
 import { Markdown } from 'tiptap-markdown'
 import { VaultSyntaxHighlighter } from './decorators'
 import { PresentationBlock } from './extensions/PresentationBlock'
+import SlashCommand from './extensions/SlashCommand'
+import suggestion from './extensions/suggestion'
 import yaml from 'js-yaml'
 import TurndownService from 'turndown'
 
@@ -346,7 +349,7 @@ const props = defineProps({
   viewMode: { type: String as () => 'visual' | 'source' | 'split', default: 'visual' }
 })
 
-const emit = defineEmits(['editor-stats', 'update-view-mode'])
+const emit = defineEmits(['editor-stats', 'update-view-mode', 'editor-saving'])
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const isLoading = ref(true)
@@ -365,6 +368,16 @@ const documentProperties = ref<Record<string, any>>({})
 const docData = ref<any>({})
 const rawMarkdown = ref('')
 let sourceUpdateTimeout: ReturnType<typeof setTimeout> | null = null
+
+const injectToSpotlight = () => {
+    if (!editor.value) return
+    const selection = editor.value.state.selection
+    const text = editor.value.state.doc.textBetween(selection.from, selection.to, ' ')
+    
+    if (text && text.trim().length > 0) {
+        window.dispatchEvent(new CustomEvent('sensus-spotlight-inject', { detail: { text: text.trim() } }))
+    }
+}
 
 const parseFrontmatter = (markdown: string | undefined) => {
     if (!markdown) return { frontmatter: {}, content: '' }
@@ -637,10 +650,11 @@ const editor = useEditor({
     }),
     VaultSyntaxHighlighter,
     PresentationBlock,
+    SlashCommand.configure({ suggestion }),
   ],
   editorProps: {
     attributes: {
-      class: 'tiptap ProseMirror focus:outline-none min-h-[500px] text-lg leading-relaxed text-zinc-300',
+      class: 'tiptap ProseMirror focus:outline-none min-h-[500px] text-lg leading-relaxed text-surface-300',
     },
   },
   onUpdate: ({ editor }) => {
@@ -753,6 +767,7 @@ const handleTocRequest = () => {
 
 const debounceSave = (content: string) => {
     isSaving.value = true
+    emit('editor-saving', true)
     if (saveTimeout) clearTimeout(saveTimeout)
     saveTimeout = setTimeout(() => {
         saveDocument(content)
@@ -790,11 +805,13 @@ const saveDocument = async (htmlContent: string) => {
         })
         
         if (!res.ok) throw new Error('Falha ao salvar')
-        console.log(`Pushed to Disk: ${props.fileId}`)
     } catch(e) {
         console.error("Auto-Save error", e)
     } finally {
-        isSaving.value = false
+        setTimeout(() => {
+            isSaving.value = false
+            emit('editor-saving', false)
+        }, 800)
     }
 }
 
@@ -862,7 +879,7 @@ const updateEditorSpellcheck = () => {
                 attributes: {
                     ...editor.value.options.editorProps?.attributes,
                     spellcheck: spellcheckEnabled.value ? 'true' : 'false',
-                    class: 'tiptap ProseMirror focus:outline-none min-h-[500px] text-lg leading-relaxed text-zinc-300',
+                    class: 'tiptap ProseMirror focus:outline-none min-h-[500px] text-lg leading-relaxed text-surface-300',
                 }
             }
         })

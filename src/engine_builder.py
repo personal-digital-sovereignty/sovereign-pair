@@ -14,30 +14,37 @@ logger = logging.getLogger(__name__)
 
 from llama_index.core.llms import ChatMessage, MessageRole  # noqa: E402
 
-def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm):
+def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm, api_keys: dict = None):
     if not provider or not model_name:
         return fallback_llm
         
+    api_keys = api_keys or {}
     p = provider.lower().strip()
     try:
         if p == "openai":
             from llama_index.llms.openai import OpenAI
-            return OpenAI(model=model_name, api_key=OPENAI_API_KEY, request_timeout=REQUEST_TIMEOUT)
+            key = api_keys.get("openai_api_key") or OPENAI_API_KEY
+            return OpenAI(model=model_name, api_key=key, request_timeout=REQUEST_TIMEOUT)
         elif p == "anthropic":
             from llama_index.llms.anthropic import Anthropic
-            return Anthropic(model=model_name, api_key=ANTHROPIC_API_KEY, timeout=REQUEST_TIMEOUT)
+            key = api_keys.get("anthropic_api_key") or ANTHROPIC_API_KEY
+            return Anthropic(model=model_name, api_key=key, timeout=REQUEST_TIMEOUT)
         elif p == "groq":
             from llama_index.llms.groq import Groq
-            return Groq(model=model_name, api_key=GROQ_API_KEY, request_timeout=REQUEST_TIMEOUT)
+            key = api_keys.get("groq_api_key") or GROQ_API_KEY
+            return Groq(model=model_name, api_key=key, request_timeout=REQUEST_TIMEOUT)
         elif p == "gemini":
             from llama_index.llms.gemini import Gemini
-            return Gemini(model=model_name, api_key=GEMINI_API_KEY)
+            key = api_keys.get("gemini_api_key") or GEMINI_API_KEY
+            return Gemini(model=model_name, api_key=key)
         elif p == "ollama":
             from llama_index.llms.ollama import Ollama
             from src.config import OLLAMA_BASE_URL
+            custom_url = api_keys.get("custom_ollama_url")
+            url_to_use = custom_url if custom_url and custom_url.strip() else OLLAMA_BASE_URL
             return Ollama(
                 model=model_name, 
-                base_url=OLLAMA_BASE_URL, 
+                base_url=url_to_use, 
                 request_timeout=REQUEST_TIMEOUT, 
                 context_window=4096, 
                 client_kwargs={"timeout": REQUEST_TIMEOUT},
@@ -152,6 +159,13 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
         db_model = settings_dict.get("llm_model", None)
         db_model = db_model if db_model and db_model.strip() else None
         
+        api_keys = {
+            "openai_api_key": settings_dict.get("openai_api_key", ""),
+            "anthropic_api_key": settings_dict.get("anthropic_api_key", ""),
+            "gemini_api_key": settings_dict.get("gemini_api_key", ""),
+            "custom_ollama_url": settings_dict.get("custom_ollama_url", "")
+        }
+        
     except Exception as e:
         logger.error(f"   ❌ Erro ao ler configs dinâmicas: {e}")
         active_persona = ASSISTANT_PERSONA
@@ -164,6 +178,7 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
         geolocation = GEOLOCATION
         db_provider = None
         db_model = None
+        api_keys = {}
     finally:
         try:
             db.close()
@@ -191,7 +206,7 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
     # Resolve o LLM Ativo (Nuvem ou Local) com base no Request ou no Banco de Dados
     active_provider = provider or db_provider
     active_model = model_name or db_model
-    active_llm = resolve_dynamic_llm(active_provider, active_model, default_llm)
+    active_llm = resolve_dynamic_llm(active_provider, active_model, default_llm, api_keys)
 
     # Log da Mídia utilizada (Para telemetria no terminal FastAPI)
     provider_log = provider or "Ollama (Default)"

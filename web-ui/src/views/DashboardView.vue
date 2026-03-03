@@ -1,140 +1,197 @@
 <template>
-  <div class="p-8 h-full overflow-y-auto w-full bg-[#111111] text-zinc-100 flex flex-col gap-6">
-    <header class="flex flex-col gap-1 pb-4 border-b border-white/5">
-      <h1 class="text-3xl font-light tracking-tight text-white flex items-center gap-3">
-        Sensus Dashboard
-      </h1>
-      <p class="text-sm text-zinc-500 font-mono tracking-wider ml-1">COGNITIVE HUB & ACTIVITY STREAM</p>
+  <div class="h-full overflow-hidden w-full bg-surface-900 text-surface-200 flex flex-col">
+    <!-- Header Controls -->
+    <header class="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-surface-700 bg-surface-800/80 backdrop-blur z-10">
+      <div>
+        <h1 class="text-2xl font-light tracking-tight text-white flex items-center gap-3">
+          Centro de Comando Temporal
+        </h1>
+        <p class="text-[11px] text-surface-400 font-mono tracking-widest mt-1 uppercase">Sovereign Cognitive Hub</p>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex items-center bg-surface-900 border border-surface-700/50 rounded-lg p-1 gap-1">
+        <button v-for="tab in availableTabs" :key="tab.id"
+                @click="activeTab = tab.id"
+                :class="[activeTab === tab.id ? 'bg-surface-700 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800', tab.id === 'graph' ? 'text-primary-400' : '']"
+                class="px-4 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2">
+            <span :class="tab.icon"></span>
+            {{ tab.label }}
+        </button>
+      </div>
     </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      
-      <!-- Esquerda: Calendário e Atividades (Col span 2) -->
-      <div class="lg:col-span-2 flex flex-col gap-6">
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-hidden relative">
         
-        <!-- Bloco de Autonomia / Atividade Recente -->
-        <section class="bg-[#151518] border border-white/5 rounded-xl p-5 shadow-2xl backdrop-blur-sm relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-            <h2 class="text-lg font-medium text-emerald-400 mb-4 flex items-center gap-2">
-                <span class="i-ph-clock-counter-clockwise-duotone text-xl"></span>
-                Atividades Recentes
-            </h2>
-            
-            <div class="flex flex-col gap-3 relative z-10">
-                <div v-if="recentDocs.length === 0" class="flex flex-col items-center justify-center py-10 text-zinc-500 border border-dashed border-white/10 rounded-lg bg-black/20">
-                    <span class="i-ph-ghost-duotone text-4xl mb-2 opacity-50"></span>
-                    <p class="text-sm">Nenhum documento modificado recentemente.</p>
-                </div>
-                
-                <div v-else class="space-y-2">
-                    <div v-for="doc in recentDocs" :key="doc.path" 
-                         @click="openInVault(doc)"
-                         class="group flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-emerald-500/30 cursor-pointer transition-all">
-                        <div class="flex items-center gap-3">
-                            <span class="i-ph-file-text-duotone text-zinc-400 group-hover:text-emerald-400 text-lg transition-colors"></span>
-                            <div>
-                                <h3 class="text-sm font-medium text-zinc-200 group-hover:text-white">{{ doc.name }}</h3>
-                                <p class="text-xs text-zinc-500">{{ doc.path }}</p>
-                            </div>
-                        </div>
-                        <span class="text-xs text-zinc-500 font-mono bg-black/30 px-2 py-1 rounded">{{ doc.timeAgo }}</span>
-                    </div>
-                </div>
-            </div>
-        </section>
+       <!-- GRAPH VIEW -->
+       <div v-show="activeTab === 'graph'" class="absolute inset-0 w-full h-full p-4">
+           <CognitiveGraph @node-click="openInVault" class="w-full h-full rounded-2xl border border-surface-700/60 shadow-2xl" />
+       </div>
 
-      </div>
+       <!-- AGENDA VIEWS -->
+       <div v-show="activeTab !== 'graph'" class="absolute inset-0 w-full h-full overflow-y-auto p-6">
+           <div class="max-w-5xl mx-auto flex flex-col gap-6 relative">
+               
+               <div v-if="isLoadingAgenda" class="flex flex-col items-center justify-center py-20 text-surface-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" class="animate-spin text-surface-600 mb-4" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                  Carregando malha temporal...
+               </div>
 
-      <!-- Direita: Tasks e Insights (Col span 1) -->
-      <div class="flex flex-col gap-6">
-          
-        <!-- Bloco de Tasks -->
-        <section class="bg-[#151518] border border-white/5 rounded-xl p-5 shadow-2xl backdrop-blur-sm flex-1 flex flex-col">
-          <div class="flex items-center justify-between mb-4">
-              <h2 class="text-lg font-medium text-amber-400 flex items-center gap-2">
-                  <span class="i-ph-check-circle-duotone text-xl"></span>
-                  Pendências (Vault Tasks)
-              </h2>
-              <span class="bg-amber-500/10 text-amber-500 text-xs px-2 py-0.5 rounded-full border border-amber-500/20">{{ pendingTasks.length }}</span>
-          </div>
+               <template v-else>
+                   <!-- Header Dynamic based on Tab -->
+                   <div class="flex items-center justify-between mb-2">
+                       <h2 class="text-lg font-medium text-surface-200 flex items-center gap-2">
+                           <span class="i-ph-calendar-check-duotone text-xl text-primary-400"></span>
+                           Resumo Funcional: {{ tabLabels[activeTab] }}
+                       </h2>
+                       <div v-if="agenda[activeTab]" class="text-xs font-mono text-surface-500 bg-surface-800 px-2 py-1 rounded">
+                           {{ agenda[activeTab]?.docs?.length || 0 }} Notas · {{ agenda[activeTab]?.tasks?.length || 0 }} Pendências
+                       </div>
+                   </div>
 
-          <div class="flex-1 overflow-y-auto min-h-[300px] border border-white/5 rounded-lg bg-black/20 p-2">
-             <div v-if="pendingTasks.length === 0" class="h-full flex flex-col items-center justify-center text-zinc-500">
-                <span class="i-ph-check-fat-duotone text-3xl mb-2 text-emerald-500/50"></span>
-                <p class="text-sm text-center">Tudo limpo!<br> O sistema não encontrou marcadores `[ ]` pendentes.</p>
-             </div>
-             <div v-else class="space-y-1">
-                 <div v-for="(task, idx) in pendingTasks" :key="idx" 
-                      class="flex items-start gap-2 p-2 rounded hover:bg-white/5 cursor-pointer leading-tight">
-                      <input type="checkbox" class="mt-0.5 rounded bg-black/50 border-white/20 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-black accent-emerald-500 cursor-pointer" />
-                      <div>
-                          <p class="text-sm text-zinc-300">{{ task.text }}</p>
-                          <p class="text-[10px] text-zinc-500 font-mono mt-1 hover:text-amber-400" @click="openInVault({ path: task.file })">{{ task.file }}</p>
-                      </div>
-                 </div>
-             </div>
-          </div>
-        </section>
+                   <!-- Grid: Left (Notes) / Right (Tasks) -->
+                   <div v-if="agenda[activeTab]" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                       
+                       <!-- Modificações -->
+                       <section class="bg-surface-800/50 border border-surface-700/50 rounded-xl p-5 backdrop-blur-sm flex flex-col">
+                           <h3 class="text-sm font-semibold text-surface-300 mb-3 flex items-center gap-2">
+                               Fluxo de Conhecimento (Notas Modificadas)
+                           </h3>
+                           
+                           <div v-if="!agenda[activeTab]?.docs?.length" class="flex-1 flex flex-col items-center justify-center py-6 text-surface-500 border border-dashed border-surface-700 rounded-lg bg-surface-900/40">
+                               <p class="text-xs">Nenhum registro nesta janela de tempo.</p>
+                           </div>
+                           
+                           <div v-else class="space-y-2">
+                               <div v-for="doc in agenda[activeTab]?.docs" :key="doc.path" 
+                                    @click="openInVault(doc)"
+                                    class="group flex flex-col p-3 rounded-lg bg-surface-900/50 border border-surface-700/30 hover:bg-surface-700/50 hover:border-primary-500/30 cursor-pointer transition-all">
+                                   <div class="flex items-center justify-between">
+                                       <div class="flex items-center gap-2">
+                                           <span class="i-ph-file-text-duotone text-surface-500 group-hover:text-primary-400 text-base transition-colors"></span>
+                                           <h4 class="text-sm font-medium text-surface-200 group-hover:text-white truncate max-w-[200px]">{{ doc.name }}</h4>
+                                       </div>
+                                       <span class="text-[10px] text-surface-500 font-mono">{{ formatTime(doc.dt) }}</span>
+                                   </div>
+                                   <p class="text-[10px] text-surface-600 mt-1 truncate">{{ doc.path }}</p>
+                               </div>
+                           </div>
+                       </section>
 
-      </div>
-    </div>
+                       <!-- Tarefas Pendentes Restritas à Data -->
+                       <section class="bg-surface-800/50 border border-surface-700/50 rounded-xl p-5 backdrop-blur-sm flex flex-col">
+                           <h3 class="text-sm font-semibold text-amber-400/90 mb-3 flex items-center gap-2">
+                               Ações Requeridas (Vault Tasks)
+                           </h3>
+
+                           <div v-if="!agenda[activeTab]?.tasks?.length" class="flex-1 flex flex-col items-center justify-center py-6 text-surface-500 border border-dashed border-surface-700 rounded-lg bg-surface-900/40">
+                               <p class="text-xs">Missão cumprida! Nenhuma pendência aberta.</p>
+                           </div>
+
+                           <div v-else class="space-y-1.5 overflow-y-auto max-h-[500px] custom-scroll">
+                               <div v-for="(task, idx) in agenda[activeTab]?.tasks" :key="idx" 
+                                    class="flex items-start gap-3 p-2.5 rounded-lg bg-surface-900/30 hover:bg-surface-700/30 cursor-pointer group transition-colors">
+                                   <input type="checkbox" class="mt-0.5 rounded bg-surface-900 border-surface-600 text-primary-500 focus:ring-primary-500 focus:ring-offset-surface-900 cursor-pointer" />
+                                   <div class="flex-1">
+                                       <p class="text-sm text-surface-300 leading-snug">{{ task.text }}</p>
+                                       <p class="text-[10px] text-surface-500 font-mono mt-1 group-hover:text-amber-400/80 transition-colors" @click.stop="openInVault(task)">
+                                           Extraído de: {{ task.file_name }}
+                                       </p>
+                                   </div>
+                               </div>
+                           </div>
+                       </section>
+
+                   </div>
+               </template>
+           </div>
+       </div>
+
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import CognitiveGraph from '../components/Vault/CognitiveGraph.vue'
 
 const router = useRouter()
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
-interface RecentDoc {
-    name: string
-    path: string
-    timeAgo: string
+const availableTabs = [
+    { id: 'today', label: 'Hoje', icon: 'i-ph-calendar-star-duotone' },
+    { id: 'this_week', label: 'Nesta Semana', icon: 'i-ph-calendar-blank-duotone' },
+    { id: 'last_week', label: 'Semana Passada', icon: 'i-ph-clock-counter-clockwise-duotone' },
+    { id: 'this_month', label: 'Este Mês', icon: 'i-ph-calendar-duotone' },
+    { id: 'this_year', label: 'Panorama Anual', icon: 'i-ph-binoculars-duotone' },
+    { id: 'graph', label: 'Grafo Cognitivo', icon: 'i-ph-graph-duotone' }
+]
+
+const tabLabels: Record<string, string> = {
+    'today': 'Foco Diário',
+    'this_week': 'Produtividade da Semana',
+    'last_week': 'Retrospectiva Semanal',
+    'this_month': 'Agregado do Mês',
+    'this_year': 'Panorama e Metas Anuais'
 }
 
-interface VaultTask {
-    text: string
-    file: string
+const activeTab = ref('today')
+const isLoadingAgenda = ref(true)
+
+interface AgendaBucket {
+    docs: any[]
+    tasks: any[]
 }
 
-const recentDocs = ref<RecentDoc[]>([])
-const pendingTasks = ref<VaultTask[]>([])
+const agenda = ref<Record<string, AgendaBucket>>({})
 
-const fetchDashboardData = async () => {
+const fetchAgenda = async () => {
+    isLoadingAgenda.value = true
     try {
         const token = localStorage.getItem('sovereign_token') || ''
         const headers = { 'Authorization': `Bearer ${token}` }
         
-        const [recentRes, tasksRes] = await Promise.all([
-            fetch(`${API_BASE_URL}/v1/vault/recent`, { headers }),
-            fetch(`${API_BASE_URL}/v1/vault/tasks`, { headers })
-        ])
-        
-        if (recentRes.ok) {
-            const data = await recentRes.json()
-            recentDocs.value = data.map((d: any) => ({
-                name: d.name,
-                path: d.path,
-                timeAgo: new Date(d.updated_at).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'}) + ' ' + new Date(d.updated_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})
-            }))
-        }
-        
-        if (tasksRes.ok) {
-            pendingTasks.value = await tasksRes.json()
+        const res = await fetch(`${API_BASE_URL}/v1/vault/agenda`, { headers })
+        if (res.ok) {
+            agenda.value = await res.json()
         }
     } catch(e) {
-        console.error("Erro ao puxar dados do Dashboard:", e)
+        console.error("Erro ao puxar dados da Agenda Temporal:", e)
+    } finally {
+        isLoadingAgenda.value = false
     }
 }
 
+const formatTime = (isoString: string) => {
+    if (!isoString) return ''
+    const d = new Date(isoString)
+    return d.toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'}) + ' ' + d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})
+}
+
 const openInVault = (doc: any) => {
-    // Redireciona para o Vault e manda abrir o arquivo (Pode exigir query param ou state store)
+    // Navigate straight to vault with query param
     router.push({ path: '/vault', query: { file: doc.path } })
 }
 
 onMounted(() => {
-    fetchDashboardData()
+    fetchAgenda()
 })
 </script>
+
+<style scoped>
+.custom-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.1);
+  border-radius: 10px;
+}
+.custom-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.2);
+}
+</style>
