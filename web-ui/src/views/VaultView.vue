@@ -112,24 +112,27 @@ const handleEditorStats = (stats: { words: number, links: number, path: string }
   editorStats.value = stats
 }
 
-const handleSelectFile = (file: { id: string, name?: string }) => {
+const handleSelectFile = (file: { id: string | null, name?: string, path?: string }) => {
   // Se o Sidebar/Sophi enviar nome, usa ele, senão faz um fallback pegando do basename doc
   let fallbackName = file.name
+  const tabId = file.id || file.path // Fallback for OS files without database ID
+  
+  if (!tabId) return // Cannot open a tab without an identifier
+  
   if (!fallbackName) {
-      const parts = file.id.split('/')
+      const parts = tabId.split('/')
       const lastPart = parts.length > 0 ? parts[parts.length - 1] : undefined
       fallbackName = lastPart || 'Untitled.md'
   }
-  const targetId = file.id
 
   // Checa se já ta aberto
-  const existingTabIndex = tabs.value.findIndex(t => t.id === targetId)
+  const existingTabIndex = tabs.value.findIndex(t => t.id === tabId)
   if (existingTabIndex >= 0) {
-    activeTabId.value = targetId
+    activeTabId.value = tabId
   } else {
     // Abre nova tab
-    tabs.value.push({ id: targetId, name: fallbackName, viewMode: 'visual' })
-    activeTabId.value = targetId
+    tabs.value.push({ id: tabId, name: fallbackName, viewMode: 'visual' })
+    activeTabId.value = tabId
   }
 }
 
@@ -138,10 +141,14 @@ const route = useRoute()
 const router = useRouter()
 
 const processRouteQuery = () => {
-    if (route.query.file) {
+    if (route.query.file || route.query.path) {
+        let fileId = route.query.file as string | null
+        if (fileId === 'undefined') fileId = null
+        
         handleSelectFile({
-            id: route.query.file as string,
-            name: route.query.name as string | undefined
+            id: fileId,
+            name: route.query.name as string | undefined,
+            path: route.query.path as string | undefined
         })
         // Clear query to avoid re-triggering on local tab switch
         router.replace({ path: '/vault' })
