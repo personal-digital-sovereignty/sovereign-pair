@@ -165,7 +165,6 @@ EXTREMA IMPORTÂNCIA:
 
                 else:
                     from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
-                    import asyncio
                     
                     # 1. Recuperar contexto do banco vetorial via Async
                     try:
@@ -434,8 +433,8 @@ async def delete_session(request: Request, session_id: int, db: Session = Depend
 @router.get("/sessions", response_model=List[SessionResponse])
 @limiter.limit("120/minute")
 async def get_all_sessions(request: Request, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
-    """Lista todas as conversas gravadas no SQLite."""
-    sessions = db.query(ChatSession).filter(ChatSession.tenant_id == tenant_id).order_by(ChatSession.updated_at.desc()).limit(20).all()
+    """Lista todas as conversas gravadas no SQLite/Postgres."""
+    sessions = db.query(ChatSession).filter(ChatSession.tenant_id == tenant_id).order_by(ChatSession.updated_at.desc()).limit(150).all()
     return sessions
 
 @router.get("/sessions/{session_id}", response_model=SessionResponse)
@@ -740,6 +739,109 @@ async def get_vault_tree(db: Session = Depends(get_db), tenant_id: str = Depends
         })
         
     return tree
+
+@router.get("/vault/tags")
+async def get_vault_tags(db: Session = Depends(get_db)):
+    """
+    Agrega todas as tags do banco de dados SensusDocumentModel e retorna a contagem de uso.
+    """
+    from collections import Counter
+    # Temporariamente forçando o tenant 'default' que The Mom usa
+    docs = db.query(SensusDocumentModel.extracted_tags).filter(SensusDocumentModel.tenant_id == "default").all()
+    
+    tag_counter = Counter()
+    for (tags,) in docs:
+        if isinstance(tags, list):
+            for tag in tags:
+                stripped_tag = tag.strip().strip('#').lower()
+                if stripped_tag:
+                    tag_counter[stripped_tag] += 1
+                    
+    # Formata para o Frontend: [{"name": "project-sensus", "count": 8}, ...]
+    result_tags = [{"name": name, "count": count} for name, count in tag_counter.most_common()]
+    return {"tags": result_tags}
+
+@router.get("/vault/templates")
+async def get_vault_templates():
+    """
+    Lista templates pré-cadastrados (mock até a implantação de arquivos reais _templates).
+    """
+    return {
+        "templates": [
+            {
+                "id": "tpl-dor",
+                "name": "Definição de Pronto (DoR)",
+                "description": "Cria um Markdown estruturado para especificar novas features.",
+                "icon": "i-ph-magic-wand-duotone"
+            },
+            {
+                "id": "tpl-log",
+                "name": "Reunião Diária (Log)",
+                "description": "Ata de reunião com meta-dados para o motor de busca.",
+                "icon": "i-ph-calendar-duotone"
+            },
+            {
+                "id": "tpl-arch",
+                "name": "Decisão Arquitetural (ADR)",
+                "description": "Template formal para decisões de engenharia.",
+                "icon": "i-ph-file-code-duotone"
+            }
+        ]
+    }
+
+from pydantic import BaseModel
+
+class CoderExecuteRequest(BaseModel):
+    command: str
+    context: str = ""
+    timeout: int = 60
+
+@router.post("/coder/execute")
+async def execute_on_coder_node(req: CoderExecuteRequest, request: Request, tenant_id: str = Depends(get_current_user)):
+    """
+    MCP Proxy Endpoint (Phase 22):
+    Recebe comandos do VSCode/Sensus locais e redireciona (Proxy) via rede Tailscale (mTLS) 
+    diretamente para a API do "The Coder" hospedada na Oracle Cloud A1.
+    """
+    import os
+    import httpx
+    from fastapi import HTTPException
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    # O IP fixo ou MagicDNS do Tailscale da Oracle VM
+    coder_ip = os.getenv("CODER_TAILSCALE_IP", "100.x.y.z")
+    coder_port = os.getenv("CODER_API_PORT", "8000")
+    
+    if coder_ip == "100.x.y.z":
+        # Retorna um stub amigável caso a infra do Terraform ainda estaja provisionando
+        return {
+            "status": "pending_infrastructure",
+            "message": "A infraestrutura OCI Cloud 'The Coder' ainda está na fila de provisionamento (Aguardando Capacidade Oracle).",
+            "mock_response": f"Se estivesse online, eu executaria: '{req.command}' no IP {coder_ip}"
+        }
+        
+    target_url = f"http://{coder_ip}:{coder_port}/v1/agent/execute"
+    
+    try:
+        async with httpx.AsyncClient(timeout=req.timeout) as client:
+            response = await client.post(
+                target_url, 
+                json={"command": req.command, "context": req.context},
+                headers={"Authorization": request.headers.get("Authorization", "")}
+            )
+            response.raise_for_status()
+            return response.json()
+            
+    except httpx.ConnectError:
+        logger.error(f"Falha ao conectar no The Coder via Tailscale IP: {coder_ip}")
+        raise HTTPException(status_code=503, detail="The Coder Node está offline ou inacessível na rede Tailscale.")
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="O comando no The Coder excedeu o tempo limite de execução.")
+    except Exception as e:
+        logger.error(f"Erro no Proxy MCP para The Coder: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/vault/document/{doc_id}")
 async def get_vault_document(doc_id: str, db: Session = Depends(get_db)):

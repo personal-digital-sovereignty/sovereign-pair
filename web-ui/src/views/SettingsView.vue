@@ -8,7 +8,7 @@ const getAuthHeaders = (): Record<string, string> => {
    return token ? { 'Authorization': `Bearer ${token}` } : {}
 }
 
-const isConfigModalOpen = ref(true) // Always open in this view
+
 const isLoadingConfig = ref(false)
 const isTokenVisible = ref(false)
 const authTokenForDisplay = ref(localStorage.getItem('sovereign_token') || 'Não configurado')
@@ -24,10 +24,11 @@ const pullTotal = ref(0)
 
 const personaOptions = ref([
   { id: 'custom', name: 'Personalizado', prompt: 'Seu próprio prompt...', color: 'text-slate-400 bg-slate-500' },
-  { id: 'analytical', name: 'Analista de Dados', prompt: 'Você é um bot analítico e preciso...', color: 'text-sky-400 bg-sky-500' },
-  { id: 'creative', name: 'Escritor Criativo', prompt: 'Você é focado em ideias e expansão literária...', color: 'text-fuchsia-400 bg-fuchsia-500' },
-  { id: 'coder', name: 'Engenheiro de Software', prompt: 'Foco total em código limpo, python e Vue...', color: 'text-emerald-400 bg-emerald-500' },
-  { id: 'mentor', name: 'Mentor Sênior', prompt: 'Você guia com perguntas socráticas...', color: 'text-amber-400 bg-amber-500' }
+  { id: 'analytical', name: 'Analista de Dados', prompt: 'Você é um bot analítico e preciso. Foco em números, probabilidades e tabelas de dados.', color: 'text-sky-400 bg-sky-500' },
+  { id: 'creative', name: 'Escritor Criativo', prompt: 'Você é focado em ideias, expansão literária e inovação. Pense fora da caixa.', color: 'text-fuchsia-400 bg-fuchsia-500' },
+  { id: 'coder', name: 'Engenheiro de Software', prompt: 'Foco total em código limpo, documentação técnica, Python, Vue e clean architecture.', color: 'text-emerald-400 bg-emerald-500' },
+  { id: 'mentor', name: 'Mentor Sênior', prompt: 'Você guia com perguntas socráticas, provocando raciocínio em vez de dar respostas prontas.', color: 'text-amber-400 bg-amber-500' },
+  { id: 'assessor', name: 'Assessor Executivo', prompt: 'Você é um executivo C-Level assistente. Respostas diretas, executivas, em bullet-points estratégicos.', color: 'text-indigo-400 bg-indigo-500' }
 ])
 
 const systemSettings = ref({
@@ -102,7 +103,7 @@ const saveConfig = async () => {
 const fetchLocalModels = async () => {
   isFetchingModels.value = true
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/llm/models`, {
+    const res = await fetch(`${API_BASE_URL}/v1/ollama/models`, {
       headers: getAuthHeaders()
     })
     if (res.ok) {
@@ -126,7 +127,7 @@ const pullModel = async () => {
   pullTotal.value = 0;
   
   try {
-    const response = await fetch(`${API_BASE_URL}/v1/llm/pull`, {
+    const response = await fetch(`${API_BASE_URL}/v1/ollama/pull`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

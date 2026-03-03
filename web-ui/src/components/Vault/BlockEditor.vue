@@ -380,11 +380,9 @@ const parseFrontmatter = (markdown: string | undefined) => {
             const rawFirstLine = linesData[0];
             const autoTitle = rawFirstLine ? rawFirstLine.trim().replace(/^#{1,6}\s/, '') : 'Untitled Document';
             
-            docData.value = {
-                frontmatter: yaml.load(match[1]) || {},
-                content: contentAfterFrontmatter,
-                autoTitle: autoTitle
-            };
+            docData.value.frontmatter = yaml.load(match[1] as string) || {};
+            docData.value.content = contentAfterFrontmatter;
+            docData.value.autoTitle = autoTitle;
 
             return {
                 frontmatter: docData.value.frontmatter,
@@ -400,11 +398,10 @@ const parseFrontmatter = (markdown: string | undefined) => {
     const safeFirstLine = rawFirstLine || '';
     const autoTitle = safeFirstLine ? safeFirstLine.trim().replace(/^#{1,6}\s/, '') : 'Untitled Document';
 
-    docData.value = {
-        frontmatter: {},
-        content: markdown,
-        autoTitle: autoTitle
-    };
+    docData.value.frontmatter = {};
+    docData.value.content = markdown;
+    docData.value.autoTitle = autoTitle;
+    
     return { frontmatter: {}, content: markdown }
 }
 

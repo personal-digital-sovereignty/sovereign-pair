@@ -65,4 +65,14 @@ resource "oci_core_default_security_list" "default_sl" {
     source    = "0.0.0.0/0"
     stateless = false
   }
+
+  ingress_security_rules {
+    protocol  = "6" # TCP
+    source    = "0.0.0.0/0"
+    stateless = false
+    tcp_options {
+      max = 22
+      min = 22
+    }
+  }
 }

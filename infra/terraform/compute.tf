@@ -12,15 +12,16 @@ data "oci_core_images" "ubuntu_arm" {
 }
 
 resource "oci_core_instance" "the_coder" {
+  # Restaurando para o AD-1 original (Index [0])
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
   compartment_id      = var.compartment_ocid
   display_name        = "sovereign-coder-node"
   shape               = "VM.Standard.A1.Flex"
 
-  # The Free Tier allows exactly 4 cores and 24GB RAM
+  # Using Paid Tier configuration (Pay As You Go)
   shape_config {
-    ocpus         = 4
-    memory_in_gbs = 24
+    ocpus         = 6
+    memory_in_gbs = 32
   }
 
   create_vnic_details {

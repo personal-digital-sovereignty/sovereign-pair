@@ -32,6 +32,6 @@ export const PresentationBlock = Node.create({
             togglePresentationBlock: () => ({ commands }: any) => {
                 return commands.toggleWrap('presentationBlock')
             },
-        }
+        } as any
     },
 })

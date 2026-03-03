@@ -108,7 +108,7 @@ class TheAccountant:
         
     def _parse_range(self, range_str: str) -> List[str]:
         """
-        Converte 'A1:A3' para ['A1', 'A2', 'A3']
+        Converte 'A1:B3' para ['A1', 'A2', 'A3', 'B1', 'B2', 'B3']
         """
         match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", range_str)
         if not match:
@@ -117,13 +117,28 @@ class TheAccountant:
         start_col, start_row = match.group(1), int(match.group(2))
         end_col, end_row = match.group(3), int(match.group(4))
         
-        # TODO: Implementação avançada de conversão Base26 p/ Base10 (Letras p/ Num)
-        # Para Range horizontal B1:D1 etc
+        def col2num(col_str):
+            num = 0
+            for c in col_str:
+                num = num * 26 + (ord(c.upper()) - ord('A') + 1)
+            return num
+            
+        def num2col(num):
+            string = ""
+            while num > 0:
+                num, remainder = divmod(num - 1, 26)
+                string = chr(65 + remainder) + string
+            return string
+
+        min_col, max_col = sorted([col2num(start_col), col2num(end_col)])
+        min_row, max_row = sorted([start_row, end_row])
         
         cells = []
-        for r in range(start_row, end_row + 1):
-            cells.append(f"{start_col}{r}")
-            
+        for c in range(min_col, max_col + 1):
+            col_str = num2col(c)
+            for r in range(min_row, max_row + 1):
+                cells.append(f"{col_str}{r}")
+                
         return cells
 
     def register_cell(self, coordinate: str, content: str):
@@ -223,11 +238,20 @@ class TheAccountant:
                 return str(val) if not isinstance(val, str) else val
 
             try:
-                # Isso varre A1, B2 e substitui pelos números reais.
-                # Se encontrar #REF!, exibe Exception e quebra o bloco.
-                resolved_formula = re.sub(r"([A-Z]+\d+)", replace_ref, formula_str)
-                # Escopo seguro para Math básica
-                cell.value = float(eval(resolved_formula, {"__builtins__": {}}, {}))
+                # Resolve ranges before normal references
+                def replace_range(match):
+                    range_str = match.group(0)
+                    expanded = self._parse_range(range_str)
+                    vals = [str(resolve_value(c, visited)) for c in expanded]
+                    # Converts A1:A3 to [10.0, 20.0, 30.0] for the function
+                    return "[" + ", ".join(vals) + "]"
+                
+                resolved_ranges = re.sub(r"([A-Z]+\d+:[A-Z]+\d+)", replace_range, formula_str)
+                resolved_formula = re.sub(r"([A-Z]+\d+)", replace_ref, resolved_ranges)
+                
+                # Injeta FUNÇÕES permitidas na avaliação
+                safe_locals = {**self.ALLOWED_FUNCTIONS}
+                cell.value = float(eval(resolved_formula, {"__builtins__": {}}, safe_locals))
             except ValueError as ve:
                 err_code = str(ve)
                 if err_code in ["#REF!", "#CIRCULAR_REF!", "#ERROR!"]:

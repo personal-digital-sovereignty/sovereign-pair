@@ -25,26 +25,24 @@
                 </button>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Project Card Mock -->
-                <div class="group flex flex-col p-4 rounded-lg bg-black/20 border border-white/5 hover:border-cyan-500/30 transition-all cursor-pointer relative overflow-hidden">
+            <div v-if="loadingTags" class="flex justify-center items-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+            </div>
+            <div v-else-if="tags.length === 0" class="text-center py-8 text-zinc-500 text-sm border border-dashed border-white/10 rounded-lg">
+                Nenhuma tag encontrada no cofre Sensus.
+            </div>
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div 
+                    v-for="tag in tags" 
+                    :key="tag.name"
+                    class="group flex flex-col p-4 rounded-lg bg-black/20 border border-white/5 hover:border-cyan-500/30 transition-all cursor-pointer relative overflow-hidden"
+                    @click="filterByTag(tag.name)"
+                >
                     <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
                     <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-medium text-zinc-200 group-hover:text-white">Project Sensus</h3>
-                        <span class="text-[10px] font-mono bg-cyan-500/10 text-cyan-400 px-2 rounded-full border border-cyan-500/20">8 Docs</span>
+                        <h3 class="font-medium text-zinc-200 group-hover:text-white capitalize truncate pr-2">#{{ tag.name }}</h3>
+                        <span class="text-[10px] font-mono bg-cyan-500/10 text-cyan-400 px-2 rounded-full border border-cyan-500/20 whitespace-nowrap">{{ tag.count }} Docs</span>
                     </div>
-                    <p class="text-xs text-zinc-500 mb-3 line-clamp-2">Migração para arquitetura híbrida BGE-M3 e novo motor The Accountant.</p>
-                    <div class="flex -space-x-2">
-                        <div class="w-6 h-6 rounded-full bg-zinc-800 border-2 border-[#151518] flex items-center justify-center text-[10px] font-bold">JL</div>
-                    </div>
-                </div>
-
-                <div class="group flex flex-col p-4 rounded-lg bg-black/20 border border-white/5 hover:border-cyan-500/30 transition-all cursor-pointer">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-medium text-zinc-200 group-hover:text-white">Finanças 2026</h3>
-                        <span class="text-[10px] font-mono bg-cyan-500/10 text-cyan-400 px-2 rounded-full border border-cyan-500/20">3 Docs</span>
-                    </div>
-                    <p class="text-xs text-zinc-500 mb-3 line-clamp-2">Orçamentos e infraestruturas Oracle Cloud.</p>
                 </div>
             </div>
         </section>
@@ -58,20 +56,26 @@
               Templates (DoR)
           </h2>
           
-          <div class="space-y-3">
-              <button class="w-full text-left p-3 flex flex-col gap-1 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-purple-500/30 transition-all">
-                  <strong class="text-sm font-medium text-zinc-200">Definição de Pronto (DoR)</strong>
-                  <span class="text-xs text-zinc-500">Cria um Markdown estruturado para especificar novas features.</span>
-              </button>
-
-              <button class="w-full text-left p-3 flex flex-col gap-1 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-purple-500/30 transition-all">
-                  <strong class="text-sm font-medium text-zinc-200">Reunião Diária (Log)</strong>
-                  <span class="text-xs text-zinc-500">Ata de reunião com meta-dados para o motor de busca.</span>
+          <div v-if="loadingTemplates" class="flex justify-center items-center py-4">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
+          </div>
+          <div v-else class="space-y-3">
+              <button 
+                  v-for="template in templates" 
+                  :key="template.id"
+                  @click="useTemplate(template)"
+                  class="w-full text-left p-3 flex flex-col gap-1 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-purple-500/30 transition-all"
+              >
+                  <strong class="text-sm font-medium text-zinc-200 flex items-center gap-2">
+                      <span :class="template.icon || 'i-ph-file-text-duotone'"></span>
+                      {{ template.name }}
+                  </strong>
+                  <span class="text-xs text-zinc-500">{{ template.description }}</span>
               </button>
               
-              <button class="w-full text-left p-3 flex flex-col gap-1 rounded-lg bg-black text-center border border-dashed border-white/20 hover:border-white/40 transition-all text-zinc-400 hover:text-white">
+              <button disabled class="w-full text-left p-3 flex flex-col gap-1 rounded-lg bg-black text-center border border-dashed border-white/20 opacity-50 cursor-not-allowed transition-all text-zinc-500">
                   <span class="text-sm font-medium flex items-center justify-center gap-2">
-                      <span class="i-ph-plus"></span> Criar Novo Template
+                      <span class="i-ph-plus"></span> Criar Novo Template (Em Breve)
                   </span>
               </button>
           </div>
@@ -83,5 +87,65 @@
 </template>
 
 <script setup lang="ts">
-// Logic for handling template instantiation will be added in the upcoming execution phase
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+
+interface TagInfo {
+  name: string
+  count: number
+}
+
+interface TemplateInfo {
+  id: string
+  name: string
+  description: string
+  icon: string
+}
+
+const tags = ref<TagInfo[]>([])
+const templates = ref<TemplateInfo[]>([])
+const loadingTags = ref(true)
+const loadingTemplates = ref(true)
+
+const fetchHubData = async () => {
+  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  const token = localStorage.getItem('sovereign_token')
+  const headers = token ? { Authorization: `Bearer ${token}` } : {}
+  
+  try {
+    loadingTags.value = true
+    const tagsRes = await axios.get(`${baseURL}/v1/vault/tags`, { headers })
+    tags.value = tagsRes.data.tags || []
+  } catch (error) {
+    console.error("Failed to fetch tags:", error)
+  } finally {
+    loadingTags.value = false
+  }
+
+  try {
+    loadingTemplates.value = true
+    const tplRes = await axios.get(`${baseURL}/v1/vault/templates`, { headers })
+    templates.value = tplRes.data.templates || []
+  } catch (error) {
+    console.error("Failed to fetch templates:", error)
+  } finally {
+    loadingTemplates.value = false
+  }
+}
+
+const filterByTag = (tagName: string) => {
+  console.log(`Pivoting vault view logic to show tag: ${tagName}. (Phase 16.5)`)
+  // TODO: Navigate or emit global state change to filter SidebarTree
+}
+
+const useTemplate = (template: TemplateInfo) => {
+  console.log(`Instantiating template from template.id: ${template.id} ... (Phase 16.5)`)
+  // TODO: Create a physical file / empty slot populated with the selected Markdown Schema, then route to the Block Editor
+  alert(`Criação a partir do molde "${template.name}" em construção.`)
+}
+
+onMounted(() => {
+  fetchHubData()
+})
 </script>
+

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import MarkdownIt from 'markdown-it'
 import DOMPurify from 'dompurify'
 
@@ -81,6 +81,83 @@ const groupedSessions = computed(() => {
 })
 
 
+
+const isEditSessionModalOpen = ref(false)
+const editingSession = ref({ id: 0, title: '', folder_name: '', tags: [] as string[] })
+
+const openEditSessionModal = (session: ChatSession | undefined) => {
+  if (!session) return;
+  editingSession.value = {
+    id: session.id,
+    title: session.title,
+    folder_name: session.folder_name || '',
+    tags: session.tags ? [...session.tags] : []
+  }
+  editingTagsInput.value = ''
+  isEditSessionModalOpen.value = true
+}
+
+const addTag = () => {
+  const tag = editingTagsInput.value.trim()
+  if (tag && !editingSession.value.tags.includes(tag)) {
+    editingSession.value.tags.push(tag)
+  }
+  editingTagsInput.value = ''
+}
+
+const removeTag = (index: number) => {
+  editingSession.value.tags.splice(index, 1)
+}
+
+const deleteSessionConfirmed = async () => {
+  if (!sessionToDelete.value) return
+  
+  try {
+    const res = await fetch(`${API_BASE_URL}/v1/sessions/${sessionToDelete.value}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    })
+    
+    if (res.ok) {
+      if (currentSessionId.value === sessionToDelete.value) {
+        currentSessionId.value = null
+        messages.value = [{ id: 1, role: 'assistant', content: 'Nova conversa iniciada. Como posso ajudar?' }]
+      }
+      await loadSessions()
+    }
+  } catch (e) {
+    console.error("Falha ao deletar sessão", e)
+  } finally {
+    sessionToDelete.value = null
+  }
+}
+
+const saveSessionEdit = async () => {
+  try {
+    // Adiciona qualquer tag pendente no input antes de salvar
+    if (editingTagsInput.value.trim()) {
+      addTag()
+    }
+    const res = await fetch(`${API_BASE_URL}/v1/sessions/${editingSession.value.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({
+        title: editingSession.value.title,
+        folder_name: editingSession.value.folder_name,
+        tags: editingSession.value.tags
+      })
+    })
+    if (res.ok) {
+      isEditSessionModalOpen.value = false
+      await loadSessions()
+    }
+  } catch (e) {
+    console.error("Falha ao atualizar sessão", e)
+  }
+}
 
 const activeSession = computed(() => {
   return sessions.value.find(s => s.id === currentSessionId.value)
@@ -530,6 +607,9 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
           <h2 class="font-medium text-slate-300 truncate max-w-[200px] md:max-w-md">
              {{ activeSession ? activeSession.title : 'Sovereign Pair' }}
           </h2>
+          <button v-if="activeSession" @click="openEditSessionModal(activeSession as any)" class="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-surface-700 rounded-md transition-colors" title="Editar Sessão">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+          </button>
         </div>
         <div class="flex items-center gap-2 px-2 py-1 rounded-md transition-colors group" title="Motor Pronto">
           <span class="flex h-2 w-2 relative">
@@ -637,6 +717,69 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
     </main>
   </div>
   
+    <!-- Confirm Delete Modal -->
+    <div v-if="sessionToDelete !== null" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div class="bg-surface-900 border border-rose-900/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col animate-scale-in">
+        <div class="px-6 py-4 border-b border-surface-700/50 flex items-center gap-3 bg-rose-500/10">
+          <svg class="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          <h3 class="text-lg font-medium text-rose-500">Excluir Sessão</h3>
+        </div>
+        <div class="p-6">
+          <p class="text-slate-300 text-sm">Tem certeza que deseja apagar esta sessão e todo o seu histórico de mensagens permanentemente?</p>
+          <p class="text-rose-400 text-xs mt-2 font-medium">Esta ação não pode ser desfeita.</p>
+        </div>
+        <div class="px-6 py-4 border-t border-surface-700/50 bg-surface-800/30 flex justify-end gap-3">
+          <button @click="sessionToDelete = null" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancelar</button>
+          <button @click="deleteSessionConfirmed" class="px-5 py-2 text-sm bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-medium transition-colors shadow-lg shadow-rose-900/50">Sim, excluir</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Edit Session Modal -->
+    <div v-if="isEditSessionModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div class="bg-surface-900 border border-surface-700/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+        <div class="px-6 py-4 border-b border-surface-700/50 flex justify-between items-center bg-surface-800/50">
+          <h3 class="text-lg font-medium text-slate-200">Editar Sessão</h3>
+          <button @click="isEditSessionModalOpen = false" class="text-slate-400 hover:text-white transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        <div class="p-6 space-y-4">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-slate-400">Título</label>
+            <input v-model="editingSession.title" type="text" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
+          </div>
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-slate-400">Pasta (Opcional)</label>
+            <input v-model="editingSession.folder_name" type="text" placeholder="Nome da pasta" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
+          </div>
+
+          <div class="space-y-2 pt-2 border-t border-surface-700/50">
+            <label class="block text-sm font-medium text-slate-400">Tags / Categorias (Pressione Enter para adicionar)</label>
+            <div class="flex flex-wrap gap-2 mb-2">
+              <span v-for="(tag, idx) in editingSession.tags" :key="idx" class="px-2 py-1 bg-surface-700 border border-surface-600 text-xs text-slate-300 rounded-md flex items-center gap-1">
+                #{{ tag }}
+                <button @click="removeTag(idx)" class="hover:text-rose-400 ml-1 transition-colors">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+              </span>
+              <span v-if="editingSession.tags.length === 0" class="text-xs text-slate-500 italic block">Nenhuma tag...</span>
+            </div>
+            <input 
+              v-model="editingTagsInput"
+              @keydown.enter.prevent="addTag"
+              type="text" 
+              placeholder="Ex: python, pesquisa, ideia... (Aperte Enter)" 
+              class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all"
+            >
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-surface-700/50 bg-surface-800/30 flex justify-end gap-3">
+          <button @click="isEditSessionModalOpen = false" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancelar</button>
+          <button @click="saveSessionEdit" class="px-5 py-2 text-sm bg-primary-500 hover:bg-primary-400 text-white rounded-lg font-medium transition-colors shadow-lg shadow-primary-500/30">Salvar</button>
+        </div>
+      </div>
+    </div>
 </template>
 
 <style scoped>

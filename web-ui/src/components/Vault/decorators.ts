@@ -50,9 +50,11 @@ function getDecorations(doc: any) {
         while ((match = tagRegex.exec(text)) !== null) {
             // match[1] is the captured #tag
             // we need to find the correct offset by adding the difference in length between match[0] and match[1]
-            const offset = match[0].length - match[1].length
-            const start = pos + match.index + offset
-            const end = start + match[1].length
+            const m0 = match[0] as string;
+            const m1 = match[1] as string;
+            const offset = m0.length - m1.length
+            const start = pos + (match.index as number) + offset
+            const end = start + m1.length
 
             decorations.push(
                 Decoration.inline(start, end, {

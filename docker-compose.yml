@@ -68,7 +68,6 @@ services:
     depends_on:
       - postgres
       - chroma
-      - ollama
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-sovereign}:${POSTGRES_PASSWORD:-master_pwd}@postgres:5432/${POSTGRES_DB:-sovereign_db}
       - CHROMA_HOST=chroma
@@ -87,6 +86,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./.env:/app/.env
+      - ./src:/app/src
       - ${VAULT_PATH:-./data/vault}:/app/data/vault
     networks:
       - sovereign-net
@@ -139,25 +139,7 @@ services:
       - "127.0.0.1:80:80"
       - "127.0.0.1:443:443"
 
-  # 6. Motor Local de Inteligência (Ollama)
-  ollama:
-    image: ollama/ollama:latest
-    container_name: sovereign-ollama
-    restart: always
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama-data:/root/.ollama
-    networks:
-      - sovereign-net
-    # A capacidade GPU será inferida mas pode ser forçada caso necessário:
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+
 
 volumes:
   pgdata:
