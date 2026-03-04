@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
-import ForceGraph from 'force-graph'
+import * as fgModule from 'force-graph'
 
 const props = defineProps<{
     width?: number
@@ -55,9 +55,32 @@ let time = 0
 const initGraph = () => {
     if (!graphContainer.value) return
 
+    console.log("Initializing Graph with data:", graphData.value.nodes.length, "nodes")
+    console.log("Container Dimensions:", graphContainer.value.clientWidth, "x", graphContainer.value.clientHeight)
+    if (graphData.value.nodes.length > 0) {
+        console.log("Sample node:", graphData.value.nodes[0])
+    }
+
     const primaryColor = getThemeColor('--color-primary-400')
-    // @ts-ignore
-    graphInstance = ForceGraph()(graphContainer.value)
+    
+    try {
+        // Resolve constructor dynamicly
+        // @ts-ignore
+        const ForceGraphInit = (typeof fgModule.default === 'function') ? fgModule.default : (typeof fgModule === 'function' ? fgModule : fgModule.default?.default)
+        
+        if (!ForceGraphInit) {
+            console.error("ForceGraph constructor not found! Module object:", fgModule)
+            return
+        }
+        
+        // @ts-ignore
+        graphInstance = ForceGraphInit()(graphContainer.value)
+    } catch (err) {
+        console.error("CRITICAL ERROR: Failed to instantiate ForceGraph engine:", err)
+        return
+    }
+
+    graphInstance
         .graphData(graphData.value)
         .backgroundColor('rgba(0,0,0,0)') // Transparent bg to let Tailwind shine
         .nodeId('id')
@@ -68,16 +91,20 @@ const initGraph = () => {
         .linkDirectionalParticles((link: any) => link.type === 'semantic' ? 2 : 0) // Particles flying on semantic links
         .linkDirectionalParticleSpeed(0.005)
         .nodeCanvasObject((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-            const label = node.name
-            const fontSize = 12 / globalScale
+            if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return;
+            
+            const label = node.name || 'Unnamed'
+            const fontSize = Math.max(12 / (globalScale || 1), 2)
             const isFolder = node.type === 'folder'
             
-            // Pulsing logic
-            const pulse = Math.sin(time + node.id.length) * 0.15 + 1.0 // varied pulse per node
-            const baseR = (node.val || 2) * (isFolder ? 1.5 : 1) * pulse
+            // Pulsing logic safely
+            const nx = node.x
+            const ny = node.y
+            const pulse = (time ? Math.sin(time + (node.id?.length || 0)) * 0.15 : 0) + 1.0
+            const baseR = Math.max((node.val || 2) * (isFolder ? 1.5 : 1) * pulse, 1)
 
             ctx.beginPath()
-            ctx.arc(node.x, node.y, baseR, 0, 2 * Math.PI, false)
+            ctx.arc(nx, ny, baseR, 0, 2 * Math.PI, false)
             
             if (isFolder) {
                 ctx.fillStyle = `rgba(255, 255, 255, 0.2)`
@@ -88,27 +115,29 @@ const initGraph = () => {
                 ctx.stroke()
             } else {
                 // Glow effect for files
-                const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, baseR * 2)
-                gradient.addColorStop(0, primaryColor)
-                gradient.addColorStop(1, 'rgba(0,0,0,0)')
-                
-                ctx.fillStyle = gradient
-                ctx.fill()
+                try {
+                    const gradient = ctx.createRadialGradient(nx, ny, 0, nx, ny, baseR * 2)
+                    gradient.addColorStop(0, primaryColor)
+                    gradient.addColorStop(1, 'rgba(0,0,0,0)')
+                    
+                    ctx.fillStyle = gradient
+                    ctx.fill()
+                } catch(e) { /* ignore gradient errors if nx/ny corrupt */ }
                 
                 // Solid core
                 ctx.beginPath()
-                ctx.arc(node.x, node.y, baseR * 0.5, 0, 2 * Math.PI, false)
+                ctx.arc(nx, ny, baseR * 0.5, 0, 2 * Math.PI, false)
                 ctx.fillStyle = '#ffffff'
                 ctx.fill()
             }
 
             // Draw Label
             if (globalScale > 1.5) {
-                ctx.font = `${Math.max(fontSize, 4)}px Inter, sans-serif`
+                ctx.font = `${fontSize}px Inter, sans-serif`
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
                 ctx.textAlign = 'center'
                 ctx.textBaseline = 'top'
-                ctx.fillText(label, node.x, node.y + baseR + 2)
+                ctx.fillText(label, nx, ny + baseR + 2)
             }
         })
         .onNodeClick((node: any) => {
@@ -134,8 +163,14 @@ const initGraph = () => {
 
 const handleResize = () => {
     if (graphInstance && graphContainer.value) {
-        graphInstance.width(props.width || graphContainer.value.clientWidth)
-        graphInstance.height(props.height || graphContainer.value.clientHeight)
+        try {
+            const w = Math.max(props.width || graphContainer.value.clientWidth || window.innerWidth || 800, 100)
+            const h = Math.max(props.height || graphContainer.value.clientHeight || window.innerHeight || 600, 100)
+            graphInstance.width(w)
+            graphInstance.height(h)
+        } catch(e) {
+            console.error("Resize Error on ForceGraph:", e)
+        }
     }
 }
 
@@ -166,6 +201,17 @@ watch(() => props.height, handleResize)
 onMounted(() => {
     fetchData()
     window.addEventListener('resize', handleResize)
+    
+    // Safety check se o container inicia zerado pelo display: none do v-show na aba
+    setTimeout(() => {
+        handleResize()
+        if (graphInstance) {
+            graphInstance.zoomToFit(400, 50)
+        }
+    }, 500)
+    setTimeout(() => {
+        handleResize()
+    }, 2000)
 })
 
 onBeforeUnmount(() => {
@@ -176,4 +222,7 @@ onBeforeUnmount(() => {
         graphInstance._destructor && graphInstance._destructor()
     }
 })
+
+// Exposing for parent Vue component (like DashboardView)
+defineExpose({ handleResize })
 </script>

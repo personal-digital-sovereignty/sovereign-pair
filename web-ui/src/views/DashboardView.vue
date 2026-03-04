@@ -26,7 +26,11 @@
         
        <!-- GRAPH VIEW -->
        <div v-show="activeTab === 'graph'" class="absolute inset-0 w-full h-full p-4">
-           <CognitiveGraph @node-click="openInVault" class="w-full h-full rounded-2xl border border-surface-700/60 shadow-2xl" />
+           <CognitiveGraph 
+                ref="graphComponent"
+                @node-click="openInVault" 
+                class="w-full h-full rounded-2xl border border-surface-700/60 shadow-2xl" 
+           />
        </div>
 
        <!-- AGENDA VIEWS -->
@@ -130,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import CognitiveGraph from '../components/Vault/CognitiveGraph.vue'
 import PomodoroWidget from '../components/Dashboard/PomodoroWidget.vue'
@@ -157,6 +161,20 @@ const tabLabels: Record<string, string> = {
 
 const activeTab = ref('today')
 const isLoadingAgenda = ref(true)
+const graphComponent = ref<any>(null)
+
+watch(activeTab, (newVal: string) => {
+    if (newVal === 'graph') {
+        // Dispatch explicit window resize to force ForceGraph to measure the now-visible DOM
+        setTimeout(() => {
+            window.dispatchEvent(new Event('resize'))
+            // E chama função handler filho pra acionar grafos se a ref for injetada no componente
+            if (graphComponent.value && graphComponent.value.handleResize) {
+                graphComponent.value.handleResize()
+            }
+        }, 100)
+    }
+})
 
 // -- Pomodoro State Integration --
 const pomodoroTarget = ref<string | null>(null)
