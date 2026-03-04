@@ -50,7 +50,7 @@
                        </div>
                    </div>
 
-                   <!-- Grid: Left (Notes) / Right (Tasks) -->
+                   <!-- Grid: Left (Notes) / Right (Tasks & Pomodoro) -->
                    <div v-if="agenda[activeTab]" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                        
                        <!-- Modificações -->
@@ -79,11 +79,21 @@
                            </div>
                        </section>
 
-                       <!-- Tarefas Pendentes Restritas à Data -->
-                       <section class="bg-surface-800/50 border border-surface-700/50 rounded-xl p-5 backdrop-blur-sm flex flex-col">
-                           <h3 class="text-sm font-semibold text-amber-400/90 mb-3 flex items-center gap-2">
-                               Ações Requeridas (Vault Tasks)
-                           </h3>
+                       <!-- Lado Direito: Pomodoro + Tarefas -->
+                       <div class="flex flex-col gap-6">
+                           
+                           <!-- Widget Pomodoro (Exclusivo pro Hoje ou Persistente?) -->
+                           <!-- Vamos deixar em todas as abas pra utilidade geral, focado na Task -->
+                           <PomodoroWidget 
+                              :targetTask="pomodoroTarget" 
+                              @task-cleared="pomodoroTarget = null" 
+                           />
+
+                           <!-- Tarefas Pendentes Restritas à Data -->
+                           <section class="bg-surface-800/50 border border-surface-700/50 rounded-xl p-5 backdrop-blur-sm flex flex-col flex-1">
+                               <h3 class="text-sm font-semibold text-amber-400/90 mb-3 flex items-center gap-2">
+                                   Ações Requeridas (Vault Tasks)
+                               </h3>
 
                            <div v-if="!agenda[activeTab]?.tasks?.length" class="flex-1 flex flex-col items-center justify-center py-6 text-surface-500 border border-dashed border-surface-700 rounded-lg bg-surface-900/40">
                                <p class="text-xs">Missão cumprida! Nenhuma pendência aberta.</p>
@@ -95,13 +105,20 @@
                                    <input type="checkbox" class="mt-0.5 rounded bg-surface-900 border-surface-600 text-primary-500 focus:ring-primary-500 focus:ring-offset-surface-900 cursor-pointer" />
                                    <div class="flex-1">
                                        <p class="text-sm text-surface-300 leading-snug">{{ task.text }}</p>
-                                       <p class="text-[10px] text-surface-500 font-mono mt-1 group-hover:text-amber-400/80 transition-colors" @click.stop="openInVault(task)">
-                                           Extraído de: {{ task.file_name }}
-                                       </p>
+                                       <div class="mt-2 flex items-center gap-2">
+                                          <p class="text-[10px] text-surface-500 font-mono group-hover:text-amber-400/80 transition-colors cursor-pointer" @click.stop="openInVault(task)">
+                                              Extraído de: {{ task.file_name }}
+                                          </p>
+                                          <button @click.stop="focusOnTask(task.text)" class="opacity-0 group-hover:opacity-100 px-2 py-0.5 rounded bg-primary-500/20 text-primary-400 text-[9px] uppercase tracking-wider hover:bg-primary-500 hover:text-white transition-all">
+                                              Focar Nisso
+                                          </button>
+                                       </div>
                                    </div>
                                </div>
                            </div>
                        </section>
+                       
+                       </div><!-- Fim Lado Direito -->
 
                    </div>
                </template>
@@ -116,6 +133,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import CognitiveGraph from '../components/Vault/CognitiveGraph.vue'
+import PomodoroWidget from '../components/Dashboard/PomodoroWidget.vue'
 
 const router = useRouter()
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -139,6 +157,17 @@ const tabLabels: Record<string, string> = {
 
 const activeTab = ref('today')
 const isLoadingAgenda = ref(true)
+
+// -- Pomodoro State Integration --
+const pomodoroTarget = ref<string | null>(null)
+
+const focusOnTask = (taskText: string) => {
+    // Scroll To Top to see the timer
+    const mainContainer = document.querySelector('main > div > div.max-w-5xl')
+    if(mainContainer) mainContainer.scrollIntoView({ behavior: 'smooth' })
+    
+    pomodoroTarget.value = taskText
+}
 
 interface AgendaBucket {
     docs: any[]
