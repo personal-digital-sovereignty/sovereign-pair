@@ -40,8 +40,20 @@ def get_llm(provider: str, model: str, temperature: float = 0.1, request_timeout
             request_timeout=request_timeout,
             base_url=base_url,
             temperature=temperature,
-            context_window=4096,
-            additional_kwargs={"num_ctx": 4096},
+            context_window=8192,  # Expandida para comportar context-heavy agent intents
+            additional_kwargs={
+                # Forçar o "Zero Cold Boot" mantendo o modelo em VRAM ativamente 
+                # (ou -1 se for permanente local-only host, mas 24h previne leaks residuais longo prazo)
+                "keep_alive": "24h",
+                # Mapeamento estrito das options direto para o llama.cpp via Ollama REST
+                "options": {
+                    "num_ctx": 8192,
+                    "num_keep": 24, # Isola as instruções de base do system prompt (não caem no ring-buffer do ctx)
+                    # "use_mmap": True  <- É default do llama.cpp mas podemos explicitar se houvessem args diretos.
+                    # As injeções LoRA serão enviadas futuramente via "adapters" caso suportadas pela lib 
+                    # do llama_index, senão enviaremos via requests puros p/ o /api/generate
+                }
+            },
         )
     elif provider == "openai":
         from llama_index.llms.openai import OpenAI
