@@ -61,6 +61,7 @@ const initGraph = () => {
         console.log("Sample node:", graphData.value.nodes[0])
     }
 
+    let hoverNode: any = null
     const primaryColor = getThemeColor('--color-primary-400')
     
     try {
@@ -94,7 +95,6 @@ const initGraph = () => {
             if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return;
             
             const label = node.name || 'Unnamed'
-            const fontSize = Math.max(12 / (globalScale || 1), 2)
             const isFolder = node.type === 'folder'
             
             // Pulsing logic safely
@@ -131,14 +131,28 @@ const initGraph = () => {
                 ctx.fill()
             }
 
-            // Draw Label
-            if (globalScale > 1.5) {
-                ctx.font = `${fontSize}px Inter, sans-serif`
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
+            // Draw Label ONLY on Hover
+            if (node === hoverNode) {
+                // Render text slightly larger specifically for readability on hover
+                const hoverFontSize = Math.max(14 / (globalScale || 1), 4)
+                ctx.font = `600 ${hoverFontSize}px Inter, sans-serif`
+                
+                // Text background to ensure readability over links
+                const textWidth = ctx.measureText(label).width
+                ctx.fillStyle = 'rgba(15, 15, 18, 0.85)'
+                ctx.fillRect(nx - textWidth / 2 - 4, ny + baseR + 2, textWidth + 8, hoverFontSize + 4)
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 1)'
                 ctx.textAlign = 'center'
                 ctx.textBaseline = 'top'
-                ctx.fillText(label, nx, ny + baseR + 2)
+                ctx.fillText(label, nx, ny + baseR + 4)
             }
+        })
+        .onNodeHover((node: any) => {
+             hoverNode = node
+             if (graphContainer.value) {
+                 graphContainer.value.style.cursor = node ? 'pointer' : 'default'
+             }
         })
         .onNodeClick((node: any) => {
              // Redireciona via Emissão ou Router
