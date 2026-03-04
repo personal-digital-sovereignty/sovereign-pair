@@ -43,36 +43,19 @@ const graphData = ref({ nodes: [], links: [] })
 
 let graphInstance: any = null
 let animationFrameId: number
-
-// Helper para pegar cor do Tema Atual (CSS Vars)
-const getThemeColor = (varName: string) => {
-    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || '#10b981'
-}
-
-// Global Glowing Time
 let time = 0
+
 
 const initGraph = () => {
     if (!graphContainer.value) return
 
-    console.log("Initializing Graph with data:", graphData.value.nodes.length, "nodes")
-    console.log("Container Dimensions:", graphContainer.value.clientWidth, "x", graphContainer.value.clientHeight)
-    if (graphData.value.nodes.length > 0) {
-        console.log("Sample node:", graphData.value.nodes[0])
-    }
-
-    let hoverNode: any = null
-    const primaryColor = getThemeColor('--color-primary-400')
+    let hoverNodeId: string | number | null = null
     
     try {
         // Resolve constructor dynamicly
         // @ts-ignore
         const ForceGraphInit = (typeof fgModule.default === 'function') ? fgModule.default : (typeof fgModule === 'function' ? fgModule : fgModule.default?.default)
-        
-        if (!ForceGraphInit) {
-            console.error("ForceGraph constructor not found! Module object:", fgModule)
-            return
-        }
+        if (!ForceGraphInit) return;
         
         // @ts-ignore
         graphInstance = ForceGraphInit()(graphContainer.value)
@@ -81,93 +64,316 @@ const initGraph = () => {
         return
     }
 
+    // Sovereign Orbital Constants (Massive Universe Scale)
+    const CORE_RADIUS = 30; 
+    const CORE_BORDER = 36;
+    const INNER_BOUND = 180;   
+    const OUTER_BOUND = 1600;  // As órbitas nominais devem permanecer profundamente dentro do limite
+    const VISUAL_OUTER_BOUND = 2200; // O grande círculo intransponível (A Borda)
+
+    // Sensus Palette & Cosmic Dust
+    const palette = [
+        {r: 59, g: 130, b: 246}, // Azul
+        {r: 236, g: 72, b: 153}, // Rosa
+        {r: 16, g: 185, b: 129}, // Verde
+        {r: 249, g: 115, b: 22}, // Laranja
+        {r: 250, g: 204, b: 21}  // Creme
+    ];
+    const getInterpolatedColor = (t: number) => {
+        const speed = 0.007; 
+        const scaledT = t * speed;
+        const index = Math.floor(scaledT) % palette.length;
+        const nextIndex = (index + 1) % palette.length;
+        const interp = scaledT % 1.0;
+        const c1 = palette[index] as {r:number, g:number, b:number};
+        const c2 = palette[nextIndex] as {r:number, g:number, b:number};
+        return {
+            r: Math.round(c1.r + (c2.r - c1.r) * interp),
+            g: Math.round(c1.g + (c2.g - c1.g) * interp),
+            b: Math.round(c1.b + (c2.b - c1.b) * interp)
+        };
+    };
+
+    const NUM_DUST = 2500; // Poera densa para preencher o novo vácuo intergalático
+    const cosmicDust: any[] = [];
+    for(let i=0; i<NUM_DUST; i++) {
+        const radius = Math.random() * VISUAL_OUTER_BOUND;
+        const angle = Math.random() * Math.PI * 2;
+        cosmicDust.push({
+            x: Math.cos(angle) * radius,
+            y: Math.sin(angle) * radius,
+            size: Math.random() * 1.5 + 0.5
+        });
+    }
+
+    // --- Física Inteligente baseada em Centralidade de Grau ---
+    const nodeDegrees = new Map<string | number, number>();
+    graphData.value.links.forEach((l: any) => {
+        const sid = typeof l.source === 'object' ? l.source.id : l.source;
+        const tid = typeof l.target === 'object' ? l.target.id : l.target;
+        nodeDegrees.set(sid, (nodeDegrees.get(sid) || 0) + 1);
+        nodeDegrees.set(tid, (nodeDegrees.get(tid) || 0) + 1);
+    });
+    
+    let maxConnections = 1;
+    nodeDegrees.forEach(val => { if (val > maxConnections) maxConnections = val; });
+    const effectiveMax = Math.min(maxConnections, 20); // Normalizador
+
+    // 1. Limpeza de Forças Padrão Inadequadas
+    graphInstance.d3Force('center', null); // Sem atração pro centro 0,0
+    
+    // 2. Repulsão de Espaço Profundo (Ajustado para clusters mais densos)
+    graphInstance.d3Force('charge').strength(-300).distanceMax(600); 
+
+    // 3. Força de Conexão (Gravidade Interna das Constelações)
+    graphInstance.d3Force('link').distance((link: any) => {
+        // Notas fortemente conectadas ficam extremamente coladas
+        return link.type === 'hierarchy' ? 40 : 15; 
+    }).strength(1.2); // Alta rigidez nos links
+
+    // 4. Física Orbital Customizada (D3) - Mantém orbitando firmemente
+    graphInstance.d3Force('orbital', (alpha: number) => {
+        graphData.value.nodes.forEach((node: any) => {
+            // Atribuir órbita baseada na Conectividade (Clusters pesados no núcleo, Isoladas na borda)
+            if (!node.targetOrbit) {
+                const connections = nodeDegrees.get(node.id) || 0;
+                const connRatio = Math.min(connections / effectiveMax, 1.0); // 1.0 = Hub gigante, 0.0 = Isolado
+                const distanceScore = 1.0 - Math.pow(connRatio, 0.7); // Curva matemática que alinha hubs mais ao centro e repele anomalias não-linkadas pra borda da poeira
+                
+                let hash = 0;
+                const nid = node.id || '';
+                for (let i = 0; i < nid.length; i++) hash = nid.charCodeAt(i) + ((hash << 5) - hash);
+                const normalizedHash = Math.abs(hash) / 2147483647; // Espalhamento de 0 a 1
+                
+                // Posição final: 85% baseada na gravidade de conexões (afastando pra borda), 15% aleatório
+                const orbitFactor = (distanceScore * 0.85) + (normalizedHash * 0.15);
+                
+                node.targetOrbit = INNER_BOUND + (orbitFactor * (OUTER_BOUND - INNER_BOUND));
+                node.orbitSpeed = 0.005 + ((1.0 - orbitFactor) * 0.015); // Clusters massivos giram mais devagar (majestosos)
+            }
+
+            const r = Math.sqrt(node.x*node.x + node.y*node.y) || 1;
+            
+            // Força Radial Absoluta - Puxa agressivamente para a Órbita Alvo
+            const radialForce = (node.targetOrbit - r) * 0.3 * alpha;
+            node.vx += (node.x / r) * radialForce;
+            node.vy += (node.y / r) * radialForce;
+
+            // Velocidade Tangencial Orbital (Rotação Contínua)
+            const speed = node.orbitSpeed * alpha;
+            node.vx += (-node.y / r) * (r * speed);
+            node.vy += (node.x / r) * (r * speed);
+
+            // A MURALHA ABSOLUTA (Limitação Física de Coordenadas)
+            // Impede irreversivelmente que qualquer carga de repulsão jogue o cluster para fora da Poeira Cósmica
+            const maxAllowedRadius = VISUAL_OUTER_BOUND - 30;
+            if (r > maxAllowedRadius) {
+                node.x = (node.x / r) * maxAllowedRadius;
+                node.y = (node.y / r) * maxAllowedRadius;
+                // Rebate a velocidade (Bounce-back)
+                node.vx *= -0.8;
+                node.vy *= -0.8;
+            }
+        });
+    });
+
+    // Renderização do Core da Galáxia na Camada "Background"
+    if (graphInstance.onRenderFramePre) {
+        graphInstance.onRenderFramePre((ctx: CanvasRenderingContext2D, globalScale: number) => {
+            ctx.save();
+            
+            const currentColor = getInterpolatedColor(time);
+            const rgbStr = `${currentColor.r}, ${currentColor.g}, ${currentColor.b}`;
+
+            const maxPulseRadius = VISUAL_OUTER_BOUND - CORE_RADIUS; 
+            const pulseFrequency = 0.008; 
+            const ringCount = 4;
+
+            // 0. Cosmic Dust (Poeira Cósmica responsiva ao pulso)
+            ctx.save();
+            cosmicDust.forEach(dust => {
+                const d = Math.sqrt(dust.x*dust.x + dust.y*dust.y);
+                let distToPulse = 9999;
+                
+                for (let i = 0; i < ringCount; i++) {
+                    const phase = ((time * pulseFrequency) + (i / ringCount)) % 1.0; 
+                    const pulseR = CORE_RADIUS + (phase * maxPulseRadius);
+                    distToPulse = Math.min(distToPulse, Math.abs(d - pulseR));
+                }
+
+                let dustAlpha = 0.1; // genérico e quase invisível
+                let dustColor = '255,255,255';
+                
+                // Se o pulso do sonar varrer a poeira, ela acende incandescente com a cor rotativa
+                if (distToPulse < 50) {
+                    const intensity = 1.0 - (distToPulse / 50);
+                    dustAlpha = 0.1 + (intensity * 0.9);
+                    dustColor = rgbStr;
+                }
+                
+                ctx.beginPath();
+                ctx.arc(dust.x, dust.y, dust.size / globalScale, 0, 2 * Math.PI);
+                ctx.fillStyle = `rgba(${dustColor}, ${dustAlpha})`;
+                ctx.fill();
+            });
+            ctx.restore();
+
+            // 1. Limite Externo Soberano (Última Linha de Defesa "A Borda")
+            // A imagem pede: "A BORDA PRECISA SER MAIS GROSSA E TER AQUELE EFEITO DE POEIRA"
+            
+            // Efeito Camada de Poeira Grossa Espalhada na Borda
+            ctx.beginPath();
+            ctx.arc(0, 0, VISUAL_OUTER_BOUND, 0, 2 * Math.PI, false);
+            ctx.lineWidth = 80 / globalScale; // Glow massivo de poeira 
+            ctx.strokeStyle = `rgba(${rgbStr}, 0.08)`; 
+            ctx.stroke();
+
+            // Círculo Limitante Intransponível (Grosso e Denso)
+            ctx.beginPath();
+            ctx.arc(0, 0, VISUAL_OUTER_BOUND, 0, 2 * Math.PI, false);
+            ctx.lineWidth = 12 / globalScale; // Espessura agressiva
+            ctx.strokeStyle = `rgba(${rgbStr}, 0.5)`; 
+            ctx.stroke();
+            
+            // 2. Ondas de Pulsação (Vida Digital / Sonar Effect)
+            for (let i = 0; i < ringCount; i++) {
+                const phase = ((time * pulseFrequency) + (i / ringCount)) % 1.0; 
+                // A onda começa no CORE_RADIUS e vai até o VISUAL_OUTER_BOUND exato
+                const expandedRadius = CORE_RADIUS + (phase * maxPulseRadius); 
+                const ringAlpha = 0.5 * (Math.pow(1.0 - phase, 1.2)); // fading suave
+                
+                ctx.beginPath();
+                ctx.arc(0, 0, expandedRadius, 0, 2 * Math.PI, false);
+                ctx.lineWidth = 2 / globalScale; 
+                ctx.strokeStyle = `rgba(${rgbStr}, ${ringAlpha})`; 
+                ctx.stroke();
+            }
+
+            // 3. Aura Estática Concêntrica Dinâmica
+            ctx.beginPath();
+            ctx.arc(0, 0, CORE_RADIUS + 6, 0, 2 * Math.PI, false);
+            ctx.lineWidth = 4 / globalScale;
+            ctx.strokeStyle = `rgba(${rgbStr}, 0.3)`; 
+            ctx.stroke();
+
+            // 4. Borda Escura Gravitacional
+            ctx.beginPath();
+            ctx.arc(0, 0, CORE_BORDER, 0, 2 * Math.PI, false);
+            ctx.fillStyle = '#021a0c'; 
+            ctx.fill();
+
+            // 5. O Núcleo Soberano (Pulsando de Cor Vibrante)
+            ctx.beginPath();
+            ctx.arc(0, 0, CORE_RADIUS, 0, 2 * Math.PI, false);
+            ctx.fillStyle = `rgb(${rgbStr})`; 
+            ctx.fill();
+
+            // 6. O 'Olho Brilhante' interno
+            ctx.beginPath();
+            ctx.arc(0, 0, CORE_RADIUS * 0.4, 0, 2 * Math.PI, false);
+            ctx.fillStyle = '#ffffff'; 
+            ctx.fill();
+
+            ctx.restore();
+        });
+    }
+
     graphInstance
         .graphData(graphData.value)
-        .backgroundColor('rgba(0,0,0,0)') // Transparent bg to let Tailwind shine
+        .backgroundColor('rgba(0,0,0,0)') // Transparent bg to let Tailwind excel
         .nodeId('id')
         .nodeVal('val')
         .nodeLabel('name')
-        .linkColor(() => `rgba(255,255,255,0.15)`)
-        .linkWidth((link: any) => link.type === 'hierarchy' ? 1.5 : 0.8)
-        .linkDirectionalParticles((link: any) => link.type === 'semantic' ? 2 : 0) // Particles flying on semantic links
+        .linkColor(() => {
+            // As interligações agora pulsam ativamente com a cor primária do sistema num estado fantasmagórico (Sensus Palette)
+            const c = getInterpolatedColor(time);
+            return `rgba(${c.r}, ${c.g}, ${c.b}, 0.22)`;
+        })
+        .linkWidth(0.5)
+        .linkDirectionalParticles((link: any) => link.type === 'semantic' ? 2 : 0)
         .linkDirectionalParticleSpeed(0.005)
+        .linkDirectionalParticleWidth(1.5)
+        .linkDirectionalParticleColor(() => {
+            const c = getInterpolatedColor(time);
+            return `rgba(${c.r}, ${c.g}, ${c.b}, 1)`; // Partículas incandescentes na mesma cor do pulso
+        })
         .nodeCanvasObject((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
             if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return;
             
-            const label = node.name || 'Unnamed'
-            const isFolder = node.type === 'folder'
+            const label = node.name || 'Unnamed';
+            const isFolder = node.type === 'folder';
+            const nx = node.x as number;
+            const ny = node.y as number;
             
-            // Pulsing logic safely
-            const nx = node.x
-            const ny = node.y
-            const pulse = (time ? Math.sin(time + (node.id?.length || 0)) * 0.15 : 0) + 1.0
-            const baseR = Math.max((node.val || 2) * (isFolder ? 1.5 : 1) * pulse, 1)
+            // Cores Rotativas
+            const currentColor = getInterpolatedColor(time);
+            const rgbStr = `${currentColor.r}, ${currentColor.g}, ${currentColor.b}`;
 
-            ctx.beginPath()
-            ctx.arc(nx, ny, baseR, 0, 2 * Math.PI, false)
+            // Tamanhos simples, seguindo proporções limpas do Three.js
+            const baseR = Math.max((node.val || 2) * (isFolder ? 1.5 : 1), 2);
+
+            ctx.beginPath();
+            ctx.arc(nx, ny, baseR, 0, 2 * Math.PI, false);
             
             if (isFolder) {
-                ctx.fillStyle = `rgba(255, 255, 255, 0.2)`
-                ctx.fill()
-                // Outer glow
-                ctx.strokeStyle = `rgba(255, 255, 255, 0.4)`
-                ctx.lineWidth = 0.5 / globalScale
-                ctx.stroke()
+                // Folders = Núcleo de Constelação um pouco maior e claro
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                // Halo sutil conectado as cores
+                ctx.beginPath();
+                ctx.arc(nx, ny, baseR * 2.5, 0, 2 * Math.PI, false);
+                ctx.strokeStyle = `rgba(${rgbStr}, 0.5)`;
+                ctx.lineWidth = 2 / globalScale;
+                ctx.stroke();
             } else {
-                // Glow effect for files
-                try {
-                    const gradient = ctx.createRadialGradient(nx, ny, 0, nx, ny, baseR * 2)
-                    gradient.addColorStop(0, primaryColor)
-                    gradient.addColorStop(1, 'rgba(0,0,0,0)')
-                    
-                    ctx.fillStyle = gradient
-                    ctx.fill()
-                } catch(e) { /* ignore gradient errors if nx/ny corrupt */ }
-                
-                // Solid core
-                ctx.beginPath()
-                ctx.arc(nx, ny, baseR * 0.5, 0, 2 * Math.PI, false)
-                ctx.fillStyle = '#ffffff'
-                ctx.fill()
+                // Arquivos e Notas absorvem a cor principal do pulso momentâneo
+                ctx.fillStyle = `rgb(${rgbStr})`;
+                ctx.fill();
             }
 
-            // Draw Label ONLY on Hover
-            if (node === hoverNode) {
-                // Render text slightly larger specifically for readability on hover
-                const hoverFontSize = Math.max(14 / (globalScale || 1), 4)
-                ctx.font = `600 ${hoverFontSize}px Inter, sans-serif`
+            // Label Renderizando no Hover
+            if (node.id === hoverNodeId) {
+                const hoverFontSize = Math.max(14 / (globalScale || 1), 4);
+                ctx.font = `600 ${hoverFontSize}px Inter, sans-serif`;
                 
-                // Text background to ensure readability over links
-                const textWidth = ctx.measureText(label).width
-                ctx.fillStyle = 'rgba(15, 15, 18, 0.85)'
-                ctx.fillRect(nx - textWidth / 2 - 4, ny + baseR + 2, textWidth + 8, hoverFontSize + 4)
+                const textWidth = ctx.measureText(label).width;
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+                ctx.fillRect(nx - textWidth / 2 - 4, ny + baseR + 4, textWidth + 8, hoverFontSize + 4);
                 
-                ctx.fillStyle = 'rgba(255, 255, 255, 1)'
-                ctx.textAlign = 'center'
-                ctx.textBaseline = 'top'
-                ctx.fillText(label, nx, ny + baseR + 4)
+                ctx.fillStyle = `rgb(${rgbStr})`; // Texto acompanha o estado fluido de cor
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText(label, nx, ny + baseR + 6);
             }
         })
         .onNodeHover((node: any) => {
-             hoverNode = node
+             hoverNodeId = node ? node.id : null;
              if (graphContainer.value) {
-                 graphContainer.value.style.cursor = node ? 'pointer' : 'default'
+                 graphContainer.value.style.cursor = node ? 'pointer' : 'default';
              }
         })
         .onNodeClick((node: any) => {
-             // Redireciona via Emissão ou Router
              if (node.type === 'file') {
-                 emit('node-click', node)
+                 emit('node-click', node);
              }
-             // Zoom to node
-             graphInstance.centerAt(node.x, node.y, 1000)
-             graphInstance.zoom(4, 2000)
-        })
+             graphInstance.centerAt(node.x, node.y, 1000);
+             graphInstance.zoom(4, 2000);
+        });
 
-    // Animation loop para pulsar em tempo real
+    // Garante que a câmera seja posicionada de maneira que envolva toda a galáxia
+    setTimeout(() => {
+        graphInstance.centerAt(0, 0, 1000);
+        graphInstance.zoomToFit(1000, 50, () => true);
+    }, 500);
+
+    // Animation loop para pulsar em tempo real e atualizar a paleta global
     const animate = () => {
         time += 0.05
-        if (graphInstance) graphInstance.nodeCanvasObject(graphInstance.nodeCanvasObject()) // Trigger re-render do canvas custom
+        if (graphInstance) {
+            graphInstance.nodeCanvasObject(graphInstance.nodeCanvasObject()); // Trigger re-render nodes (pulsos e cores fluídas)
+            graphInstance.linkColor(graphInstance.linkColor()); // Trigger re-render dinâmico das conexões/links
+            graphInstance.linkDirectionalParticleColor(graphInstance.linkDirectionalParticleColor()); // Trigger cor dos pulsos/implosões
+        }
         animationFrameId = requestAnimationFrame(animate)
     }
     animate()
@@ -197,11 +403,13 @@ const fetchData = async () => {
         const data = await res.json()
         graphData.value = data
         
+        // Force full redraw para garantir que o onRenderFramePre atualizado seja chamado
         if (graphInstance) {
-            graphInstance.graphData(data)
-        } else {
-            initGraph()
+            graphInstance._destructor()
+            const canvasEl = graphContainer.value?.querySelector('canvas')
+            if (canvasEl) canvasEl.remove()
         }
+        initGraph()
     } catch(e) {
         console.error("Erro renderizando Grafo", e)
     } finally {
