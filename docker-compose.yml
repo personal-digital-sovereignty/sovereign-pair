@@ -88,6 +88,7 @@ services:
       - ./.env:/app/.env
       - ./src:/app/src
       - ${VAULT_PATH:-./data/vault}:/app/data/vault
+      - ${HOME}:${HOME}
     networks:
       - sovereign-net
     # PORTA Ocultada de propósito! Quem fará o port forward será o Tailscale e o Caddy.

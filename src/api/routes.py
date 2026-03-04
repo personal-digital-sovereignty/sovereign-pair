@@ -773,8 +773,8 @@ async def get_vault_tree(db: Session = Depends(get_db), tenant_id: str = Depends
     import os
     from src.config import RAW_DOCS_DIR
     
-    # 1. Puxa todos os arquivos sincronizados da DB
-    docs = db.query(SensusDocumentModel.file_path, SensusDocumentModel.vector_id, SensusDocumentModel.id, SensusDocumentModel.extracted_tags).filter(SensusDocumentModel.tenant_id == "default").all()
+    # 1. Puxa todos os arquivos sincronizados da DB (unindo default e ativo)
+    docs = db.query(SensusDocumentModel.file_path, SensusDocumentModel.vector_id, SensusDocumentModel.id, SensusDocumentModel.extracted_tags).filter(SensusDocumentModel.tenant_id.in_(["default", tenant_id])).all()
     
     # Mapa O(1) para buscar status do vetor e ID
     db_map = {str(d.file_path): {"vector_id": d.vector_id, "id": d.id, "tags": d.extracted_tags} for d in docs}
@@ -901,8 +901,8 @@ async def get_vault_tags(db: Session = Depends(get_db)):
     Agrega todas as tags do banco de dados SensusDocumentModel e retorna a contagem de uso.
     """
     from collections import Counter
-    # Temporariamente forçando o tenant 'default' que The Mom usa
-    docs = db.query(SensusDocumentModel.extracted_tags).filter(SensusDocumentModel.tenant_id == "default").all()
+    # Reúne tags legadas de default e novas vinculadas ao Owner logado
+    docs = db.query(SensusDocumentModel.extracted_tags).filter(SensusDocumentModel.tenant_id.in_(["default", tenant_id])).all()
     
     tag_counter = Counter()
     for (tags,) in docs:

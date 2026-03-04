@@ -90,8 +90,8 @@ class MarkdownParser:
 class VaultWatcher(FileSystemEventHandler):
     """Watches the Sensus Vault for file changes using Inotify/FSEvents."""
     
-    def __init__(self, vault_path: str, tenant_id: str):
-        self.vault_path = vault_path
+    def __init__(self, tenant_id: str, vault_paths: List[str] = None):
+        self.vault_paths = vault_paths or []
         self.tenant_id = tenant_id
         self.observer = Observer()
         self._last_processed = {}
@@ -102,36 +102,46 @@ class VaultWatcher(FileSystemEventHandler):
         from src.api.database import SessionLocal
         from src.api.models import SensusDocumentModel
         
-        print(f"[The Mom] Inciando varredura histórica (Backfill) em: {self.vault_path}")
+        print(f"[The Mom] Inciando varredura histórica (Backfill) em {len(self.vault_paths)} Workspaces Globais")
         db = SessionLocal()
         try:
             # Pegar todos arquivos que já existem no DB para não re-processar atoa
             existing_paths = {doc.file_path for doc in db.query(SensusDocumentModel.file_path).all()}
             
-            for root, dirs, files in os.walk(self.vault_path):
-                # Ignorar pastas ocultas (como .obsidian, .git)
-                dirs[:] = [d for d in dirs if not d.startswith('.')]
-                
-                for file in files:
-                    if file.endswith(".md"):
-                        full_path = os.path.join(root, file)
-                        if full_path not in existing_paths:
-                            # Fingimos um evento 'on_created' para cada arquivo antigo
-                            class DummyEvent:
-                                is_directory = False
-                                src_path = full_path
-                            print(f"[The Mom] Arquivo histórico detectado: {full_path}")
-                            self.process_file(DummyEvent())
+            for vault_path in self.vault_paths:
+                if not os.path.exists(vault_path):
+                    continue
+                for root, dirs, files in os.walk(vault_path):
+                    # Ignorar pastas ocultas (como .obsidian, .git)
+                    dirs[:] = [d for d in dirs if not d.startswith('.')]
+                    
+                    for file in files:
+                        if file.endswith(".md"):
+                            full_path = os.path.join(root, file)
+                            if full_path not in existing_paths:
+                                # Fingimos um evento 'on_created' para cada arquivo antigo
+                                class DummyEvent:
+                                    is_directory = False
+                                    src_path = full_path
+                                print(f"[The Mom] Arquivo histórico detectado: {full_path}")
+                                self.process_file(DummyEvent())
         finally:
             db.close()
         print(f"[The Mom] Varredura histórica concluída.")
 
     def start(self):
-        print(f"[The Mom] Starting silent watch on Vault: {self.vault_path}")
-        self.observer.schedule(self, self.vault_path, recursive=True)
-        self.observer.start()
-        # Após ligar o guardião de tempo real, indexamos o retroativo:
-        self.initial_sweep()
+        import os
+        for vault_path in self.vault_paths:
+            if os.path.exists(vault_path):
+                print(f"[The Mom] Starting silent watch on Workspace: {vault_path}")
+                self.observer.schedule(self, vault_path, recursive=True)
+            else:
+                print(f"[Warning] Path {vault_path} not found. Skipping watch.")
+                
+        if self.vault_paths:
+            self.observer.start()
+            # Após ligar o guardião de tempo real, indexamos o retroativo:
+            self.initial_sweep()
 
     def stop(self):
         self.observer.stop()
@@ -204,7 +214,7 @@ if __name__ == "__main__":
     # Quick standalone test
     test_vault = os.path.join(os.getcwd(), "data", "test_vault")
     os.makedirs(test_vault, exist_ok=True)
-    watcher = VaultWatcher(vault_path=test_vault, tenant_id="test_tenant")
+    watcher = VaultWatcher(tenant_id="test_tenant", vault_paths=[test_vault])
     watcher.start()
     try:
         print("[The Mom] Type Ctrl+C to stop.")
