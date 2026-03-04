@@ -69,12 +69,36 @@ async def app_lifespan(app: FastAPI):
     # Iniciar "The Mom" (Predictor/Watcher silêncioso no background)
     from src.core.the_mom import VaultWatcher
     from src.config import VAULT_DIR
+    from src.api.database import SessionLocal
+    from src.api.routes import get_authorized_workspaces
     import os
     
     # Garantir que a pasta Vault exista
     os.makedirs(VAULT_DIR, exist_ok=True)
-    # The Mom vai escutar esse diretório e parsear qualquer Markdown
-    mom_watcher = VaultWatcher(vault_path=str(VAULT_DIR), tenant_id="default")
+    
+    # 1. Obter Workspaces configurados pelo usuario na DB
+    db = SessionLocal()
+    try:
+        from src.api.models import SystemSettings
+        active_tenants = db.query(SystemSettings.tenant_id).distinct().all()
+        workspaces = []
+        
+        for (t_id,) in active_tenants:
+            workspaces.extend(get_authorized_workspaces(db, t_id))
+            
+        workspaces = list(set(workspaces))
+        
+        if str(VAULT_DIR) not in workspaces:
+            workspaces.append(str(VAULT_DIR))
+    except Exception as e:
+        import logging
+        logging.error(f"Erro ao buscar workspaces no DB: {e}")
+        workspaces = [str(VAULT_DIR)]
+    finally:
+        db.close()
+    
+    # The Mom vai escutar dezenas de diretórios e parsear qualquer Markdown
+    mom_watcher = VaultWatcher(tenant_id="default", vault_paths=workspaces)
     mom_watcher.start()
     
     # Iniciar "The Dad" (SLM Context Pre-Fetcher & Vectorizer)
