@@ -202,6 +202,18 @@ const pullModel = async () => {
   }
 }
 
+const onProviderChange = () => {
+   const p = systemSettings.value.llm_provider
+   if (p === 'openai') systemSettings.value.llm_model = 'gpt-4o'
+   else if (p === 'anthropic') systemSettings.value.llm_model = 'claude-3-5-sonnet-20240620'
+   else if (p === 'gemini') systemSettings.value.llm_model = 'gemini-1.5-pro'
+   else if (p === 'groq') systemSettings.value.llm_model = 'llama3-70b-8192'
+   else if (p === 'ollama') {
+       systemSettings.value.llm_model = 'llama3.2'
+       fetchLocalModels()
+   }
+}
+
 onMounted(() => {
   loadConfig()
 })
@@ -245,7 +257,7 @@ onMounted(() => {
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-2">
             <label class="block text-sm font-medium text-slate-400">Provedor LLM</label>
-            <select v-model="systemSettings.llm_provider" class="w-full bg-[#18181B] border border-[#222222] text-[#E0E0E0] text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none transition-all">
+            <select v-model="systemSettings.llm_provider" @change="onProviderChange" class="w-full bg-[#18181B] border border-[#222222] text-[#E0E0E0] text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none transition-all">
               <option value="ollama">Ollama (Local)</option>
               <option value="openai">OpenAI</option>
               <option value="groq">Groq</option>
@@ -286,6 +298,18 @@ onMounted(() => {
             </template>
             <template v-else>
               <input v-model="systemSettings.llm_model" type="text" class="w-full bg-[#18181B] border border-[#222222] text-[#E0E0E0] text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none transition-all" placeholder="ex: llama3, gpt-4o">
+              
+              <!-- UX BYOK: Atalho para API Key Direta -->
+              <div v-if="systemSettings.llm_provider !== 'ollama'" class="mt-4 p-3 bg-rose-500/5 border border-rose-500/20 rounded-lg">
+                 <label class="flex items-center gap-2 text-[11px] font-semibold text-rose-400 mb-2 uppercase tracking-wide">
+                    <span class="i-ph-key-duotone text-sm"></span> Chave de API ({{ systemSettings.llm_provider }})
+                 </label>
+                 <input v-if="systemSettings.llm_provider === 'openai'" v-model="systemSettings.openai_api_key" type="password" placeholder="sk-..." class="w-full bg-[#121214] border border-[#222] text-[#E0E0E0] text-xs rounded px-2.5 py-2 font-mono outline-none focus:border-rose-500 transition-colors">
+                 <input v-else-if="systemSettings.llm_provider === 'anthropic'" v-model="systemSettings.anthropic_api_key" type="password" placeholder="sk-ant-..." class="w-full bg-[#121214] border border-[#222] text-[#E0E0E0] text-xs rounded px-2.5 py-2 font-mono outline-none focus:border-rose-500 transition-colors">
+                 <input v-else-if="systemSettings.llm_provider === 'gemini'" v-model="systemSettings.gemini_api_key" type="password" placeholder="AIza..." class="w-full bg-[#121214] border border-[#222] text-[#E0E0E0] text-xs rounded px-2.5 py-2 font-mono outline-none focus:border-rose-500 transition-colors">
+                 
+                 <p class="text-[9px] text-rose-500/70 mt-2 font-medium">Aviso Risco: Seus embeds serão despachados para fora do seu hardware. Detalhes na aba Multi-LLM BYOK.</p>
+              </div>
             </template>
           </div>
         </div>
