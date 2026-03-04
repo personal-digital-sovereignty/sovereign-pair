@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Boolean, JSON
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, synonym
 from datetime import datetime, timezone
 from .database import Base
 
@@ -73,6 +73,30 @@ class SystemSettings(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     setting_key = Column(String(100), nullable=False, index=True) # REMOVED UNIQUE=True
-    setting_value = Column(Text, nullable=True)
+    _setting_value = Column("setting_value", Text, nullable=True)
     tenant_id = Column(String(50), nullable=False, index=True, default="default")
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    @property
+    def setting_value(self):
+        if self._setting_value is None:
+            return None
+        k = self.setting_key.upper() if self.setting_key else ""
+        if "API_KEY" in k or "TOKEN" in k:
+            from src.core.security import decrypt_value
+            return decrypt_value(self._setting_value)
+        return self._setting_value
+
+    @setting_value.setter
+    def setting_value(self, val):
+        if val is None:
+            self._setting_value = None
+            return
+        k = self.setting_key.upper() if self.setting_key else ""
+        if "API_KEY" in k or "TOKEN" in k:
+            from src.core.security import encrypt_value
+            self._setting_value = encrypt_value(val)
+        else:
+            self._setting_value = val
+
+    setting_value = synonym("_setting_value", descriptor=setting_value)

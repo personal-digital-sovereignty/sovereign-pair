@@ -159,6 +159,17 @@ from .auth import router as auth_router, get_current_user  # noqa: E402
 app.include_router(auth_router, prefix="/v1/auth", tags=["Authentication"])
 app.include_router(router, prefix="/v1", dependencies=[Depends(get_current_user)])
 
+# CISO GOTCHA: Route Amputation & B2B Stripping
+from src.config import SENSUS_MODE
+if SENSUS_MODE != "enterprise":
+    import logging
+    logging.info("[B2B Route Amputation] SENSUS_MODE is standard. Registering Student/Productivity Routes.")
+    from .routes_student import router as student_router
+    app.include_router(student_router, prefix="/v1/student", tags=["Student Productivity"])
+else:
+    import logging
+    logging.warning("[B2B Route Amputation] 🛡️ SENSUS_MODE=enterprise is ACTIVE. Student capabilities (Pomodoro, etc) are strictly AMPUTATED from OpenAPI.")
+
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     file_path = os.path.join(os.path.dirname(__file__), "static", "favicon.png")

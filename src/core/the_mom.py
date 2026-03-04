@@ -3,11 +3,44 @@ import re
 import yaml
 import uuid
 import time
+import threading
 from datetime import datetime
 import uuid
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Set
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+
+# --- OS Sniffing for Docker Desktop Bind Mounts (Graceful Degradation) ---
+def should_use_polling() -> bool:
+    if os.environ.get("SENSUS_FORCE_POLLING", "").lower() == "true":
+        return True
+    try:
+        # Check if running in Linux (Docker) and using a virt/fuse mount typical of MacOS/Windows Hosts
+        with open("/proc/mounts", "r") as f:
+            mounts = f.read()
+            if "fuse.grpc" in mounts or "virtiofs" in mounts or "9p" in mounts or "osxfs" in mounts:
+                return True
+    except Exception:
+        pass
+    return False
+
+# --- Ignore Parser ---
+def get_ignores(base_path: str) -> Set[str]:
+    """Parses .sovereignignore and returns a set of directory names to skip (protecting inotify descriptor limits)."""
+    ignores = {".git", "node_modules", ".venv", "venv", "env", ".obsidian", "__pycache__", "dist", "build"}
+    ignore_file = os.path.join(base_path, ".sovereignignore")
+    if os.path.exists(ignore_file):
+        try:
+            with open(ignore_file, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        # Trata globs básicos removendo barras p/ bater com obj de diretório
+                        name = line.rstrip("/")
+                        ignores.add(name)
+        except Exception as e:
+            print(f"[The Mom] Aviso: falha ao ler .sovereignignore em {base_path}: {e}")
+    return ignores
 
 from src.api.schemas import SensusDocument
 
@@ -87,14 +120,104 @@ class MarkdownParser:
             print(f"[The Mom] Error reading {file_path}: {e}")
             raise
 
+class SensusSmartPoller(threading.Thread):
+    """
+    [Aresta CISO - Fritura de SSD]: Polling Customizado com Backoff Exponencial.
+    Lê apenas metadados (st_mtime, st_size) e relaxa até 5 minutos se a pasta estiver inerte.
+    Protege volumes Docker Bind Mounted de 100% de I/O em discos NVMe.
+    """
+    def __init__(self, watcher_instance, vault_paths: List[str]):
+        super().__init__(daemon=True)
+        self.watcher = watcher_instance
+        self.vault_paths = vault_paths
+        self.running = False
+        self.base_interval = 3.0
+        self.max_interval = 300.0 # 5 minutos
+        self.current_interval = self.base_interval
+        self._state_cache = {}
+
+    def stop(self):
+        self.running = False
+
+    def run(self):
+        self.running = True
+        print(f"[The Mom Poller] SensusSmartPoller iniciado com Backoff Exponencial (Max: {self.max_interval}s)")
+        
+        # Pre-fill cache on boot without triggering events
+        self._sweep(trigger_events=False)
+        
+        while self.running:
+            time.sleep(self.current_interval)
+            
+            changes_detected = self._sweep(trigger_events=True)
+            
+            if changes_detected:
+                self.current_interval = self.base_interval
+                print(f"[The Mom Poller] Alterações via I/O leve. Backoff resetado para {self.current_interval}s")
+            else:
+                old_interval = self.current_interval
+                self.current_interval = min(self.current_interval * 1.5, self.max_interval)
+                if old_interval != self.max_interval and self.current_interval == self.max_interval:
+                    print(f"[The Mom Poller] Vault Inerte. Atingiu Backoff Máximo ({self.max_interval}s) para preservar vida útil do SSD.")
+
+    def _sweep(self, trigger_events: bool) -> bool:
+        changes = False
+        for vault in self.vault_paths:
+            if not os.path.exists(vault):
+                continue
+            ignores = get_ignores(vault)
+            for root, dirs, files in os.walk(vault):
+                # Apply sovereignignore filter
+                dirs[:] = [d for d in dirs if d not in ignores and not d.startswith('.')]
+                
+                for f in files:
+                    if not f.endswith(".md"):
+                        continue
+                        
+                    full_path = os.path.join(root, f)
+                    try:
+                        stats = os.stat(full_path)
+                        state_signature = f"{stats.st_mtime}_{stats.st_size}"
+                        
+                        if full_path not in self._state_cache:
+                            self._state_cache[full_path] = state_signature
+                            if trigger_events:
+                                self._trigger(full_path)
+                                changes = True
+                        elif self._state_cache[full_path] != state_signature:
+                            self._state_cache[full_path] = state_signature
+                            if trigger_events:
+                                self._trigger(full_path)
+                                changes = True
+                    except OSError:
+                        # File deleted mid-sweep
+                        pass
+        return changes
+        
+    def _trigger(self, full_path: str):
+        class DummyEvent:
+            is_directory = False
+            src_path = full_path
+        self.watcher.process_file(DummyEvent())
+
+
 class VaultWatcher(FileSystemEventHandler):
-    """Watches the Sensus Vault for file changes using Inotify/FSEvents."""
+    """Watches the Sensus Vault for file changes using Inotify/FSEvents or Smart Polling for Bind Mounts."""
     
     def __init__(self, tenant_id: str, vault_paths: List[str] = None):
         self.vault_paths = vault_paths or []
         self.tenant_id = tenant_id
-        self.observer = Observer()
+        
+        # Decide the engine physics based on OS Due Diligence
+        self.use_polling = should_use_polling()
+        if self.use_polling:
+            print("[The Mom] ⚠️ O.S. Sniffing detetou Bind Mount (Mac/Windows). Ativando SensusSmartPoller.")
+            self.observer = SensusSmartPoller(self, self.vault_paths)
+        else:
+            self.observer = Observer()
+            
         self._last_processed = {}
+        self._ignores_cache = {}
 
     def initial_sweep(self):
         """Varre o diretório no boot da API buscando arquivos pré-existentes (Ex: Markdown antigos)."""
@@ -129,12 +252,35 @@ class VaultWatcher(FileSystemEventHandler):
             db.close()
         print(f"[The Mom] Varredura histórica concluída.")
 
+    def schedule_recursively(self, base_path: str):
+        """
+        Substitui o `recursive=True` do watchdog original para evitar o colapso
+        do limite inotify (fs.inotify.max_user_watches) por pastas como node_modules.
+        """
+        import os
+        ignores = get_ignores(base_path)
+        self._ignores_cache[base_path] = ignores
+        
+        count = 0
+        for root, dirs, files in os.walk(base_path):
+            # Filtra os diretórios in-place para que o os.walk não adentre raízes mortas
+            dirs[:] = [d for d in dirs if d not in ignores and not d.startswith('.')]
+            
+            try:
+                self.observer.schedule(self, root, recursive=False)
+                count += 1
+            except OSError as e:
+                print(f"[The Mom] ❌ Limite de Inotify O.S. estourado ao agendar {root}. O sistema de arquivos é grande demais. Use .sovereignignore ou SENSUS_FORCE_POLLING=true. Erro: {e}")
+                break
+        print(f"[The Mom] Agendado {count} diretórios granulares em {base_path} (Ignorando: {', '.join(list(ignores)[:3])}...)")
+
     def start(self):
         import os
         for vault_path in self.vault_paths:
             if os.path.exists(vault_path):
-                print(f"[The Mom] Starting silent watch on Workspace: {vault_path}")
-                self.observer.schedule(self, vault_path, recursive=True)
+                print(f"[The Mom] Starting watch on Workspace: {vault_path}")
+                if not self.use_polling:
+                    self.schedule_recursively(vault_path)
             else:
                 print(f"[Warning] Path {vault_path} not found. Skipping watch.")
                 
@@ -145,7 +291,8 @@ class VaultWatcher(FileSystemEventHandler):
 
     def stop(self):
         self.observer.stop()
-        self.observer.join()
+        if not self.use_polling:
+            self.observer.join()
 
     def process_file(self, event):
         if event.is_directory or not event.src_path.endswith('.md'):
@@ -204,7 +351,18 @@ class VaultWatcher(FileSystemEventHandler):
             print(f"[The Mom] Failed to process {event.src_path}: {e}")
 
     def on_created(self, event):
-        self.process_file(event)
+        if event.is_directory:
+            name = os.path.basename(event.src_path)
+            # Default fallback ignores to protect kernel
+            ignores = {".git", "node_modules", ".venv", "venv", ".obsidian", "__pycache__"}
+            if name not in ignores and not name.startswith('.'):
+                print(f"[The Mom] Novo diretório detetado: {event.src_path}. Injetando watch de inotify sob demanda.")
+                try:
+                    self.observer.schedule(self, event.src_path, recursive=False)
+                except Exception as e:
+                    print(f"[The Mom] Erro ao injetar novo listener dinâmico: {e}")
+        else:
+            self.process_file(event)
 
     def on_modified(self, event):
         self.process_file(event)
