@@ -148,6 +148,12 @@ ALLOWED_ORIGINS_STR = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http:/
 ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS_STR.split(",") if origin.strip()]
 
 # ============================================================================
+# B2B ENTERPRISE FLAGS (CISO Gotchas)
+# ============================================================================
+# If 'enterprise', student-tier features (e.g. Pomodoro routes) are strictly amputated from FastAPI Swagger.
+SENSUS_MODE = os.getenv("SENSUS_MODE", "standard").strip().lower()
+
+# ============================================================================
 # CONFIGURAÇÕES CHROMADB
 # ============================================================================
 # Nome da coleção no ChromaDB

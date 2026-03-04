@@ -1174,7 +1174,7 @@ async def get_vault_agenda(db: Session = Depends(get_db), tenant_id: str = Depen
     import os
     
     docs = db.query(SensusDocumentModel).filter(
-        SensusDocumentModel.tenant_id == tenant_id
+        SensusDocumentModel.tenant_id.in_(["default", tenant_id])
     ).all()
     
     now = datetime.now(timezone.utc)
@@ -1238,7 +1238,7 @@ async def get_vault_agenda(db: Session = Depends(get_db), tenant_id: str = Depen
 async def get_vault_graph(db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Retorna nós e vértices para o Sovereign Cognitive Graph."""
     import os
-    docs = db.query(SensusDocumentModel).filter(SensusDocumentModel.tenant_id == tenant_id).all()
+    docs = db.query(SensusDocumentModel).filter(SensusDocumentModel.tenant_id.in_(["default", tenant_id])).all()
     
     nodes = []
     links = []
