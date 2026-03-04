@@ -583,7 +583,7 @@ def _set_setting_value(db: Session, key: str, value: str, tenant_id: str):
     else:
         db.add(SystemSettings(setting_key=key, setting_value=value, tenant_id=tenant_id))
 
-@router.get("/config", response_model=SettingsResponse)
+@router.get("/settings", response_model=SettingsResponse)
 @limiter.limit("120/minute")
 def get_settings(request: Request, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Retrieve dynamic LLM attributes from the database, falling back to .env variables."""
@@ -610,7 +610,7 @@ def get_settings(request: Request, db: Session = Depends(get_db), tenant_id: str
         workspaces=json.loads(_get_setting_value(db, "workspaces", "[]", tenant_id))
     )
 
-@router.post("/config", response_model=SettingsResponse)
+@router.post("/settings", response_model=SettingsResponse)
 @limiter.limit("60/minute")
 def update_settings(request: Request, body_request: SettingsRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Persist the changes in system behavior using key-value entries in the database."""
