@@ -1,3 +1,9 @@
+<!-- 
+[Aviso Interno de Engenharia]
+Este documento 'api_reference.pt-BR.md' é a fusão temporária ('bruta') da base de Fases Anteriores. 
+Ele será submetido a um processo de refinamento linguístico focado em maturidade Sênior, erradicação de viés Emoji, reescrita corporativa limpa e posterior paralelização para o idioma en-US.
+-->
+
 # API Documentation - Ingestão Incremental
 
 **Versão**: 3.0.0
@@ -500,3 +506,7 @@ stats.show_summary()
 
 **Autor**: Jeferson Lopes
 **Data**: 2026-02-27
+
+
+---
+
