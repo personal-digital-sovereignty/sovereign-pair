@@ -1,7 +1,0 @@
-# Ignorar dados de teste e resultados
-tests/data/
-tests/results/
-
-# Manter apenas scripts
-!tests/scripts/
-!tests/README.md
