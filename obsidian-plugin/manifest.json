@@ -1,10 +1,10 @@
 {
     "id": "sovereign-pair",
-    "name": "Sovereign Pair RAG",
-    "version": "1.0.0",
+    "name": "Sovereign Pair LLM",
+    "version": "3.1.0",
     "minAppVersion": "1.1.15",
-    "description": "Seu assistente local inteligente diretamente injetado no processo de aprendizado livre.",
-    "author": "Sovereign AI",
-    "authorUrl": "https://github.com/jefersonlopes",
+    "description": "Your Universal Local AI Assistant. Connects Obsidian to your private RAG backend (Ollama/OpenAI) via Sovereign Pair.",
+    "author": "Jeferson Lopes (Personal Digital Sovereignty)",
+    "authorUrl": "https://github.com/Personal-Digital-Sovereignty/sovereign-pair",
     "isDesktopOnly": false
 }
