@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 # Adicionar src ao path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
 
 from history import IngestionHistory
 from diff import detect_new_files, get_unchanged_files
