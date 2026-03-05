@@ -1,0 +1,11 @@
+[allowlist]
+description = "Permitir mocks de credenciais para testes E2E e Infra (Zero-Trust/SAST validados no Semgrep)"
+paths = [
+    '''web-ui/e2e/dashboard\.spec\.ts''',
+    '''web-ui/e2e/dashboard_phases\.spec\.ts''',
+    '''web-ui/e2e/pomodoro\.spec\.ts''',
+    '''web-ui/e2e/usability\.spec\.ts''',
+    '''infra/terraform/test_oci\.py''',
+    '''infra/terraform/terraform\.tfvars''',
+    '''data/sovereign\.conf'''
+]
