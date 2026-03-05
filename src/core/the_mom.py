@@ -5,7 +5,6 @@ import uuid
 import time
 import threading
 from datetime import datetime
-import uuid
 from typing import Dict, Any, List, Set
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -225,7 +224,6 @@ class VaultWatcher(FileSystemEventHandler):
         """Varre o diretório no boot da API buscando arquivos pré-existentes (Ex: Markdown antigos)."""
         import os
         from src.api.database import SessionLocal
-        from src.api.models import SensusDocumentModel
         
         print(f"[The Mom] Inciando varredura histórica (Backfill) em {len(self.vault_paths)} Workspaces Globais")
         db = SessionLocal()
@@ -252,7 +250,7 @@ class VaultWatcher(FileSystemEventHandler):
                                 self.process_file(DummyEvent())
         finally:
             db.close()
-        print(f"[The Mom] Varredura histórica concluída.")
+        print("[The Mom] Varredura histórica concluída.")
 
     def schedule_recursively(self, base_path: str):
         """
@@ -315,10 +313,10 @@ class VaultWatcher(FileSystemEventHandler):
             is_pdf = event.src_path.lower().endswith('.pdf')
             # 1. Pipeline para PDFs e The Sentinel Guardrails
             if is_pdf:
-                print(f"[The Mom] Starting PDF Extraction via PyMuPDF...")
+                print("[The Mom] Starting PDF Extraction via PyMuPDF...")
                 raw_text = TheSentinel.dehydrate_pdf(event.src_path)
                 
-                print(f"[The Mom] Sentinel Guardrail Triggered. Analyzing for Prompt Injections...")
+                print("[The Mom] Sentinel Guardrail Triggered. Analyzing for Prompt Injections...")
                 sentinel_result = TheSentinel.analyze_for_injection(raw_text, self.tenant_id)
                 
                 if sentinel_result["is_malicious"]:
@@ -388,7 +386,7 @@ class VaultWatcher(FileSystemEventHandler):
                     )
                     db.add(new_doc)
                 db.commit()
-                print(f"[The Mom] Saved deterministic data to Sensus Vault SQLite.")
+                print("[The Mom] Saved deterministic data to Sensus Vault SQLite.")
             except Exception as e:
                 db.rollback()
                 print(f"[The Mom] DB Error parsing {event.src_path}: {e}")

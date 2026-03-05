@@ -1,5 +1,4 @@
 import json
-import uvicorn
 from src.api.main import app
 
 def export_openapi():

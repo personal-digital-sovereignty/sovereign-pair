@@ -1,4 +1,3 @@
-import requests
 
 payload = {
   "llm_provider": "ollama",

@@ -8,7 +8,6 @@ ChromaDB para posterior recuperação pelo agente.
 
 import logging
 import os
-import chromadb
 from pathlib import Path
 import re
 import yaml

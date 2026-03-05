@@ -169,7 +169,6 @@ def print_help():
 async def main():
     """Função principal do agente (Assíncrona)."""
     try:
-        from config import OLLAMA_BASE_URL
         import config
         # Fallback local para testes da CLI fora da Docker network
         if "http://ollama:" in config.OLLAMA_BASE_URL:

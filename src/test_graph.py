@@ -1,4 +1,3 @@
-import asyncio
 from src.api.database import SessionLocal
 from src.api.models import SensusDocumentModel
 

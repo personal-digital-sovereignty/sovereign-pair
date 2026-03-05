@@ -1,4 +1,3 @@
-import pytest
 from src.core.the_accountant import TheAccountant
 
 def test_static_values():

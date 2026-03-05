@@ -137,7 +137,7 @@ def main():
             )
             
             time.sleep(2) # Dar tempo do Vite subir rápido na RAM
-            print(f"🖥️  Invocando Interface Gráfica Nativa...")
+            print("🖥️  Invocando Interface Gráfica Nativa...")
             
             try:
                 # Tenta chamar o google-chrome ou chromium em modo aplicativo isolado (sem barras de URL)

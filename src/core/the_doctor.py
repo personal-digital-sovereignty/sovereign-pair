@@ -13,7 +13,6 @@ though it interfaces through the dynamic resolver.
 """
 
 import logging
-import asyncio
 from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
 from llama_index.core.chat_engine.types import BaseChatEngine
 

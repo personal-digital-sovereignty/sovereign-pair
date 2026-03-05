@@ -1,6 +1,6 @@
 import asyncio
 import json
-from fastapi import APIRouter, Depends, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from .schemas import ChatRequest, ChatResponse, Citation, SettingsRequest, SettingsResponse, SessionUpdateRequest, UploadResponse, DocumentUpdateRequest, ProjectCreateRequest, ProjectUpdateRequest, ProjectResponse
 from .dependencies import get_chat_engine
@@ -404,8 +404,7 @@ EXTREMA IMPORTÂNCIA:
                 except Exception:
                     pass
 
-from .schemas import SessionResponse, FeedbackRequest, SessionUpdateRequest  # noqa: E402
-from typing import List  # noqa: E402
+from .schemas import SessionResponse, FeedbackRequest  # noqa: E402
 from fastapi import HTTPException  # noqa: E402
 
 @router.patch("/sessions/{session_id}", response_model=SessionResponse)
@@ -574,7 +573,6 @@ import hashlib  # noqa: E402
 import os  # noqa: E402
 from pathlib import Path  # noqa: E402
 from fastapi import File, UploadFile, Form  # noqa: E402
-from .schemas import UploadResponse  # noqa: E402
 from .models import DocumentCache  # noqa: E402
 
 @router.post("/upload", response_model=UploadResponse)
@@ -872,7 +870,6 @@ async def get_vault_tree(db: Session = Depends(get_db), tenant_id: str = Depends
     cruza a existência dos arquivos com a Database para informar o 'has_vector'.
     """
     import os
-    from src.config import RAW_DOCS_DIR
     
     # 1. Puxa todos os arquivos sincronizados da DB (unindo default e ativo)
     docs = db.query(SensusDocumentModel.file_path, SensusDocumentModel.vector_id, SensusDocumentModel.id, SensusDocumentModel.extracted_tags).filter(SensusDocumentModel.tenant_id.in_(["default", tenant_id])).all()
@@ -1432,7 +1429,6 @@ async def execute_mcp_tool(request: Request, body: MCPToolRequest):
     Permite que o Editor consuma o RAG e o Context7 do Sovereign Pair.
     """
     import os
-    import json
     
     if body.tool == "sensus_vault_search":
         # Simula uma busca heurística rápida para o Coder na IDE

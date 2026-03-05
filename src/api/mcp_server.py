@@ -1,12 +1,10 @@
 import os
 import logging
 from fastapi import Request, Response
-from starlette.responses import JSONResponse
 
 from mcp.server import Server
 from mcp.server.sse import SseServerTransport
 from mcp.types import Tool, TextContent
-from mcp.server.models import InitializationOptions
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +91,7 @@ def mount_mcp_server(app):
         try:
             async with sse_transport.connect_sse(request.scope, request.receive, request._send) as sse:
                 await mcp_server.run(sse, mcp_server.create_initialization_options())
-        except BaseException as e:
+        except BaseException:
             # Em ASGI, exceptions de streamings são comuns no disconnect do cliente (CancelledError)
             pass
 

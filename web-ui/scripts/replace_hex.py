@@ -1,5 +1,3 @@
-import os
-import re
 
 files = [
     '/home/jefersonlopes/Developer/local-repositories/sovereign-pair/web-ui/src/components/Vault/BlockEditor.vue',

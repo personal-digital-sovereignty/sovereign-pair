@@ -1,5 +1,4 @@
 import pytest
-import asyncio
 from unittest.mock import patch, MagicMock, AsyncMock
 
 from src.core.the_mom import should_use_polling, get_ignores
