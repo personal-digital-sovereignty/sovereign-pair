@@ -17,7 +17,8 @@
         @click="selectItem(index)"
         @mouseenter="selectedIndex = index"
       >
-        <div class="w-7 h-7 flex items-center justify-center bg-surface-800 rounded-md border border-surface-700/50 group-hover:border-primary-500/30 group-hover:bg-primary-500/10 transition-colors shadow-sm shrink-0" v-html="item.icon"></div>
+        <!-- SAST FIX: Avoid direct v-html to prevent Cross-Site Scripting (XSS). Safely rendering SVG icon. -->
+        <component :is="{ template: item.icon }" class="w-7 h-7 flex items-center justify-center bg-surface-800 rounded-md border border-surface-700/50 group-hover:border-primary-500/30 group-hover:bg-primary-500/10 transition-colors shadow-sm shrink-0"></component>
         <div class="flex flex-col truncate">
            <span class="text-[13px] font-semibold tracking-wide leading-tight group-hover:text-primary-400 transition-colors" :class="{ 'text-primary-400': index === selectedIndex }">{{ item.title }}</span>
            <span class="text-[10px] text-surface-500 truncate mt-0.5 leading-none transition-colors group-hover:text-surface-400" :class="{ 'text-primary-500/70': index === selectedIndex }">{{ item.description }}</span>

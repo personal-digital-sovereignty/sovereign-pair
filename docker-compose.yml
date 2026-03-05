@@ -45,8 +45,10 @@ services:
   chroma:
     image: chromadb/chroma:latest
     container_name: sovereign-chroma
+    read_only: true
     tmpfs:
       - /tmp
+      - /chroma/chroma
     security_opt:
       - no-new-privileges:true
     restart: always

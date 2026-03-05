@@ -47,9 +47,13 @@ class SovereignMessageBroker(threading.Thread):
         self._connect()
         curs = self._conn.cursor()
         
+        from psycopg2 import sql
         for ch in self.channels.keys():
             logger.info(f"[Bare-Metal IPC] 🎧 Escutando Canal Postgres: {ch}")
-            curs.execute(f"LISTEN {ch};")
+            # SAST Fix: Dynamic identifier interpolation
+            query = sql.SQL("LISTEN {}").format(sql.Identifier(ch))
+            # nosemgrep: python.lang.security.audit.formatted-sql-query.formatted-sql-query, python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
+            curs.execute(query)
             
         logger.info("[Bare-Metal IPC] 🟢 Orquestrador Event-Driven PostgreSQL Iniciado.")
         
@@ -81,5 +85,13 @@ class SovereignMessageBroker(threading.Thread):
 
         self._connect()
         curs = self._conn.cursor()
-        payload_str = json.dumps(payload_dict).replace("'", "''")
-        curs.execute(f"NOTIFY {channel}, '{payload_str}';")
+        payload_str = json.dumps(payload_dict)
+        
+        # SAST Fix: Parametrização Segura de Identificadores POSTGRES via sql module
+        from psycopg2 import sql
+        query = sql.SQL("NOTIFY {}, {}").format(
+            sql.Identifier(channel),
+            sql.Literal(payload_str)
+        )
+        # nosemgrep: python.lang.security.audit.formatted-sql-query.formatted-sql-query, python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
+        curs.execute(query)

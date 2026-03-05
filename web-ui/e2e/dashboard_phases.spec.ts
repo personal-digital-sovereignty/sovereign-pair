@@ -5,7 +5,8 @@ test.describe('Dashboard Phase 38 and 39 E2E', () => {
         // Authenticate
         await page.goto('/');
         await page.evaluate(() => {
-            localStorage.setItem('sovereign_token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJKZWZlcnNvbiIsImV4cCI6MTc3MzE5NjY3NH0.MYwyQBf1IcSxxmT_mxTzJKgynZ-ovfYfqABafcsVeeI');
+            // nosemgrep: generic.secrets.security.detected-jwt-token.detected-jwt-token
+            localStorage.setItem('sovereign_token', 'mock_jwt_token');
         });
 
         // Mock Backend (Zero Tech-Debt E2E Iso)
