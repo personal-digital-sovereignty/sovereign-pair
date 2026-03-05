@@ -21,6 +21,15 @@
         reverse_proxy sovereign-api:8000
     }
     
+    # Rota de Orquestração N8N via Tailnet HTTPS.
+    # Ex: n8n.sovereign.ts.net irá carregar a interface da Automation.
+    handle /n8n/* {
+        uri strip_prefix /n8n
+        reverse_proxy sovereign-n8n:5678 {
+            header_up Host {upstream_hostport}
+        }
+    }
+
     # Rota direta para APIs do Obsidian (/v1/*) que não mandam o prefixo /api/
     # Usamos handle em vez de handle_path para não arrancar o /v1 (FastAPI precisa dele)
     handle /v1/* {

@@ -34,3 +34,8 @@ variable "tailscale_auth_key" {
   description = "The Tailscale Auth Key for the Node to join the mesh network"
   sensitive   = true
 }
+
+variable "ssh_public_key" {
+  type        = string
+  description = "The public SSH key for user authentication on the Oracle instance"
+}
