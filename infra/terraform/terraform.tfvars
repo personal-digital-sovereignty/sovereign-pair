@@ -5,7 +5,7 @@ compartment_ocid="ocid1.tenancy.oc1..aaaaaaaaii2snnz6ksuti4vgw2mtiqiryizzm5o2zga
 region="us-ashburn-1"
 tailscale_auth_key="tskey-auth-..."
 # RSA Key em formato PEM
-oci_private_key = <<-EOT
+private_key = <<-EOT
 -----BEGIN_MOCK_RSA_KEY_DATA-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCp038Y032FwOZU
 gIR+4LuQUXewIGAoc/5Lr+3cPNeyqSNC3j3wxlNscseGmBR2uAaED30LrIYcz7Wz
