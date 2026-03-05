@@ -170,3 +170,10 @@ debug_output.txt
 
 # Segredos Industriais e Planejamento de Mercado
 _strategy/
+
+# Semgrep
+semgrep_report.txt
+
+# Terraform local cache
+infra/terraform/.terraform/
+infra/terraform/.terraform.lock.hcl

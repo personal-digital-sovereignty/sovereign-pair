@@ -5,7 +5,8 @@ test.describe('Dashboard View E2E', () => {
         // Navigate to a blank page on the site's origin to set localStorage first
         await page.goto('/');
         await page.evaluate(() => {
-            localStorage.setItem('sovereign_token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJKZWZlcnNvbiIsImV4cCI6MTc3MzE5NjY3NH0.MYwyQBf1IcSxxmT_mxTzJKgynZ-ovfYfqABafcsVeeI');
+            // nosemgrep: generic.secrets.security.detected-jwt-token.detected-jwt-token
+            localStorage.setItem('sovereign_token', 'mock_jwt_token');
         });
 
         // Mock Backend API (Zero Tech-Debt E2E Iso)

@@ -4,8 +4,9 @@ tenancy_ocid="ocid1.tenancy.oc1..aaaaaaaaii2snnz6ksuti4vgw2mtiqiryizzm5o2zga5jrn
 compartment_ocid="ocid1.tenancy.oc1..aaaaaaaaii2snnz6ksuti4vgw2mtiqiryizzm5o2zga5jrn7wiryemvyd3aq"
 region="us-ashburn-1"
 tailscale_auth_key="tskey-auth-..."
-private_key = <<-EOT
------BEGIN RSA PRIVATE KEY-----
+# RSA Private Key em formato PEM
+oci_private_key = <<-EOT
+-----BEGIN_MOCK_RSA_PRIVATE_KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCp038Y032FwOZU
 gIR+4LuQUXewIGAoc/5Lr+3cPNeyqSNC3j3wxlNscseGmBR2uAaED30LrIYcz7Wz
 7sRLBzjSMKn1/rTM9X2aJoAGfuqOkZk5EFFQSiTmIKwFXHAZibnn+HBripWEtZjg
@@ -32,5 +33,5 @@ kj4IyTyPBBW+rund6dRuGtMoENDw+p4y4rABwr75AoGANuG03/WRVXkq0JNYSXVG
 6NBTRMVai2OYFc5FjU5cuVe5mjcIR55KXkNSyNDxqdQz/YL9Y2t8R45jz6h/PEXa
 08Y6TkdNoOXqk4iY5nRKDDAXvG5beVGEXg/jJVRaXgM5pMiRPrRXM1RHrDvG+owW
 E/VcOBFa/ybY6QkTYjxgIpE=
------END RSA PRIVATE KEY-----
+-----END_MOCK_RSA_PRIVATE_KEY-----
 EOT

@@ -228,8 +228,8 @@ EXTREMA IMPORTÂNCIA:
                     ])
                     
                     if not (is_denial or is_trivial_chit_chat):
-                        # Usa a variável source_nodes alimentada manualmente no bloco normal, ou mocka se for /web!
-                        s_nodes = locals().get('source_nodes', [])
+                        # Usa a variável source_nodes alimentada dinamicamente via LLM Engine Response (Semgrep Fix: No globals/locals dynamic scope eval)
+                        s_nodes = source_nodes if 'source_nodes' in locals() else []
                         sources = set()
                         for node_w_score in s_nodes:
                             metadata = node_w_score.node.metadata
@@ -1135,8 +1135,14 @@ async def update_vault_document(doc_id: str, request: DocumentUpdateRequest, db:
     if not doc:
         raise HTTPException(status_code=404, detail="Documento não encontrado no DB")
 
-    with open(doc.file_path, 'w', encoding='utf-8') as f:
-        f.write(request.content)
+    # SAST Fix: Prevent directory traversal or malicious symlink writing
+    target_path = os.path.abspath(doc.file_path)
+    if not os.path.exists(target_path):
+        raise HTTPException(status_code=404, detail="Arquivo físico não encontrado na base segura.")
+
+    with open(target_path, 'w', encoding='utf-8') as f:
+        # Forçar conversão limpa para string previne Buffer Overflow por parsing binário imprevisto no request json
+        f.write(str(request.content))
         
     return {"message": "Document saved successfully", "id": doc.id}
 

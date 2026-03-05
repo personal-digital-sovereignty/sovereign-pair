@@ -249,9 +249,51 @@ class TheAccountant:
                 resolved_ranges = re.sub(r"([A-Z]+\d+:[A-Z]+\d+)", replace_range, formula_str)
                 resolved_formula = re.sub(r"([A-Z]+\d+)", replace_ref, resolved_ranges)
                 
-                # Injeta FUNÇÕES permitidas na avaliação
-                safe_locals = {**self.ALLOWED_FUNCTIONS}
-                cell.value = float(eval(resolved_formula, {"__builtins__": {}}, safe_locals))
+                # Parse expression manually to block generic 'eval()' vulnerability
+                def safe_math_eval(expr: str):
+                    # Sanitize completely
+                    allowed_chars = set("0123456789.+-*/() ")
+                    clean_expr = "".join(c for c in expr if c in allowed_chars)
+                    # Evaluate via restricted AST parser (fixes python.lang.security.audit.eval-detected)
+                    try:
+                        node = ast.parse(clean_expr, mode='eval')
+                        def _eval(node):
+                            if isinstance(node, ast.Constant): # <number>
+                                return node.value
+                            elif isinstance(node, ast.BinOp): # <left> <operator> <right>
+                                return self.ALLOWED_OPERATORS[type(node.op)](_eval(node.left), _eval(node.right))
+                            elif isinstance(node, ast.UnaryOp): # <operator> <operand> e.g., -1
+                                return self.ALLOWED_OPERATORS[type(node.op)](_eval(node.operand))
+                            else:
+                                raise TypeError(node)
+                        return float(_eval(node.body))
+                    except ZeroDivisionError:
+                        raise ZeroDivisionError()
+                    except Exception:
+                        return "#ERROR!"
+                
+                # Resolvendo ranges de funções especiais de antemão (Soma, Max, etc)
+                # Funções como SUM(...) não são nativas do AST manual, precisamos abstraí-las antes
+                def resolve_safe_custom_functions(formula: str) -> str:
+                    for func_name, func_logic in self.ALLOWED_FUNCTIONS.items():
+                        # Encontra chamadas ex: SUM([10.0, 20.0])
+                        pattern = fr"{func_name}\(\[(.*?)\]\)"
+                        def replace_func(m):
+                            inner_vals = m.group(1).split(',')
+                            floats = [float(v.strip()) for v in inner_vals if v.strip()]
+                            res = func_logic(floats)
+                            return str(res)
+                        formula = re.sub(pattern, replace_func, formula)
+                    return formula
+
+                resolved_formula = resolve_safe_custom_functions(resolved_formula)
+                
+                math_result = safe_math_eval(resolved_formula)
+                if isinstance(math_result, str):
+                    err_code = math_result
+                    raise ValueError(err_code)
+                
+                cell.value = math_result
             except ValueError as ve:
                 err_code = str(ve)
                 if err_code in ["#REF!", "#CIRCULAR_REF!", "#ERROR!"]:
