@@ -1,11 +1,10 @@
 import logging
-import chromadb
 from llama_index.core.schema import TextNode
 from llama_index.core.retrievers.fusion_retriever import QueryFusionRetriever, FUSION_MODES
 from llama_index.core.chat_engine import CondensePlusContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
 from src.custom_retrievers import CustomBM25Retriever
-from src.config import CHROMA_DIR, CHROMA_COLLECTION_NAME, llm as default_llm, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
+from src.config import CHROMA_COLLECTION_NAME, llm as default_llm, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
      OWNER_NICKNAME, OCCUPATION, ABOUT_USER, LANGUAGE, GEOLOCATION, REQUEST_TIMEOUT, \
      OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY
 from datetime import datetime

@@ -1,6 +1,4 @@
 import pytest
-import os
-import uuid
 from src.core.the_mom import MarkdownParser
 
 @pytest.fixture

@@ -1,4 +1,3 @@
-import asyncio
 from src.api.auth import create_access_token
 from datetime import timedelta
 
