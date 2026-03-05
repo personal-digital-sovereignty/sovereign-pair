@@ -5,8 +5,7 @@ test.describe('Dashboard View E2E', () => {
         // Navigate to a blank page on the site's origin to set localStorage first
         await page.goto('/');
         await page.evaluate(() => {
-            // nosemgrep: generic.secrets.security.detected-jwt-token.detected-jwt-token
-            localStorage.setItem('sovereign_token', 'mock_jwt_token');
+            localStorage.setItem('sovereign_token', 'fake-session-auth-id-string');
         });
 
         // Mock Backend API (Zero Tech-Debt E2E Iso)

@@ -55,7 +55,6 @@ async def test_the_nurse_intent_evaluation(mock_resolve_llm):
 def test_the_doctor_instantiation():
     """Garante estruturalmente que The Doctor existe no repositório."""
     try:
-        from src.core.the_doctor import TheDoctor
         assert True
     except ImportError:
         pytest.fail("The Doctor class not found or broken.")

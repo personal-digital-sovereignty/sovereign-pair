@@ -7,19 +7,25 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from contextlib import asynccontextmanager
-# Resolver PYTHONPATH
+from .security_logger import setup_security_logging
+from src.config import ALLOWED_ORIGINS
+from fastapi import Depends
+from .auth import router as auth_router, get_current_user
+
+# Setup PYTHONPATH e SysPath
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from src.api.mcp_server import mount_mcp_server
+from src.config import SENSUS_MODE
 from .routes import router
 from .database import engine
 from . import models
 
+# Injetar Filtro de Segurança Obscurecedor de Logs (Reminência de API Keys)
+setup_security_logging()
+
 # Cria o banquinho de dados e as tabelas CADA VEZ que o app iniciar
 models.Base.metadata.create_all(bind=engine)
-
-# Injetar Filtro de Segurança Obscurecedor de Logs (Reminência de API Keys)
-from .security_logger import setup_security_logging  # noqa: E402
-setup_security_logging()
 
 # Configurar Rate Limiter (Usa memória RAM temporariamente até termos Redis na Nuvem)
 # get_remote_address pega o IP do cliente (ou o IP real via cabeçalhos X-Forwarded-For se atrás de Nginx/Tailscale)
@@ -126,7 +132,6 @@ app = FastAPI(
 )
 
 # --- MCP (Model Context Protocol) Server Integration ---
-from src.api.mcp_server import mount_mcp_server
 mount_mcp_server(app)
 
 # Adicionar Rate Limiter ao estado global do app
@@ -148,8 +153,6 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 # CORS configuration para permitir plugins Obsidian e Web UIs futuramente
-from src.config import ALLOWED_ORIGINS  # noqa: E402
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -158,13 +161,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi import Depends  # noqa: E402
-from .auth import router as auth_router, get_current_user  # noqa: E402
 app.include_router(auth_router, prefix="/v1/auth", tags=["Authentication"])
 app.include_router(router, prefix="/v1", dependencies=[Depends(get_current_user)])
 
 # CISO GOTCHA: Route Amputation & B2B Stripping
-from src.config import SENSUS_MODE
 if SENSUS_MODE != "enterprise":
     import logging
     logging.info("[B2B Route Amputation] SENSUS_MODE is standard. Registering Student/Productivity Routes.")

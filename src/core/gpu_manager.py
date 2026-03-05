@@ -27,13 +27,7 @@ class GPUContextManager:
                 # OLLAMA UNLOAD TRICK: Enviar endpoint /api/generate com keep_alive nulo 
                 # purga imediatamente a VRAM sem matar o daemon do Ollama, forçando um 
                 # Cold Boot estrito para o próximo Tenant isolado.
-                payload = {
-                    "model": "llama3.2", # Pode ser dinâmico
-                    "keep_alive": 0
-                }
-                
-                # Descomentar em produção após firmar a topologia LoRA
-                # requests.post(f"{ollama_url}/api/generate", json=payload, timeout=2)
+                # requests.post(f"{ollama_url}/api/generate", json={"model": "llama3.2", "keep_alive": 0}, timeout=2)
                 
                 logger.info("[GPU SecOps] KV Cache Purge sinalizado. Próxima requisição iniciará Contexto Criptografado Isento de Bleed.")
             except Exception as e:

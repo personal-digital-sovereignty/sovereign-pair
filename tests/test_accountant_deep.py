@@ -61,7 +61,7 @@ class TestTheAccountantDeepEvaluation(unittest.TestCase):
         self.engine.register_cell("C1", "=B1+5")
         
         # Simula API recebendo deleção de toda a Coluna A
-        updates = self.engine.handle_cell_deletion("A")
+        self.engine.handle_cell_deletion("A")
         
         # A célula A1 vai pro espaço. A B1 vira `=#REF!*2`, a C1 fica em cascata de #REF!
         results = self.engine.evaluate_all()

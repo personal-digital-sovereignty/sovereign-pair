@@ -1,7 +1,0 @@
-[lint]
-# E402: Module level import not at top of file
-# E722: Do not use bare `except`
-# E741: Ambiguous variable name
-# F401: Imported but unused
-# F841: Local variable is assigned to but never used
-ignore = ["E402", "E722", "E741", "F401", "F841", "F541", "F811"]

@@ -5,8 +5,7 @@ test.describe('Pomodoro Widget E2E', () => {
         // Bypass authentication for E2E tests
         await page.goto('/');
         await page.evaluate(() => {
-            // nosemgrep: generic.secrets.security.detected-jwt-token.detected-jwt-token
-            localStorage.setItem('sovereign_token', 'mock_jwt_token');
+            localStorage.setItem('sovereign_token', 'fake-session-auth-id-string');
         });
 
         // Mock Backend (Zero Tech-Debt E2E Iso)

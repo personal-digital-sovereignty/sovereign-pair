@@ -17,7 +17,7 @@ async def run_doctor():
     
     message = "Escreva um ensaio filosófico sobre o significado do conhecimento e a soberania digital humana na arquitetura moderna de software."
     
-    source_nodes = [] # No vectors for now, to isolate the Generation Engine
+    # No vectors for now, to isolate the Generation Engine
     context_str = "Nenhum documento vetorial encontrado."
     
     sys_prompt = "Você é a inteligência artificial Sovereign Pair."

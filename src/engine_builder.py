@@ -8,10 +8,9 @@ from src.config import CHROMA_COLLECTION_NAME, llm as default_llm, SOVEREIGN_NAM
      OWNER_NICKNAME, OCCUPATION, ABOUT_USER, LANGUAGE, GEOLOCATION, REQUEST_TIMEOUT, \
      OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY
 from datetime import datetime
+from llama_index.core.llms import ChatMessage, MessageRole
 
 logger = logging.getLogger(__name__)
-
-from llama_index.core.llms import ChatMessage, MessageRole  # noqa: E402
 
 def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm, api_keys: dict = None):
     if not provider or not model_name:
@@ -181,7 +180,7 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
     finally:
         try:
             db.close()
-        except:
+        except Exception:
             pass
 
         

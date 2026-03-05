@@ -42,7 +42,7 @@ def main():
     parser_ingest.add_argument("--conf", type=str, help="Caminho do arquivo de configuração alternativo sovereign.conf")
     
     # Comando 'setup'
-    parser_setup = subparsers.add_parser("setup", help="Assistente passo a passo da CLI para Gerar ~/.config/sovereign.conf")  # noqa: F841
+    subparsers.add_parser("setup", help="Assistente passo a passo da CLI para Gerar ~/.config/sovereign.conf")
 
     # Comando 'chat'
     parser_chat = subparsers.add_parser("chat", help="Modo Interativo 100%% Terminal (Agente RAG Local)")
