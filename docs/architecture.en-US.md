@@ -62,4 +62,16 @@ In the `chat_sessions` relational table of the system, a sole `folder_name` colu
 
 ---
 
+## 5. Model Context Protocol (The IDE Cognitive Expansion)
+
+Beyond consuming the Cibrid RAG mesh via Web UI, the 3.3.0 topology adopts the Anthropic **MCP (Model Context Protocol)** standard. This positions the Sovereign Pair as a passive context expansion module for reverse software engineering.
+
+### 5.1 Stdio Architecture (Standard I/O)
+Clients and autonomous coding agents attached to IDEs (e.g., OpenCode, Cline, or Cursor) invoke the `src/mcp_stdio.py` binary. The Sovereign Pair initializes a `JSON-RPC` communication loop via standard input and output (RAM/Local Socket).
+- **Zero-Trust Isolation:** The IDE Agent does not make external network calls or listen to LAN ports;
+- **Sensus Resources:** The `VAULT_DIR` base is natively mirrored to the IDE, instructing worker AIs (The Coder) on the business rules written in Obsidian prior to code submission.
+- **Integrated Tools:** The local Agent can trigger manual semantic searches in ChromaDB via the `sensus_vault_search` Tool without violating the corporate Sandbox.
+
+---
+
 **Referenced Technical Glossary:** See `docs/glossary.en-US.md`.

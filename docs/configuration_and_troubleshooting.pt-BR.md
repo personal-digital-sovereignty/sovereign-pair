@@ -77,3 +77,30 @@ python src/ingest.py # Reforce o parâmetro Manual Full
 
 ## 3. Logs Analíticos
 Toda telemetria do Motor da API rola por `stdout`. Encadeie com gerenciadores de *Log-Rotation* corporativos. Para logs densificados de Raciocínio (Agent *Thoughts*), injete `AGENT_VERBOSE=true` no env. A I.A passará a "Falar consigo mesma" na saída de consola, expondo o seu fluxograma do *ReAct* para depuração avançada Cíbrida.
+
+---
+
+## 4. Integração Model Context Protocol (MCP)
+
+O Sovereign Pair expõe nativamente seus motores internos (The Doctor, The Nurse) e o contexto da `Sensus Vault` através do **Padrão MCP** da Anthropic. Esta capacidade transforma o backend num "Módulo de Expansão Cognitiva Local-First" para IDEs corporativos como VSCode, Cursor e Cline (OpenCode).
+
+### 4.1. Soberania Local-First Absoluta
+O esquema de conexão opera estritamente via **Stdio** (Standard Input/Output) Inter-Process Communication (IPC). O IDE (como o OpenCode) inicia um socket silencioso em memória. Nenhuma informação de telemetria ou log **transita pela rede**, garantindo uma arquitetura de código Zero-Trust.
+
+### 4.2. Configuração do Cliente IDE (VSCode / Cline)
+Para injetar a Sovereign Vault diretamente no seu fluxo de trabalho de programação, anexe o bloco a seguir na configuração JSON do seu cliente MCP (`settings.json` ou painel do Cline/OpenCode):
+
+```json
+"mcpServers": {
+  "sovereign-pair": {
+    "command": "python",
+    "args": ["-m", "src.mcp_stdio"],
+    "env": {
+      "PYTHONPATH": "/caminho/absoluto/do/sovereign-pair"
+    }
+  }
+}
+```
+
+### 4.3. Utilização Prática (O Cérebro Corporativo)
+Uma vez conectado, o Agente de IA dentro do seu Editor de Código lerá automaticamente seus arquivos Markdown do diretório `VAULT_DIR` (*Resources*) **antes** de propor arquiteturas. Além disso, a IA passará a ser capaz de interrogar dinamicamente o seu Banco Vetorial (*via ferramenta sensus_vault_search*) para buscar as suas regras de negócios fechadas, escudando e blindando o seu projeto proprietário de "alucinações genéricas" encontradas na internet.
