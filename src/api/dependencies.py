@@ -11,12 +11,11 @@ from fastapi import Request, Depends
 from sqlalchemy.orm import Session
 from .database import get_db
 from .models import ChatMessage
+from .auth import get_current_user
 import json
 
 # Intância Global do Índice (Para não recarregar o ChromaDB a cada request)
 _index = None
-
-from .auth import get_current_user
 
 async def get_chat_engine(request: Request, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """

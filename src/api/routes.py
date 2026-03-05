@@ -1,17 +1,24 @@
 import asyncio
 import json
 from fastapi import APIRouter, Depends, Request
+import uuid
+from pydantic import BaseModel, Field
 from fastapi.responses import StreamingResponse
 from .schemas import ChatRequest, ChatResponse, Citation, SettingsRequest, SettingsResponse, SessionUpdateRequest, UploadResponse, DocumentUpdateRequest, ProjectCreateRequest, ProjectUpdateRequest, ProjectResponse
 from .dependencies import get_chat_engine
 from typing import List
 
-router = APIRouter()
+from sqlalchemy.orm import Session
+from .database import get_db
+from .models import ChatSession, ChatMessage, SystemSettings, SensusDocumentModel, QuarantineLog, ProjectModel, ProjectLinkModel, ProjectLogModel, DocumentCache
+from .auth import get_current_user
+from .schemas import SessionResponse, FeedbackRequest
+from fastapi import HTTPException, File, UploadFile, Form
+import hashlib
+import os
+from pathlib import Path
 
-from sqlalchemy.orm import Session  # noqa: E402
-from .database import get_db  # noqa: E402
-from .models import ChatSession, ChatMessage, SystemSettings, SensusDocumentModel, QuarantineLog, ProjectModel, ProjectLinkModel, ProjectLogModel  # noqa: E402
-from .auth import get_current_user  # noqa: E402
+router = APIRouter()
 
 # Importando o limiter configurado no main.py
 try:
@@ -404,8 +411,7 @@ EXTREMA IMPORTÂNCIA:
                 except Exception:
                     pass
 
-from .schemas import SessionResponse, FeedbackRequest  # noqa: E402
-from fastapi import HTTPException  # noqa: E402
+
 
 @router.patch("/sessions/{session_id}", response_model=SessionResponse)
 @limiter.limit("60/minute")
@@ -459,15 +465,15 @@ async def list_quarantine(request: Request, db: Session = Depends(get_db), tenan
     
     return [
         {
-            "id": l.id,
-            "file_name": l.file_name,
-            "file_path": l.file_path,
-            "reason": l.reason,
-            "ai_confidence": l.ai_confidence,
-            "content_snippet": l.content_snippet,
-            "status": l.status,
-            "created_at": l.created_at.isoformat() if l.created_at else None
-        } for l in logs
+            "id": log.id,
+            "file_name": log.file_name,
+            "file_path": log.file_path,
+            "reason": log.reason,
+            "ai_confidence": log.ai_confidence,
+            "content_snippet": log.content_snippet,
+            "status": log.status,
+            "created_at": log.created_at.isoformat() if log.created_at else None
+        } for log in logs
     ]
 
 @router.post("/quarantine/{log_id}/release")
@@ -569,11 +575,7 @@ async def save_feedback(req: FeedbackRequest, db: Session = Depends(get_db), ten
     db.commit()
     return {"status": "success"}
 
-import hashlib  # noqa: E402
-import os  # noqa: E402
-from pathlib import Path  # noqa: E402
-from fastapi import File, UploadFile, Form  # noqa: E402
-from .models import DocumentCache  # noqa: E402
+
 
 @router.post("/upload", response_model=UploadResponse)
 @limiter.limit("20/minute")
@@ -763,7 +765,7 @@ def get_authorized_workspaces(db: Session, tenant_id: str) -> list:
     ws_str = _get_setting_value(db, "workspaces", "[]", tenant_id)
     try:
         workspaces = json.loads(ws_str)
-    except:
+    except Exception:
         workspaces = []
         
     auth_dirs = [intake] if intake else []
@@ -806,8 +808,6 @@ async def list_ollama_models(request: Request):
         # Fallback to empty list or known models if Ollama is unreachable
         print(f"Failed to fetch Ollama models: {e}")
         return {"models": []}
-
-from pydantic import BaseModel
 
 class PullModelRequest(BaseModel):
     model: str
@@ -1041,8 +1041,6 @@ async def get_vault_templates():
             }
         ]
     }
-
-from pydantic import BaseModel
 
 class CoderExecuteRequest(BaseModel):
     command: str
@@ -1416,7 +1414,6 @@ async def get_vault_graph(db: Session = Depends(get_db), tenant_id: str = Depend
 # ---------------------------------------------------------
 # MCP (Model Context Protocol) Endpoints - Phase 21
 # ---------------------------------------------------------
-from pydantic import BaseModel, Field
 
 class MCPToolRequest(BaseModel):
     tool: str
@@ -1466,7 +1463,6 @@ async def execute_mcp_tool(request: Request, body: MCPToolRequest):
 # ---------------------------------------------------------
 # THE GOD MODE COCKPIT (ABSTRACT PROJECTS) - Phase 39
 # ---------------------------------------------------------
-import uuid
 
 @router.get("/projects", response_model=List[ProjectResponse])
 @limiter.limit("60/minute")

@@ -10,6 +10,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from src.core.the_sentinel import TheSentinel
 from src.api.models import SensusDocumentModel, QuarantineLog
+from src.api.schemas import SensusDocument
 
 # --- OS Sniffing for Docker Desktop Bind Mounts (Graceful Degradation) ---
 def should_use_polling() -> bool:
@@ -42,8 +43,6 @@ def get_ignores(base_path: str) -> Set[str]:
         except Exception as e:
             print(f"[The Mom] Aviso: falha ao ler .sovereignignore em {base_path}: {e}")
     return ignores
-
-from src.api.schemas import SensusDocument
 
 class MarkdownParser:
     """The Mom: Deterministic parsing of Markdown files with O(1) matching"""

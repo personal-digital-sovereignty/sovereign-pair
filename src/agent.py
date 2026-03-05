@@ -16,6 +16,29 @@ import warnings
 import subprocess
 import re
 
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
+
+import chromadb
+from typing import Optional
+
+from llama_index.core import VectorStoreIndex
+from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.core.tools import QueryEngineTool, ToolMetadata
+
+from config import (
+    CHROMA_DIR,
+    CHROMA_COLLECTION_NAME,
+    OWNER_NAME,
+    AGENT_VERBOSE,
+    llm,
+    embed_model,
+    validate_ollama_connection,
+    validate_ollama_models
+)
+from web_search import search_web
+
 # Suprimir avisos deprecados do Pydantic e renomeação do DDGS
 warnings.filterwarnings("ignore", message=".*model_fields.*")
 warnings.filterwarnings("ignore", message=".*__fields__.*")
@@ -32,30 +55,11 @@ try:
 except ImportError:
     pass
 
-import chromadb  # noqa: E402
-from typing import Optional  # noqa: E402
-
-from llama_index.core import VectorStoreIndex  # noqa: E402
-from llama_index.vector_stores.chroma import ChromaVectorStore  # noqa: E402
-from llama_index.core.tools import QueryEngineTool, ToolMetadata  # noqa: E402
-
-from config import (  # noqa: E402
-    CHROMA_DIR,
-    CHROMA_COLLECTION_NAME,
-    OWNER_NAME,
-    AGENT_VERBOSE,
-    llm,
-    embed_model,
-    validate_ollama_connection,
-    validate_ollama_models
-)
-
 # Configurar logger
 logger = logging.getLogger(__name__)
 
-from rich.console import Console
-from rich.markdown import Markdown
-from rich.panel import Panel
+# Configurar logger
+logger = logging.getLogger(__name__)
 
 console = Console()
 
@@ -121,7 +125,7 @@ def initialize_rag_tool() -> Optional[QueryEngineTool]:
         return None
 
 
-from web_search import search_web  # noqa: E402
+
 def print_welcome_message():
     """Exibe mensagem de boas-vindas."""
     welcome_text = f"""
