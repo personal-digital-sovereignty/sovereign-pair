@@ -1,4 +1,4 @@
-# Corporate Configuration and Troubleshooting Guide
+melqu# Corporate Configuration and Troubleshooting Guide
 
 **Status:** Production (Cibrid & Zero-Trust)
 **Engine:** Sovereign API (FastAPI) & Sensus Vault
@@ -77,3 +77,30 @@ python src/ingest.py # Enforce the Manual Full parameter
 
 ## 3. Analytical Logs
 All API Engine telemetry rolls through `stdout`. Chain with corporate *Log-Rotation* managers. For densified Reasoning logs (Agent *Thoughts*), inject `AGENT_VERBOSE=true` in the env. The A.I will begin to "Talk to itself" in console output, exposing its *ReAct* flowchart for advanced Cibrid debugging.
+
+---
+
+## 4. Model Context Protocol (MCP) Integration
+
+Sovereign Pair natively exposes its internal engines (The Doctor, The Nurse) and the `Sensus Vault` context through the Anthropic **MCP Standard**. This capability transforms the backend into a "Local-First Cognitive Expansion Module" for corporative IDEs like VSCode, Cursor, and Cline (or OpenCode).
+
+### 4.1. Absolute Local-First Sovereignty
+The connection scheme operates strictly via **Stdio** (Standard Input/Output) Inter-Process Communication (IPC). The IDE initiates a silent, memory-based socket. Data **never traverses the network**, ensuring Zero-Trust code architecture.
+
+### 4.2. IDE Client Setup (VSCode / Cline)
+To inject the Sovereign Vault directly into your coding workflow, append the following block to your IDE's MCP Configuration JSON (`settings.json` or Cline setup):
+
+```json
+"mcpServers": {
+  "sovereign-pair": {
+    "command": "python",
+    "args": ["-m", "src.mcp_stdio"],
+    "env": {
+      "PYTHONPATH": "/absolute/path/to/sovereign-pair"
+    }
+  }
+}
+```
+
+### 4.3. Usage
+Once connected, the Agent within the IDE will automatically read the `VAULT_DIR` Markdown files (*Resources*) prior to scaffolding architectures and can dynamically query the Vector Database (*sensus_vault_search tool*) to fetch custom business rules, shielding your local proprietary code from generic LLM Internet hallucinations.
