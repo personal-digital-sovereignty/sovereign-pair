@@ -9,6 +9,8 @@ import uuid
 from typing import Dict, Any, List, Set
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from src.core.the_sentinel import TheSentinel
+from src.api.models import SensusDocumentModel, QuarantineLog
 
 # --- OS Sniffing for Docker Desktop Bind Mounts (Graceful Degradation) ---
 def should_use_polling() -> bool:
@@ -171,7 +173,7 @@ class SensusSmartPoller(threading.Thread):
                 dirs[:] = [d for d in dirs if d not in ignores and not d.startswith('.')]
                 
                 for f in files:
-                    if not f.endswith(".md"):
+                    if not f.endswith((".md", ".pdf")):
                         continue
                         
                     full_path = os.path.join(root, f)
@@ -239,7 +241,7 @@ class VaultWatcher(FileSystemEventHandler):
                     dirs[:] = [d for d in dirs if not d.startswith('.')]
                     
                     for file in files:
-                        if file.endswith(".md"):
+                        if file.endswith((".md", ".pdf")):
                             full_path = os.path.join(root, file)
                             if full_path not in existing_paths:
                                 # Fingimos um evento 'on_created' para cada arquivo antigo
@@ -295,7 +297,7 @@ class VaultWatcher(FileSystemEventHandler):
             self.observer.join()
 
     def process_file(self, event):
-        if event.is_directory or not event.src_path.endswith('.md'):
+        if event.is_directory or not event.src_path.lower().endswith(('.md', '.pdf')):
             return
             
         # Basic debouncing
@@ -310,8 +312,54 @@ class VaultWatcher(FileSystemEventHandler):
         
         print(f"[The Mom] Detected change: {event.src_path} - Parsing deterministic data...")
         try:
-            doc = MarkdownParser.parse_file(file_path=event.src_path, tenant_id=self.tenant_id)
-            print(f"[The Mom] Successfully extracted {len(doc.extracted_todos)} todos, {len(doc.extracted_links)} links, {len(doc.extracted_tags)} tags.")
+            is_pdf = event.src_path.lower().endswith('.pdf')
+            # 1. Pipeline para PDFs e The Sentinel Guardrails
+            if is_pdf:
+                print(f"[The Mom] Starting PDF Extraction via PyMuPDF...")
+                raw_text = TheSentinel.dehydrate_pdf(event.src_path)
+                
+                print(f"[The Mom] Sentinel Guardrail Triggered. Analyzing for Prompt Injections...")
+                sentinel_result = TheSentinel.analyze_for_injection(raw_text, self.tenant_id)
+                
+                if sentinel_result["is_malicious"]:
+                    print(f"🚨 [The Mom] ALERTA DE SEGURANÇA: PDF Bloqueado por {sentinel_result['reason']}")
+                    from src.api.database import SessionLocal
+                    db_session = SessionLocal()
+                    try:
+                        q_log = QuarantineLog(
+                            tenant_id=self.tenant_id,
+                            file_path=event.src_path,
+                            file_name=os.path.basename(event.src_path),
+                            reason=sentinel_result["reason"],
+                            ai_confidence=sentinel_result["confidence"],
+                            content_snippet=raw_text[:500]
+                        )
+                        db_session.add(q_log)
+                        db_session.commit()
+                        print(f"[The Mom] Arquivo '{os.path.basename(event.src_path)}' jogado na Quarentena de Segurança.")
+                    except Exception as e:
+                        db_session.rollback()
+                        print(f"[The Mom] Database Error Logging Quarantine: {e}")
+                    finally:
+                        db_session.close()
+                    return # ABORTA INSERÇÃO NO CHROMA/POSTGRES
+                
+                # Documento seguro: Montamos a entidade
+                doc = SensusDocument(
+                    id=uuid.uuid4(),
+                    tenant_id=self.tenant_id,
+                    file_path=event.src_path,
+                    content=raw_text,
+                    frontmatter={},
+                    extracted_todos=[],
+                    extracted_tags=[],
+                    extracted_links=[],
+                    vector_id=None,
+                    semantic_summary=None
+                )
+            else:
+                doc = MarkdownParser.parse_file(file_path=event.src_path, tenant_id=self.tenant_id)
+                print(f"[The Mom] Successfully extracted {len(doc.extracted_todos)} todos, {len(doc.extracted_links)} links, {len(doc.extracted_tags)} tags.")
             
             # Save to SQLite
             from src.api.database import SessionLocal

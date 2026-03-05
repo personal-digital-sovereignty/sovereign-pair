@@ -100,3 +100,59 @@ class SystemSettings(Base):
             self._setting_value = val
 
     setting_value = synonym("_setting_value", descriptor=setting_value)
+
+class QuarantineLog(Base):
+    __tablename__ = "quarantine_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(String(50), nullable=False, index=True, default="default")
+    file_path = Column(String(1024), nullable=False)
+    file_name = Column(String(255), nullable=False)
+    reason = Column(String(255), nullable=False)
+    ai_confidence = Column(String(50), nullable=True)
+    content_snippet = Column(Text, nullable=True)
+    status = Column(String(50), default="QUARANTINED") # QUARANTINED, RELEASED, DELETED
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+# --- THE GOD MODE COCKPIT ---
+
+class ProjectModel(Base):
+    __tablename__ = "projects"
+
+    id = Column(String(36), primary_key=True, index=True) # UUID
+    tenant_id = Column(String(50), nullable=False, index=True, default="default")
+    name = Column(String(255), nullable=False)
+    purpose = Column(Text, nullable=True) # Definition of Done / "Why?"
+    traction_status = Column(String(50), default="Ideation") # Ideation, Flowing, Blocked, Hibernating, Done
+    next_action = Column(Text, nullable=True) # The single next micro-step
+    energy_level = Column(String(20), default="Med") # High, Med, Low
+    progress_percent = Column(Integer, default=0)
+    friction_radar = Column(Text, nullable=True) # Why is it blocked?
+    deadline = Column(String(100), nullable=True) # ISO Date string or description
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    links = relationship("ProjectLinkModel", back_populates="project", cascade="all, delete-orphan")
+    logs = relationship("ProjectLogModel", back_populates="project", cascade="all, delete-orphan")
+
+class ProjectLinkModel(Base):
+    __tablename__ = "project_links"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(String(36), ForeignKey("projects.id", ondelete="CASCADE"))
+    url = Column(String(1024), nullable=False)
+    label = Column(String(255), nullable=False) # e.g. "Figma", "Notion", "GitHub"
+
+    project = relationship("ProjectModel", back_populates="links")
+
+class ProjectLogModel(Base):
+    __tablename__ = "project_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(String(36), ForeignKey("projects.id", ondelete="CASCADE"))
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    project = relationship("ProjectModel", back_populates="logs")

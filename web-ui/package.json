@@ -39,7 +39,7 @@
     "@types/force-graph": "^1.21.2",
     "@types/js-yaml": "^4.0.9",
     "@types/markdown-it": "^14.1.2",
-    "@types/node": "^24.10.1",
+    "@types/node": "^24.11.0",
     "@types/turndown": "^5.0.6",
     "@vitejs/plugin-vue": "^6.0.2",
     "@vue/tsconfig": "^0.8.1",

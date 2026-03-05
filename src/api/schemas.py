@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from uuid import UUID
@@ -50,8 +50,7 @@ class ChatMessageModel(BaseModel):
     thumbs_up: bool
     thumbs_down: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class SessionResponse(BaseModel):
     id: int
@@ -61,8 +60,7 @@ class SessionResponse(BaseModel):
     messages: List[ChatMessageModel] = []
     updated_at: Optional[datetime] = None
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class SessionUpdateRequest(BaseModel):
     title: Optional[str] = None
@@ -125,3 +123,59 @@ class SettingsResponse(BaseModel):
     # --- Global Workspace Architecture ---
     default_intake_vault: Optional[str] = ""
     workspaces: Optional[List[str]] = Field(default_factory=list)
+
+# --- THE GOD MODE COCKPIT ---
+
+class ProjectLinkSchema(BaseModel):
+    id: Optional[int] = None
+    url: str
+    label: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ProjectLogSchema(BaseModel):
+    id: Optional[int] = None
+    content: str
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ProjectCreateRequest(BaseModel):
+    name: str = Field(..., description="Nome do projeto abstrato ou real")
+    purpose: Optional[str] = Field(None, description="Definição de Concluído / O Por Quê")
+    traction_status: Optional[str] = Field("Ideation", description="Ideation, Flowing, Blocked, Hibernating, Done")
+    next_action: Optional[str] = Field(None, description="A single tangible micro-step")
+    energy_level: Optional[str] = Field("Med", description="High, Med, Low")
+    progress_percent: Optional[int] = Field(0)
+    friction_radar: Optional[str] = Field(None, description="Explanation if Blocked")
+    deadline: Optional[str] = Field(None)
+    links: Optional[List[ProjectLinkSchema]] = Field(default_factory=list)
+
+class ProjectUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    purpose: Optional[str] = None
+    traction_status: Optional[str] = None
+    next_action: Optional[str] = None
+    energy_level: Optional[str] = None
+    progress_percent: Optional[int] = None
+    friction_radar: Optional[str] = None
+    deadline: Optional[str] = None
+    links: Optional[List[ProjectLinkSchema]] = None
+
+class ProjectResponse(BaseModel):
+    id: str
+    tenant_id: str
+    name: str
+    purpose: Optional[str] = None
+    traction_status: str
+    next_action: Optional[str] = None
+    energy_level: str
+    progress_percent: int
+    friction_radar: Optional[str] = None
+    deadline: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    links: List[ProjectLinkSchema] = []
+    logs: List[ProjectLogSchema] = []
+
+    model_config = ConfigDict(from_attributes=True)

@@ -2,14 +2,15 @@ import asyncio
 import json
 from fastapi import APIRouter, Depends, Request, BackgroundTasks
 from fastapi.responses import StreamingResponse
-from .schemas import ChatRequest, ChatResponse, Citation, SettingsRequest, SettingsResponse, SessionUpdateRequest, UploadResponse, DocumentUpdateRequest
+from .schemas import ChatRequest, ChatResponse, Citation, SettingsRequest, SettingsResponse, SessionUpdateRequest, UploadResponse, DocumentUpdateRequest, ProjectCreateRequest, ProjectUpdateRequest, ProjectResponse
 from .dependencies import get_chat_engine
+from typing import List
 
 router = APIRouter()
 
 from sqlalchemy.orm import Session  # noqa: E402
 from .database import get_db  # noqa: E402
-from .models import ChatSession, ChatMessage, SystemSettings, SensusDocumentModel  # noqa: E402
+from .models import ChatSession, ChatMessage, SystemSettings, SensusDocumentModel, QuarantineLog, ProjectModel, ProjectLinkModel, ProjectLogModel  # noqa: E402
 from .auth import get_current_user  # noqa: E402
 
 # Importando o limiter configurado no main.py
@@ -435,6 +436,106 @@ async def delete_session(request: Request, session_id: int, db: Session = Depend
     if not session:
         raise HTTPException(status_code=404, detail="Sessão não encontrada")
     db.delete(session)
+    db.commit()
+    return {"status": "success"}
+
+@router.get("/dashboard/stats")
+@limiter.limit("60/minute")
+async def get_dashboard_stats(request: Request, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Estatísticas globais para a UI."""
+    total_docs = db.query(SensusDocumentModel).filter(SensusDocumentModel.tenant_id == tenant_id).count()
+    total_sessions = db.query(ChatSession).filter(ChatSession.tenant_id == tenant_id).count()
+    return {"total_documents": total_docs, "total_sessions": total_sessions}
+
+# --- QUARANTINE (THE SENTINEL) ENDPOINTS ---
+
+@router.get("/quarantine")
+@limiter.limit("60/minute")
+async def list_quarantine(request: Request, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Lista todos os documentos interceptados pelo The Sentinel."""
+    logs = db.query(QuarantineLog).filter(
+        QuarantineLog.tenant_id == tenant_id, 
+        QuarantineLog.status == "QUARANTINED"
+    ).order_by(QuarantineLog.created_at.desc()).all()
+    
+    return [
+        {
+            "id": l.id,
+            "file_name": l.file_name,
+            "file_path": l.file_path,
+            "reason": l.reason,
+            "ai_confidence": l.ai_confidence,
+            "content_snippet": l.content_snippet,
+            "status": l.status,
+            "created_at": l.created_at.isoformat() if l.created_at else None
+        } for l in logs
+    ]
+
+@router.post("/quarantine/{log_id}/release")
+@limiter.limit("20/minute")
+async def release_quarantine(request: Request, log_id: int, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Libera manualmente um PDF enjaulado (bypassa The Sentinel para RAG)."""
+    from fastapi import HTTPException
+    
+    log = db.query(QuarantineLog).filter(QuarantineLog.id == log_id, QuarantineLog.tenant_id == tenant_id).first()
+    if not log or log.status != "QUARANTINED":
+        raise HTTPException(status_code=404, detail="Registro de quarentena não encontrado ou já processado.")
+        
+    log.status = "RELEASED"
+    db.commit()
+    
+    # Processo manual ignorando TheSentinel e persistindo para o The Dad pegar
+    from src.core.the_sentinel import TheSentinel
+    import uuid
+    import logging
+    try:
+        raw_text = TheSentinel.dehydrate_pdf(log.file_path)
+        
+        existing = db.query(SensusDocumentModel).filter(SensusDocumentModel.file_path == log.file_path).first()
+        if existing:
+            existing.content = raw_text
+        else:
+            doc_id = str(uuid.uuid4())
+            new_doc = SensusDocumentModel(
+                id=doc_id,
+                tenant_id=tenant_id,
+                file_path=log.file_path,
+                content=raw_text,
+                frontmatter={},
+                extracted_todos=[],
+                extracted_tags=[],
+                extracted_links=[],
+                vector_id=None,
+                semantic_summary=None
+            )
+            db.add(new_doc)
+            
+        db.commit()
+        return {"status": "success", "message": "Documento validado administrativamente. The Dad iniciará a vetorização no próximo ciclo."}
+    except Exception as e:
+        logging.error(f"Erro ao liberar arquivo da quarentena: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro interno ao reprocessar: {str(e)}")
+
+@router.delete("/quarantine/{log_id}")
+@limiter.limit("20/minute")
+async def delete_quarantine(request: Request, log_id: int, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Remove a entrada da quarentena e deleta o PDF fisicamente."""
+    from fastapi import HTTPException
+    import os
+    
+    log = db.query(QuarantineLog).filter(QuarantineLog.id == log_id, QuarantineLog.tenant_id == tenant_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Registro não encontrado.")
+        
+    log.status = "DELETED"
+    
+    # Destrancar fisicamente do HD
+    if os.path.exists(log.file_path):
+        try:
+            os.remove(log.file_path)
+        except Exception as e:
+            print(f"Failed to delete malicious file {log.file_path}: {e}")
+            
     db.commit()
     return {"status": "success"}
 
@@ -896,7 +997,7 @@ async def fs_delete(req: FSDeleteRequest, db: Session = Depends(get_db), tenant_
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/vault/tags")
-async def get_vault_tags(db: Session = Depends(get_db)):
+async def get_vault_tags(db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """
     Agrega todas as tags do banco de dados SensusDocumentModel e retorna a contagem de uso.
     """
@@ -1358,3 +1459,122 @@ async def execute_mcp_tool(request: Request, body: MCPToolRequest):
         }
 
     raise HTTPException(status_code=404, detail=f"Tool '{body.tool}' not found in MCP registry.")
+
+
+# ---------------------------------------------------------
+# THE GOD MODE COCKPIT (ABSTRACT PROJECTS) - Phase 39
+# ---------------------------------------------------------
+import uuid
+
+@router.get("/projects", response_model=List[ProjectResponse])
+@limiter.limit("60/minute")
+async def list_projects(request: Request, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Lista todos os Projetos do Cockpit Global."""
+    from sqlalchemy.orm import joinedload
+    projects = db.query(ProjectModel).options(
+        joinedload(ProjectModel.links),
+        joinedload(ProjectModel.logs)
+    ).filter(ProjectModel.tenant_id == tenant_id).order_by(ProjectModel.updated_at.desc()).all()
+    return projects
+
+@router.post("/projects", response_model=ProjectResponse)
+@limiter.limit("30/minute")
+async def create_project(request: Request, body: ProjectCreateRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Cria um novo Projeto / Missão."""
+    project_id = str(uuid.uuid4())
+    
+    new_project = ProjectModel(
+        id=project_id,
+        tenant_id=tenant_id,
+        name=body.name,
+        purpose=body.purpose,
+        traction_status=body.traction_status,
+        next_action=body.next_action,
+        energy_level=body.energy_level,
+        progress_percent=body.progress_percent,
+        friction_radar=body.friction_radar,
+        deadline=body.deadline
+    )
+    db.add(new_project)
+    
+    for link in body.links:
+        new_link = ProjectLinkModel(
+            project_id=project_id,
+            url=link.url,
+            label=link.label
+        )
+        db.add(new_link)
+        
+    db.commit()
+    db.refresh(new_project)
+    return new_project
+
+@router.put("/projects/{project_id}", response_model=ProjectResponse)
+@limiter.limit("60/minute")
+async def update_project(request: Request, project_id: str, body: ProjectUpdateRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Atualiza um Projeto existente (Check-in / Status)."""
+    from sqlalchemy.orm import joinedload
+    
+    project = db.query(ProjectModel).options(
+        joinedload(ProjectModel.links),
+        joinedload(ProjectModel.logs)
+    ).filter(ProjectModel.id == project_id, ProjectModel.tenant_id == tenant_id).first()
+    
+    if not project:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Projeto não encontrado.")
+        
+    update_data = body.model_dump(exclude_unset=True)
+    
+    # Handle Links separately
+    if "links" in update_data:
+        db.query(ProjectLinkModel).filter(ProjectLinkModel.project_id == project_id).delete()
+        for link_data in update_data["links"]:
+            new_link = ProjectLinkModel(
+                project_id=project_id,
+                url=link_data["url"],
+                label=link_data["label"]
+            )
+            db.add(new_link)
+        del update_data["links"]
+        
+    for key, value in update_data.items():
+        setattr(project, key, value)
+        
+    db.commit()
+    db.refresh(project)
+    return project
+
+@router.delete("/projects/{project_id}")
+@limiter.limit("20/minute")
+async def delete_project(request: Request, project_id: str, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Exclui fisicamente um Projeto."""
+    project = db.query(ProjectModel).filter(ProjectModel.id == project_id, ProjectModel.tenant_id == tenant_id).first()
+    if not project:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Projeto não encontrado.")
+        
+    db.delete(project)
+    db.commit()
+    return {"status": "success"}
+    
+@router.post("/projects/{project_id}/log")
+@limiter.limit("60/minute")
+async def add_project_log(request: Request, project_id: str, payload: dict, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Adiciona uma entrada no Diário de Bordo do projeto."""
+    project = db.query(ProjectModel).filter(ProjectModel.id == project_id, ProjectModel.tenant_id == tenant_id).first()
+    if not project:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Projeto não encontrado.")
+        
+    if "content" not in payload:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="O conteúdo do log é obrigatório (content).")
+        
+    new_log = ProjectLogModel(
+        project_id=project_id,
+        content=payload["content"]
+    )
+    db.add(new_log)
+    db.commit()
+    return {"status": "success"}
