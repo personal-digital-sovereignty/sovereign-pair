@@ -48,3 +48,16 @@ runcmd:
   # We use detached processes so the VM finishes booting quickly
   - runuser -l root -c "nohup ollama pull qwen2.5-coder:7b > /var/log/ollama_pull_coder.log 2>&1 &"
   - runuser -l root -c "nohup ollama pull llama3.2:3b > /var/log/ollama_pull_doctor.log 2>&1 &"
+
+  # 5. Install Docker Engine Native
+  - curl -fsSL https://get.docker.com -o get-docker.sh
+  - sh get-docker.sh
+
+  # 6. Clone Sovereign Pair and Spin Up Cibrid Services (RAG + N8N Zero Cost)
+  - git clone https://github.com/Personal-Digital-Sovereignty/sovereign-pair.git /opt/sovereign-pair
+  - cd /opt/sovereign-pair
+  # Prepare environments and vault architecture
+  - cp .env.example .env
+  - mkdir -p ./data/vault
+  # Execute the Macro Composes bridging N8N + Redis + FastAPI on Tailnet
+  - docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d
