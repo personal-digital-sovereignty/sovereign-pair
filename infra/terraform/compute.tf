@@ -42,6 +42,12 @@ resource "oci_core_instance" "the_coder" {
       tailscale_auth_key = var.tailscale_auth_key
     }))
   }
+
+  lifecycle {
+    ignore_changes = [
+      source_details,  # Previne erro de kmsKeyId vazio em atualizações
+    ]
+  }
 }
 
 output "coder_public_ip" {
