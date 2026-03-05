@@ -1,3 +1,9 @@
+<!-- 
+[Aviso Interno de Engenharia]
+Este documento 'testing_methodology.pt-BR.md' é a fusão temporária ('bruta') da base de Fases Anteriores. 
+Ele será submetido a um processo de refinamento linguístico focado em maturidade Sênior, erradicação de viés Emoji, reescrita corporativa limpa e posterior paralelização para o idioma en-US.
+-->
+
 # TESTES.md - Documentação de Testes e Validação
 
 **Projeto**: Sovereign Pair RAG
@@ -768,3 +774,7 @@ O teste da interface Web VueJS via navegador enviando um prompt local ("Testando
 **Autor**: Jeferson Lopes
 **Assistência**: Google Gemini 3 e Claude Sonnet 4.5
 **Data**: 2026-03-03
+
+
+---
+
