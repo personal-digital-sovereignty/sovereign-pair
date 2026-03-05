@@ -1,188 +1,65 @@
-<!-- 
-[Aviso Interno de Engenharia]
-Este documento 'architecture.pt-BR.md' é a fusão temporária ('bruta') da base de Fases Anteriores. 
-Ele será submetido a um processo de refinamento linguístico focado em maturidade Sênior, erradicação de viés Emoji, reescrita corporativa limpa e posterior paralelização para o idioma en-US.
--->
+# Sovereign Pair - Arquitetura de Sistemas Híbridos (Cibrid)
 
-# Sovereign Pair RAG - Documentação Técnica e Arquitetural
+**Versão da Topologia:** 3.3.0
+**Classificação do Documento:** Engenharia & Operações de Infraestrutura (SRE)
+**Foco:** RAG On-Premises, Node Orquestrador (OCI) e Redes Zero-Trust.
 
-Este documento serve como a **fórmula ultra-técnica e infraestrutural** do projeto `Sovereign Pair RAG`. Ele detalha a topologia completa do sistema, a separação de responsabilidades (Backend, Frontend, Plugin e Daemon), bem como os fluxos de dados essenciais que fazem a inteligência artificial interagir com o ambiente local do usuário de maneira soberana.
-
-Seja para manutenções futuras, expansão de capacidades ou delegações de implantação (Deployment em Cloud/Remote), esta página servirá como a única "Fonte da Verdade".
+Este compêndio oficial detalha a planta topológica do Sovereign Pair. Destina-se a Arquitetos de Soluções e Engenheiros de Confiabilidade (*Site Reliability Engineers*) responsáveis por estender ou auditar a infraestrutura de Recuperação Aumentada por Conexão Semântica (RAG) em cenários de missão crítica.
 
 ---
 
-## 1. Topologia Macro do Sistema
+## 1. Topologia Macro: O Paradigma Cibrid
 
-O projeto adota uma arquitetura em camadas **[Desacoplada]**, o que significa que as responsabilidades de Banco de Dados, Processamento de IA, Interface de Usuário e Coleta de Notas estão estritamente separadas por via de APIs e Interfaces locais (REST e SSE).
+A arquitetura transcende aplicações Node monolíticas, bifurcando-se em dois planos de execução simbiótica e independentes unificados por uma malha de rede definida por software (SDN). A camada de custo computacional denso atua sob premissa de *Intranet/Air-Gapped* (*On-Premises*), enquanto a resiliência e a orquestração de APIs rodam levemente em nós de Alta Disponibilidade em nuvem pública (Oracle OCI).
 
-### 1.1 Diagrama de Componentes
+### 1.1 Plano de Inferência Densa (On-Premises / Deep Compute)
+- **Local:** Workstations com Aceleradores Tensorizados Paralelos (GPUs Locais AMD/NVIDIA - Mín: 8GB VRAM).
+- **Motores:**
+  - **Ollama Daemon:** Motor de alocação de memória C++ nativa (Llama.cpp) residente na porta `11434`. Opera inteiramente Offline (Air-Gapped), isento de tráfego de egress para a internet.
+  - **ChromaDB Vector Store:** Opera em protocolo *PersistentClient* utilizando a árvore física `data/chromadb` alvejando discos SSD/NVMe locais para gravações de Embeddings Paralelos Massivos. Lida com a base matriz das coleções semânticas densas sobrepondo custo zero de nuvem e zero trânsito exterior.
 
-1. **Inteligência Artificial (LLM & Embeddings)**
-   - Provida nativamente pelo **Ollama** (rodando localmente via daemon próprio do Ollama em `http://127.0.0.1:11434`).
-   - Abstrações suportadas via `LlamaIndex` para outros provedores via Nuvem (`OpenAI`, `Anthropic`, `Groq`, `Gemini`).
-
-2. **Banco de Dados (Vectorial & Relacional)**
-   - **ChromaDB (Vector Database):** Opera em modo `PersistentClient` lendo e gravando matrizes vetoriais ricas (.sqlite3 interno e parquet) localizados fisicamente em `data/chromadb`.
-   - **SQLite (Database Relacional):** Operado pelo `SQLAlchemy` (ORM), armazenado fisicamente em `data/sqlite.db`. É a fonte de verdade para metadados de sistema, Cache de Documentos, Configurações de LLM e Histórico Conversacional.
-
-3. **Backend RAG (Servidor de Contexto)**
-   - Uma API construída em **FastAPI** rodando via **Uvicorn** na porta `8000`.
-   - Contém a "pipeline" completa de Geração Aumentada por Recuperação (RAG). Lê do banco vetorial, fala com o LLM e devolve aos clientes (UI e Obsdian).
-
-4. **Clientes (UI)**
-   - **App Vue 3 (Web UI):** Um aplicativo Reactivo rodando via `Vite` (porta `5173`), acessível via navegador. Dialoga com a API via Server-Sent Events (SSE).
-   - **Plugin Obsidian (Integração Direta):** Uma extensão `.js` dentro do software Obsidian que extrai o contexto da anotação atual no editor e a injeta via REST para a API Backend.
-
-5. **Daemon Observador (Auto-Sync)**
-   - O `watcher.py` usa a biblioteca de sistema operacional `watchdog` para espionar a pasta `data/raw_docs/`.
-   - Toda alteração em formato de texto nesta pasta aciona um processamento na surdina da pipeline no backend para vetorização.
+### 1.2 Plano de Coordenação e Orquestração (OCI Cloud Free Tier)
+- **Local:** Cloud Pública Oracle (Node Compute A1 Flex - ARM64 / 24GB RAM).
+- **Motores:**
+  - **Microserviço RAG (FastAPI/Uvicorn):** App *Stateless* construído puramente com injeção de dependências Pydantic V2 atuando de Gatekeeper na comunicação entre frontends, motores analógicos (N8N) e a base de GPU local.
+  - **Banco Transacional Efêmero (SQLite/PostgreSQL):** Aramzena apenas estado das sessões, relativas a prompts e chaves relacionais ao Vault local físico gerados na OCI.
+  - **Frontend SPA (Vue3 Proxy):** Entregue através de Servidores Caddy/Nginx atuando unicamente em cache otimizado.
 
 ---
 
-## 2. Fluxo de Dados Funcional (Como as coisas conversam)
+## 2. Padrões de Network e Segurança Criptográfica (Zero-Trust)
 
-### A. Fluxo de Ingestão de Documentos (Upload & Indexação)
-1. **Através da API (`routes.py` -> `POST /v1/upload`):**
-   - Recebe um binário/texto -> Lê o Hash (SHA256).
-   - Verifica contra o SQLite se o hash é idempotente (ignora se sim).
-   - Se o nome existe para outro hash: O sistema lida ativamente com a renomeação (adicionando trechos hachados) para não destruir vetores passados (`rename_if_exists=True`).
-   - Dispara `src.ingest.process_single_file` via `asyncio.to_thread` na Background para não pendurar a API.
-2. **Através do Watcher (`watcher.py`):**
-   - Assiste modificações de arquivo no SO diretamente e invoca nativamente os chunks do LlamaIndex (via parser de Markdown `MarkdownNodeParser`) para o `ChromaDB`.
-3. **No ChromaDB (`ChromaVectorStore`):** O texto é vetorizado pelo modelo de Embeddings (ex: `nomic-embed-text` ou `bge-m3`) configurado no Banco.
-4. **No BM25 (`CustomBM25Retriever`):** Além dos vetores densos, os arquivos alimentam paralelamente o buscador probabilístico exato (Okapi BM25) para não perdermos relevância em termos cruciais.
+A integração entre os pólos *On-Premises* (inferência) e *Cloud* (orquestração/APIs) refuta o redirecionamento de portas sobre o protocolo TCP na internet pública (`0.0.0.0`), que violaria a lei das superfícies de ataque abertas.
 
-### B. O Fluxo de Engenharia de Consulta (Chat & Inferência)
-1. Usuário envia Requisição Opcionalmente com Conhecimento embutido (`message`, a flag `active_document` do Obsidian, etc.) para o `POST /v1/chat`.
-2. A fábrica abstrata `engine_builder.build_chat_engine` é acionada:
-   - Ela reidrata a "Memória do RAG" fazendo um SELECT no Relacional (SQLite) (`SELECT * FROM chat_messages WHERE session_id = ?`).
-   - Habilita uma "Pesquisa Híbrida" unificando a Busca Vetorial Pura (LlamaIndex base) e o _Custom_ BM25 Index (_custom_retrievers.py_) via Rank Recíproco.
-3. Se o Usuário inseriu Data Relativa (`/web hoje`), a engine de _Web Scraper_ é engatada interceptando respostas do *DuckDuckGo* via `BeautifulSoup`.
-4. O *LLM Provider* mastiga o contexto consolidado e cospe uma resposta via `StreamingResponse` (tokens fragmentados usando a flag `data:` nativa de Server-Sent Events).
+### 2.1 Malha WireGuard Encriptada (Tailscale mTLS)
+A cola arquitetônica entre o Node Cloud e a Workstation GPU é o subsistema IP virtual administrado pelo Tailscale. 
+O tráfego trafega ponta a ponta criptografado (e2e) em invólucro UDP/Wireguard. 
+Os aplicativos (FastAPI na Nuvem escutando a DB na Nuvem) e a GPU requisitada *On-Premises* "acham" estar hospedados na mesma subnet `100.x.x.x` LAN física, o que suprime completamente as sobrecargas cognitivas na elaboração de firewalls complexos e DMZs perigosas na cloud. Não há necessidade de reverso de IP Estático caro.
 
-### C. Arquitetura de Pastas Nativas (Chat Folders)
-Este recurso eleva o Sovereign Pair de um simples "chatbot de IA" para um *Sistema de Gerenciamento de Conhecimento e Prompting*, integrado fluidamente com o ecossistema do usuário (como o Obsidian).
-
-1. **A Fundamentação em Banco de Dados (SQLite):**
-   - A tabela `chat_sessions` foi expandida estruturalmente com uma coluna de ancoragem `folder_name (VARCHAR)`. Ao invés de criarmos tabelas relacionais complexas de "Pastas" `(1:N)`, adotamos uma abordagem ágil de *Metadado Forte*, onde `null` significa a raiz do histórico e qualquer string representa uma "Pasta Virtual".
-   - Isso garante performance absurda nas Querys (apenas 1 `SELECT * FROM chat_sessions` traz todas as propriedades) e mitiga problemas de chaves estrangeiras (`Foreign Keys`) ao deletar pastas.
-
-2. **Diferencial Competitivo (Gestão Contextual Reta):**
-   - Em contraste com plataformas em nuvem fechadas onde você fica preso em históricos cronológicos infinitos, a arquitetura de pastas permite "clusterizar" sessões de *Brainstorming*, *Codificação*, *Resumo de Reuniões* e *Pesquisas de Doutorado*.
-   - **No Obsidian:** O Plugin se beneficia enormemente dessa estrutura. Os Webhooks da `v1/sessions` são processados pelo UI do plugin transformando a árvore de conversas de uma lista morta em uma Estrutura de Diretórios nativa (idêntica ao sistema de hierarquia de notas do próprio Obsidian). Isso mantém o fluxo de trabalho imersivo e mentalmente alinhado.
-
-3. **Reatividade State-Driven (Vue 3 Front-End):**
-   - No frontend e no plugin, as pastas não existem matematicamente no DOM até a renderização. Uma propriedade `computed` dinâmica engole o Payload bruto da API e destrói/reconstrói o `Sidebar` dinamicamente em *Dicionários de Arrays* na memória RAM em microssegundos, permitindo criar, renomear e apagar pastas via métodos assíncronos `PATCH` e `DELETE` no endpoint `v1/sessions/{id}` sem necessidade de recarregar a visualização (Reatividade).
+### 2.2 Controle de Tráfego API (Inbound/Outbound)
+Qualquer tráfego extrínseco à malha que solicite comunicação (Ex: Um dispositivo Web do usuário) esbarra em *Rate Limiters*, regras transversais estritas de *CORS* (apenas domínios chancelados na *Allowed Origins*) e a verificação imperativa Bearer com Assinaturas baseadas em Segredo Operacional Forte.
 
 ---
 
-## 3. Respostas Técnicas a Eventuais Decisões de Deployment
+## 3. O Padrão de Ingestão Híbrida Inteligente (RAG Pipeline)
 
-Para garantir o futuro do software e a sua segurança arquitetural, detalhamos as resoluções vitais sobre migração baseadas na infraestrutura desenvolvida.
+Para neutralizar *Alucinações Críticas* e *Cegueira Temporal* (onde o LLM inventa bases ou ignora datas cruciais passadas nos chats), o motor abstém a técnica falha trivial de Simulação Cosseno isolada, implantando um padrão de Arquitetura de Busca Híbrida densificada.
 
-### P1: "E se eu enviar o servidor Ollama remotamente para a nuvem? O modelo de linguagem (LLM) baixado precisará estar no meu desktop ou no servidor remoto?"
-**Resposta:** O modelo de linguagem (`llama3.2`, `bge-m3`, etc.) é inteiramente executado do lado onde a aplicação **Ollama** se encontra instalada como serviço (o servidor de inteligência bruta). Se você hospedar o Ollama remotamente, *a sua máquina local ("Desktop") não precisará baixar nenhum megabyte do modelo*, servindo apenas como uma "casca gráfica" e de "contexto".
-- **Como a rede atuará?** No nosso código (`src/config.py`), o Backend em FastAPI buscará a `.env` variável `OLLAMA_BASE_URL` (hoje setada em `http://127.0.0.1:11434`). Para rodar em remoto, bastará alterar este valor para o seu IP servidor (ex: `http://192.168.1.50:11434`). A inteligência ocorrerá *Lá*, gastando a Placa de Vídeo (GPU) Remota, e devolvendo o texto rápido para seu backend FastAPI local processar e expor na UI!
-
-### P2: "E se eu quiser remover o ChromaDB/SQLite da minha máquina ('Desktop') e rodar o Banco de Dados num Servidor à parte, como devo proceder? A arquitetura atual aguenta isso?"
-**Resposta:** Absolutamente sim. A arquitetura foi construída 100% preparada para essa eventual escalabilidade horizontal.
-O estágio atual do nosso app utiliza `PersistentClient` (no caso do Chroma) e `sqlite:///` (no caso do banco relacional) **somente** por fins de praticidade "Zero Config" e soberania ultra-fechada. Mas separar isso é plenamente suportado:
-
-1. **Para migrar o Relacional (SQLite -> PostgreSQL na nuvem):**
-   Sem tocar em nenhuma Tabela ou Classe! Devido ao nosso uso sólido do **SQLAlchemy** (um ORM Abstrato), as regras de banco são portáveis.
-   *Ação:* Na pasta raiz (`.env`), você trocará a variável atual `DB_URL=sqlite:///data/sqlite.db` para a URL do seu servidor remoto:
-   `DB_URL=postgresql://seu_usuario:sua_senha@ip_do_servidor:5432/sovereign_db`
-   Ao reiniciar o Uvicorn (`FastAPI`), ele rodará o `models.Base.metadata.create_all(bind=engine)` construindo magicamente todas as tabelas (Sessões, Cache, Configurações) direto no banco externo.
-
-2. **Para migrar o Vector DB (Local ChromaDB -> Remote Chroma/Qdrant/Pinecone):**
-   Hoje instanciamos a interface nativa por pastas: `chromadb.PersistentClient(path="./data/chromadb")`.
-   *Ação:* Você subirá um "Server Docker do Chroma" na sua VPS externa. Em seguida, no arquivo `src/config.py`, trocará:
-   ```python
-   # DE:
-   chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
-   # PARA:
-   chroma_client = chromadb.HttpClient(host="MEU_IP_NA_NUVEM", port=8000)
-   ```
-   E toda a inferência de vetores e a memória dos Documentos acontecerá puramente via chamadas HTTP, deixando a sua máquina Desktop completamente livre e atuando como uma cliente esbelta do sistema de "Sovereign Pair"!
+### 3.1 O Roteamento de Pesquisa em Tempo Real
+1. **Trigger de Consulta:** Ao cruzar as APIs RESTful e acionar o módulo `engine_builder`, o subsistema fragmenta a requisição do usuário.
+2. **Avaliação Relacional Simultânea (TDD Otimizado):** Duas árvores de indexação separadas são varridas paralelamente pelas Threads.
+   - O *Indexador Vetorial* (ChromaDB) traduz conceitos filosóficos e semânticos fluidos.
+   - O *BM25 Custom Retriever* traduz rigor posicional (palavras cruas, UUIDs de log, números fiscais idênticos em relatórios).
+3. **Fusão Estatística:** As pontuações conflitantes relativas aos mesmos documentos resgatados nas 2 instâncias passam por modelagem através do algoritmo de Rank Recíproco. Somente o Top-*K* mais qualificado (ajustado de ~15 para 5 nós por economia em cargas VRAM extremas) cruza vivo para a montagem de injeção dentro da "Janela de Contexto" atrelada ao fluxo vivo que desce pro LLM.
 
 ---
 
-## 5. DevSecOps & Cloud-Native Deployments
+## 4. Orquestração Baseada em Pastas (Vault Session Storage)
 
-A arquitetura de quatro pontas (Web-UI, Backend RAG, Banco Vetorial e Motor LLM) habilita as mais poderosas e escaláveis topologias de implantação empresarial (Enterprise-Ready). Abaixo listamos as abordagens suportadas pela engenharia atual.
+Ao invés de adotar estruturas baseadas em Foreign Keys hiper-normalizadas (O que inflama falhas lógicas e de transações distribuídas assíncronas no SQLite), adotou-se o Design Patter "String Metadada Contextual".
 
-### 5.1. Containers (Docker e Podman)
-A infraestrutura roda agnosticamente. Para encapsular o sistema:
-- **Backend (API):** Subir uma imagem limpa `python:3.12-slim`, instalando apenas as rotatórias de *requirements.txt* e mantendo o volume `data/` espelhado (Bind Mount) para manter a base de dados SQlite imune a restarts.
-- **Web-UI (Vue):** Subir uma build estática em imagem Nginx Alpine (`FROM nginx:alpine`), copiando a compilação do `dist/` para `/usr/share/nginx/html`.
-- **Chroma & Ollama:** Podem ser extraídos das imagens oficiais (`chromadb/chroma` e `ollama/ollama`) e integrados no mesmo arquivo `docker-compose.yml` (ou `podman-compose`), permitindo uso do resolver de DNS interno (ex: `http://ollama-server:11434`).
-
-### 5.2. Orquestração Avançada (Kubernetes / K8s)
-O Sovereign Pair RAG, ao ser inteiramente modelado através de variáveis de ambiente (`.env`), é o sonho do *Cloud-Native*:
-- **ConfigMaps / Secrets:** Injete `ALLOWED_ORIGINS`, senhas e IP do Chroma através de Secrets.
-- **StatefulSets:** O ChromaDB e a pasta `data/` do SQLite devem ser configurados como *StatefulSets* ancorados em *PersistentVolumeClaims* (PVC). Dessa forma, a morte de um Pod não assassina a Memória Vetorial e das Conversas.
-- **Deployments (Stateless):** O Backend FastAPI (Uvicorn) e o frontend Nginx são Stateless (não guardam estado próprio internamente), podendo ter réplicas aumentadas conforme o tráfego da API cresce.
-
-### 5.3. Segurança de Rede / Criptografia em Trânsito
-
-Dada a sensibilidade de dados privados carregados num sistema de inteligência, o sistema foi projetado sob os auspícios de *Zero-Trust Network Architecture* visando blindagem lateral e vertical.
-
-1. **Camada Externa (TLS/HTTPS)**:
-   - Toda comunicação entre o Usuário Final (Navegador/Desktop/Celular) e a CDN do Frontend ou o domínio de Load Balancer do Backend FastAPI obrigatoriamente *sofrerá encriptação HTTPS/TLS 1.3*.
-   - A terminação do SSL ocorre no Ingress/Reverse Proxy do Kubernetes ou no painel da infraestrutura Nuvem (Nginx/Traefik).
-
-2. **Camada Interna e Backplanes (mTLS)**:
-   - Assim que o tráfego atinge o backend protegido, como ele viaja até a base Vetorial Privada (ChromaDB) ou LLM Engine (Ollama VPS)?
-   - Através de malhas virtuais autenticadas por certificados de ambos os lados (*Mutual TLS*). Em deploy rústico, utiliza-se Redes Definidas por Software (Mesh VPNs) como o **WireGuard** ou **Tailscale**. Todo dado de conversa voando da VPS A para a VPS B é matematicamente encriptado a nível de Protocolo IP, blindando contra grampos no DataCenter (*Sniffing*).
-
-3. **CORS Dinâmico (Restrição Restrita)**:
-   - Já implementado diretamente em nível de código (`src/api/main.py`), o servidor REST apenas processará e dará *Handshake* de dados para domínios rígidos definidos na variável mestre `ALLOWED_ORIGINS`, prevenindo a classe de ataques XSS (*Cross-Site Scripting*).
-
+Na tabela relacional do sistema `chat_sessions`, uma coluna solteira `folder_name` garante a categorização de projetos, chats e focos. Se for `null`, o nó habita a base geral. Isso converte o processamento da construção da Árvore Lógica Organizacional no Front-End Framework em algo computado na RAM dos nós dos navegadores na leitura de renderização da API, aliviando o estresse físico no banco local de ser taxado em Joins complexas e inúteis, preservando I/O rápido em tempo transacional micro.
 
 ---
 
-# 🌟 Sovereign Pair - Showcase & Demonstração
-
-Ah, então você quer ver o **Sovereign Pair** em ação? *Tá ligado* que falar de arquitetura local-first, privacidade e RAG é legal, mas **ver o motor funcionando** é onde aquele brilho nos olhos realmente acontece! 🤩
-
-Preparamos este espaço para você ter um gostinho visceral de como é a experiência de pilotar sua própria inteligência artificial corporativa e pessoal, direto da sua máquina, sem enviar um único byte de dados confidenciais para a nuvem.
-
----
-
-## 🎬 O Motor em Ação (Vídeo de Demonstração)
-
-Neste hands-on, mostramos desde o primeiro contato, onde você inicializa o seu "Motor", passando pelo onboarding seguro (Setup Zero-Trust), até chegar na interface de bate-papo.
-
-![Gravação de Demonstração do Sovereign Pair](assets/demo_video.webp)
-
-> *Watch it contextualize!* O motor sobe instantaneamente com a interface desenhada em **Vue.js + Tailwind**, esbanjando um visual cyberpunk/dark mode maravilhoso e suave, comunicando-se em tempo real (via Server-Sent Events) com o backend ultra-rápido em **FastAPI**.
-
----
-
-## 📸 Uma Espiada Sob o Capô: RAG com Precisão Cirúrgica
-
-Aqui não tem alucinação. Nós queríamos algo que fosse confiável. Veja o que acontece quando perguntamos à IA sobre suas próprias capacidades e exigimos que ela diga "de onde ela tirou isso".
-
-![Sovereign Pair citando suas fontes com exatidão](assets/demo_screenshot.png)
-
-### 💡 Por que isso dá "brilho nos olhos"?
-
-1. **Memória de Elefante (e do seu jeito)**: Repare na barra lateral esquerda. As conversas não são efêmeras. Tudo fica salvo no seu banco SQLite perfeitamente indexado.
-2. **Contexto é Rei**: Na imagem acima, a IA não está adivinhando. Ela vasculhou o diretório local, encontrou o documento markdown relevante e citou a fonte exata antes de montar a resposta! E o melhor, gerando o texto progressivamente.
-3. **Paz de Espírito**: Enquanto essa conversa acontecia, sua placa de rede poderia estar desligada. É o controle absoluto das suas informações sensíveis.
-
----
-
-## 🚀 Próximos Passos
-
-Sentiu a vontade de colocar esse motor pra rodar no seu ambiente? 
-- Dê uma olhada no nosso [Guia de Instalação Rápida](../README.md#instalação-e-requisitos)
-- Explore os detalhes de como o cérebro do Sovereign Pair funciona lendo a [Arquitetura RAG Local](ARCHITECTURE.md)
-- Descubra como moldar a IA para as suas necessidades específicas ajustando as configurações de persona.
-
-*Welcome to the future of Local-First AI.* 🧠💻
-
-
----
-
+**Glossário Técnico Referenciado:** Vide `docs/glossary.pt-BR.md`.
