@@ -125,6 +125,10 @@ app = FastAPI(
     lifespan=app_lifespan
 )
 
+# --- MCP (Model Context Protocol) Server Integration ---
+from src.api.mcp_server import mount_mcp_server
+mount_mcp_server(app)
+
 # Adicionar Rate Limiter ao estado global do app
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

@@ -1,0 +1,52 @@
+
+Running 2 tests using 2 workers
+
+[1A[2K[1/2] [chromium] › e2e/dashboard_phases.spec.ts:46:5 › Dashboard Phase 38 and 39 E2E › should tab switch to The Sentinel (Quarentena) and render its blank state
+[1A[2K[2/2] [chromium] › e2e/dashboard_phases.spec.ts:33:5 › Dashboard Phase 38 and 39 E2E › should tab switch to God Mode Cockpit and render its specific UI
+[1A[2K  1) [chromium] › e2e/dashboard_phases.spec.ts:33:5 › Dashboard Phase 38 and 39 E2E › should tab switch to God Mode Cockpit and render its specific UI 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('text=God Mode')[22m
+
+
+      33 |     test('should tab switch to God Mode Cockpit and render its specific UI', async ({ page }) => {
+      34 |         // Click the God Mode icon/tab
+    > 35 |         await page.locator('text=God Mode').click();
+         |                                             ^
+      36 |
+      37 |         // Assert the header changed
+      38 |         await expect(page.locator('text=Command Hub')).toBeVisible();
+        at /home/jefersonlopes/Developer/local-repositories/sovereign-pair/web-ui/e2e/dashboard_phases.spec.ts:35:45
+
+    Error Context: test-results/dashboard_phases-Dashboard-a5c12--and-render-its-specific-UI-chromium/error-context.md
+
+
+[1A[2K  2) [chromium] › e2e/dashboard_phases.spec.ts:46:5 › Dashboard Phase 38 and 39 E2E › should tab switch to The Sentinel (Quarentena) and render its blank state 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('text=Quarentena')[22m
+
+
+      46 |     test('should tab switch to The Sentinel (Quarentena) and render its blank state', async ({ page }) => {
+      47 |         // Click the Sentinel tab
+    > 48 |         await page.locator('text=Quarentena').click();
+         |                                               ^
+      49 |
+      50 |         // Assert the Sentinel UI exists
+      51 |         await expect(page.locator('text=The Sentinel')).toBeVisible();
+        at /home/jefersonlopes/Developer/local-repositories/sovereign-pair/web-ui/e2e/dashboard_phases.spec.ts:48:47
+
+    Error Context: test-results/dashboard_phases-Dashboard-065fa--and-render-its-blank-state-chromium/error-context.md
+
+
+[1A[2K  2 failed
+    [chromium] › e2e/dashboard_phases.spec.ts:33:5 › Dashboard Phase 38 and 39 E2E › should tab switch to God Mode Cockpit and render its specific UI 
+    [chromium] › e2e/dashboard_phases.spec.ts:46:5 › Dashboard Phase 38 and 39 E2E › should tab switch to The Sentinel (Quarentena) and render its blank state 
+
+[36m  Serving HTML report at http://localhost:9323. Press Ctrl+C to quit.[39m

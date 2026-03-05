@@ -50,7 +50,9 @@ const systemSettings = ref({
   gemini_api_key: '',
   custom_ollama_url: '',
   default_intake_vault: '',
-  workspaces: [] as string[]
+  workspaces: [] as string[],
+  sensus_mode: 'standard',
+  enterprise_license_key: ''
 })
 
 const activeTab = ref('identity') // 'identity' | 'byok' | 'workspaces'
@@ -246,6 +248,9 @@ onMounted(() => {
           </button>
           <button @click="activeTab = 'workspaces'" :class="activeTab === 'workspaces' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200'" class="pb-3 border-b-2 text-sm font-medium transition-colors flex items-center gap-2">
               <span class="i-ph-folders-duotone text-lg"></span> Workspaces O.S.
+          </button>
+          <button @click="activeTab = 'licensing'" :class="activeTab === 'licensing' ? 'border-amber-500 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-200'" class="pb-3 border-b-2 text-sm font-medium transition-colors flex items-center gap-2 ml-auto">
+              <span class="i-ph-certificate-duotone text-lg"></span> B2B Licensing
           </button>
       </div>
       
@@ -497,56 +502,100 @@ onMounted(() => {
            </div>
         </div>
 
-        <!-- ================= WORKSPACES (O.S. Native) TAB ================= -->
-        <div v-show="activeTab === 'workspaces'" class="space-y-8">
-           
-           <div class="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-5 flex items-start gap-4">
-              <span class="i-ph-hard-drives-duotone text-3xl text-indigo-400 shrink-0"></span>
-              <div>
-                 <h4 class="text-indigo-400 font-semibold text-sm mb-1">Workspaces Nativos do O.S.</h4>
-                 <p class="text-xs text-indigo-300/80 leading-relaxed">
-                    Você pode mapear qualquer diretório do seu computador local (ex: <code class="bg-[#18181B] text-slate-300 px-1 py-0.5 rounded">/home/user/Documentos</code>). 
-                    A Sovereign lerá os dados nativos destas pastas sem copiar os arquivos.
-                 </p>
-              </div>
-           </div>
+         <!-- ================= WORKSPACES (O.S. Native) TAB ================= -->
+         <div v-show="activeTab === 'workspaces'" class="space-y-8">
+            
+            <div class="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-5 flex items-start gap-4">
+               <span class="i-ph-hard-drives-duotone text-3xl text-indigo-400 shrink-0"></span>
+               <div>
+                  <h4 class="text-indigo-400 font-semibold text-sm mb-1">Workspaces Nativos do O.S.</h4>
+                  <p class="text-xs text-indigo-300/80 leading-relaxed">
+                     Você pode mapear qualquer diretório do seu computador local (ex: <code class="bg-[#18181B] text-slate-300 px-1 py-0.5 rounded">/home/user/Documentos</code>). 
+                     A Sovereign lerá os dados nativos destas pastas sem copiar os arquivos.
+                  </p>
+               </div>
+            </div>
 
-           <div class="space-y-4 max-w-3xl">
-              <div class="p-4 bg-[#18181B] border border-[#222222] rounded-xl space-y-3">
-                 <label class="block text-sm font-semibold text-emerald-400">Bandeja de Entrada Primária (Intake Vault)</label>
-                 <p class="text-xs text-slate-400 leading-relaxed">
-                    Quando você fizer Upload de um novo arquivo pela interface web, arrastar uma imagem no chat, 
-                    ou criar um arquivo Novo, ele será fisicamente persistido neste único caminho absoluto do seu Sistema Operacional.
-                 </p>
-                 <input v-model="systemSettings.default_intake_vault" type="text" placeholder="/caminho/absoluto/Vault-Principal" class="w-full bg-[#121214] border border-[#333] text-[#E0E0E0] text-sm rounded focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none font-mono">
-              </div>
+            <div class="space-y-4 max-w-3xl">
+               <div class="p-4 bg-[#18181B] border border-[#222222] rounded-xl space-y-3">
+                  <label class="block text-sm font-semibold text-emerald-400">Bandeja de Entrada Primária (Intake Vault)</label>
+                  <p class="text-xs text-slate-400 leading-relaxed">
+                     Quando você fizer Upload de um novo arquivo pela interface web, arrastar uma imagem no chat, 
+                     ou criar um arquivo Novo, ele será fisicamente persistido neste único caminho absoluto do seu Sistema Operacional.
+                  </p>
+                  <input v-model="systemSettings.default_intake_vault" type="text" placeholder="/caminho/absoluto/Vault-Principal" class="w-full bg-[#121214] border border-[#333] text-[#E0E0E0] text-sm rounded focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none font-mono">
+               </div>
 
-              <div class="space-y-3 pt-6 border-t border-[#222222]">
-                 <label class="block text-sm font-medium text-slate-300">Diretórios Indexados Adicionais (Somente Leitura Dinâmica)</label>
-                 
-                 <div class="flex gap-2">
-                    <input v-model="newWorkspacePath" @keyup.enter="addWorkspace" type="text" placeholder="Adicionar caminho absoluto (/opt/projetos/notas)" class="flex-1 bg-[#18181B] border border-[#222222] text-[#E0E0E0] text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none font-mono">
-                    <button @click="addWorkspace" class="px-4 bg-emerald-500 text-white rounded-lg hover:bg-emerald-400 font-medium text-sm transition-colors">Vincular</button>
-                 </div>
+               <div class="space-y-3 pt-6 border-t border-[#222222]">
+                  <label class="block text-sm font-medium text-slate-300">Diretórios Indexados Adicionais (Somente Leitura Dinâmica)</label>
+                  
+                  <div class="flex gap-2">
+                     <input v-model="newWorkspacePath" @keyup.enter="addWorkspace" type="text" placeholder="Adicionar caminho absoluto (/opt/projetos/notas)" class="flex-1 bg-[#18181B] border border-[#222222] text-[#E0E0E0] text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none font-mono">
+                     <button @click="addWorkspace" class="px-4 bg-emerald-500 text-white rounded-lg hover:bg-emerald-400 font-medium text-sm transition-colors">Vincular</button>
+                  </div>
 
-                 <div v-if="systemSettings.workspaces.length === 0" class="text-xs text-slate-500 py-4 text-center border border-dashed border-[#333] rounded-lg">
-                    Nenhum diretório adicional vinculado. O Motor agirá apenas na Inbox Primária.
-                 </div>
-                 
-                 <ul v-else class="space-y-2">
-                    <li v-for="(ws, index) in systemSettings.workspaces" :key="ws" class="flex justify-between items-center p-3 bg-[#18181B] border border-slate-700/50 rounded-lg group">
-                       <div class="flex items-center gap-3">
-                          <span class="i-ph-folder-open-duotone text-slate-400 text-xl"></span>
-                          <span class="text-sm font-mono text-slate-300">{{ ws }}</span>
-                       </div>
-                       <button @click="removeWorkspace(index)" class="text-rose-400 hover:text-rose-300 opacity-0 group-hover:opacity-100 transition-opacity" title="Desvincular Diretório">
-                          <span class="i-ph-trash-duotone text-lg"></span>
-                       </button>
-                    </li>
-                 </ul>
-              </div>
-           </div>
-        </div>
+                  <div v-if="systemSettings.workspaces.length === 0" class="text-xs text-slate-500 py-4 text-center border border-dashed border-[#333] rounded-lg">
+                     Nenhum diretório adicional vinculado. O Motor agirá apenas na Inbox Primária.
+                  </div>
+                  
+                  <ul v-else class="space-y-2">
+                     <li v-for="(ws, index) in systemSettings.workspaces" :key="ws" class="flex justify-between items-center p-3 bg-[#18181B] border border-slate-700/50 rounded-lg group">
+                        <div class="flex items-center gap-3">
+                           <span class="i-ph-folder-open-duotone text-slate-400 text-xl"></span>
+                           <span class="text-sm font-mono text-slate-300">{{ ws }}</span>
+                        </div>
+                        <button @click="removeWorkspace(index)" class="text-rose-400 hover:text-rose-300 opacity-0 group-hover:opacity-100 transition-opacity" title="Desvincular Diretório">
+                           <span class="i-ph-trash-duotone text-lg"></span>
+                        </button>
+                     </li>
+                  </ul>
+               </div>
+            </div>
+         </div>
+         
+         <!-- ================= SOVEREIGN LICENSING (B2B) TAB ================= -->
+         <div v-show="activeTab === 'licensing'" class="space-y-8">
+            <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-5 flex items-start gap-4 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+               <span class="i-ph-shield-check-duotone text-3xl text-amber-400 shrink-0"></span>
+               <div class="flex-1">
+                  <h4 class="text-amber-400 font-semibold text-sm mb-1 uppercase tracking-wider flex items-center gap-2">
+                     Sovereign Pair <span class="bg-amber-500/20 text-amber-300 text-[10px] px-2 py-0.5 rounded border border-amber-500/50">Enterprise Ready</span>
+                  </h4>
+                  <p class="text-xs text-amber-300/80 leading-relaxed mb-4">
+                     O modo <strong class="text-amber-300">Enterprise B2B</strong> ativa a poda pragmática do motor (SENSUS_MODE=enterprise),
+                     desativando módulos de consumo B2C (Como o Pomodoro) e endurecendo o contrato OpenAPI para integração de dados corporativos limpos e Audit Logs focados.
+                  </p>
+                  
+                  <div class="space-y-4">
+                     <div class="space-y-2">
+                        <label class="block text-sm font-medium text-slate-300">Chave Criptográfica JWT (License Key)</label>
+                        <div class="relative">
+                           <textarea v-model="systemSettings.enterprise_license_key"
+                               class="w-full bg-[#121214] border border-[#333] text-[#E0E0E0] text-xs rounded-lg focus:ring-amber-500 focus:border-amber-500 block p-3 outline-none font-mono resize-none h-24 shadow-inner" 
+                               placeholder="eyJhbGciOiJSUzI1NiIsInR5cCI... cole o seu Token Assinado aqui">
+                           </textarea>
+                        </div>
+                        <p class="text-[10px] text-slate-500 mt-1">
+                           As chaves são emitidas e assinadas pelo Master Generator offline. A sua engine RAG as valida de forma Zero-Trust localmente em <code class="bg-[#18181B] px-1 rounded border border-[#222]">/v1/license/activate</code>.
+                        </p>
+                     </div>
+                     
+                     <div class="flex items-center gap-4 py-3 px-4 bg-[#18181B] border border-[#222] rounded-lg">
+                        <div class="flex-1">
+                           <p class="text-sm font-medium" :class="systemSettings.sensus_mode === 'enterprise' ? 'text-amber-400' : 'text-slate-300'">
+                              Status do Motor B2B Local
+                           </p>
+                           <p class="text-[10px] text-slate-500">Isto é apenas um reflexo visual no Banco SQLite. A poda arquitetural de rede (Amputação) só ocorre no Boot do Container FastAPI.</p>
+                        </div>
+                        <div class="flex p-1 bg-[#121214] border border-[#333] rounded-md">
+                           <button @click="systemSettings.sensus_mode = 'standard'" :class="systemSettings.sensus_mode === 'standard' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1 text-xs rounded transition-all font-medium">Standard</button>
+                           <button @click="systemSettings.sensus_mode = 'enterprise'" :class="systemSettings.sensus_mode === 'enterprise' ? 'bg-amber-600 text-white shadow ring-1 ring-amber-500' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1 text-xs rounded transition-all font-medium">Enterprise</button>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
 
       </div>
   </div>
