@@ -68,4 +68,7 @@ For enterprise and corporate SaaS scalability, a single Sovereign Pair instance 
 The architecture enforces strict **Tenant IDs** at the Vector Database level (`ChromaDB Metadata Filtering`). When querying the API, if User A asks a question, the Hybrid Retriever explicitly limits its mathematical search to documents ingested with User A's ID. 
 
 > [!WARNING]
-> If a developer connects to the Multi-Tenant RAG but hasn't uploaded any documents yet, the system degrades gracefully into a pure Conversational LLM (Sovereign Bypass), bypassing strict RAG failures.
+> If a developer connects to the Multi-Tenant RAG but hasn't uploaded any documents yet (0 Nodes), the LlamaIndex core library naturally aborts the stream and returns a traumatic `"Empty Response"` hardcoded string. To prevent this framework crash, Sovereign Pair natively intercepts the stream using the **Sovereign Bypass**. It captures the raw prompt and gracefully degrades into a pure Conversational flow sending it directly to the Bare-Metal LLM. Your SaaS will gracefully serve new Day-1 Users instead of returning blank errors.
+
+> [!NOTE] 🧬 **Living Code: Failure Containment Engineering (SHA: `94bfb2f`)**
+> ▫️ **Sovereign Bypass (LlamaIndex Core Bug Killer):** `src/api/routes.py`
