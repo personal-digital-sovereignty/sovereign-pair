@@ -16,6 +16,10 @@ Ela fornece "endpoints" síncronos e assíncronos pesadamente otimizados para We
 > [!WARNING]
 > Devido às severas leis restritivas da física de se inferir modelos locais hiperpesados usando placas de redes Mesh P2P, a resposta da IA **NÃO será em milissegundos**. Chamadas Webhook convencionais disparadas pelo nó HTTP do N8N podem demorar aterrorizantes 3 minutos para receber a string inteira formatada. Modifique obrigatoriamente as configurações Timeout "Timeout Configuration" do seu N8N para sumariamente ignorar o clássico *Drop/Abortamento* padrão de 60 Segundos. 
 
+> [!NOTE] 🧬 **Código Vivo: Endpoints FastAPI (SHA: `94bfb2f`)**
+> ▫️ **Controlador Core de Webhooks:** `src/api/routes.py`
+> ▫️ **Inicializador da Aplicação:** `src/api/main.py`
+
 ---
 
 ## 2. A Integração do Contexto Nativo: Anthropic MCP
@@ -49,3 +53,7 @@ Da exata contagem do momento que sua IDE liga as antenas de conexão com o `mcp_
 > **Acelerador Juniores (Glossário Rápido):**
 > Compare APIs API tradicionais com as famosas e velhas Placas de Wi-fi pings infinitos de "Lá e Cá", vulneráveis na Rede Interna LAN ou abertas pra nuvem AWS.
 > Agora, imagine e visualize o Protocolo **Anthropic MCP (Stdio)** literamente como o bom, velho, rústico e indestrutível **Cabo Físico USB**. Ao invés do Cursor disparar pings pra Open-AI via Web (HTTP), você enfia esse cabo da IA invisível do HD direto na "Tomada USB" imaginária do VSCode e ela lê seus diretórios de código numa simbiose de memória RAM intransponível a ataques DoS.
+
+> [!NOTE] 🧬 **Código Vivo: O Servidor Anthropic MCP (SHA: `94bfb2f`)**
+> ▫️ **Motor de IPC local (Stdio Server):** `src/mcp_stdio.py`
+> ▫️ **Config do Assistente (OpenCode/Cline):** `cline_mcp_settings.json`

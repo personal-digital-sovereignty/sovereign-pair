@@ -16,6 +16,10 @@ It provides synchronous and asynchronous endpoints optimized for standard webhoo
 > [!WARNING]
 > Due to the physical limitations of executing 7B parameter models on mid-tier hardware, standard HTTP webhook requests from N8N might take up to 3 minutes to return a response. Ensure your HTTP nodes are configured to ignore standard 60-second timeouts.
 
+> [!NOTE] 🧬 **Living Code: FastAPI Endpoints (SHA: `94bfb2f`)**
+> ▫️ **Core Webhook Controller:** `src/api/routes.py`
+> ▫️ **Application Init:** `src/api/main.py`
+
 ---
 
 ## 2. Model Context Protocol (MCP) Integration
@@ -48,3 +52,7 @@ Once the IDE connects to the `mcp_stdio.py` engine:
 > [!TIP]
 > **Junior Hacker Fast-Track:**
 > Think of MCP as a USB cable for AI. Instead of opening a web browser (HTTP) to ask ChatGPT a question, you plug the AI "cable" directly into your VSCode. Now the AI can read your code folders, search your local Vector Database, and write files for you, without ever sending your company's code to the cloud.
+
+> [!NOTE] 🧬 **Living Code: The Anthropic MCP Server (SHA: `94bfb2f`)**
+> ▫️ **Local IPC Engine (Stdio Server):** `src/mcp_stdio.py`
+> ▫️ **Assistant Client Config (Cline):** `cline_mcp_settings.json`

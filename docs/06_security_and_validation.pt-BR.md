@@ -12,6 +12,9 @@ Absolutamente cada fatia fracionada textual matemática (Cada Chunk do RAG) inte
 
 Se o Agente The Sentinel cheirar e detectar mínimas anomalias linguísticas obscuras, metainstruções contraditórias ao Root da IA, ou descarrilamentos severos estúpidos embutidos no PDF e nos textos Markdown (Injections), ele dropa e extermina a conexão síncrona/assíncrona na hora em `< 200ms` e confina o IP / V-UUID do usuário ofensor numa geladeira de Quarentena eterna.
 
+> [!NOTE] 🧬 **Código Vivo: A Sentinela Zero-Trust (SHA: `94bfb2f`)**
+> ▫️ **Scanner Anti-Injeção:** `src/core/the_sentinel.py`
+
 ---
 
 ## 2. A Esteira de Engenharia de Validação (CI/CD Quality Gates)
@@ -31,6 +34,12 @@ Nós utilizamos o framework estrito da biblioteca `unittest.mock` do núcleo Pyt
 ### 2.3 Fronteiras e Muros Visuais Absolutos (Demolidor Físico Playwright)
 Para validar o complexo e titânico motor físico orbital de navegação front-end renderizado em Tela por trás da API, atiramos de bazuca nos componentes usando navegadores Headless (Fantasma) guiados pela mão da biblioteca pesada **Playwright**.
 - **O Objetivo Sólido:** Providenciar cobertura empírica garantindo que o motor espacial 3D não irá onerar severamente a renderização na V8 Engine do navegador (Ex: travamento crônico e queda contínua de Quadros por Segundo/FPS) perante a manipulação massiva do layout virtual desenhando acima de 5.000 nós de Markdown na interface simultaneamente. Nós testamos estresse de CSS Grid dinâmico englobando variadas resoluções verticais (1080p) até Workstations corporativas densas (Monitores Ultra Wide e 4K) para atestar a fluidez da experiência para o usuário nas variadas pontas arquiteturais.
+
+> [!NOTE] 🧬 **Código Vivo: Engenharia de Qualidade (CI/CD) (SHA: `94bfb2f`)**
+> ▫️ **Muralha SAST (Semgrep Python):** `.github/workflows/devsecops.yml`
+> ▫️ **Simulação de Inferência (Mocking):** `tests/unit/` & `tests/integration/`
+> ▫️ **Estresse E2E de UX:** `tests/e2e/` (Playwright)
+> ▫️ **Gatilho de Pipeline Git (Root):** `scripts/run_regression.sh`
 
 > [!TIP]
 > **Acelerador Juniores (Fast-Track Mental):**

@@ -12,6 +12,10 @@ O projeto ignora os arquivos `.env` passivamente no controle de versão (Git) pa
 | `EMBED_MODEL` | Vetorização Matemática | `bge-m3` | O motor puramente responsável por transmutar texto em um hiper-espaço de 1024 dimensões focado em suporte Multilingual de altíssima fidelidade. **Trade-off Físico de Velocidade:** Se a sua operação demandar ingestão agressivamente rápida em hardware local (Ex: Laptops robustos com Ryzen 7 5800H + 32GB RAM empurrada por ZRAM em ArchLinux), você pode deliberadamente fazer downgrade para a engine `nomic-embed-text` (768 dimensões). Ela é comprovadamente ~3x mais rápida inserindo PDFs no banco, contudo sofre um forte viés para o Idioma Inglês, perdendo o "mapa cognitivo real" em textos nativos em Português. Atenção SRE: O modelo de *Embedding* **nunca** deve ser substituído rodando após a criação inicial do ChromaDB, pois a malha colapsará. |
 | `REQUEST_TIMEOUT` | Rede do Servidor | `120.0` | Suba este limite incondicionalmente para generosos `300.0` (5 Minutos) para hardwares que rodam Placas de Vídeo (RTXs/Ryzen) sofrendo em triturações de limite, ou se seu API Orquestrador for uma instância fraca Oracle A1 ARM. |
 
+> [!NOTE] 🧬 **Código Vivo: Variáveis de Ambiente e Engine Builder (SHA: `94bfb2f`)**
+> ▫️ **Parametrização Passiva Pydantic:** `src/api/config.py`
+> ▫️ **Loaders Físicos (Llama/BGE-M3):** `src/engine_builder.py`
+
 ### 1.2 Customização Parametrizada de Identidade
 O Sovereign Pair adapta nativamente o seu *System Prompt* (A Personalidade Atuante Sub-consciente) com base nas configurações da conta. 
 | Variável | Injeção no Prompt de Sistema |
@@ -52,3 +56,6 @@ python src/ingest.py
    2) É o Primeiríssimo dia (Day 1 User) de um novo "Inquilino/Tenant" conectando na Engine corporativa RAG N8N Sovereign e seu Banco de Cérebro/Vector, e obviamente, está Limpo e Zerado.
    Para tentar economizar de forma cega no tráfego dos servidores Open-AI de tokens de texto (Custos Cloud), a lib do Llama original trava a Roda (Wheel) e chuta de volta um retorno forjado grotesco escrito String Puro: `"Empty Response"`, ao invés de prosseguir o fluxo encaminhando a pergunta natural ao LLM junto do System Prompt/Engine isolados para te responder cordialmente e conversar como gente fina.
 - **A Resolução Corporativa Final (Bypass Soberano):** O Projeto Sovereign Pair é mais brutal. Criou-se um Overrider oficial, explícito como **Sovereign Bypass** ancorado pesadamente na rota Principal (`routes.py`). Se a poderosa e robusta Engine esmurrar um falso `"Empty Response"` gerado artificialmente pela Llama-Index, Nossa API agarra pelo colarinho na hora antes do Stream falhar. Instancia e Intercepta o formato custom do Histórico de Memória Chat antigo da API juntamente do System Prompt completo da Personagem. Ao juntar essas "Duas Bolas Mágicas", despacha diretamente a consulta *Conversacional Local Unificada* por trás do retreiver pesado de vetores, metralhando o *construtor Base-Foundation Bare Metal (`_llm`)* de Categoria Crua em um *Fallback* Gracioso, restaurando e revigorando totalmente o sistema ao retornar IA com vida Pura à tela N8N para Inquilinos Novatos ("Dia 1"). Você jamais lerá um `Empty Output`.
+
+> [!NOTE] 🧬 **Código Vivo: O Sovereign Bypass (Dia Zero) (SHA: `94bfb2f`)**
+> ▫️ **Interceptador RAG Restituidor:** `src/api/routes.py` (Endpoint `/v1/chat/completions`)

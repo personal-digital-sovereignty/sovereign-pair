@@ -11,6 +11,10 @@ When a new Markdown or PDF document enters the Vault (`/data/vault/`), the engin
 3.  **Embedding (`bge-m3`):** Each text chunk is mathematically converted into a 1024-dimensional coordinate, crossing language barriers smoothly. 
 4.  **Vector Storage:** The embeddings are saved into `ChromaDB`.
 
+> [!NOTE] 🧬 **Living Code: Vector Ingestion Furnace (SHA: `94bfb2f`)**
+> ▫️ **Chunking Core Loop:** `src/ingest.py`
+> ▫️ **File Watchdog/Observer:** `src/core/watcher.py`
+
 ---
 
 ## 2. The Hybrid Search (Vector + BM25)
@@ -26,6 +30,9 @@ A pure mathematical search often fails with hyper-specific names like `"Error Co
 > [!TIP]
 > **Junior Hacker Fast-Track:**
 > RAG (Retrieval-Augmented Generation) is essentially giving the AI an open-book test. Instead of answering from memory, the AI searches your private folders, copies the relevant paragraphs, pastes them into an invisible prompt, and then summarizes the answer for you.
+
+> [!NOTE] 🧬 **Living Code: Lexical-Vectorial Fusion Engine (SHA: `94bfb2f`)**
+> ▫️ **The Hybrid Retriever (BM25 + Semantic Search):** `src/rag/hybrid_retriever.py`
 
 ---
 

@@ -12,6 +12,10 @@ The project completely ignores environment files in version control for Zero-Tru
 | `EMBED_MODEL` | Vectorization | `bge-m3` | Responsible for mapping text into a 1024-dimensional mathematical hyper-space with deep Multilingual cognitive support. **Hardware Trade-off:** If you require extreme ingestion speed on mid-tier local hardware (e.g., Ryzen 7 5800H + 32GB RAM routing ZRAM on ArchLinux), you can downgrade to `nomic-embed-text` (768 dimensions). It is ~3x faster but heavily English-biased, forcing the system to lose cross-lingual indexing accuracy. The *Embedding* model must **never** be altered after ChromaDB is spun up, or it will corrupt the entire database structure entirely. |
 | `REQUEST_TIMEOUT` | Networking | `120.0` | Set to `300.0` for *On-Premises Hardware* doing heavy workloads, or when hosting the API on sluggish Oracle A1 OCPUs. |
 
+> [!NOTE] 🧬 **Living Code: Environment Config Matrix (SHA: `94bfb2f`)**
+> ▫️ **Pydantic Validation Node:** `src/api/config.py`
+> ▫️ **Model Builders (Llama/BGE-M3):** `src/engine_builder.py`
+
 ### 1.2 Parameterized Identity Customization
 Sovereign Pair natively adapts its *System Prompt* based on your configuration. 
 | Variable | Usage and System Prompt Injection |
@@ -48,3 +52,6 @@ python src/ingest.py
 
 - **Incident:** By design, LlamaIndex's `CondensePlusContextChatEngine` (and its native async synthesizers) aborts the LLM generation process if the vector retriever finds exactly `0` nodes matching the query (e.g., a new tenant with an empty database, or very strict query metadata filters). To save arbitrary compute costs, the original library hardcodes an `"Empty Response"` string instead of forwarding the System Prompt and User Query to the LLM. 
 - **Engineering Resolution (Sovereign Bypass):** Sovereign Pair explicitly overrides this behavior via a "Sovereign Bypass" in the `routes.py` Chat endpoint. If the engine yields an artificial `"Empty Response"`, the API intercepts the stream, manually formats the Chat History and System Prompt, and dispatches a direct conversational query against the bare `_llm` foundation class. This completely preserves the AI's ability to converse naturally with Day 1 users even without RAG context, degrading gracefully instead of crashing.
+
+> [!NOTE] 🧬 **Living Code: The Sovereign Bypass Engine (SHA: `94bfb2f`)**
+> ▫️ **RAG Fallback Interceptor:** `src/api/routes.py` (`/v1/chat/completions` Endpoint)

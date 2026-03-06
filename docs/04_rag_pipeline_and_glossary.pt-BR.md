@@ -11,6 +11,10 @@ Quando um novo livro em Markdown ou PDF é descartado dentro do Cofre (`/data/va
 3.  **Embedding (`bge-m3`):** Cada fatia fatiada crua de texto é violentamente convertida matematicamente para um plano Cartesiano em uma rede geométrica gigantesca com 1024 dimensões de flutuação vetorial, garantindo que o Cérebro não sofra com viés de barreira de idioma entre textos nativos Python, Inglês e Manuais em Português. 
 4.  **Vector Storage:** Esses números brutos indecifráveis para humanos são injetados no banco de dados imortal `ChromaDB`.
 
+> [!NOTE] 🧬 **Código Vivo: A Fornalha de Ingestão (SHA: `94bfb2f`)**
+> ▫️ **Processador de Chunking Vetorial:** `src/ingest.py`
+> ▫️ **Vigia de Arquivos Fisicos (Vault Watchdog):** `src/core/watcher.py`
+
 ---
 
 ## 2. A Busca Híbrida Brutal (Vector Math + BM25)
@@ -26,6 +30,9 @@ A Matemática Espacial Dimensional às vezes é "burra" e enxerga sentido amplo 
 > [!TIP]
 > **Acelerador Juniores (Glossário Rápido):**
 > RAG (Retrieval-Augmented Generation) não é um super-computador criando pensamentos novos divinos. É essencialmente dar à IA preguiçosa o direito inalienável de fazer uma "Prova com Consulta Livro Aberto". Ao invés de forçá-la a ter alucinações e inventar dados inexistentes para te agradar, a aplicação Sovereign Pausa, silencia a IA, escava os PDFs nos meandros das suas pastas secretas privativas `/vault/`, extrai os 3 parágrafos fundamentais brilhantes sobre o assunto, e cola-os de forma invisível no Chat dentro de um bloco gigantesco para ensinar a Inteligência Artificial, mandando-a agir, basear-se unicamente nas evidências do "papel invisível", e cuspir um resumo elegante formatado para você de volta. Simples e devastador.
+
+> [!NOTE] 🧬 **Código Vivo: Fusão Lexical-Vetorial (SHA: `94bfb2f`)**
+> ▫️ **The Hybrid Retriever (BM25 + RAG Semantic):** `src/rag/hybrid_retriever.py`
 
 ---
 
