@@ -45,7 +45,7 @@ Sovereign Pair relies on a Mesh VPN (e.g., **Tailscale** or ZeroTier) to act as 
 
 ### The Cloud Orchestrator (A1 Flex ARM)
 - **Role:** Text parsing, Webhook bridging, UI hosting.
-- **Limit:** Absolutely incapable of running local LLM inference or `nomic-embed` dense calculation matrices in acceptable time limits.
+- **Limit:** Absolutely incapable of running local LLM inference or `bge-m3` dense calculation matrices in acceptable time limits.
 - **Config:** A 16,000 token system prompt takes < 200ms to parse through FastAPI.
 
 ### The Inference Node (x86_64 Ryzen / RTX)
