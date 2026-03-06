@@ -18,13 +18,13 @@ Toda a pilha tecnológica (Stack) é containerizada. Não existe dependência f�
 
 > [!TIP]
 > **Acelerador Juniores (Glossário Rápido):**
-> *Docker* é apenas uma "caixa mágica". Em vez de baixar Node.JS, Python, Postgres e dezenas de bibliotecas no seu Windows/Linux (e inevitavelmente quebrar o seu PC todo misturando versões em um update maldito seis meses depois), o Docker roda um mini-PC para cada serviço de forma isolada e segura. Para o seu PC, eles não existem. Para rodar a arquitetura inteira corporativa abaixo, você só precisa digitar `docker-compose up -d`. O terminal fará a magia.
+> *Docker* é apenas uma "caixa mágica". Em vez de baixar Node.JS, Python, Postgres e dezenas de bibliotecas no seu Windows/Linux (e inevitavelmente enfrentar dores de cabeça com versões conflitantes em um update no futuro), o Docker roda um mini-PC para cada serviço de forma isolada e segura. Para o seu PC, eles não existem. Para rodar a arquitetura inteira corporativa abaixo, você só precisa digitar `docker-compose up -d`. O terminal fará a magia.
 
 ---
 
 ## 2. Redes de Confiança Zero (Zero-Trust) e Gatekeepers
 
-Ao implantar a aplicação na Internet selvagem (como num Servidor Oracle Cloud padrão), **nunca** abra ou exponha as portas `8000` (API), `5678` (N8N) ou `8000` (Banco Chroma) para a rede pública (IGW / WAN). Um scanner Russo ou Chinês automatizado descobrirá sua porta aberta em 27 minutos após o primeiro Boot e sequestrará seu banco de dados com Ransomware.
+Ao implantar a aplicação na Internet selvagem (como num Servidor Oracle Cloud padrão), **nunca** abra ou exponha as portas `8000` (API), `5678` (N8N) ou `8000` (Banco Chroma) para a rede pública (IGW / WAN). Relatórios de telemetria de Honeypots cibernéticos (como os dados da SANS Internet Storm Center e da Palo Alto Networks) demonstram consistentemente que scanners automatizados descobrem IPs expostos e portas padrão em questão de minutos após o primeiro Boot, podendo sequestrar o seu banco de dados com Ransomware.
 
 O Sovereign Pair descansa sobre uma VPN Mesh (Hardware Peer-to-Peer, como **Tailscale** ou ZeroTier) que age como *Gatekeeper* criptográfico invisível.
 
