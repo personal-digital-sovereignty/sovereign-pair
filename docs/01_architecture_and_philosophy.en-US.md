@@ -15,6 +15,10 @@ Sovereign Pair is a **production-ready Multi-Agent System** that connects your f
 > **Junior Hacker Fast-Track:**
 > Read the entire documentation not just as a manual, but as an architectural masterclass. If something looks complex, check the glossary boxes. We built this to scale for Enterprise companies without losing the "garage hacker" soul.
 
+> [!NOTE] 🧬 **Living Code: Sovereign Gateway (SHA: `94bfb2f`)**
+> ▫️ **Frontend Vault UI:** `web-ui/src/views/VaultView.vue`
+> ▫️ **FastAPI Gateway:** `src/api/routes.py`
+
 ---
 
 ## 2. The *Cybrid* (Cyber-Hybrid) Topology
@@ -32,6 +36,11 @@ Instead of forcing a user to either buy a $10,000 GPU server *or* rent a Cloud V
 > *   **RAG (Retrieval-Augmented Generation):** A fancy term for giving the AI an open book. Instead of relying on what the AI learned during its training months ago, RAG searches your local folders, extracts relevant text, and appends it to your prompt so the AI can read your *live* context before replying.
 > *   **Vector Database (ChromaDB):** An engine that stores text as mathematical coordinates (embeddings). If you ask "How to deploy?", it mathematically finds paragraphs sitting near the coordinates of "deployment" and "servers".
 
+> [!NOTE] 🧬 **Living Code: Cybrid Topology (SHA: `94bfb2f`)**
+> ▫️ **Zero-Cost Oracle Cloud Bridge:** `docker-compose.n8n.yml`
+> ▫️ **Multi-Container Local Network:** `docker-compose.yml`
+> ▫️ **Tailscale mTLS Loopback:** `.env.example` (`OLLAMA_BASE_URL` config target)
+
 ---
 
 ## 3. The Multi-Agent Cognitive Hierarchy
@@ -44,6 +53,14 @@ Sovereign Pair is not just a single chatbot. It is a hierarchical hospital of sp
 4.  **The Coder:** An executioner agent specialized strictly in code refactoring and syntax, built to compete with top-tier commercial generative assistants.
 5.  **The Accountant:** A rigid math-engine parser that double-checks numeric outputs to prevent classic LLM calculation hallucinations.
 6.  **The Mom / The Dad:** System watchers. Background routines that organize your files, ingest newly dropped markdown documents into the Vector DB automatically, and keep the system alive.
+
+> [!NOTE] 🧬 **Living Code: Cognitive Hierarchy Classes (SHA: `94bfb2f`)**
+> ▫️ **Agent Base Schema:** `src/agent.py`
+> ▫️ **The Sentinel (Zero-Trust Security):** `src/core/the_sentinel.py`
+> ▫️ **The Mom & The Dad (Vector Ingestion Engine):** `src/core/the_mom.py` & `src/core/the_dad.py`
+> ▫️ **The Nurse (Semantic Fast-Router):** `src/core/the_nurse.py`
+> ▫️ **The Doctor (CoT Deep Reasoning):** `src/core/the_doctor.py`
+> ▫️ **The Accountant (Numeric Auditor):** `src/core/the_accountant.py`
 
 ## 4. Multi-Tenant Architecture
 

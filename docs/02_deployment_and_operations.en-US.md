@@ -20,6 +20,11 @@ The entire stack is containerized. No host dependencies are required beyond Dock
 > **Junior Hacker Fast-Track:**
 > *Docker* is just a magical box. Instead of installing Python, Postgres, Redis, and dozens of libraries on your PC (and inevitably breaking an update), Docker runs a mini-computer for each service safely inside a locked box. To start the entire infrastructure, you only type `docker-compose up -d`.
 
+> [!NOTE] 🧬 **Living Code: Container Orchestration (SHA: `94bfb2f`)**
+> ▫️ **N8N Cloud Topology:** `docker-compose.n8n.yml`
+> ▫️ **Local Backend Topology:** `docker-compose.yml`
+> ▫️ **Containers (Dockerfiles):** `Dockerfile.api` & `Dockerfile.web`
+
 ---
 
 ## 2. Zero-Trust Networking (The Gatekeeper)
@@ -47,6 +52,10 @@ Sovereign Pair relies on a Mesh VPN (e.g., **Tailscale** or ZeroTier) to act as 
 - **Role:** Remote worker purely offloaded to execute heavy neural/cognitive loads (`Ollama`). It acts as the predictive mind for high-level agents (The Doctor / The Coder).
 - **Limit:** Being an ARM architecture without GPUs/NPUs, it strictly requires `ZRAM` (high-compression Linux swap) to handle 24GB+ of Heavy Quantized Models without kernel panics.
 - **Config:** Achieves validated engineering metrics of ~6.3 Tokens/Second running dense code models (e.g., `qwen2.5-coder:7b`).
+
+> [!NOTE] 🧬 **Living Code: Cloud Setup & Local Optimization (SHA: `94bfb2f`)**
+> ▫️ **OCI Terraform Scripts:** `infra/terraform/`
+> ▫️ **Hardware Tuning Bash:** `scripts/optimize_ollama_ryzen.sh`
 
 ### The Vault Orchestrator (Physical PC / Home Laptop)
 - **Role:** The Zero-Trust Fortress. Fiercely guards your PDFs ("Sensus Vault"), ChromaDB Vector index, and executes standard HTTP/RAG logic (FastAPI, N8N).

@@ -12,6 +12,9 @@ Every single text chunk intercepted by the RAG Router passes through the Sentine
 
 If the Sentinel detects linguistic anomalies, injection attempts, or severe topic derailment, it drops the connection instantly and quarantines the offending UUID.
 
+> [!NOTE] 🧬 **Living Code: Zero-Trust Quarantine (SHA: `94bfb2f`)**
+> ▫️ **Anti-Injection Scanner:** `src/core/the_sentinel.py`
+
 ---
 
 ## 2. Validation Pipelines (CI/CD Quality Gates)
@@ -31,6 +34,12 @@ We utilize the strict framework of Python's core `unittest.mock` library coupled
 ### 2.3 End-to-End Visual Boundaries (Playwright)
 To validate the complex orbital physical engine of the frontend UI, we deploy headless browser instances guided by the **Playwright** library.
 - **Goal:** Provide empirical coverage ensuring the 3D spatial engine will not severely tax browser V8 Engine rendering (e.g., chronic locking and continuous FPS drops in Chrome) during massive automated virtual layout manipulation drawing over 5,000 Markdown nodes simultaneously. We stress-test dynamic CSS Grid spanning from vertical resolutions (1080p) up to dense corporate Workstations (Ultra Wide and 4K monitors) to guarantee a fluid user experience across various architectural endpoints.
+
+> [!NOTE] 🧬 **Living Code: CI/CD Quality Gates (SHA: `94bfb2f`)**
+> ▫️ **SAST CI Pipeline:** `.github/workflows/devsecops.yml`
+> ▫️ **Mocked Inference Unit:** `tests/unit/` & `tests/integration/`
+> ▫️ **Playwright Visual E2E:** `tests/e2e/`
+> ▫️ **Git Pre-flight Trigger:** `scripts/run_regression.sh`
 
 > [!TIP]
 > **Junior Hacker Fast-Track:**

@@ -20,6 +20,11 @@ Toda a pilha tecnológica (Stack) é containerizada. Não existe dependência f�
 > **Acelerador Juniores (Glossário Rápido):**
 > *Docker* é apenas uma "caixa mágica". Em vez de baixar Node.JS, Python, Postgres e dezenas de bibliotecas no seu Windows/Linux (e inevitavelmente enfrentar dores de cabeça com versões conflitantes em um update no futuro), o Docker roda um mini-PC para cada serviço de forma isolada e segura. Para o seu PC, eles não existem. Para rodar a arquitetura inteira corporativa abaixo, você só precisa digitar `docker-compose up -d`. O terminal fará a magia.
 
+> [!NOTE] 🧬 **Código Vivo: A Orquestração de Contêineres (SHA: `94bfb2f`)**
+> ▫️ **Topologia de Nuvem N8N:** `docker-compose.n8n.yml`
+> ▫️ **Topologia de Backend Local:** `docker-compose.yml`
+> ▫️ **Containers (Dockerfile):** `Dockerfile.api` & `Dockerfile.web`
+
 ---
 
 ## 2. Redes de Confiança Zero (Zero-Trust) e Gatekeepers
@@ -47,6 +52,10 @@ O Sovereign Pair descansa sobre uma VPN Mesh (Hardware Peer-to-Peer, como **Tail
 - **O Papel:** Trabalhador remoto puramente terceirizado para executar o pesado fardo cognitivo neural (`Ollama` isolado). É a mente preditiva de agentes de alto-nível arquitetural ("The Doctor / The Coder"). 
 - **O Limite:** Por ser uma arquitetura ARM de 4 OCPUs e não possuir placas gráficas NPU/CUDA, depende violentamente da alocação via manipulação de kernel `ZRAM` (Swap de alta compressão no Linux) para engolir 24GB+ de Modelos de Pesos Quantizados sem fundir a memória RAM.
 - **A Operação:** Consegue tracionar métricas de engenharia validadas de ~6.3 Tokens por Segundo rodando modelos ágeis de código pesado (Ex: `qwen2.5-coder:7b`).
+
+> [!NOTE] 🧬 **Código Vivo: Setup Cloud e Otimização Local (SHA: `94bfb2f`)**
+> ▫️ **Scripts OCI Terraform:** `infra/terraform/`
+> ▫️ **Scripts de Ajuste (Linux Hardware):** `scripts/optimize_ollama_ryzen.sh`
 
 ### O Nó Cofre/Orquestrador (PC Físico / Laptop Ryzen em Casa)
 - **O Papel:** A Fortaleza Zero-Trust. Guarda com unhas e dentes seus PDFs ("Sensus Vault"), seu banco vetorial ChromaDB e executa as malhas de Lógicas base em HTTP (N8N e FastAPI). 

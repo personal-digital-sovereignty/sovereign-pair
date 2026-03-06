@@ -15,6 +15,10 @@ O Sovereign Pair é um **Sistema Multi-Agentes pronto para Produção** que cone
 > **Acelerador Juniores (Glossário Rápido):**
 > Leia toda a documentação não apenas como um manual, mas como uma *Masterclass* de Arquitetura. Se algo parecer complexo, confira as caixas de glossário! Nós construímos este projeto para escalar para dentro de empresas Enterprise (Mundo Corporativo), sem jamais perder a "alma de garagem" hacker.
 
+> [!NOTE] 🧬 **Código Vivo: A Porta de Entrada (SHA: `94bfb2f`)**
+> ▫️ **Front-End Espacial (Sensus Vault):** `web-ui/src/views/VaultView.vue`
+> ▫️ **API Gateway (FastAPI):** `src/api/routes.py`
+
 ---
 
 ## 2. A Topologia Cíbrida (*Cybrid*)
@@ -32,6 +36,11 @@ Ao invés de obrigar um desenvolvedor (ou uma empresa) a comprar um servidor GGU
 > *   **RAG (Retrieval-Augmented Generation):** Um termo chique para "Dar à IA um livro aberto". Ao invés de forçar a máquina a lembrar de algo que estudou no treinamento há 2 anos, o RAG abre as pastas do seu PC, acha o arquivo correto, extrai o parágrafo da resposta e anexa na sua pergunta para a IA *ler ao vivo* antes de te responder.
 > *   **Banco de Dados Vetorial (Vector DB):** Um motor incrível que transforma textos em posições matemáticas em um espaço 3D (embeddings). O `ChromaDB` não caça palavras-chave como um `Ctrl+F` normal da sua IDE; ele caça maticamente intenções próximas na coordenada de um plano cartesiano hiper-dimensional. 
 
+> [!NOTE] 🧬 **Código Vivo: Topologia Cíbrida (SHA: `94bfb2f`)**
+> ▫️ **Ponte em Nuvem Oracle (Zero Cost):** `docker-compose.n8n.yml`
+> ▫️ **Rede Local Multi-Container:** `docker-compose.yml`
+> ▫️ **Malha Tailscale Mesh (Bind LLM):** `.env.example` (Configuração `OLLAMA_BASE_URL`)
+
 ---
 
 ## 3. A Hierarquia Cognitiva Multi-Agente
@@ -44,6 +53,14 @@ O Sovereign Pair não é apenas um chatbot estúpido em loop infinito. É um hos
 4.  **The Doctor (Motor de Raciocínio LangGraph/MCP):** O gênio estrutural. Quebra a lógica multi-step, pesquisa na web, puxa seus arquivos locais nativos num protocolo unificado de contexto e raciocina antes de balbuciar bobagem textual preditiva.
 5.  **The Coder:** O Executor Cíbrido isolado e especializado estritamente na gramática de sintaxe e limpeza de refatoração para competir em altíssimo nível de produtividade dev nativa com as principais IAs de codificação de mercado.
 6.  **The Accountant:** Um motor determinístico e inflexível que revisa todas as saídas brutas aritméticas de LLMs (A IA costuma ser péssima em matemática por ser apenas completadora de texto baseada em porcentagens gramaticais). O Contador refaz e corrige para uso Enterprise Corporativo. 
+
+> [!NOTE] 🧬 **Código Vivo: A Hierarquia Cognitiva Pura (SHA: `94bfb2f`)**
+> ▫️ **Classe Base de Agente:** `src/agent.py`
+> ▫️ **The Sentinel (Zero-Trust/Segurança):** `src/core/the_sentinel.py`
+> ▫️ **The Mom & The Dad (Motor de Ingestão Vetorial):** `src/core/the_mom.py` & `src/core/the_dad.py`
+> ▫️ **The Nurse (Roteamento Semântico):** `src/core/the_nurse.py`
+> ▫️ **The Doctor (Raciocínio LangGraph/MCP Profundo):** `src/core/the_doctor.py`
+> ▫️ **The Accountant (Auditoria Numérica):** `src/core/the_accountant.py`
 
 ## 4. Multi-Tenant Avançado (Empresas)
 
