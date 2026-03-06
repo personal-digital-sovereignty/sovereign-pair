@@ -9,7 +9,7 @@ The project completely ignores environment files in version control for Zero-Tru
 |---|---|---|---|
 | `OLLAMA_BASE_URL` | Network | `http://localhost:11434` | If operated remotely on a *Local Node* over a Tailscale mesh, use the private Tailnet IPv4 (E.g., `http://100.x.x.x:11434`). Remember to configure `OLLAMA_HOST="0.0.0.0"` on the target hardware daemon. |
 | `LLM_MODEL` | Inference | `qwen2.5:0.5b` | Defines the primary reasoning weight. The chosen model must be previously injected into the Docker/Daemon cache via `ollama pull [name]`. |
-| `EMBED_MODEL` | Vectorization | `nomic-embed-text` | Responsible for mapping text into a 768-dimensional mathematical hyper-space. The *Embedding* model must **never** be altered after ChromaDB is spun up, otherwise, coordinates will mismatch and corrupt the entire database. |
+| `EMBED_MODEL` | Vectorization | `bge-m3` | Responsible for mapping text into a 1024-dimensional mathematical hyper-space with deep Multilingual cognitive support. **Hardware Trade-off:** If you require extreme ingestion speed on mid-tier local hardware (e.g., Ryzen 7 5800H + 32GB RAM routing ZRAM on ArchLinux), you can downgrade to `nomic-embed-text` (768 dimensions). It is ~3x faster but heavily English-biased, forcing the system to lose cross-lingual indexing accuracy. The *Embedding* model must **never** be altered after ChromaDB is spun up, or it will corrupt the entire database structure entirely. |
 | `REQUEST_TIMEOUT` | Networking | `120.0` | Set to `300.0` for *On-Premises Hardware* doing heavy workloads, or when hosting the API on sluggish Oracle A1 OCPUs. |
 
 ### 1.2 Parameterized Identity Customization

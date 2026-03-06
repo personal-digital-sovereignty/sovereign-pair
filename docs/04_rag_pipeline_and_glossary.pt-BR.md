@@ -8,7 +8,7 @@ Quando um novo livro em Markdown ou PDF é descartado dentro do Cofre (`/data/va
 
 1.  **Parsing (Descascamento):** O LlamaParse OCR ou os roteadores Nativos Python arracam o fundo HTML e os códigos de formatação inúteis da página, deixando o TXT nu.
 2.  **Chunking (`CHUNK_SIZE` e `CHUNK_OVERLAP`):** É humanamente impossível forçar um LLM (como o ChatGPT ou o Llama) a ler um livro de 800 páginas simultaneamente no Prompt. O motor utiliza uma janela infinita deslizante de texto. Ele fatia cirurgicamente as páginas do seu Livro em *"Chunks"* de exatamente 1024 Tokens (palavras curtas e sílabas). Detalhe Sênior: Ele programa uma sobreposição intencional de "200 Tokens" entre a Fatia A e a Fatia B da página. Isso garante rigorosamente que a IA não sofra lobotomia perdendo o real sentido do parágrafo, caso a lâmina do fatiamento decida cortar a explicação de um conceito denso cruelmente no meio de uma frase.
-3.  **Embedding (`nomic-embed-text`):** Cada fatia fatiada crua de texto é violentamente convertida matematicamente para um plano Cartesiano em uma rede geométrica gigantesca com 768 dimensões de flutuação vetorial. 
+3.  **Embedding (`bge-m3`):** Cada fatia fatiada crua de texto é violentamente convertida matematicamente para um plano Cartesiano em uma rede geométrica gigantesca com 1024 dimensões de flutuação vetorial, garantindo que o Cérebro não sofra com viés de barreira de idioma entre textos nativos Python, Inglês e Manuais em Português. 
 4.  **Vector Storage:** Esses números brutos indecifráveis para humanos são injetados no banco de dados imortal `ChromaDB`.
 
 ---

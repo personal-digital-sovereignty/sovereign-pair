@@ -45,7 +45,7 @@ O Sovereign Pair descansa sobre uma VPN Mesh (Hardware Peer-to-Peer, como **Tail
 
 ### O Orquestrador em Nuvem (OCI ARM A1 Flex OCPU)
 - **O Papel:** Interpretações HTTP pesadas (Text parsing rápido), pontes de Webhooks e Hospedagem de UI de Vue.JS.
-- **O Limite:** Inteiramente e comicamente incompetente e incapaz de realizar qualquer cálculo de Inferência Local `nomic-embed`, `cuda` de rede neural em qualquer tempo razoável por não possuir NPU (Neural Processing Unit).
+- **O Limite:** Inteiramente e comicamente incompetente e incapaz de realizar qualquer cálculo de Inferência Local vetorial densa interlinguagem (`bge-m3`), memórias `cuda` ou de rede neural em qualquer tempo razoável por não possuir NPU (Neural Processing Unit).
 - **A Operação:** Cospem e analisam Sistema de Prompts gigantescos (ex: 16 mil tokens do `The Doctor`) pela rede da FastAPI em menos de `< 200 milissegundos`.
 
 ### O Nó de Cérebro/Inferência (PC de Casa / Xeon Server x86_64 Ryzen / RTX)

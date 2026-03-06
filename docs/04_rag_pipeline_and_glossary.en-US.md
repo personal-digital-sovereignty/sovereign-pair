@@ -8,7 +8,7 @@ When a new Markdown or PDF document enters the Vault (`/data/vault/`), the engin
 
 1.  **Parsing:** The `LlamaParse` routing or Python markdown parsers strip raw HTML and format codes, leaving naked text.
 2.  **Chunking (`CHUNK_SIZE` and `CHUNK_OVERLAP`):** It is impossible to feed a 500-page book into an LLM simultaneously. The engine uses a rolling window. It cuts the text into chunks of 1024 tokens (words/syllables) each. It leaves an overlap of 200 tokens between Chunk A and Chunk B so the AI doesn't lose the context of a sentence split in half.
-3.  **Embedding (`nomic-embed-text`):** Each text chunk is mathematically converted into a 768-dimensional coordinate. 
+3.  **Embedding (`bge-m3`):** Each text chunk is mathematically converted into a 1024-dimensional coordinate, crossing language barriers smoothly. 
 4.  **Vector Storage:** The embeddings are saved into `ChromaDB`.
 
 ---
