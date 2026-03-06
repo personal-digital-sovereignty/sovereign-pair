@@ -25,6 +25,9 @@ Sovereign Pair natively adapts its *System Prompt* based on your configuration.
 | `LANGUAGE` | Regulates syntax output. Force `Português do Brasil` or `US English` to suppress the natural volatility of multilingual LLM Models answering in random languages. |
 | `OCCUPATION` | Formats technical jargon. E.g., `Senior SRE` forces the machine to adopt an elevated, ruthless technical tone. |
 
+> [!NOTE] 🧬 **Living Code: The Identity Forge (SHA: `94bfb2f`)**
+> ▫️ **System Prompt Factory:** Function `build_chat_engine()` inside `src/engine_builder.py`. It dynamically merges these DB variables into the LLM logic at runtime.
+
 ---
 
 ## 2. SRE Runbook for ChromaDB Collapses
@@ -44,6 +47,9 @@ rm data/.ingestion_history.json
 python src/ingest.py 
 ```
 
+> [!NOTE] 🧬 **Living Code: Math Reconstruction Engine (SHA: `94bfb2f`)**
+> ▫️ **Vector Healing Script:** The core logic inside `src/ingest.py` (Handles parsing and deduplication across Chroma).
+
 ---
 
 ## 3. LlamaIndex "Empty Response" Silencing (RAG Miss Bypass)
@@ -54,4 +60,5 @@ python src/ingest.py
 - **Engineering Resolution (Sovereign Bypass):** Sovereign Pair explicitly overrides this behavior via a "Sovereign Bypass" in the `routes.py` Chat endpoint. If the engine yields an artificial `"Empty Response"`, the API intercepts the stream, manually formats the Chat History and System Prompt, and dispatches a direct conversational query against the bare `_llm` foundation class. This completely preserves the AI's ability to converse naturally with Day 1 users even without RAG context, degrading gracefully instead of crashing.
 
 > [!NOTE] 🧬 **Living Code: The Sovereign Bypass Engine (SHA: `94bfb2f`)**
-> ▫️ **RAG Fallback Interceptor:** `src/api/routes.py` (`/v1/chat/completions` Endpoint)
+> ▫️ **RAG Escape Valve:** Structural conditional block `if full_ai_response.strip() == "Empty Response":` inside `src/api/routes.py`.
+> ▫️ **Root Cause & Reference:** Known rigid "By Design" behaviors in standard `LlamaIndex` OpenSource classes to prevent infinite blank streams. We force-inject a fallback `engine._llm.astream_chat()` hook to save the conversation.

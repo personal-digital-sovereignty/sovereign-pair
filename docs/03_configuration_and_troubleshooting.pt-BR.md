@@ -25,6 +25,9 @@ O Sovereign Pair adapta nativamente o seu *System Prompt* (A Personalidade Atuan
 | `LANGUAGE` | Regula estritamente a gramática e semântica de saída. Force `Português do Brasil` ou `US English` na marreta aqui para impedir a volatilidade linguística natural de LLMs que às vezes sofrem para "entender" e "responder" no mesmo idioma da requisição técnica N8N ou Front-End. |
 | `OCCUPATION` | Formata o jargão profissional. Ex: se você preencher com `Senior SRE DevOps Engineer`, obriga e força psicologicamente o LLM a tratar os assuntos de Docker, Tailscale e Linux com um tom ríspido, técnico e elevado, podando explicações excessivamente "leigas". |
 
+> [!NOTE] 🧬 **Código Vivo: A Forja da Identidade Dinâmica (SHA: `94bfb2f`)**
+> ▫️ **Fábrica do System Prompt:** Função `build_chat_engine()` dentro de `src/engine_builder.py`. Ela puxa esses parâmetros e os mescla em tempo de execução junto do Histórico SQLite antes de despachar a Inferência.
+
 ---
 
 ## 2. Runbook (Guia de Sobrevivência SRE) para Colapsos do ChromaDB
@@ -45,6 +48,9 @@ rm data/.ingestion_history.json
 python src/ingest.py 
 ```
 
+> [!NOTE] 🧬 **Código Vivo: Reconstrução Matemática (SHA: `94bfb2f`)**
+> ▫️ **Script de Cura Vetorial:** Motor principal no arquivo `src/ingest.py` (Lida com a limpeza das pastas limpas e recarrega os IDs faltantes).
+
 ---
 
 ## 3. O Silenciamento Assassino do LlamaIndex ("Empty Response" Bug)
@@ -58,4 +64,5 @@ python src/ingest.py
 - **A Resolução Corporativa Final (Bypass Soberano):** O Projeto Sovereign Pair é mais brutal. Criou-se um Overrider oficial, explícito como **Sovereign Bypass** ancorado pesadamente na rota Principal (`routes.py`). Se a poderosa e robusta Engine esmurrar um falso `"Empty Response"` gerado artificialmente pela Llama-Index, Nossa API agarra pelo colarinho na hora antes do Stream falhar. Instancia e Intercepta o formato custom do Histórico de Memória Chat antigo da API juntamente do System Prompt completo da Personagem. Ao juntar essas "Duas Bolas Mágicas", despacha diretamente a consulta *Conversacional Local Unificada* por trás do retreiver pesado de vetores, metralhando o *construtor Base-Foundation Bare Metal (`_llm`)* de Categoria Crua em um *Fallback* Gracioso, restaurando e revigorando totalmente o sistema ao retornar IA com vida Pura à tela N8N para Inquilinos Novatos ("Dia 1"). Você jamais lerá um `Empty Output`.
 
 > [!NOTE] 🧬 **Código Vivo: O Sovereign Bypass (Dia Zero) (SHA: `94bfb2f`)**
-> ▫️ **Interceptador RAG Restituidor:** `src/api/routes.py` (Endpoint `/v1/chat/completions`)
+> ▫️ **Válvula de Escape RAG:** Bloco condicional estrutural `if full_ai_response.strip() == "Empty Response":` dentro de `src/api/routes.py`.
+> ▫️ **Causa Raiz e Link de Referência Aberta:** Comportamento conhecido (By Design) em classes nativas da biblioteca `LlamaIndex` para estancar gastos Cloud em Vectors vazios. O Nosso "Bypass" religa a Mente do LLM diretamente pelo fundo `engine._llm.astream_chat(messages_to_send)`.
