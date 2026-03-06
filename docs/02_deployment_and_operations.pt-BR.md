@@ -29,12 +29,12 @@ Ao implantar a aplicação na Internet selvagem (como num Servidor Oracle Cloud 
 O Sovereign Pair descansa sobre uma VPN Mesh (Hardware Peer-to-Peer, como **Tailscale** ou ZeroTier) que age como *Gatekeeper* criptográfico invisível.
 
 ### 2.1 A Conexão Cíbrida (Da Nuvem para Casa)
-1. Instale o Tailscale no seu Servidor Nuvem Oracle (O Orquestrador).
-2. Instale o Tailscale no seu Desktop Gamer em Casa/Escritório (O Nó de Inferência c/ a Placa de Vídeo).
+1. Instale o Tailscale no seu Servidor Nuvem Oracle (O Nó de Computação Preditiva ARM).
+2. Instale o Tailscale no seu Desktop/Laptop em Casa/Escritório (O Cofre Orquestrador com seus arquivos nativos).
 3. Após fazer login com o mesmo e-mail, ambas receberão um IP Privado da rede profunda P2P iniciado com `100.x.x.x`.
 4. No arquivo `docker-compose.yml` da sua Nuvem, amarre (faça o Bind) das portas **estritamente** naquele IP seguro.
-   * *Exemplo:* `ports: ["100.x.x.x:8000:8000"]`
-5. Como o N8N está rodando na Nuvem e o seu Llama/Ollama de 15GB está físico no conforto da sua casa consumindo sua eletricidade, altere o arquivo `.env` da Nuvem setando a variável `OLLAMA_BASE_URL` para apontar cravado pro IP do Tailscale do seu PC Físico de Casa (`http://100.y.y.y:11434`).
+   * *Exemplo:* `ports: ["100.x.x.x:11434:11434"]`
+5. Como todo o motor central do projeto (FastAPI, N8N, ChromaDB, Sensus Vault) reside de forma hiper-segura trancafiado **dentro da sua Máquina Física Local**, para evitar drenar sua bateria com AI pesada, você irá terceirizar a computação. Altere o arquivo `.env` do seu PC Local setando a variável `OLLAMA_BASE_URL` para apontar cravado pro IP do Tailscale da Nuvem Oracle (`http://100.y.y.y:11434`).
 
 > [!WARNING]
 > Hackers Corporativos atencão: Por segurança brutal de fábrica, o daemon/aplicativo do `ollama` instalado em computadores normais atende apenas a porta "Localhost 127.0.0.1". Se a sua Nuvem bater na porta de casa, o PC rejeita. Você é OBRIGADO a configurar o Ollama de casa para ser acessível globalmente inserindo a variável extra `OLLAMA_HOST=0.0.0.0 ollama serve`. E, você **só fará isso** se o roteador do seu quarto não tiver essa porta configurada para Forwarding no seu Roteador, ou seu modem da provedora ISP tiver firewalls rígidos. Senão a vizinhança na rua conversará com sua IA. O Tailscale já resolverá o roteamento de NAT.
@@ -43,17 +43,15 @@ O Sovereign Pair descansa sobre uma VPN Mesh (Hardware Peer-to-Peer, como **Tail
 
 ## 3. Limites Físicos de Inferência de Hardware (Trade-offs Corporativos)
 
-### O Orquestrador em Nuvem (OCI ARM A1 Flex OCPU)
-- **O Papel:** Interpretações HTTP pesadas (Text parsing rápido), pontes de Webhooks e Hospedagem de UI de Vue.JS.
-- **O Limite:** Inteiramente e comicamente incompetente e incapaz de realizar qualquer cálculo de Inferência Local vetorial densa interlinguagem (`bge-m3`), memórias `cuda` ou de rede neural em qualquer tempo razoável por não possuir NPU (Neural Processing Unit).
-- **A Operação:** Cospem e analisam Sistema de Prompts gigantescos (ex: 16 mil tokens do `The Doctor`) pela rede da FastAPI em menos de `< 200 milissegundos`.
+### O Nó de Computação (Oracle OCI ARM A1 Flex OCPU)
+- **O Papel:** Trabalhador remoto puramente terceirizado para executar o pesado fardo cognitivo neural (`Ollama` isolado). É a mente preditiva de agentes de alto-nível arquitetural ("The Doctor / The Coder"). 
+- **O Limite:** Por ser uma arquitetura ARM de 4 OCPUs e não possuir placas gráficas NPU/CUDA, depende violentamente da alocação via manipulação de kernel `ZRAM` (Swap de alta compressão no Linux) para engolir 24GB+ de Modelos de Pesos Quantizados sem fundir a memória RAM.
+- **A Operação:** Consegue tracionar métricas de engenharia validadas de ~6.3 Tokens por Segundo rodando modelos ágeis de código pesado (Ex: `qwen2.5-coder:7b`).
 
-### O Nó de Cérebro/Inferência (PC de Casa / Xeon Server x86_64 Ryzen / RTX)
-- **O Papel:** Rodar cálculos brutos puramente pesados e caríssimos (`Ollama` em rede isolada).
-- **O Limite:** Físicamente emparedado e agrilhoado ao ÚNICO tamanho da memória VRAM que você tem dinheiro pra comprar.
-- **A Operação:** 
-   - *Se as restrições orçamentárias de Hardware forem altas (8GB a 12GB VRAM Ex: RTX 3060/4060):* Recomenda-se a adoção de modelos altamente otimizados e Quantizados, como o eficiente `qwen2.5:0.5b` (Roda em dispositivos móveis modernos), `llama3.2:1b` ou os eficientes da Mistral/Google (Gemma).
-   - *Se houver robustez Corporativa/Enterprise (24GB a 48GB VRAM Ex: RTX 3090/4090 ou MAC Studios M2 Max Ultra de 128GB unificado):* O sistema ganha tração para processar modelos titânicos próximos do estado-da-arte (Ex: `llama-3-70b-instruct`) com janelas contextuais massivas, garantindo raciocínio denso e analítico sem condensação severa.
+### O Nó Cofre/Orquestrador (PC Físico / Laptop Ryzen em Casa)
+- **O Papel:** A Fortaleza Zero-Trust. Guarda com unhas e dentes seus PDFs ("Sensus Vault"), seu banco vetorial ChromaDB e executa as malhas de Lógicas base em HTTP (N8N e FastAPI). 
+- **O Limite:** O objetivo final é manter a performance intocada sem estrangulamento. Rodar Agentes de Inteligência Artificial em background (Deamon Local de Ollama) mata a massa de memória RAM útil para a sua IDE/Browser e drena cruelmente baterias de Workstations Mobile.
+- **A Operação:** Racionaliza as buscas nativas locais de Banco RAG e de arquivos com rapidez impecável, puxando da Malha da Nuvem OCI ARM APENAS durante a resolução real de algoritmicidade de linguagem para poupar vida útil do computador físico.
 
 > [!NOTE]
 > Regra de ouro: Arquiteturas de Orquestração costumam derrubar chamadas de webhooks que demoram após 2 minutos de forma genérica para evitar sobrecarga de memória do Windows (o famoso Axios Timeout). Assim... se o Servidor da Nuvem chamar seu PC Gamer velhinho, e ele demorar 4 minutos matutando pra cuspir o Parágrafo do OLLAMA e enviar, a Nuvem já mandou seu PC pastar. Para contornar e resolver esta limitação arquitetural, nós injetamos um limite superior elástico passivo no back-end (Variável `REQUEST_TIMEOUT="300.0"`). Isso impõe e obriga o servidor Nuvem do N8N a aguardar pacientemente pelo processamento do LLM Local por até 5 minutos, sem travar e sem retornar falhas assíncronas de `500 Internal Server Error`. Abrace o tempo de inferência do Local-First.
