@@ -29,12 +29,12 @@ When deploying on the public internet (like an Oracle Cloud VPS), **never** expo
 Sovereign Pair relies on a Mesh VPN (e.g., **Tailscale** or ZeroTier) to act as a cryptographic gatekeeper. 
 
 ### 2.1 The Cybrid Connection (Cloud to Home)
-1. Install Tailscale on the Oracle VPS (Orchestrator).
-2. Install Tailscale on your Home PC (Inference Node / GPU).
+1. Install Tailscale on the Oracle VPS (The ARM Inference Node).
+2. Install Tailscale on your Home PC/Laptop (The Vault Orchestrator).
 3. Both machines will receive a private `100.x.x.x` IPv4 address.
 4. In your VPS `docker-compose.yml`, bind the exposed ports strictly to the Tailnet IP.
-   * *Example:* `ports: ["100.x.x.x:8000:8000"]`
-5. Since the N8N instance is on the VPS and your heavy Ollama model is at home, set your `.env` `OLLAMA_BASE_URL` to point to your Home PC's Tailscale IP (`http://100.y.y.y:11434`).
+   * *Example:* `ports: ["100.x.x.x:11434:11434"]`
+5. Since the exact core of the project (Sensus Vault, API, N8N, ChromaDB) lives hyper-securely inside your **Physical Local Machine**, you will offload heavy LLM computation to the cloud to save laptop battery. Edit your local PC's `.env`, setting `OLLAMA_BASE_URL` to point to the Oracle VPS Tailscale IP (`http://100.y.y.y:11434`).
 
 > [!WARNING]
 > By default, the `ollama` daemon binds to `127.0.0.1` (localhost). It will reject connections from the Cloud Orchestrator. You must configure Ollama on your home PC to bind globally by executing `OLLAMA_HOST=0.0.0.0 ollama serve`. Do this **ONLY** if your Home PC's physical router blocks incoming external traffic.
@@ -43,17 +43,15 @@ Sovereign Pair relies on a Mesh VPN (e.g., **Tailscale** or ZeroTier) to act as 
 
 ## 3. Hardware Inferencing Limits (Trade-offs)
 
-### The Cloud Orchestrator (A1 Flex ARM)
-- **Role:** Text parsing, Webhook bridging, UI hosting.
-- **Limit:** Absolutely incapable of running local LLM inference or `bge-m3` dense calculation matrices in acceptable time limits.
-- **Config:** A 16,000 token system prompt takes < 200ms to parse through FastAPI.
+### The Cloud Inference Node (OCI ARM A1 Flex OCPU)
+- **Role:** Remote worker purely offloaded to execute heavy neural/cognitive loads (`Ollama`). It acts as the predictive mind for high-level agents (The Doctor / The Coder).
+- **Limit:** Being an ARM architecture without GPUs/NPUs, it strictly requires `ZRAM` (high-compression Linux swap) to handle 24GB+ of Heavy Quantized Models without kernel panics.
+- **Config:** Achieves validated engineering metrics of ~6.3 Tokens/Second running dense code models (e.g., `qwen2.5-coder:7b`).
 
-### The Inference Node (x86_64 Ryzen / RTX)
-- **Role:** Deep Neural Networking (`Ollama`).
-- **Limit:** Bound by VRAM (Graphics Card RAM) or System RAM.
-- **Config:** 
-   - *8GB VRAM:* Stick to quantized models like `qwen2.5:0.5b` or `llama3.2:3b`.
-   - *24GB VRAM (RTX 3090/4090):* Capable of running massive 70B parameter models (e.g., `llama-3-70b-instruct`) with substantial context lengths for profound reasoning.
+### The Vault Orchestrator (Physical PC / Home Laptop)
+- **Role:** The Zero-Trust Fortress. Fiercely guards your PDFs ("Sensus Vault"), ChromaDB Vector index, and executes standard HTTP/RAG logic (FastAPI, N8N).
+- **Limit:** Designed to preserve local battery and IDE performance. Running AI background daemons constantly on your development machine drains resources brutally.
+- **Config:** Quickly ingests and retrieves data locally, only parsing the text inference securely through the Cloud Tailscale mesh when reasoning is inherently needed, sparing your physical GPU.
 
 > [!NOTE]
 > If a developer connects the Sovereign API to a weak hardware node and the LLM takes 4 minutes to generate a response, the N8N HTTP Request node (or a typical browser) will drop the connection via an `Axios Timeout`. To mitigate this, we inject an absolute upper limit of `REQUEST_TIMEOUT="300.0"` in our API logic. It ensures the Orhcestrator explicitly waits 5 minutes before throwing a `500 Internal Server Error`.
