@@ -144,6 +144,11 @@ Thumbs.db
 .env.backup*
 *.env.backup
 
+# Bancos de Dados SQLite Relacionais (Sovereign Memory)
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
 # Dados de ingestão (documentos privados do usuário)
 data/raw_docs/
 data/vault/
