@@ -44,6 +44,9 @@ O Sovereign Pair descansa sobre uma VPN Mesh (Hardware Peer-to-Peer, como **Tail
 > [!WARNING]
 > Hackers Corporativos atencão: Por segurança brutal de fábrica, o daemon/aplicativo do `ollama` instalado em computadores normais atende apenas a porta "Localhost 127.0.0.1". Se a sua Nuvem bater na porta de casa, o PC rejeita. Você é OBRIGADO a configurar o Ollama de casa para ser acessível globalmente inserindo a variável extra `OLLAMA_HOST=0.0.0.0 ollama serve`. E, você **só fará isso** se o roteador do seu quarto não tiver essa porta configurada para Forwarding no seu Roteador, ou seu modem da provedora ISP tiver firewalls rígidos. Senão a vizinhança na rua conversará com sua IA. O Tailscale já resolverá o roteamento de NAT.
 
+> [!NOTE] 🧬 **Código Vivo: O Motor e o Gatekeeper (SHA: `94bfb2f`)**
+> ▫️ **Vínculo Cíbrido de Raciocínio LLM:** `OLLAMA_BASE_URL` (no seu arquivo `.env` físico)
+
 ---
 
 ## 3. Limites Físicos de Inferência de Hardware (Trade-offs Corporativos)
@@ -61,6 +64,11 @@ O Sovereign Pair descansa sobre uma VPN Mesh (Hardware Peer-to-Peer, como **Tail
 - **O Papel:** A Fortaleza Zero-Trust. Guarda com unhas e dentes seus PDFs ("Sensus Vault"), seu banco vetorial ChromaDB e executa as malhas de Lógicas base em HTTP (N8N e FastAPI). 
 - **O Limite:** O objetivo final é manter a performance intocada sem estrangulamento. Rodar Agentes de Inteligência Artificial em background (Deamon Local de Ollama) mata a massa de memória RAM útil para a sua IDE/Browser e drena cruelmente baterias de Workstations Mobile.
 - **A Operação:** Racionaliza as buscas nativas locais de Banco RAG e de arquivos com rapidez impecável, puxando da Malha da Nuvem OCI ARM APENAS durante a resolução real de algoritmicidade de linguagem para poupar vida útil do computador físico.
+
+> [!NOTE] 🧬 **Código Vivo: A Alma do Orquestrador (SHA: `94bfb2f`)**
+> ▫️ **Espinha Dorsal HTTP:** `src/api/main.py` (FastAPI)
+> ▫️ **Memória Espacial:** Diretórios `data/chroma_db/` e `data/vault/`
+> ▫️ **Motores de Estado N8N:** Containers nativos `redis` e `postgres`
 
 > [!NOTE]
 > Regra de ouro: Arquiteturas de Orquestração costumam derrubar chamadas de webhooks que demoram após 2 minutos de forma genérica para evitar sobrecarga de memória do Windows (o famoso Axios Timeout). Assim... se o Servidor da Nuvem chamar seu PC Gamer velhinho, e ele demorar 4 minutos matutando pra cuspir o Parágrafo do OLLAMA e enviar, a Nuvem já mandou seu PC pastar. Para contornar e resolver esta limitação arquitetural, nós injetamos um limite superior elástico passivo no back-end (Variável `REQUEST_TIMEOUT="300.0"`). Isso impõe e obriga o servidor Nuvem do N8N a aguardar pacientemente pelo processamento do LLM Local por até 5 minutos, sem travar e sem retornar falhas assíncronas de `500 Internal Server Error`. Abrace o tempo de inferência do Local-First.

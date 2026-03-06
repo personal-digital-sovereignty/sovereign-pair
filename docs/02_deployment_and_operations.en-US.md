@@ -44,6 +44,9 @@ Sovereign Pair relies on a Mesh VPN (e.g., **Tailscale** or ZeroTier) to act as 
 > [!WARNING]
 > By default, the `ollama` daemon binds to `127.0.0.1` (localhost). It will reject connections from the Cloud Orchestrator. You must configure Ollama on your home PC to bind globally by executing `OLLAMA_HOST=0.0.0.0 ollama serve`. Do this **ONLY** if your Home PC's physical router blocks incoming external traffic.
 
+> [!NOTE] 🧬 **Living Code: The Engine and Gatekeeper (SHA: `94bfb2f`)**
+> ▫️ **Cybrid Inference Link:** `OLLAMA_BASE_URL` (in your physical `.env` file)
+
 ---
 
 ## 3. Hardware Inferencing Limits (Trade-offs)
@@ -61,6 +64,11 @@ Sovereign Pair relies on a Mesh VPN (e.g., **Tailscale** or ZeroTier) to act as 
 - **Role:** The Zero-Trust Fortress. Fiercely guards your PDFs ("Sensus Vault"), ChromaDB Vector index, and executes standard HTTP/RAG logic (FastAPI, N8N).
 - **Limit:** Designed to preserve local battery and IDE performance. Running AI background daemons constantly on your development machine drains resources brutally.
 - **Config:** Quickly ingests and retrieves data locally, only parsing the text inference securely through the Cloud Tailscale mesh when reasoning is inherently needed, sparing your physical GPU.
+
+> [!NOTE] 🧬 **Living Code: The Soul of the Orchestrator (SHA: `94bfb2f`)**
+> ▫️ **HTTP Backbone:** `src/api/main.py` (FastAPI)
+> ▫️ **Spatial Memory:** `data/chroma_db/` and `data/vault/` directories
+> ▫️ **N8N State Engines:** Native `redis` and `postgres` containers
 
 > [!NOTE]
 > If a developer connects the Sovereign API to a weak hardware node and the LLM takes 4 minutes to generate a response, the N8N HTTP Request node (or a typical browser) will drop the connection via an `Axios Timeout`. To mitigate this, we inject an absolute upper limit of `REQUEST_TIMEOUT="300.0"` in our API logic. It ensures the Orhcestrator explicitly waits 5 minutes before throwing a `500 Internal Server Error`.
