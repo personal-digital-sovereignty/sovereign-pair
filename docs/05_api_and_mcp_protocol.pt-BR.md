@@ -16,9 +16,10 @@ Ela fornece "endpoints" síncronos e assíncronos pesadamente otimizados para We
 > [!WARNING]
 > Devido às severas leis restritivas da física de se inferir modelos locais hiperpesados usando placas de redes Mesh P2P, a resposta da IA **NÃO será em milissegundos**. Chamadas Webhook convencionais disparadas pelo nó HTTP do N8N podem demorar aterrorizantes 3 minutos para receber a string inteira formatada. Modifique obrigatoriamente as configurações Timeout "Timeout Configuration" do seu N8N para sumariamente ignorar o clássico *Drop/Abortamento* padrão de 60 Segundos. 
 
-> [!NOTE] 🧬 **Código Vivo: Endpoints FastAPI (SHA: `94bfb2f`)**
+> [!NOTE] 🧬 **Código Vivo: A Rota REST Completa (SHA: `94bfb2f`)**
 > ▫️ **Controlador Core de Webhooks:** `src/api/routes.py`
 > ▫️ **Inicializador da Aplicação:** `src/api/main.py`
+> ▫️ **Dashboard Visão-Mestre (Vue.js):** Engrenado primariamente em `src/ui/`
 
 ---
 
@@ -27,7 +28,7 @@ Ela fornece "endpoints" síncronos e assíncronos pesadamente otimizados para We
 A arquitetura original baseada em LangGraph (que mantinha grafos complexos e inflexíveis presos à nuvem) foi substituída para expor nativamente as engrenagens de raciocínio profundo dos seus Agentes (*The Doctor*, *The Nurse*, *The Coder*) através do protocolo aberto **Model Context Protocol (MCP)** da Anthropic. O atrativo primário e de marketing dessa virada de chave é claro: Ao invés de isolar a inteligência no terminal da aplicação RAG, o ecossistema transforma o seu back-end inteiro num poderoso "Módulo de Expansão de Habilidades", que se acopla ativamente como um cordão umbilical inteligente nas IDEs corporativas mais modernas (VSCode, Cursor, projetos baseados no Cline, e nosso vindouro projeto próprio *OpenCode*).
 
 ### 2.1. Soberania Absoluta Cíbrida (Zero Internet Local-First)
-Diferente das requisições via Internet com APIs Web REST convencionais que podem, eventualmente, vazar pacotes interceptáveis na rede via ataques de *Sniffing*, o esquema bruto de acoplamento do MCP corre debaixo do túnel local engatado exclusivamente por **Stdio** (Standard Input/Output) de Comunicação Inter-Processos (IPC). A sua IDE cria uma ponte cega de Soquete dentro da memória RAM local. O seu precioso código arquitetural corporativo **jamais pisará roteado num pacote de rede**. O ambiente torna-se Zero-Trust inviolável.
+Diferente das requisições via Internet com APIs Web REST convencionais que podem, eventualmente, vazar pacotes interceptáveis na rede via ataques de *Sniffing*, o esquema bruto de acoplamento do MCP corre debaixo do túnel local engatado exclusivamente por **Stdio** (Standard Input/Output) de Comunicação Inter-Processos (IPC). A sua IDE cria uma ponte cega de Soquete dentro da memória RAM local. O seu precioso código arquitetural corporativo **jamais pisará roteado num pacote de rede**. O ambiente torna-se Zero-Trust inviolável. **[Código Vivo: Camada IPC isolada em `src/mcp_stdio.py`]**
 
 ### 2.2. O Ritual de Acoplamento do Cliente IDE (OpenCode / VSCode)
 Para injetar o Cofre do Sovereign Pair inteiro no seu fluxo de trabalho de programação (Ex: Um Visual Studio Code integrado via OpenCode), utilize a configuração do Assistente Inteligente (conhecido mundialmente como *Cline* ou seus *Forks* derivados). Basta ajustar o arquivo `cline_mcp_settings.json` local da máquina anexando:
@@ -46,8 +47,8 @@ Para injetar o Cofre do Sovereign Pair inteiro no seu fluxo de trabalho de progr
 
 ### 2.3. Diferenças do Protocolo (Tools vs Resources)
 Da exata contagem do momento que sua IDE liga as antenas de conexão com o `mcp_stdio.py`, ocorre uma fusão vital:
-- **Ferramentas (Tools):** A IA rodando dentro da sua IDE ganha repentinamente superpoderes corporativos atrelados a funções programáveis em Python. Acionando a busca `sensus_vault_search`, o agente estúpido da IDE passa a escanear o banco vetorial do Sovereign ChromaDB no meio de uma tarefa CSS apenas para resgatar e consultar diretrizes de negócio vitais escondidas em um PDF de Requisitos.
-- **Recursos (Resources):** A IA acoplada ganha capacidade autônoma passiva e assombrosa para ler os subdiretórios blindados de Projetos do seu HD `Sensus Vault` e se enraízar com a filosofia do seu negócio ANTES de tentar gerar códigos genéricos pautados em alucinações enviesadas de plataformas SaaS externas da gringa.
+- **Ferramentas (Tools):** A IA rodando dentro da sua IDE ganha repentinamente superpoderes corporativos atrelados a funções programáveis em Python. Acionando a busca `sensus_vault_search`, o agente estúpido da IDE passa a escanear o banco vetorial do Sovereign ChromaDB no meio de uma tarefa CSS apenas para resgatar e consultar diretrizes de negócio vitais escondidas em um PDF de Requisitos. **[Código Vivo: Tool `@mcp.tool()` exportada]**
+- **Recursos (Resources):** A IA acoplada ganha capacidade autônoma passiva e assombrosa para ler os subdiretórios blindados de Projetos do seu HD `Sensus Vault` e se enraízar com a filosofia do seu negócio ANTES de tentar gerar códigos genéricos pautados em alucinações enviesadas de plataformas SaaS externas da gringa. **[Código Vivo: Passiva Operacional `@mcp.resource()`]**
 
 > [!TIP]
 > **Acelerador Juniores (Glossário Rápido):**
