@@ -8,7 +8,7 @@ echo "================================================="
 echo "🛡️ SOVEREIGN PAIR V4 - REGRESSION TEST SUITE 🛡️"
 echo "================================================="
 
-echo -e "\n[1/3] Validating Backend Engine (FastAPI & Models) 🚀"
+echo -e "\n[1/2] Validating Backend Engine, AI Agents & Routes (Pytest) 🚀"
 if [ ! -d ".venv" ]; then
     echo "ERROR: Virtual Environment (.venv) not found. Please activate it first."
     exit 1
@@ -16,10 +16,7 @@ fi
 source .venv/bin/activate
 PYTHONPATH=. pytest tests/ -v
 
-echo -e "\n[2/3] Validating Sovereign Agents (Logic & RAG) 🧠"
-PYTHONPATH=. pytest tests/test_agents.py -v
-
-echo -e "\n[3/3] Validating Web-UI Dom (Vue 3 Playwright) 🌐"
+echo -e "\n[2/2] Validating Web-UI Dom (Vue 3 Playwright) 🌐"
 cd web-ui
 npm run test:e2e
 cd ..
