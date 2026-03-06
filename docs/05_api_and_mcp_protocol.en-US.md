@@ -9,9 +9,9 @@ The primary entry point is the FastAPI application (`src/api/routes.py`), typica
 It provides synchronous and asynchronous endpoints optimized for standard webhooks. This is the **preferred method** when connecting Sovereign Pair to platforms like N8N, Make, or custom Vue.js frontends.
 
 ### 1.1 Key Endpoints
-- `POST /v1/chat/completions`: The main conversational route. Accepts OpenAI-compatible payload structures (`messages: []`). This route automatically triggers the **Sovereign RAG** pipeline (BM25 + Vector Search) and applies the "Sovereign Bypass" if no context is found.
-- `GET /v1/projects`: Scans the physical `Sensus Vault` directory and returns a JSON array of all currently ingested multi-tenant paths.
-- `POST /v1/sys/stats`: Returns telemetry (RAM, VRAM, Uptime) from the Inference Node.
+- `POST /v1/chat/completions`: The primary route and central cognitive engine. Accepts OpenAI-compatible payload structures (`messages: []`). This route automatically triggers the **Sovereign RAG** pipeline (BM25 + Vector Search) and applies the "Sovereign Bypass" to prevent system crashes on "Day Zero" (the exact moment of deployment when the ChromaDB vector store is still physically empty and no PDFs have been ingested).
+- `GET /v1/projects`: Scans the layout of the root `Sensus Vault` directory and returns a JSON array mapping the Project subdirectories. These act as unbreakable logical containers to isolate Multiple Tenants.
+- `POST /v1/sys/stats`: Consolidates and reports raw hardware telemetry (VRAM and OS memory consumption of the Inference Node), attesting to system robustness and Uptime.
 
 > [!WARNING]
 > Due to the physical limitations of executing 7B parameter models on mid-tier hardware, standard HTTP webhook requests from N8N might take up to 3 minutes to return a response. Ensure your HTTP nodes are configured to ignore standard 60-second timeouts.
@@ -20,13 +20,13 @@ It provides synchronous and asynchronous endpoints optimized for standard webhoo
 
 ## 2. Model Context Protocol (MCP) Integration
 
-Sovereign Pair natively exposes its internal engines (The Doctor, The Coder) and the `Sensus Vault` context through the open **Anthropic MCP Standard**. This capability transforms the backend into a "Local-First Cognitive Expansion Module" for corporate IDEs like VSCode, Cursor, and Cline (or OpenCode).
+The original LangGraph architecture (which trapped complex, inflexible graphs in the cloud API) was deprecated to natively expose the deep reasoning engines of its Agents (The Doctor, The Nurse, The Coder) through Anthropic's open **Model Context Protocol (MCP)**. The architectural and market appeal of this shift is clear: Instead of isolating intelligence within the RAG application's endpoint, it transforms the entire backend into a powerful "Skill Expansion Module". This umbilical cord dynamically plugs into modern corporate IDEs (VSCode, Cursor, Cline-based projects, and the upcoming *OpenCode* ecosystem).
 
 ### 2.1. Absolute Local-First Sovereignty
-Unlike REST APIs over HTTP, the MCP connection scheme operates strictly via **Stdio** (Standard Input/Output) Inter-Process Communication (IPC). The IDE initiates a silent, memory-based socket. Data **never traverses the network**, ensuring Zero-Trust code architecture. No tokens leak to the public internet.
+Unlike traditional Web REST APIs over HTTP—which can potentially leak packets interceptable via network *Sniffing* attacks—the MCP connection scheme operates strictly via **Stdio** (Standard Input/Output) Inter-Process Communication (IPC). The IDE initiates a blind socket bridge inside local RAM. Your proprietary corporate code architecture **will never traverse a routed network packet**, rendering the environment Zero-Trust and inviolable.
 
-### 2.2. IDE Client Setup (VSCode / Cline)
-To inject the Sovereign Vault directly into your coding workflow, append the following block to your IDE's MCP Configuration JSON (`settings.json` or Cline setup):
+### 2.2. IDE Client Setup (OpenCode / VSCode)
+To inject the Sovereign Vault directly into your coding workflow (e.g., a VSCode integrated via OpenCode), utilize the configuration of the AI Assistant (widely known as *Cline* or its derivative forks). Simply tweak the local `cline_mcp_settings.json` file by appending:
 
 ```json
 "mcpServers": {
@@ -42,8 +42,8 @@ To inject the Sovereign Vault directly into your coding workflow, append the fol
 
 ### 2.3. MCP Resources vs. Tools
 Once the IDE connects to the `mcp_stdio.py` engine:
-- **Resources:** The IDE can automatically command the AI to passively read any Markdown files stored inside your `Sensus Vault`. This grounds the AI in your company's proprietary architecture documents before it starts scaffolding code.
-- **Tools:** The IDE gains the ability to "call" functions in Sovereign Pair. For example, triggering the `sensus_vault_search` tool allows the IDE's LLM to dynamically semantic-search your Vector Database for specific business rules mid-conversation.
+- **Resources:** The coupled AI gains the astonishing passive ability to read the shielded Project subdirectories of your `Sensus Vault` and root itself in your business philosophy BEFORE attempting to scaffold generic boilerplate code based on biased hallucinations from external SaaS platforms.
+- **Tools:** The AI running inside your IDE suddenly gains corporate superpowers tied to programmable live Python functions. By calling the `sensus_vault_search` logic, the IDE's agent can scan the Sovereign ChromaDB vector store in the middle of a CSS task just to retrieve and consult vital business guidelines hidden within a legacy Requirements PDF.
 
 > [!TIP]
 > **Junior Hacker Fast-Track:**
