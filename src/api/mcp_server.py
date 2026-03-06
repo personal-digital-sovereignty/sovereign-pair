@@ -1,17 +1,15 @@
 import os
 import logging
-import json
 from fastapi import Request, Response
 
 from mcp.server import Server
 from mcp.server.sse import SseServerTransport
 from mcp.types import Tool, TextContent, Resource
+from src.config import VAULT_DIR
 
 logger = logging.getLogger(__name__)
 
 mcp_server = Server("sovereign-pair-mcp")
-
-from src.config import VAULT_DIR
 
 @mcp_server.list_resources()
 async def list_resources() -> list[Resource]:
