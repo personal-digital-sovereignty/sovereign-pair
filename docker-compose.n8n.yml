@@ -15,25 +15,27 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
-    command: ["redis-server", "--save", "", "--appendonly", "no"] # Pure In-Memory Mode (Zero I/O Cost)
+    command: [ "redis-server", "--save", "", "--appendonly", "no" ] # Pure In-Memory Mode (Zero I/O Cost)
     networks:
       - sovereign-net
     # A Porta 6379 NÃO é exportada pro host (0.0.0.0).
     # O Redis é acessível apenas internamente pela rede Docker para o N8N e a FastAPI.
 
-  # 2. Automation Engine (N8N)
+    # 2. Automation Engine (N8N)
   n8n:
-    image: docker.n8n.io/n8nio/n8n
+    image: n8nio/n8n:latest
     container_name: sovereign-n8n
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     environment:
-      - N8N_HOST=${N8N_HOST:-n8n.tailnet.ts.net}
+      - N8N_HOST=${N8N_HOST:-100.106.246.15}
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
       - NODE_ENV=production
-      - WEBHOOK_URL=http://${N8N_HOST:-n8n.tailnet.ts.net}/
+      - N8N_PATH=/n8n/
+      - N8N_SECURE_COOKIE=false
+      - WEBHOOK_URL=https://${N8N_HOST:-100.106.246.15}/n8n/
       # Timezone
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-America/Sao_Paulo}
       # Conexão com o Banco Postgres Principal (sovereign-db)
@@ -60,7 +62,8 @@ services:
 volumes:
   n8n_data:
 
-# Conecta na malha existente levantada pelo docker-compose.yml primário.
+    # Conecta na malha existente levantada pelo docker-compose.yml primário.
 networks:
   sovereign-net:
     external: true
+    name: sovereign-pair_sovereign-net
