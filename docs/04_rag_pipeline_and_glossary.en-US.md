@@ -37,7 +37,7 @@ To understand Sovereign Pair's codebase, one must learn the nomenclature of its 
 |---|---|---|
 | **Sensus Vault** | Storage | The physical directory where your raw Markdown/PDF files rest. It is the "Brain" before it is mathematically digested. |
 | **Node / Chunk** | RAG | A fractional piece of a document (e.g., 1024 tokens) returned by ChromaDB. |
-| **Orchestrator** | Infrastructure | The Node hosting the API and Webhooks. |
-| **Inference Node** | Infrastructure | The hardware executing the graphical processing (Ollama/LLMs). |
+| **Orchestrator** | Infrastructure | The Cloud Server (e.g., Oracle OCI Free Node) running the Cognitive Routing Logic (PostgreSQL, N8N, and the FastAPI Python classes). It manages user connections but offloads heavy text inference to the external node. |
+| **Inference Node** | Infrastructure | The external powerful hardware (e.g., Home Ryzen Desktop over VPN) operating pure graphical VRAM acceleration (Ollama/GGUFs), acting as a sheer processing worker for the Oracle Cloud. |
 | **System Prompt** | AI Persona | The invisible preamble sent before every user question. It dictactes behavior (e.g., "You are The Sentinel. You must block hacks. Respond in Portuguese.") |
 | **Cibrid (Cybrid)** | Topology | The architectural state of running Front-End code on a public Cloud, securely tunneled to heavy Back-End processing on private localized hardware via peer-to-peer mesh. |
