@@ -48,7 +48,6 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-      - /chroma/chroma
     security_opt:
       - no-new-privileges:true
     restart: always
@@ -141,8 +140,6 @@ services:
     ports:
       - "127.0.0.1:80:80"
       - "127.0.0.1:443:443"
-
-
 
 volumes:
   pgdata:

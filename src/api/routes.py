@@ -348,7 +348,7 @@ EXTREMA IMPORTÂNCIA:
                 sources = []
             else:
                 try:
-                    sys_engine = build_system_chat_engine(request.provider, request.model)
+                    sys_engine = build_system_chat_engine(body_request.provider, body_request.model)
                     if not sys_engine:
                         full_ai_response = "❌ Erro: O Motor de Sistema não pôde ser iniciado."
                         sources = []
@@ -378,22 +378,56 @@ EXTREMA IMPORTÂNCIA:
             return ChatResponse(response=full_ai_response, sources=sources)
             
         temp_sys_msg = None
-        if request.active_document:
+        active_doc = getattr(body_request, 'active_document', None)
+        if active_doc:
             from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
-            temp_sys_msg = LlamaMsg(role=MessageRole.USER, content=f"Aqui está o texto do meu documento ativo no Obsidian, APENAS CONSIDERE ele caso minha próxima pergunta tenha a ver com ele. NÃO invente informações se eu não perguntar:\n{request.active_document}")
+            temp_sys_msg = LlamaMsg(role=MessageRole.USER, content=f"Aqui está o texto do meu documento ativo no Obsidian, APENAS CONSIDERE ele caso minha próxima pergunta tenha a ver com ele. NÃO invente informações se eu não perguntar:\n{active_doc}")
             engine._memory.put(temp_sys_msg)
 
         try:
-            response = await engine.achat(request.message)
+            # Bugfix: LlamaIndex Ollama Returns 'Empty Response' in achat() with CondensePlusContext.
+            # Workaround: Use astream_chat and accumulate tokens.
+            chat_stream = await engine.astream_chat(body_request.message)
             
+            full_ai_response = ""
+            async for token in chat_stream.async_response_gen():
+                full_ai_response += token
+                
+            if not full_ai_response.strip():
+                full_ai_response = getattr(chat_stream, "response", str(chat_stream))
+                
+            source_nodes = getattr(chat_stream, "source_nodes", [])
+
+            # Bypass Absoluto: LlamaIndex Aborta e engole a request pro Ollama (Retornando "Empty Response")
+            # SE E SOMENTE SE a Vector/BM25 Retriever trouxer ZERO (0) arquivos do DB pra compor o contexto.
+            # Quando isso acontece, devemos invocar a IA diretamente extraindo a RAM bruta!
+            if full_ai_response.strip() == "Empty Response":
+                from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
+                
+                # Prepara o histórico + Mensagem nova bypassando o Synthesizer falho do LlamaIndex
+                history_msgs = engine._memory.get_all() if engine else []
+                sys_msg = LlamaMsg(role=MessageRole.SYSTEM, content=engine._system_prompt if hasattr(engine, '_system_prompt') else "Você é uma inteligência artificial assistente.")
+                
+                messages_to_send = [sys_msg] + history_msgs + [LlamaMsg(role=MessageRole.USER, content=body_request.message)]
+                
+                fallback_stream = await engine._llm.astream_chat(messages_to_send)
+                full_ai_response = ""
+                async for chunk in fallback_stream:
+                    if chunk.delta:
+                        full_ai_response += chunk.delta
+                
+                # Se AINDA SIM vier vazio, então era um erro real de tag/Ollama (404/500).
+                if not full_ai_response.strip():
+                     full_ai_response = f"❌ Erro Crítico Motor LLM: O modelo '{body_request.model}' não foi encontrado ou abortou a geração no Backend (Verifique a Tag do provedor, ex: 'qwen2.5:0.5b')."
+                else:
+                     source_nodes = [] # Limpa citações já que foi direto pro LLM
+
             # Gravar a mensagem da IA sincrona
-            full_ai_response = str(response)
             ai_msg_db = ChatMessage(session_id=session_obj.id, role="assistant", content=full_ai_response, tenant_id=tenant_id)
             db.add(ai_msg_db)
             db.commit()
             
             # Extrai fontes caso existam
-            source_nodes = getattr(response, "source_nodes", [])
             citations = []
             if source_nodes:
                 for node_w_score in source_nodes:
@@ -402,8 +436,12 @@ EXTREMA IMPORTÂNCIA:
                         citations.append(Citation(source=metadata["file_path"]))
                         
             return ChatResponse(response=full_ai_response, sources=citations)
+            
+        except Exception as e:
+            err_msg = f"❌ Exceção Crítica no Motor LLM ({body_request.provider}/{body_request.model}): {str(e)}"
+            return ChatResponse(response=err_msg, sources=[])
         finally:
-            if request.active_document and temp_sys_msg:
+            if getattr(body_request, 'active_document', None) and temp_sys_msg:
                 try:
                     all_history = engine._memory.get_all()
                     clean_history = [m for m in all_history if m.content != temp_sys_msg.content]

@@ -148,6 +148,7 @@ Thumbs.db
 data/raw_docs/
 data/vault/
 data/chromadb/
+data/sovereign.conf
 
 # Histórico de ingestão (contém paths absolutos)
 data/.ingestion_history.json
