@@ -1,0 +1,65 @@
+{
+    "name": "Sovereign Pair - RAG API Test",
+    "nodes": [
+        {
+            "parameters": {},
+            "name": "Start",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://api:8000/v1/chat",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer dev_bypass_token"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "{\n  \"message\": \"Olá Sovereign! Este é um teste sendo enviado diretamente do motor N8N via Webhook/HTTP Node na rede Cíbrida.\",\n  \"provider\": \"ollama\",\n  \"model\": \"qwen2.5\",\n  \"stream\": false\n}",
+                "options": {
+                    "timeout": 120000
+                }
+            },
+            "name": "Sovereign RAG API",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                450,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Start": {
+            "main": [
+                [
+                    {
+                        "node": "Sovereign RAG API",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "versionId": "f2868da5-15a0-4ff6-9bf3-772ebffb5ae3"
+}
