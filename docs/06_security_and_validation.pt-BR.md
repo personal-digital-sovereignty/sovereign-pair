@@ -13,7 +13,10 @@ Absolutamente cada fatia fracionada textual matemática (Cada Chunk do RAG) inte
 Se o Agente The Sentinel cheirar e detectar mínimas anomalias linguísticas obscuras, metainstruções contraditórias ao Root da IA, ou descarrilamentos severos estúpidos embutidos no PDF e nos textos Markdown (Injections), ele dropa e extermina a conexão síncrona/assíncrona na hora em `< 200ms` e confina o IP / V-UUID do usuário ofensor numa geladeira de Quarentena eterna.
 
 > [!NOTE] 🧬 **Código Vivo: A Sentinela Zero-Trust (SHA: `94bfb2f`)**
-> ▫️ **Scanner Anti-Injeção:** `src/core/the_sentinel.py`
+> ▫️ **Scanner Anti-Injeção:** `src/agents/the_sentinel.py`
+
+### 1.2 A Cirurgia Profunda de Histórico (Git Filter-Repo)
+O projeto Sovereign segue a diretriz absoluta de "Zero Hardcoding". Durante auditorias iniciais, identificou-se a inserção acidental de Chaves Básicas e dados sensíveis nos históricos de commits. Não basta apenas remover num commit normal; o vetor de ataque permanece visível no diário do Git para farejadores (Scrapers). A equipe SecOps precisou executar uma raspagem nuclear na árvore utilizando a ferramenta pesada `git-filter-repo`, obliterando a existência da credencial desde o primeiro dia de código, apagando o passado e provando que a governança de chaves é absoluta. **[Código Vivo: Operação de Expurgo Refletida nos meta-dados do `.git` raiz]**
 
 ---
 
@@ -24,22 +27,22 @@ Para garantir a integridade em nível Enterprise do Back-end FastAPI e do Front-
 ### 2.1 Teste de Segurança de Aplicação Estática (A Muralha SAST)
 Nós empregamos cirurgicamente o canhão `Semgrep` para paralisar e analisar de forma morta e estática toda a Árvore de Sintaxe Abstrata (AST) do projeto nativo Python.
 - **O Objetivo Sênior:** Identificar preventivamente credenciais sensíveis exportadas acidentalmente de forma Hardcoded na codebase (Chaves e Senhas SSH), auditar comandos de Sistema Operacional com brechas severas de injeção Linux sem filtro (`subprocess.run(shell=True)`), e travar lógicas de consultas em banco vetorial não-parametrizadas.
-- **A Regra Inegociável:** Qualquer único achado bizarro na esteira SAST detona, corrómpie e cancela completamente o fluxo CI/CD de subir pra Master. Ponto.
+- **A Regra Inegociável:** Qualquer único achado bizarro na esteira SAST detona, corrómpie e cancela completamente o fluxo CI/CD de subir pra Master. Ponto. **[Código Vivo: Trava do Semgrep em `.github/workflows/sast_semgrep.yml`]**
 
 ### 2.2 Simulando a Inferência Física (Isolamento via Pytest + Mocking)
 A automação de rotas lógicas em APIs baseadas em IA generativa é um desafio arquitetural inerente, pois os retornos interpretativos do LLM não são inteiramente determinísticos matematicamente.
 Nós utilizamos o framework estrito da biblioteca `unittest.mock` do núcleo Python acoplada ao ambiente de `pytest` para simular programaticamente as requisições pesadas aos EndPoints de inferência do `Ollama`.
-- **O Objetivo:** Verificar minuciosamente se a matemática lógica do roteador RAG ou N8N lida de forma estrita com "Edge Cases" extremos transacionais (ex: fingimos que o modelo cuspiu código JSON mal-formatado fora de Schema, ou que uma queda brusca de memória de vídeo de inferência estourou um Axios Timeout 500 no Webhook). Isolamos e cortamos o alto custo computacional do processamento da Placa Gráfica para homologar somente o código sistêmico da aplicação em simulação isolada. O recurso de Mock age aqui como única e absoluta fonte controlada da verdade sintética.
+- **O Objetivo:** Verificar minuciosamente se a matemática lógica do roteador RAG ou N8N lida de forma estrita com "Edge Cases" extremos transacionais (ex: fingimos que o modelo cuspiu código JSON mal-formatado fora de Schema, ou que uma queda brusca de memória de vídeo de inferência estourou um Axios Timeout 500 no Webhook). Isolamos e cortamos o alto custo computacional do processamento da Placa Gráfica para homologar somente o código sistêmico da aplicação em simulação isolada. O recurso de Mock age aqui como única e absoluta fonte controlada da verdade sintética. **[Código Vivo: Dublês de IA fabricados em `tests/regression/test_ollama_mocks.py`]**
 
 ### 2.3 Fronteiras e Muros Visuais Absolutos (Demolidor Físico Playwright)
 Para validar o complexo e titânico motor físico orbital de navegação front-end renderizado em Tela por trás da API, atiramos de bazuca nos componentes usando navegadores Headless (Fantasma) guiados pela mão da biblioteca pesada **Playwright**.
-- **O Objetivo Sólido:** Providenciar cobertura empírica garantindo que o motor espacial 3D não irá onerar severamente a renderização na V8 Engine do navegador (Ex: travamento crônico e queda contínua de Quadros por Segundo/FPS) perante a manipulação massiva do layout virtual desenhando acima de 5.000 nós de Markdown na interface simultaneamente. Nós testamos estresse de CSS Grid dinâmico englobando variadas resoluções verticais (1080p) até Workstations corporativas densas (Monitores Ultra Wide e 4K) para atestar a fluidez da experiência para o usuário nas variadas pontas arquiteturais.
+- **O Objetivo Sólido:** Providenciar cobertura empírica garantindo que o motor espacial 3D não irá onerar severamente a renderização na V8 Engine do navegador (Ex: travamento crônico e queda contínua de Quadros por Segundo/FPS) perante a manipulação massiva do layout virtual desenhando acima de 5.000 nós de Markdown na interface simultaneamente. Nós testamos estresse de CSS Grid dinâmico englobando variadas resoluções verticais (1080p) até Workstations corporativas densas (Monitores Ultra Wide e 4K) para atestar a fluidez da experiência para o usuário nas variadas pontas arquiteturais. **[Código Vivo: Tiro de Bazuca Visual no arquivo `tests/e2e/vault_stress_test.spec.ts`]**
 
-> [!NOTE] 🧬 **Código Vivo: Engenharia de Qualidade (CI/CD) (SHA: `94bfb2f`)**
-> ▫️ **Muralha SAST (Semgrep Python):** `.github/workflows/devsecops.yml`
-> ▫️ **Simulação de Inferência (Mocking):** `tests/unit/` & `tests/integration/`
-> ▫️ **Estresse E2E de UX:** `tests/e2e/` (Playwright)
-> ▫️ **Gatilho de Pipeline Git (Root):** `scripts/run_regression.sh`
+> [!NOTE] 🧬 **Código Vivo: Engenharia de Qualidade (CI/CD) Mapeada (SHA: `94bfb2f`)**
+> ▫️ **Muralha SAST (Semgrep Python):** `.github/workflows/sast_semgrep.yml`
+> ▫️ **Simulação Sintética (Regression Mocking):** `tests/regression/test_ollama_mocks.py`
+> ▫️ **Estresse E2E Dinâmico Orbital:** `tests/e2e/vault_stress_test.spec.ts`
+> ▫️ **Gatilho de Pipeline Git (Root):** `./run_regression.sh`
 
 > [!TIP]
 > **Acelerador Juniores (Fast-Track Mental):**
