@@ -42,12 +42,12 @@ O Sovereign Pair não é apenas um chatbot estúpido em loop infinito. É um hos
 2.  **O Sentinela (The Sentinel):** A segurança bruta. Escaneia atrozmente arquivos injetados (`docs`, `pdf`, `md`) contra "Prompt Injections" ou malwares visuais antes de permitir que eles contaminem os cérebros do Sovereign.
 3.  **A Enfermeira (The Nurse) / Roteadora Semântica:** A triagem rápida de pronto-socorro. Analisa a sua dor (Ex: *"Me ajuda com código"* vs. *"O que diz o RH do PDF?"*) e repassa o roteamento pro melhor especialista. Isso reduz drasticamente alucinações (devido ao Foco limitante imposto).
 4.  **O Médico (The Doctor) / Motor de Raciocínio (LangGraph/MCP):** O gênio estrutural. Quebra a lógica multi-step, pesquisa na web, puxa seus arquivos locais nativos num protocolo unificado de contexto e raciocina antes de balbuciar bobagem textual preditiva.
-5.  **O Coder:** O Executor Cíbrido isolado e especializado estritamente na gramática de sintaxe e limpeza de refatoração para bater de frente com a Faria Lima e o Silicon Valley em produtividade dev nativa.
+5.  **O Coder:** O Executor Cíbrido isolado e especializado estritamente na gramática de sintaxe e limpeza de refatoração para competir em altíssimo nível de produtividade dev nativa com as principais IAs de codificação de mercado.
 6.  **O Contador (The Accountant):** Um motor determinístico e inflexível que revisa todas as saídas brutas aritméticas de LLMs (A IA costuma ser péssima em matemática por ser apenas completadora de texto baseada em porcentagens gramaticais). O Contador refaz e corrige para uso Enterprise Corporativo. 
 
 ## 4. Multi-Tenant Avançado (Empresas)
 
-Para a Faria Lima e escalabilidade de Software como Serviço (SaaS), uma cópia viva singular da API Sovereign Pair pode devorar as consultas de Múltiplos Inquecilinos (`Tenants`) de forma hermética e intransponível.
+Para ambientes corporativos de alto desempenho e escalabilidade de Software como Serviço (SaaS), uma cópia viva singular da API Sovereign Pair pode processar as consultas de Múltiplos Inquecilinos (`Tenants`) de forma hermética e intransponível.
 
 A arquitetura impõe um cinto de segurança no Banco de Dados Vetorial limitando por Chave. Quando a Request de Chat HTTP avança e processa o vetor, se o "O Desenvolvedor A" perguntar *"Qual foi mesmo o projeto que desenvolvemos segunda feira?"*, a busca restringirá o Contexto Histórico Matemático de forma brutal exclusivamente nos MetaDados assinados em vetor pelo CPF ou UUID do Desenvolvedor C, ignorando arquivos de terceiros.
 
