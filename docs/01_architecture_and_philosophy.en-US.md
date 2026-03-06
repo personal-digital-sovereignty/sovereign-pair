@@ -41,13 +41,13 @@ Sovereign Pair is not just a single chatbot. It is a hierarchical hospital of sp
 1.  **The Sentinel:** The security guard. Scans incoming documents (like PDFs or git code) for prompt injections or malicious hacking attempts before allowing them into the Vault.
 2.  **The Nurse (Semantic Router):** The fast triage desk. Analyzes your query (e.g., *"Help me code this"* vs *"Summarize this document"*) and forcefully routes it to the correct specialist, preventing the AI from hallucinating.
 3.  **The Doctor (Reasoning Engine):** The deepest thinker. Uses LangGraph or MCP to execute multi-step logic, searching the internet, reading local files, and verifying code before outputting a response.
-4.  **The Coder:** An executioner agent specialized strictly in code refactoring and syntax.
+4.  **The Coder:** An executioner agent specialized strictly in code refactoring and syntax, built to compete with top-tier commercial generative assistants.
 5.  **The Accountant:** A rigid math-engine parser that double-checks numeric outputs to prevent classic LLM calculation hallucinations.
 6.  **The Mom / The Dad:** System watchers. Background routines that organize your files, ingest newly dropped markdown documents into the Vector DB automatically, and keep the system alive.
 
 ## 4. Multi-Tenant Architecture
 
-For enterprise use cases, a single Sovereign Pair instance can safely serve multiple users (Tenants). 
+For enterprise and corporate SaaS scalability, a single Sovereign Pair instance can safely serve multiple users (Tenants). 
 The architecture enforces strict **Tenant IDs** at the Vector Database level (`ChromaDB Metadata Filtering`). When querying the API, if User A asks a question, the Hybrid Retriever explicitly limits its mathematical search to documents ingested with User A's ID. 
 
 > [!WARNING]
