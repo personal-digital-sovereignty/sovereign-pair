@@ -122,6 +122,7 @@ if "http://ollama:" in OLLAMA_BASE_URL and not os.getenv("CHROMA_HOST"):
 LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2")
 EMBED_MODEL_NAME = os.getenv("EMBED_MODEL", "bge-m3")
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "300.0"))
+OLLAMA_NUM_CTX = int(os.getenv("OLLAMA_NUM_CTX", "8192"))
 
 # Chaves de API de Terceiros (Cloud Providers)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
