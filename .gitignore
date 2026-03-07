@@ -144,6 +144,9 @@ Thumbs.db
 .env.backup*
 *.env.backup
 
+# Agentic Skills and Workflows
+.agents/skills/
+
 # Bancos de Dados SQLite Relacionais (Sovereign Memory)
 data/*.db
 data/*.db-shm
