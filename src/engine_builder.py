@@ -37,16 +37,16 @@ def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm, api_keys: 
             return Gemini(model=model_name, api_key=key)
         elif p == "ollama":
             from llama_index.llms.ollama import Ollama
-            from src.config import OLLAMA_BASE_URL
+            from src.config import OLLAMA_BASE_URL, OLLAMA_NUM_CTX
             custom_url = api_keys.get("custom_ollama_url")
             url_to_use = custom_url if custom_url and custom_url.strip() else OLLAMA_BASE_URL
             return Ollama(
                 model=model_name, 
                 base_url=url_to_use, 
                 request_timeout=REQUEST_TIMEOUT, 
-                context_window=4096, 
+                context_window=OLLAMA_NUM_CTX, 
                 client_kwargs={"timeout": REQUEST_TIMEOUT},
-                additional_kwargs={"num_ctx": 4096}
+                additional_kwargs={"num_ctx": OLLAMA_NUM_CTX, "keep_alive": "24h"}
             )
     except ImportError as e:
         logger.error(f"Failed to load provider {p}: {e} - pip install llama-index-llms-{p} may be required.")
