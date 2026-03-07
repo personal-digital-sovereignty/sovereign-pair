@@ -52,6 +52,7 @@ jobs:
           TF_VAR_compartment_ocid: ${{ secrets.OCI_COMPARTMENT_OCID || secrets.OCI_TENANCY_OCID }}
           TF_VAR_tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
           TF_VAR_ssh_public_key: ${{ secrets.OCI_SSH_PUBLIC_KEY }}
+          TF_VAR_pat_ghcr: ${{ secrets.PAT_GHCR }}
         run: |
           if [ "${{ github.event.inputs.action }}" == "destroy" ]; then
             echo "Running OpenTofu Destroy..."

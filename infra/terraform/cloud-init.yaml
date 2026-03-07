@@ -31,6 +31,10 @@ write_files:
     permissions: '0644'
 
 runcmd:
+  # 0. Fix Oracle's broken regional APT mirrors
+  - sed -i 's/iad-ad-3.clouds.ports.ubuntu.com/ports.ubuntu.com/g' /etc/apt/sources.list
+  - apt-get update -y
+
   # 1. Apply ZRAM Config for Heavy LLMs
   - systemctl restart zramswap
 
@@ -54,7 +58,7 @@ runcmd:
   - sh get-docker.sh
 
   # 6. Clone Sovereign Pair and Spin Up Cibrid Services (RAG + N8N Zero Cost)
-  - git clone https://github.com/Personal-Digital-Sovereignty/sovereign-pair.git /opt/sovereign-pair
+  - git clone https://${pat_ghcr}@github.com/Personal-Digital-Sovereignty/sovereign-pair.git /opt/sovereign-pair
   - cd /opt/sovereign-pair
   # Prepare environments and vault architecture
   - cp .env.example .env
