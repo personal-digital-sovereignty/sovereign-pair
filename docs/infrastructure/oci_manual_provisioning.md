@@ -36,8 +36,7 @@ sudo runuser -l root -c "nohup ollama pull llama3.2:3b > /var/log/ollama_pull_do
 
 ### 4. Install Docker Engine
 ```bash
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
+curl -fsSL https://get.docker.com | sudo sh
 ```
 
 ### 5. Clone the Repository
@@ -123,8 +122,7 @@ sudo runuser -l root -c "nohup ollama pull llama3.2:3b > /var/log/ollama_pull_do
 
 #### 4. Instalar Docker Engine
 ```bash
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
+curl -fsSL https://get.docker.com | sudo sh
 ```
 
 #### 5. Clonar o Repositório
