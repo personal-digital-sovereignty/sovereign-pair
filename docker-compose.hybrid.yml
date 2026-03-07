@@ -3,6 +3,30 @@
 # IMPORTANTE: Configure OLLAMA_BASE_URL no seu .env para apontar para o IP Tailscale da Oracle!
 
 services:
+  # 0. Edge Router Local (Caddy SSL Mestre)
+  caddy:
+    image: caddy:2-alpine
+    container_name: sovereign-caddy-local
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data-local:/data
+      - caddy-config-local:/config
+    depends_on:
+      - api
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - sovereign-net-local
+
   # 1. Banco de Dados Relacional Local
   postgres:
     image: postgres:15-alpine
@@ -67,9 +91,9 @@ services:
       - ${VAULT_PATH:-./data/vault}:/app/data/vault
       - ${HOME}:${HOME}
     networks:
-      - sovereign-net-local
-    ports:
-      - "8000:8000"
+      sovereign-net-local:
+        aliases:
+          - sovereign-api
 
   # 4. Frontend Web App (Vue 3 UI)
   web:
@@ -81,14 +105,15 @@ services:
     depends_on:
       - api
     networks:
-      - sovereign-net-local
-    # Expondo diretamente no localhost já que não há Caddy neste cenário
-    ports:
-      - "8080:80"
+      sovereign-net-local:
+        aliases:
+          - sovereign-web
 
 volumes:
   pgdata-local:
   chroma-data-local:
+  caddy-data-local:
+  caddy-config-local:
 
 
 networks:
