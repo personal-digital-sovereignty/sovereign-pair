@@ -41,9 +41,8 @@ runcmd:
   # 1. Apply ZRAM Config for Heavy LLMs
   - systemctl restart zramswap
 
-  # 2. Install Tailscale and join Sovereign Mesh
+  # 2. Skip Tailscale up here (Moved to the absolute bottom to prevent MagicDNS breaking downloads)
   - curl -fsSL https://tailscale.com/install.sh | sh
-  - tailscale up --authkey=${tailscale_auth_key} --ssh --accept-dns=true
 
   # 3. Install Ollama Engine
   - curl -fsSL https://ollama.com/install.sh | sh
@@ -69,4 +68,8 @@ runcmd:
   # 7. Clone Sovereign Pair and Spin Up Cibrid Services (RAG + N8N Zero Cost)
   - git clone https://${pat_ghcr}@github.com/Personal-Digital-Sovereignty/sovereign-pair.git /opt/sovereign-pair
   # Prepare environments and vault architecture (Using sh -c because cloud-init runcmd executes each line in a fresh shell)
-  - sh -c "cd /opt/sovereign-pair && cp .env.example .env && sed -i 's/TS_AUTHKEY=tskey-auth-xxxxxxxxx/TS_AUTHKEY=${tailscale_auth_key}/g' .env && mkdir -p ./data/vault && sudo docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d"
+  - sh -c "cd /opt/sovereign-pair && cp .env.example .env && sed -i 's/TS_AUTHKEY=tskey-auth-xxxxxxxxx/TS_AUTHKEY=${tailscale_auth_key}/g' .env && mkdir -p ./data/vault"
+  
+  # 8. Start Tailscale last to secure MagicDNS routing without breaking build resolvers
+  - tailscale up --authkey=${tailscale_auth_key} --ssh --accept-dns=true
+  - sh -c "cd /opt/sovereign-pair && sudo docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d"
