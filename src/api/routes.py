@@ -457,9 +457,9 @@ EXTREMA IMPORTÂNCIA:
                         
             return ChatResponse(response=full_ai_response, sources=citations)
             
-        except (TimeoutError, httpx.TimeoutException) as e:
+        except (TimeoutError, httpx.TimeoutException):
             # Captura exception generica se nao engolida e ja estavamos no Fallback mode, manda um friendly error
-            err_msg = f"*(⚠️ Conexão Remota Inalcançável. The Mom e The Nurse falharam ao processar Localmente)*"
+            err_msg = "*(⚠️ Conexão Remota Inalcançável. The Mom e The Nurse falharam ao processar Localmente)*"
             return ChatResponse(response=err_msg, sources=[])
         except Exception as e:
             err_msg = f"❌ Exceção Crítica no Motor LLM ({body_request.provider}/{body_request.model}): {str(e)}"

@@ -26,7 +26,8 @@ resource "oci_core_instance" "the_coder" {
 
   create_vnic_details {
     subnet_id        = oci_core_subnet.public_subnet.id
-    display_name     = "primaryvnic"
+    display_name     = "sovereign-coder"
+    hostname_label   = "sovereign-coder"
     assign_public_ip = true
   }
 
