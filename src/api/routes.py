@@ -899,16 +899,20 @@ async def list_ollama_models(request: Request):
     import httpx
     from src.config import OLLAMA_BASE_URL
     
+    # Strip any trailing slashes to prevent //api/tags 404s
+    base_url = OLLAMA_BASE_URL.rstrip('/')
+    
     try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            response = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
+        # 10s timeout to tolerate initial Tailscale Wireguard handshakes
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{base_url}/api/tags")
             response.raise_for_status()
             data = response.json()
             models = [model["name"] for model in data.get("models", [])]
             return {"models": models}
     except Exception as e:
         # Fallback to empty list or known models if Ollama is unreachable
-        print(f"Failed to fetch Ollama models: {e}")
+        print(f"Failed to fetch Ollama models from {base_url}: {e}")
         return {"models": []}
 
 class PullModelRequest(BaseModel):
