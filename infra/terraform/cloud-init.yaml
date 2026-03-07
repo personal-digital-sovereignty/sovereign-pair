@@ -31,8 +31,8 @@ write_files:
     permissions: '0644'
 
 runcmd:
-  # 0. Fix Oracle's broken regional APT mirrors
-  - sed -i 's/iad-ad-3.clouds.ports.ubuntu.com/ports.ubuntu.com/g' /etc/apt/sources.list
+  # 0. Fix Oracle's broken regional APT mirrors (Regex para qualquer região/AD)
+  - sed -E -i 's/[a-z0-9-]+\.clouds\.ports\.ubuntu\.com/ports.ubuntu.com/g' /etc/apt/sources.list
   - apt-get update -y
 
   # 1. Apply ZRAM Config for Heavy LLMs
@@ -59,9 +59,5 @@ runcmd:
 
   # 6. Clone Sovereign Pair and Spin Up Cibrid Services (RAG + N8N Zero Cost)
   - git clone https://${pat_ghcr}@github.com/Personal-Digital-Sovereignty/sovereign-pair.git /opt/sovereign-pair
-  - cd /opt/sovereign-pair
-  # Prepare environments and vault architecture
-  - cp .env.example .env
-  - mkdir -p ./data/vault
-  # Execute the Macro Composes bridging N8N + Redis + FastAPI on Tailnet
-  - docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d
+  # Prepare environments and vault architecture (Using sh -c because cloud-init runcmd executes each line in a fresh shell)
+  - sh -c "cd /opt/sovereign-pair && cp .env.example .env && mkdir -p ./data/vault && docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d"
