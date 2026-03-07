@@ -23,17 +23,18 @@ from rich.panel import Panel
 import chromadb
 from typing import Optional
 
-from llama_index.core import VectorStoreIndex
+from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
 
 from config import (
     CHROMA_DIR,
     CHROMA_COLLECTION_NAME,
+    CHROMA_SYSTEM_COLLECTION_NAME,
     OWNER_NAME,
     AGENT_VERBOSE,
     llm,
-    embed_model,
+    get_embed_model,
     validate_ollama_connection,
     validate_ollama_models
 )
@@ -89,13 +90,14 @@ def initialize_rag_tool() -> Optional[QueryEngineTool]:
         
         # Conectar ao ChromaDB
         db = chromadb.PersistentClient(path=str(CHROMA_DIR))
-        chroma_collection = db.get_or_create_collection(CHROMA_COLLECTION_NAME)
+        chroma_collection = db.get_or_create_collection(CHROMA_SYSTEM_COLLECTION_NAME)
         vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
         
-        # Criar índice a partir do vector store existente
+        storage_context = StorageContext.from_defaults(vector_store=vector_store)
         index = VectorStoreIndex.from_vector_store(
             vector_store,
-            embed_model=embed_model
+            embed_model=get_embed_model(),
+            storage_context=storage_context
         )
         
         # Criar query engine
