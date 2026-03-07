@@ -22,6 +22,43 @@ const pullProgress = ref(0)
 const pullCompleted = ref(0)
 const pullTotal = ref(0)
 
+const ollamaClusters = ref<{id: string, name: string, url: string}[]>([])
+const activeClusterId = ref('')
+const isFetchingClusters = ref(false)
+
+const loadClusters = async () => {
+    isFetchingClusters.value = true
+    try {
+        const res = await fetch(`${API_BASE_URL}/v1/settings/ollama_clusters`, { headers: getAuthHeaders() })
+        if (res.ok) {
+            const data = await res.json()
+            ollamaClusters.value = data.clusters || []
+            activeClusterId.value = data.active_cluster_id || ''
+        }
+    } catch (e) {
+        console.warn("Could not fetch clusters", e)
+    } finally {
+        isFetchingClusters.value = false
+    }
+}
+
+const onClusterChange = async () => {
+    try {
+        await fetch(`${API_BASE_URL}/v1/settings/ollama_clusters`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify({
+                clusters: ollamaClusters.value,
+                active_cluster_id: activeClusterId.value
+            })
+        })
+        systemSettings.value.llm_model = ''
+        await fetchLocalModels()
+    } catch (err) {
+        console.error("Cluster switch failed", err)
+    }
+}
+
 const personaOptions = ref([
   { id: 'custom', name: 'Personalizado', prompt: 'Seu próprio prompt...', color: 'text-slate-400 bg-slate-500' },
   { id: 'analytical', name: 'Analista de Dados', prompt: 'Você é um bot analítico e preciso. Foco em números, probabilidades e tabelas de dados.', color: 'text-sky-400 bg-sky-500' },
@@ -218,6 +255,7 @@ const onProviderChange = () => {
 
 onMounted(() => {
   loadConfig()
+  loadClusters()
 })
 </script>
 
@@ -271,7 +309,19 @@ onMounted(() => {
             </select>
           </div>
           <div class="space-y-2">
-            <label class="block text-sm font-medium text-slate-400">Nome do Modelo</label>
+            <template v-if="systemSettings.llm_provider === 'ollama'">
+              <div class="mb-4 space-y-2 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
+                 <label class="flex items-center justify-between text-[11px] font-semibold text-indigo-400 uppercase tracking-wide">
+                    <span class="flex items-center gap-2"><span class="i-ph-hard-drives-duotone text-sm"></span> Roteamento do Motor RAG</span>
+                    <span v-if="isFetchingClusters" class="i-ph-spinner-gap-duotone animate-spin text-indigo-300"></span>
+                 </label>
+                 <select v-model="activeClusterId" @change="onClusterChange" class="w-full bg-[#121214] border border-[#222222] text-indigo-300 text-xs rounded focus:ring-indigo-500 focus:border-indigo-500 block p-2 outline-none font-medium cursor-pointer shadow-inner">
+                   <option v-for="c in ollamaClusters" :key="c.id" :value="c.id">⚡ {{ c.name }}</option>
+                 </select>
+                 <p class="text-[9px] text-indigo-500/70 font-medium leading-tight">Muda as requisições LLM fisicamente de Node VPN para processamento em tempo-real.</p>
+              </div>
+            </template>
+            <label class="block text-sm font-medium text-slate-400">Nome do Modelo Localizado</label>
             <template v-if="systemSettings.llm_provider === 'ollama'">
               <div v-if="isFetchingModels" class="text-xs text-sky-400 flex items-center gap-2 p-2">
                 <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>

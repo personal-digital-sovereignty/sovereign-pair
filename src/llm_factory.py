@@ -17,6 +17,26 @@ def _get_setting(key: str, default: str) -> str:
     except Exception:
         return default
 
+def _get_active_ollama_url() -> str:
+    """Resolve a URL do cluster ativo em tempo real no banco, ignorando o .env."""
+    from src.config import OLLAMA_BASE_URL
+    import json
+    
+    active_id = _get_setting("active_ollama_cluster_id", "")
+    if not active_id:
+        return OLLAMA_BASE_URL
+        
+    clusters_json = _get_setting("ollama_clusters", "[]")
+    try:
+        clusters = json.loads(clusters_json)
+        for c in clusters:
+            if c.get("id") == active_id:
+                return c.get("url", OLLAMA_BASE_URL)
+    except Exception:
+        pass
+        
+    return OLLAMA_BASE_URL
+
 def get_llm(provider: str, model: str, temperature: float = 0.1, request_timeout: float = 900.0, **kwargs) -> Any:
     """
     Factory function para retornar a instância correta do LLM baseado no provedor.
@@ -34,7 +54,10 @@ def get_llm(provider: str, model: str, temperature: float = 0.1, request_timeout
     if provider == "ollama":
         from llama_index.llms.ollama import Ollama
         from src.config import OLLAMA_NUM_CTX
-        base_url = kwargs.get("base_url", "http://localhost:11434")
+        
+        # Override the static base URL if a Custom Cluster was selected
+        dynamic_url = _get_active_ollama_url()
+        base_url = kwargs.get("base_url", dynamic_url).rstrip('/')
         
         return Ollama(
             model=model,
@@ -107,7 +130,8 @@ def get_embedding_model(provider: str, model: str, **kwargs) -> Any:
     
     if provider == "ollama":
         from llama_index.embeddings.ollama import OllamaEmbedding
-        base_url = kwargs.get("base_url", "http://localhost:11434")
+        dynamic_url = _get_active_ollama_url()
+        base_url = kwargs.get("base_url", dynamic_url).rstrip('/')
         return OllamaEmbedding(
             model_name=model,
             base_url=base_url,

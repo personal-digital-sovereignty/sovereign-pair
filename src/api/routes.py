@@ -892,15 +892,33 @@ def is_path_authorized(target_path: str, auth_dirs: list) -> bool:
             return True
     return False
 
+def get_active_ollama_url(db: Session, tenant_id: str = "default") -> str:
+    from src.config import OLLAMA_BASE_URL as ENV_OLLAMA_BASE_URL
+    import json
+    
+    active_cluster_id = _get_setting_value(db, "active_ollama_cluster_id", "", tenant_id)
+    if not active_cluster_id:
+        return ENV_OLLAMA_BASE_URL
+        
+    clusters_json = _get_setting_value(db, "ollama_clusters", "[]", tenant_id)
+    try:
+        clusters = json.loads(clusters_json)
+        for c in clusters:
+            if c.get("id") == active_cluster_id:
+                return c.get("url", ENV_OLLAMA_BASE_URL)
+    except Exception:
+        pass
+        
+    return ENV_OLLAMA_BASE_URL
+
 @router.get("/ollama/models")
 @limiter.limit("60/minute")
-async def list_ollama_models(request: Request):
-    """Fetches the list of locally pulled models from the Ollama server."""
+async def list_ollama_models(request: Request, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Fetches the list of locally pulled models from the ACTIVE Ollama server."""
     import httpx
-    from src.config import OLLAMA_BASE_URL
     
-    # Strip any trailing slashes to prevent //api/tags 404s
-    base_url = OLLAMA_BASE_URL.rstrip('/')
+    # Resolve the active cluster dynamically from postgres instead of static config
+    base_url = get_active_ollama_url(db, tenant_id).rstrip('/')
     
     try:
         # 10s timeout to tolerate initial Tailscale Wireguard handshakes
@@ -1680,5 +1698,48 @@ async def add_project_log(request: Request, project_id: str, payload: dict, db: 
         content=payload["content"]
     )
     db.add(new_log)
+    db.commit()
+    db.refresh(new_log)
+    return new_log
+
+# ---------------------------------------------------------
+# OLLAMA CLUSTER MANAGER (Phase 40)
+# ---------------------------------------------------------
+
+@router.get("/settings/ollama_clusters")
+@limiter.limit("60/minute")
+def get_ollama_clusters(request: Request, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Retrieve the cluster registry for Hot-Swapping Ollama Endpoints."""
+    import json
+    from src.config import OLLAMA_BASE_URL
+    
+    clusters_json = _get_setting_value(db, "ollama_clusters", "[]", tenant_id)
+    try:
+        clusters = json.loads(clusters_json)
+        if not clusters:
+            # Seed defaults securely based on the original .env configuration
+            clusters = [
+                {"id": "oracle", "name": "Oracle Cloud Músculo", "url": OLLAMA_BASE_URL},
+                {"id": "local", "name": "Desktop Físico", "url": "http://host.docker.internal:11434"}
+            ]
+            _set_setting_value(db, "ollama_clusters", json.dumps(clusters), tenant_id)
+            db.commit()
+    except Exception:
+        clusters = []
+        
+    active_id = _get_setting_value(db, "active_ollama_cluster_id", "oracle", tenant_id)
+    return {"clusters": clusters, "active_cluster_id": active_id}
+
+class ClusterUpdatePayload(BaseModel):
+    clusters: list
+    active_cluster_id: str
+
+@router.post("/settings/ollama_clusters")
+@limiter.limit("60/minute")
+def save_ollama_clusters(request: Request, payload: ClusterUpdatePayload, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Overrides the active cluster routing logic for RAG connections."""
+    import json
+    _set_setting_value(db, "ollama_clusters", json.dumps(payload.clusters), tenant_id)
+    _set_setting_value(db, "active_ollama_cluster_id", payload.active_cluster_id, tenant_id)
     db.commit()
     return {"status": "success"}
