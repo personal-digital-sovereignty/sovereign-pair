@@ -190,3 +190,6 @@ infra/terraform/.terraform.lock.hcl
 *.tfvars.json
 *.tfstate
 *.tfstate.backup
+
+# Gitleaks Local License File
+.gitleaks.key
