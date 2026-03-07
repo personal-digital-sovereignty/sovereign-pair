@@ -48,7 +48,7 @@ jobs:
           TF_VAR_user_ocid: ${{ secrets.OCI_USER_OCID }}
           TF_VAR_fingerprint: ${{ secrets.OCI_FINGERPRINT }}
           TF_VAR_private_key: ${{ secrets.OCI_PRIVATE_KEY }}
-          TF_VAR_region: ${{ secrets.OCI_REGION || 'sa-saopaulo-1' }}
+          TF_VAR_region: ${{ vars.OCI_REGION || 'sa-saopaulo-1' }}
           TF_VAR_compartment_ocid: ${{ secrets.OCI_COMPARTMENT_OCID || secrets.OCI_TENANCY_OCID }}
           TF_VAR_tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
           TF_VAR_ssh_public_key: ${{ secrets.OCI_SSH_PUBLIC_KEY }}
