@@ -7,6 +7,17 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [3.1.2] - 2026-03-07
+
+### 🕸️ Arquitetura de Rede & Resolvibilidade VPN Isolada
+
+### Corrigido
+- **Tailscale Sidecar Collision**: Renomeado o container VPN interno (`sovereign-tailscale`) de `sovereign-rag-cloud` para `sovereign-cloud-api` no `docker-compose.yml`. Isso mitigou uma colisão severa na malha que gerava a dupla recusa de pacotes (`Connection Refused`) e o engasgo subjacente por sinkholes de DNS locais (como Pi-Hole e NextDNS retornando `Great, localhost is not blocked anymore`).
+- **IPv6 Blackholing na OCI**: Injetado bloqueio mandatário das rotas IPv6 diretamente no Kernel (via `sysctl`) dentro do `cloud-init.yaml`. Isso previne definitivamente as travas de "network is unreachable" desencadeadas quando a Docker Engine tenta dar poll do registro de imagens em subredes dual-stack nuas da Oracle.
+- **Docker Mount Permissions**: Remediado o *Crash Loop* na subida inaugural da `sovereign-api` originada pelos privilégios restritos do volume bindado assincronamente `/app/data/raw_docs`.
+
+---
+
 ## [3.1.1] - 2026-03-07
 
 ### 🌐 Resiliência Local-First & Infraestrutura Cibrid Automática
