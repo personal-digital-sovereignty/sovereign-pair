@@ -56,7 +56,7 @@ Ao contrário de implementações RAG estáticas, o agente lembra quem você é 
 Ao alimentar milhares de notas no sistema, a pipeline apenas processa deltas (arquivos novos, alterados ou removidos). Utiliza **Hashing Paralelo SHA256** (cache LRU) para alcançar 95%+ de redução no tempo processual, incluindo "Garbage Collection" automático das matrizes vetoriais obsoletas e suporte vitalício ao Server MCP.
 
 ### MAS (Multi-Agent System) LangGraph
-Nossa cadeia intelectiva já suporta LangGraph Agents: O Enfermeiro (Triagem de Sentimentos), O Doutor (Raciocínio Clínico de RAG) e O Programador (Execução Direta de Ferramentas), encapsulando de ponta-a-ponta a resiliência cognitiva da IA.
+Nossa cadeia intelectiva, com reestruturações até a **Fase 43**, suporta LangGraph Agents com padronização global de nomenclatura: **The Mom**, **The Dad** (Orquestração), **The Nurse** (Triagem Semântica/Roteamento), **The Doctor** (Raciocínio RAG Avançado), **The Coder** (Engenharia Mestre) e **The Accountant** (Motor Matemático). Eles operam de forma isolada e em uníssono encapsulando de ponta-a-ponta a resiliência cognitiva da IA.
 
 ### O Mandato "The Sentinel" & Zero-Trust
 O sistema opera através de controle restritivo militar. Requisições HTTP limitadas por preflights de CORS e Web Application Firewall. O **The Sentinel** intercepta Prompt Injections em T0 (Tempo Zero), quarentena vetores maliciosos e monitora o God Mode Cockpit. Na CI/CD, o sistema FOSS DevSecOps é mandatório.
@@ -128,11 +128,11 @@ O Plugin empacotado reside em `.obsidian/plugins/sovereign-pair/` no seu Vault. 
 
 - `src/` - Núcleo Funcional (Engine RAG, Retriever, Processadores, Utilities em Python).
 - `src/api/` - Controladores, Rotas FastAPI, Middlewares, Tokens e Modelos de Banco de Dados SQLite.
-- `docs/` - Manuais detalhados (`API.md`, `ARCHITECTURE.md`, `USER_GUIDE.md`).
+- `docs/` - Acondiciona os **6 Tratados/Manifestos Mestres** explicando minuciosamente o ecossistema, todos fornecidos em versões nativas unificadas (`.en-US.md` e `.pt-BR.md`).
 - `data/` - Repositório da Inteligência (Vault Cru, Banco de Dados Chroma DB Vetorial e Banco Relacional memory.db).
 - `obsidian-plugin/` - Código fonte TypeScript da Interface Nativa do Obsidian.
 
-Para um detalhamento microscópico de como cada classe, banco ou servidor operam, dedique a leitura no manual [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Para um detalhamento microscópico de como cada classe, banco ou servidor operam, dedique a leitura ao manifesto inaugural de arquitetura: **[01_architecture_and_philosophy](docs/01_architecture_and_philosophy.pt-BR.md)**.
 
 ---
 
