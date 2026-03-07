@@ -1,0 +1,96 @@
+# Sovereign Pair - Scenario 2: TRUE CIBRID (Desktop Vault + Cloud Muscle)
+# Este cenário roda o Banco e os Arquivos LOACALMENTE, mas consome o processamento da Oracle.
+# IMPORTANTE: Configure OLLAMA_BASE_URL no seu .env para apontar para o IP Tailscale da Oracle!
+
+services:
+  # 1. Banco de Dados Relacional Local
+  postgres:
+    image: postgres:15-alpine
+    container_name: sovereign-db-local
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sovereign}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-master_pwd}
+      POSTGRES_DB: ${POSTGRES_DB:-sovereign_db}
+    volumes:
+      - pgdata-local:/var/lib/postgresql/data
+    networks:
+      - sovereign-net-local
+
+  # 2. Banco Vetorial Local (ChromaDB)
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: sovereign-chroma-local
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    volumes:
+      - chroma-data-local:/data
+    environment:
+      - IS_PERSISTENT=TRUE
+    networks:
+      - sovereign-net-local
+
+  # 3. Backend Mestre da Inteligência (FastAPI) - Lendo cofres locais!
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: sovereign-api-local
+    user: "1000:1000"
+    restart: always
+    depends_on:
+      - postgres
+      - chroma
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-sovereign}:${POSTGRES_PASSWORD:-master_pwd}@postgres:5432/${POSTGRES_DB:-sovereign_db}
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - ALLOWED_ORIGINS=http://localhost:8080,http://localhost:5173,app://obsidian.md
+      - SOVEREIGN_CONF=/app/data/sovereign.conf
+      - VAULT_PATH=/app/data/vault
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env
+      - ./src:/app/src
+      - ${VAULT_PATH:-./data/vault}:/app/data/vault
+      - ${HOME}:${HOME}
+    networks:
+      - sovereign-net-local
+    ports:
+      - "8000:8000"
+
+  # 4. Frontend Web App (Vue 3 UI)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: sovereign-web-local
+    restart: always
+    depends_on:
+      - api
+    networks:
+      - sovereign-net-local
+    # Expondo diretamente no localhost já que não há Caddy neste cenário
+    ports:
+      - "8080:80"
+
+volumes:
+  pgdata-local:
+  chroma-data-local:
+
+
+networks:
+  sovereign-net-local:
+    driver: bridge

@@ -118,12 +118,27 @@ python src/cli.py chat
 ```
 > O agente lerá os dados no seu vector db local, interagirá com o Ollama nativamente, e fará pesquisas web (através do comando /web).
 
-### Subindo o Motor Central (Full Stack)
-Se você deseja iniciar o Backend FastAPI e o Frontend Web juntos numa tacada só:
+### Topologias de Implantação (Cenários Cíbridos)
+O Sovereign Pair evoluiu para uma infraestrutura Multi-Topológica, dividindo-se baseando-se no que roda Localmente *versus* Nuvem:
+
+**Cenário 1: The Cloud Citadel (100% Servidor OCI)**  
+Tudo centralizado no Oracle (Tailscale, N8N, Ollama, Bancos, etc).
 ```bash
-python src/cli.py start --full
+docker compose up -d --build
 ```
-_Também é possível subir apenas a infra de API usando `--server` ou apenas o Vue3 com `--web`._
+
+**Cenário 2: The True Cibrid (Cofre Local + Músculo OCI)**  
+Roda localmente apenas o Frontend, Banco de Dados, Chroma Vetorial e API (lendo os arquivos do seu PC), mas direciona a carga mental pesada para a Nuvem via Tailscale (Configure `OLLAMA_BASE_URL` apontando para o Servidor). Sem VPN e Sem Caddy local:
+```bash
+docker compose -f docker-compose.hybrid.yml up -d --build
+```
+> *Telas Expostas Localmente:* Frontend (`localhost:8080`) e API (`localhost:8000`)
+
+**Cenário 4: The Offline Bunker (100% Local / Desktop)**  
+Roda absolutamente **tudo** localmente, *incluindo* um Docker isolado do Ollama devorando a RAM/VRAM da sua máquina física sem internet.
+```bash
+docker compose -f docker-compose.local.yml up -d --build
+```
 
 ### Integrando o Obsidian (Plugin Nativo)
 Sovereign Pair vem com um plugin em TypeScript embutido para Obsidian, criando uma simbiose profunda com sua base de texto.
