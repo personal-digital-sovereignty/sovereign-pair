@@ -40,6 +40,7 @@ resource "oci_core_instance" "the_coder" {
   metadata = {
     user_data = base64encode(templatefile("${path.module}/cloud-init.yaml", {
       tailscale_auth_key = var.tailscale_auth_key
+      ssh_public_key     = var.ssh_public_key
     }))
   }
 
