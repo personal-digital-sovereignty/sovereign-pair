@@ -18,8 +18,8 @@ import hashlib
 import os
 from pathlib import Path
 
-router = APIRouter()
 import httpx
+router = APIRouter()
 
 # Importando o limiter configurado no main.py
 try:
@@ -233,7 +233,7 @@ EXTREMA IMPORTÂNCIA:
                         except (TimeoutError, httpx.TimeoutException, Exception) as e:
                             # Fallback Gracioso de Rede
                             print(f"[FALLBACK RAG] Erro ao alcançar o Cloud Node ({str(e)}). Redirecionando para The Nurse SLM Local...")
-                            fallback_msg = f"*(⚠️ Raciocínio Profundo Indisponível (Nó Remoto Offline). Redirecionando para The Nurse Local...)*\n\n"
+                            fallback_msg = "*(⚠️ Raciocínio Profundo Indisponível (Nó Remoto Offline). Redirecionando para The Nurse Local...)*\n\n"
                             yield f"data: {json.dumps({'content': fallback_msg})}\n\n"
                             full_ai_response = fallback_msg
                             
