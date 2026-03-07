@@ -22,6 +22,7 @@ resource "oci_core_vcn" "sovereign_vcn" {
   compartment_id = var.compartment_ocid
   cidr_block     = "10.0.0.0/16"
   display_name   = "sovereign-cibrid-vcn"
+  dns_label      = "sovereignvcn"
 }
 
 resource "oci_core_internet_gateway" "igw" {
@@ -42,10 +43,13 @@ resource "oci_core_default_route_table" "default_rt" {
 }
 
 resource "oci_core_subnet" "public_subnet" {
-  compartment_id = var.compartment_ocid
-  vcn_id         = oci_core_vcn.sovereign_vcn.id
-  cidr_block     = "10.0.1.0/24"
-  display_name   = "sovereign-public-subnet"
+  compartment_id    = var.compartment_ocid
+  vcn_id            = oci_core_vcn.sovereign_vcn.id
+  cidr_block        = "10.0.1.0/24"
+  display_name      = "sovereign-public-subnet"
+  dns_label         = "public"
+  route_table_id    = oci_core_vcn.sovereign_vcn.default_route_table_id
+  dhcp_options_id   = oci_core_vcn.sovereign_vcn.default_dhcp_options_id
 }
 
 # Zero-Trust Security List
