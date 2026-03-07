@@ -98,6 +98,9 @@ class SettingsRequest(BaseModel):
     # --- Global Workspace Architecture ---
     default_intake_vault: Optional[str] = ""
     workspaces: Optional[List[str]] = Field(default_factory=list)
+    
+    # --- Local-First Agnosticism ---
+    remote_integration_enabled: bool = Field(True, description="Habilita ou desabilita conexões com o nó da Oracle e APIs externas")
 
 class SettingsResponse(BaseModel):
     llm_provider: str
@@ -123,6 +126,9 @@ class SettingsResponse(BaseModel):
     # --- Global Workspace Architecture ---
     default_intake_vault: Optional[str] = ""
     workspaces: Optional[List[str]] = Field(default_factory=list)
+    
+    # --- Local-First Agnosticism ---
+    remote_integration_enabled: bool = True
 
 # --- THE GOD MODE COCKPIT ---
 
