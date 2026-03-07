@@ -146,6 +146,7 @@ Thumbs.db
 
 # Agentic Skills and Workflows
 .agents/skills/
+.agents/
 
 # Bancos de Dados SQLite Relacionais (Sovereign Memory)
 data/*.db

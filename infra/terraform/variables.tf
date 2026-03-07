@@ -39,3 +39,9 @@ variable "ssh_public_key" {
   type        = string
   description = "The public SSH key for user authentication on the Oracle instance"
 }
+
+variable "pat_ghcr" {
+  type        = string
+  description = "GitHub Personal Access Token for cloning private Sovereign Pair repo"
+  sensitive   = true
+}
