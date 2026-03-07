@@ -199,12 +199,15 @@ llm = get_llm(
     base_url=OLLAMA_BASE_URL,
 )
 
-# Configuração do modelo de embeddings para vetorização de documentos
-embed_model = get_embedding_model(
-    provider=EMBEDDING_PROVIDER,
-    model=EMBED_MODEL_NAME,
-    base_url=OLLAMA_BASE_URL,
-)
+def get_embed_model():
+    """Retorna o Embed Model despachado para a Nuvem Mapeada dinamicamente."""
+    # Importar get_embedding_model aqui para carregamento dinâmico, se necessário
+    from src.llm_factory import get_embedding_model
+    return get_embedding_model(
+        provider=EMBEDDING_PROVIDER,
+        model=EMBED_MODEL_NAME,
+        base_url=OLLAMA_BASE_URL,
+    )
 
 # ============================================================================
 # CONFIGURAÇÃO GLOBAL DO LLAMAINDEX
