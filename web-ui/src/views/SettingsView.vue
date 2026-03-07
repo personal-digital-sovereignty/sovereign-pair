@@ -25,6 +25,9 @@ const pullTotal = ref(0)
 const ollamaClusters = ref<{id: string, name: string, url: string}[]>([])
 const activeClusterId = ref('')
 const isFetchingClusters = ref(false)
+const isManagingClusters = ref(false)
+const newClusterName = ref('')
+const newClusterUrl = ref('')
 
 const loadClusters = async () => {
     isFetchingClusters.value = true
@@ -54,9 +57,47 @@ const onClusterChange = async () => {
         })
         systemSettings.value.llm_model = ''
         await fetchLocalModels()
-    } catch (err) {
-        console.error("Cluster switch failed", err)
+    } catch (e) {
+        console.error("Erro ao alternar cluster", e)
     }
+}
+
+const addCluster = async () => {
+    if (!newClusterName.value.trim() || !newClusterUrl.value.trim()) return;
+    const id = newClusterName.value.trim().toLowerCase().replace(/\s+/g, '-');
+    ollamaClusters.value.push({
+        id,
+        name: newClusterName.value.trim(),
+        url: newClusterUrl.value.trim()
+    });
+    
+    // Save to backend
+    try {
+        await fetch(`${API_BASE_URL}/v1/settings/ollama_clusters`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify({ clusters: ollamaClusters.value })
+        });
+        newClusterName.value = '';
+        newClusterUrl.value = '';
+    } catch(e) { console.error(e) }
+}
+
+const removeCluster = async (id: string) => {
+    ollamaClusters.value = ollamaClusters.value.filter(c => c.id !== id);
+    if (activeClusterId.value === id) {
+       activeClusterId.value = 'local';
+    }
+    
+    // Save to backend
+    try {
+        await fetch(`${API_BASE_URL}/v1/settings/ollama_clusters`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify({ clusters: ollamaClusters.value })
+        });
+        await onClusterChange();
+    } catch(e) { console.error(e) }
 }
 
 const personaOptions = ref([
@@ -318,7 +359,38 @@ onMounted(() => {
                  <select v-model="activeClusterId" @change="onClusterChange" class="w-full bg-[#121214] border border-[#222222] text-indigo-300 text-xs rounded focus:ring-indigo-500 focus:border-indigo-500 block p-2 outline-none font-medium cursor-pointer shadow-inner">
                    <option v-for="c in ollamaClusters" :key="c.id" :value="c.id">⚡ {{ c.name }}</option>
                  </select>
-                 <p class="text-[9px] text-indigo-500/70 font-medium leading-tight">Muda as requisições LLM fisicamente de Node VPN para processamento em tempo-real.</p>
+                 <div class="flex items-center justify-between">
+                    <p class="text-[9px] text-indigo-500/70 font-medium leading-tight">Direciona as requisições LLM/Embeddings espacialmente.</p>
+                    <button @click="isManagingClusters = !isManagingClusters" class="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium transition-colors flex items-center gap-1">
+                       <span class="i-ph-wrench-duotone"></span> Gerenciar Nós
+                    </button>
+                 </div>
+                 
+                 <!-- Inline Cluster Manager -->
+                 <div v-show="isManagingClusters" class="mt-3 bg-[#09090b] border border-indigo-500/20 rounded-md p-2 space-y-3">
+                    <!-- List -->
+                    <ul class="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                       <li v-for="c in ollamaClusters" :key="c.id" class="flex items-center justify-between bg-[#121214] border border-[#222] p-1.5 rounded" :class="activeClusterId === c.id ? 'border-indigo-500/50 outline outline-1 outline-indigo-500/30' : ''">
+                          <div class="flex flex-col min-w-0">
+                             <span class="text-[11px] font-semibold text-slate-300 truncate" :class="activeClusterId === c.id ? 'text-indigo-300' : ''">{{ c.name }} <span v-if="activeClusterId === c.id" class="text-[9px] text-indigo-500/70 ml-1">(Ativo)</span></span>
+                             <span class="text-[9px] text-slate-500 font-mono truncate">{{ c.url }}</span>
+                          </div>
+                          <!-- Hide delete for default unbreakables -->
+                          <button v-show="c.id !== 'local' && c.id !== 'oracle'" @click="removeCluster(c.id)" class="text-rose-500/70 hover:text-rose-400 p-1 shrink-0" title="Remover Nó da Frota">
+                             <span class="i-ph-trash-duotone text-sm"></span>
+                          </button>
+                       </li>
+                    </ul>
+                    
+                    <!-- Add -->
+                    <div class="flex flex-col gap-1.5 pt-2 border-t border-[#222]">
+                       <input v-model="newClusterName" type="text" placeholder="Nome (Ex: Oracle Pro)" class="w-full bg-[#18181B] border border-[#333] text-[#E0E0E0] rounded px-2 py-1 text-[11px] outline-none focus:border-indigo-500 placeholder-slate-600">
+                       <input v-model="newClusterUrl" type="url" placeholder="URL (Ex: http://100.116.x.y:11434)" class="w-full bg-[#18181B] border border-[#333] text-[#E0E0E0] rounded px-2 py-1 text-[11px] outline-none focus:border-indigo-500 placeholder-slate-600 font-mono">
+                       <button @click="addCluster" :disabled="!newClusterName || !newClusterUrl" class="w-full bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 border border-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed py-1.5 rounded text-[11px] font-semibold transition-colors mt-1">
+                          Adicionar à Frota
+                       </button>
+                    </div>
+                 </div>
               </div>
             </template>
             <label class="block text-sm font-medium text-slate-400">Nome do Modelo Localizado</label>
@@ -542,12 +614,6 @@ onMounted(() => {
                    <span class="i-ph-brain-duotone text-lg text-purple-500"></span> Anthropic API Key
                 </label>
                 <input v-model="systemSettings.anthropic_api_key" type="password" placeholder="sk-ant-api03-..." class="w-full bg-[#18181B] border border-[#222222] text-[#E0E0E0] text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none transition-all font-mono">
-              </div>
-
-              <div class="space-y-2">
-                <label class="block text-sm font-medium text-slate-400">Custom Ollama Remote URL (Opcional)</label>
-                <input v-model="systemSettings.custom_ollama_url" type="url" placeholder="http://192.168.0.100:11434" class="w-full bg-[#18181B] border border-[#222222] text-[#E0E0E0] text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none transition-all font-mono">
-                <p class="text-[11px] text-slate-500">Deixe em branco para forçar o endpoint nativo em \`http://ollama-ia:11434\` ou o localhost atual.</p>
               </div>
            </div>
         </div>
