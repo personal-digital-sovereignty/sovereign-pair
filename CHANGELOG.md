@@ -7,6 +7,24 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [3.1.1] - 2026-03-07
+
+### 🌐 Resiliência Local-First & Infraestrutura Cibrid Automática
+
+### Adicionado
+- **Restricted Mode (Degradação Graciosa)**: Implementação de fallback inteligente no backend FastAPI. Quando o *The Doctor* (Oracle) ou o webhook N8N perdem conectividade, a pipeline de RAG desvia graciosamente a inferência para a *The Nurse* (SLM Local), evitando Timeouts na interface e reportando o status local via o novo endpoint `/health/cluster` (`degraded`).
+- **Toggle Remoto Dinâmico**: Adicionado controlador lógico de bypass remoto (`POST /settings/remote-toggle`) mitigando no código-fonte a dependência forçada de rede com a núvem (OCI).
+
+### Corrigido
+- **Docker Mount Point Crítico**: Sanado o crash-loop (Read-Only Filesystem) que abatia o ChromaDB devido à flag rígida de segurança `read_only: true`. Roteamento mapeado do volume para `/data`.
+
+### Infraestrutura & DevSecOps
+- **Pipeline Segura contra Injeção (Semgrep SAST)**: Erradicada falha pontiaguda de *Shell Injection* na action de Deploy OCI (`deploy-oci.yml`), repassando o event bus do GitHub com segurança por contexto em bash env.
+- **Automação OCI e Cloud-Init**:
+  - Extirpado o hostname default confuso `primaryvnic` mapeando assincronamente a label nativa de VNIC `sovereign-coder` da Terraform.
+  - Abordado falha silenciosa do daemon instalador da Docker (`Failure writing output to destination`) no bootstrap inicial via piping ramificado (`curl | sh`).
+- **Zizmor Audit & Ruff Compliance**: Varredura limpando formatação quebrada obsoleto da codificação py (strings F vazias). Inseridos rótulos seletivos da ferramenta de inspeção Zizmor no release do Obsidian.
+
 ## [3.1.0] - 2026-02-27
 
 ### 🛡️ DevSecOps & Security Hardening (FOSS Enterprise)
