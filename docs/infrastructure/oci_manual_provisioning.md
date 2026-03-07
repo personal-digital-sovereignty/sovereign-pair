@@ -61,3 +61,24 @@ Once complete, you should be able to access the n8n interface and the FastAPI ba
 tail -f /var/log/ollama_pull_coder.log
 tail -f /var/log/ollama_pull_doctor.log
 ```
+
+## Troubleshooting: "network declared as external, but could not be found"
+
+If the Docker Compose stack fails to start with the following error:
+```text
+network sovereign-pair_sovereign-net declared as external, but could not be found
+```
+
+This usually happens when there's an issue with the pre-requisites (specifically Tailscale) preventing the Docker networks from being created properly, or if `docker-compose up` was run before the authentication finished.
+
+**How to Fix:**
+
+1. **Verify your Tailscale Authentication:** Ensure the node actually joined the Mesh. The command `tailscale status` must show the machine connected. If not, re-run step 2 with a valid Auth Key.
+2. **Re-create Docker Networks:** Stop the broken stack and let Docker Compose re-evaluate the networking requirements.
+```bash
+# Tear down whatever was partially created
+sudo docker compose -f docker-compose.yml -f docker-compose.n8n.yml down
+
+# Run it again
+sudo docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d
+```
