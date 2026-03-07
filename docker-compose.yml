@@ -121,7 +121,7 @@ services:
       - /var/run
     security_opt:
       - no-new-privileges:true
-    hostname: sovereign-rag-cloud
+    hostname: sovereign-cloud-api
     restart: always
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY}
