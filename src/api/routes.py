@@ -826,7 +826,29 @@ def update_settings(request: Request, body_request: SettingsRequest, db: Session
 def get_authorized_workspaces(db: Session, tenant_id: str) -> list:
     from src.config import RAW_DOCS_DIR
     import json
+    import os
     
+    intake = _get_setting_value(db, "default_intake_vault", str(RAW_DOCS_DIR), tenant_id)
+    ws_str = _get_setting_value(db, "workspaces", "[]", tenant_id)
+    try:
+        workspaces = json.loads(ws_str)
+    except Exception:
+        workspaces = []
+        
+    auth_dirs = [intake] if intake else []
+    auth_dirs.extend(workspaces)
+    
+    # Mapear e retornar apenas se existirem na máquina local e caminhos absolutos
+    valid_dirs = []
+    for d in auth_dirs:
+        if d and d.strip():
+            abs_d = os.path.abspath(d.strip())
+            if os.path.exists(abs_d):
+                valid_dirs.append(abs_d)
+                
+    # Remove duplicates
+    return list(set(valid_dirs))
+
 @router.get("/health/cluster")
 @limiter.limit("60/minute")
 async def check_cluster_health(request: Request, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
@@ -861,28 +883,6 @@ def toggle_remote_integration(request: Request, db: Session = Depends(get_db), t
     _set_setting_value(db, "remote_integration_enabled", new_val, tenant_id)
     db.commit()
     return {"status": "success", "remote_integration_enabled": new_val == "true"}
-
-    import os
-    intake = _get_setting_value(db, "default_intake_vault", str(RAW_DOCS_DIR), tenant_id)
-    ws_str = _get_setting_value(db, "workspaces", "[]", tenant_id)
-    try:
-        workspaces = json.loads(ws_str)
-    except Exception:
-        workspaces = []
-        
-    auth_dirs = [intake] if intake else []
-    auth_dirs.extend(workspaces)
-    
-    # Mapear e retornar apenas se existirem na máquina local e caminhos absolutos
-    valid_dirs = []
-    for d in auth_dirs:
-        if d and d.strip():
-            abs_d = os.path.abspath(d.strip())
-            if os.path.exists(abs_d):
-                valid_dirs.append(abs_d)
-                
-    # Remove duplicates
-    return list(set(valid_dirs))
 
 def is_path_authorized(target_path: str, auth_dirs: list) -> bool:
     import os

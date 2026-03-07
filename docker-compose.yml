@@ -51,7 +51,7 @@ services:
       - no-new-privileges:true
     restart: always
     volumes:
-      - chroma-data:/chroma/chroma
+      - chroma-data:/data
     environment:
       - IS_PERSISTENT=TRUE
     networks:
