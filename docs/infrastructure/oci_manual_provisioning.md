@@ -47,9 +47,10 @@ cd /opt/sovereign-pair
 ```
 
 ### 6. Configure and Launch Services
-Set up the environment and start the Docker Compose stack (including n8n and Core Services).
+Set up the environment, inject your secret Tailscale key, and start the Docker Compose stack (including n8n and Core Services).
 ```bash
 sudo cp .env.example .env
+sudo sed -i "s/TS_AUTHKEY=tskey-auth-xxxxxxxxx/TS_AUTHKEY=<SUA_AUTH_KEY_TAILSCALE>/g" .env
 sudo mkdir -p ./data/vault
 sudo docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d
 ```
@@ -133,9 +134,10 @@ cd /opt/sovereign-pair
 ```
 
 #### 6. Configurar e Subir os Serviços
-Configura o ambiente e inicia a stack do Docker Compose (incluindo o n8n e os Core Services).
+Configura o ambiente, injeta sua chave secreta do Tailscale no .env, e inicia a stack do Docker Compose (incluindo o n8n e os Core Services).
 ```bash
 sudo cp .env.example .env
+sudo sed -i "s/TS_AUTHKEY=tskey-auth-xxxxxxxxx/TS_AUTHKEY=<SUA_AUTH_KEY_TAILSCALE>/g" .env
 sudo mkdir -p ./data/vault
 sudo docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d
 ```
