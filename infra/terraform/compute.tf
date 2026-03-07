@@ -35,7 +35,7 @@ resource "oci_core_instance" "the_coder" {
     source_type = "image"
     source_id   = data.oci_core_images.ubuntu_arm.images[0].id
     # Ensure enough disk space for heavy LLMs (Free tier gives up to 200GB total across block volumes)
-    boot_volume_size_in_gbs = 50
+    boot_volume_size_in_gbs = 100
   }
 
   metadata = {
