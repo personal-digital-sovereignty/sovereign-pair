@@ -73,6 +73,18 @@ O sistema opera através de controle restritivo militar. Requisições HTTP limi
 ### Setup Básico
 
 1. **Clonar e Preparar o Ambiente**
+
+> **Aviso de Implantação Cloud (Oracle OCI / Servidores Linux):**  
+> Para ambientes de produção ou servidores remotos virtuais, a arquitetura padronizada (usada pelos scripts de CI/CD e Cloud-Init) exige que o sistema seja clonado e implantado estritamente no diretório **`/opt/sovereign-pair/`**.
+
+**Para Servidores Linux (Produção):**
+```bash
+cd /opt
+sudo git clone https://github.com/Personal-Digital-Sovereignty/sovereign-pair.git
+cd /opt/sovereign-pair
+```
+
+**Para Desktops Locais (Desenvolvimento):**
 ```bash
 git clone https://github.com/Personal-Digital-Sovereignty/sovereign-pair.git
 cd sovereign-pair
