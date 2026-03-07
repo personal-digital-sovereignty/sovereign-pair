@@ -82,3 +82,76 @@ sudo docker compose -f docker-compose.yml -f docker-compose.n8n.yml down
 # Run it again
 sudo docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d
 ```
+
+---
+
+## Guia de Provisionamento Manual OCI (Fallback em Português)
+
+Este documento descreve os passos manuais para provisionar o Server Node (The Coder / The Doctor) na Oracle Cloud Infrastructure (OCI) caso o `cloud-init` automático falhe durante a execução do Terraform.
+
+### Pré-requisitos
+- Acesso SSH à instância recém-criada.
+- Um **Personal Access Token (PAT)** do GitHub com acesso de leitura ao repositório `sovereign-pair`.
+- Uma **Auth Key do Tailscale** para adicionar a instância à sua rede Mesh.
+
+### Passos para Execução Manual
+
+Acesse o servidor via SSH e execute os seguintes passos em ordem utilizando o usuário `ubuntu` (com `sudo`).
+
+#### 1. Corrigir Mirrors do APT e Atualizar
+As imagens padrão da Oracle costumam fixar os mirrors do APT para a região em que a imagem foi construída (ex: `iad-ad-3` de Ashburn). Este comando torna os mirrors genéricos e atualiza as listas de pacotes.
+```bash
+sudo sed -E -i 's/[a-z0-9-]+\.clouds\.ports\.ubuntu\.com/ports.ubuntu.com/g' /etc/apt/sources.list
+sudo apt-get update -y
+```
+
+#### 2. Instalar Tailscale e Conectar à Rede Mesh
+Substitua `<SUA_AUTH_KEY_TAILSCALE>` pela sua chave do Tailscale válida.
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up --authkey=<SUA_AUTH_KEY_TAILSCALE> --ssh --accept-dns=true
+```
+
+#### 3. Instalar Ollama e Pré-carregar LLMs
+Instala o motor Ollama e inicia o download dos modelos em segundo plano.
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+sudo systemctl enable ollama && sudo systemctl restart ollama
+sudo runuser -l root -c "nohup ollama pull qwen2.5-coder:7b > /var/log/ollama_pull_coder.log 2>&1 &"
+sudo runuser -l root -c "nohup ollama pull llama3.2:3b > /var/log/ollama_pull_doctor.log 2>&1 &"
+```
+
+#### 4. Instalar Docker Engine
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+```
+
+#### 5. Clonar o Repositório
+Substitua `<SEU_PAT_GHCR>` pelo seu Personal Access Token do GitHub.
+```bash
+sudo git clone https://\<SEU_PAT_GHCR\>@github.com/Personal-Digital-Sovereignty/sovereign-pair.git /opt/sovereign-pair
+cd /opt/sovereign-pair
+```
+
+#### 6. Configurar e Subir os Serviços
+Configura o ambiente e inicia a stack do Docker Compose (incluindo o n8n e os Core Services).
+```bash
+sudo cp .env.example .env
+sudo mkdir -p ./data/vault
+sudo docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d
+```
+
+#### Resolução de Problemas (Troubleshooting)
+Se o Docker Compose falhar com a mensagem:
+`network sovereign-pair_sovereign-net declared as external, but could not be found`
+
+Isso geralmente ocorre quando o Tailscale não se conectou com sucesso, impedindo o Docker de localizar as interfaces de rede necessárias, ou porque a stack subiu antes do Mesh estabelecer conexão.
+
+**Como Corrigir:**
+1. Valide a conexão executando `tailscale status`. Se não estiver conectado, repita o Passo 2.
+2. Derrube e recrie a Stack do Docker:
+```bash
+sudo docker compose -f docker-compose.yml -f docker-compose.n8n.yml down
+sudo docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d
+```
