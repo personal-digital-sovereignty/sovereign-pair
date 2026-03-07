@@ -215,7 +215,7 @@ def get_embed_model():
 
 # Configurar Settings globalmente para que todos os componentes usem
 Settings.llm = llm
-Settings.embed_model = embed_model
+Settings.embed_model = get_embed_model()
 Settings.chunk_size = 512
 Settings.chunk_overlap = 50
 
