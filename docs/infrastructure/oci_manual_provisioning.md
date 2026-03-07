@@ -1,0 +1,63 @@
+# OCI Manual Provisioning Guide (Fallback)
+
+This document outlines the manual steps to provision the Server Node (The Coder / The Doctor) in the Oracle Cloud Infrastructure (OCI) in case the automated `cloud-init` fails during Terraform execution.
+
+## Prerequisites
+- SSH access to the newly created instance.
+- A **GitHub Personal Access Token (PAT)** with read access to the `sovereign-pair` repository.
+- A **Tailscale Auth Key** to join the instance to your Mesh network.
+
+## Manual Execution Steps
+
+Access the server via SSH and execute the following steps in order as the `ubuntu` user (or using `sudo`).
+
+### 1. Fix APT Mirrors and Update
+Oracle's default images often hardcode the APT mirrors to the region where the image was built (e.g., Ashburn `iad-ad-3`). This command makes the mirrors generic and updates the package lists.
+```bash
+sudo sed -E -i 's/[a-z0-9-]+\.clouds\.ports\.ubuntu\.com/ports.ubuntu.com/g' /etc/apt/sources.list
+sudo apt-get update -y
+```
+
+### 2. Install Tailscale & Connect to Mesh
+Replace `<SUA_AUTH_KEY_TAILSCALE>` with your valid Tailscale key.
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up --authkey=<SUA_AUTH_KEY_TAILSCALE> --ssh --accept-dns=true
+```
+
+### 3. Install Ollama and Pre-load LLMs
+Install the Ollama engine and pull the primary models in the background.
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+sudo systemctl enable ollama && sudo systemctl restart ollama
+sudo runuser -l root -c "nohup ollama pull qwen2.5-coder:7b > /var/log/ollama_pull_coder.log 2>&1 &"
+sudo runuser -l root -c "nohup ollama pull llama3.2:3b > /var/log/ollama_pull_doctor.log 2>&1 &"
+```
+
+### 4. Install Docker Engine
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+```
+
+### 5. Clone the Repository
+Replace `<SEU_PAT_GHCR>` with your GitHub Personal Access Token.
+```bash
+sudo git clone https://\<SEU_PAT_GHCR\>@github.com/Personal-Digital-Sovereignty/sovereign-pair.git /opt/sovereign-pair
+cd /opt/sovereign-pair
+```
+
+### 6. Configure and Launch Services
+Set up the environment and start the Docker Compose stack (including n8n and Core Services).
+```bash
+sudo cp .env.example .env
+sudo mkdir -p ./data/vault
+sudo docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d
+```
+
+## Validation
+Once complete, you should be able to access the n8n interface and the FastAPI backend via the Tailscale IPs assigned to the instance. You can monitor the LLM downloads by tailing the logs:
+```bash
+tail -f /var/log/ollama_pull_coder.log
+tail -f /var/log/ollama_pull_doctor.log
+```
