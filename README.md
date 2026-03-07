@@ -21,16 +21,26 @@ O sistema superou a fase inicial de "Apenas Ingestão Incremental" e funciona ho
    - **ChromaDB**: Banco de dados vetorial operando em arquitetura persistente local (`data/chromadb`).
    - **SQLite + SQLAlchemy**: Banco de dados relacional que mantém todo o histórico de conversas e estado da API (`data/sovereign_memory.db`).
 
-3. **Backend RAG e Servidor de Contexto (FastAPI)**
+3. **Backend RAG e Servidor de Contexto (FastAPI/MCP)**
    - Exposição via API RESTful de alta concorrência gerida por corrotinas assíncronas do LlamaIndex (`astream_chat`).
+   - Servidor **MCP (Model Context Protocol)** embutido, convertendo o Sovereign Vault (ChromaDB + Markdown) em recursos nativos mapeados diretamente para sistemas HOST (como Claude Desktop e VSCode).
    - Suporte a **Server-Sent Events (SSE)** nativo para respostas textuais em Streaming Real-Time.
-   - Camada gerencial unificada: Criação de Chat Folders e Injeção do Perfil (Sovereign Context) via chamadas CRUD.
    - Segurança e autenticação rigorosa via **JWT (JSON Web Tokens)**.
 
 4. **Trindade de Clientes Nativos**
-   - **App Vue 3 (Web UI)**: Uma experiência PWA-Ready com suporte nativo a Dark/Light Mode, barra lateral redimensionável e Árvores de Pastas em tempo-real.
+   - **App Vue 3 (Web UI / God Mode Cockpit)**: Além da experiência PWA de IA, integra consoles de governança absoluta de IPs/UUIDs engaiolados, quarentena do Sentinel e Anti-Injeção.
    - **Plugin Obsidian 3.0**: Interface hiper-integrada oferecendo 3 visualizações (Mini-Web lateral, Minimalista focado no texto, e Spotlight Modal gigantesco para brainstormings).
-   - **Agente Terminal (CLI)**: Uma das mais parrudas interfaces interativas de Terminal. Configure seu RAG via `setup` wizard ou inicie um chat 100% via bash usando o comando `chat`.
+   - **Agente Terminal (CLI)**: Uma das mais parrudas interfaces interativas de Terminal.
+
+5. **Orquestração Cíbrida Zero-Cost (N8N OCI)**
+   - Integração com o orquestrador N8N (Queue Mode) atrelado a banco Postgres.
+   - Broker efêmero rápido via **Redis** hospedado no nível gratuito da Nuvem (Oracle A1 Flex OCPU).
+   - Tunelamento estático 100% blindado por **Gatekeeper Cloudflare / Tailscale VPN**, isolando portas da internet pública.
+
+6. **SecOps FOSS Enterprise (A Tríade de Defesa)**
+   - **Gitleaks (Native Local Docker)**: Scanner militar bloqueando nativamente pushes com credenciais (pre-push hook).
+   - **Semgrep SAST**: Análise estática avançada de código procurando bypasses, hardcoding e injeções no repositório.
+   - **Zizmor & Trivy**: Auditoria de imagens OCI (Containers) e verificação extrema de permissões e segurança na esteira Github Actions.
 
 ---
 
@@ -42,11 +52,14 @@ A precisão mestre do motor: combina **Busca Vetorial Densa** (sentido semântic
 ### Memória Conversacional Persistente
 Ao contrário de implementações RAG estáticas, o agente lembra quem você é e sobre o que debateram na mesma sessão. O histórico do chat flui automaticamente de e para o banco de dados SQL e realimenta o buffer de contexto da Inteligência Artificial.
 
-### Ingestão Incremental Extrema
-Ao alimentar milhares de notas no sistema, a pipeline apenas processa deltas (arquivos novos, alterados ou removidos). Utiliza **Hashing Paralelo SHA256** (cache LRU) para alcançar 95%+ de redução no tempo de processamento em comparação à indexações flat, incluindo "Garbage Collection" automático das matrizes vetoriais obsoletas.
+### Ingestão Incremental Extrema (Zero-Cost Sync)
+Ao alimentar milhares de notas no sistema, a pipeline apenas processa deltas (arquivos novos, alterados ou removidos). Utiliza **Hashing Paralelo SHA256** (cache LRU) para alcançar 95%+ de redução no tempo processual, incluindo "Garbage Collection" automático das matrizes vetoriais obsoletas e suporte vitalício ao Server MCP.
 
-### Segurança Zero-Trust
-O sistema opera através de restrições por chaves (API Keys/JWT). Domínios de processamento são separados e requisições HTTP são limitadas por preflights de CORS definidos via manifesto estrito, blindando conexões indesejadas na rede local.
+### MAS (Multi-Agent System) LangGraph
+Nossa cadeia intelectiva já suporta LangGraph Agents: O Enfermeiro (Triagem de Sentimentos), O Doutor (Raciocínio Clínico de RAG) e O Programador (Execução Direta de Ferramentas), encapsulando de ponta-a-ponta a resiliência cognitiva da IA.
+
+### O Mandato "The Sentinel" & Zero-Trust
+O sistema opera através de controle restritivo militar. Requisições HTTP limitadas por preflights de CORS e Web Application Firewall. O **The Sentinel** intercepta Prompt Injections em T0 (Tempo Zero), quarentena vetores maliciosos e monitora o God Mode Cockpit. Na CI/CD, o sistema FOSS DevSecOps é mandatório.
 
 ---
 
