@@ -342,7 +342,7 @@ onMounted(() => {
           <div class="space-y-2">
             <label class="block text-sm font-medium text-slate-400">Provedor LLM</label>
             <select v-model="systemSettings.llm_provider" @change="onProviderChange" class="w-full bg-[#18181B] border border-[#222222] text-[#E0E0E0] text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none transition-all">
-              <option value="ollama">Ollama (Local)</option>
+              <option value="ollama">Ollama (Multi-Cluster)</option>
               <option value="openai">OpenAI</option>
               <option value="groq">Groq</option>
               <option value="anthropic">Anthropic</option>
