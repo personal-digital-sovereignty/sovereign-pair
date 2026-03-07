@@ -29,7 +29,9 @@ from config import (
     CHUNK_OVERLAP,
     HISTORY_FILE,
     INTERACTIVE_MODE,
-    embed_model,
+    LLM_MODEL_NAME,
+    get_embed_model,
+    OLLAMA_NUM_CTX,
     validate_document_paths,
 )
 
@@ -544,7 +546,7 @@ def ingest_data(documents: Optional[list] = None) -> Optional[VectorStoreIndex]:
         index = VectorStoreIndex(
             all_nodes,
             storage_context=storage_context,
-            embed_model=embed_model,
+            embed_model=get_embed_model(),
             show_progress=True,
         )
         
