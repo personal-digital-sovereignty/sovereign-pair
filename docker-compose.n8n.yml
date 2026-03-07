@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Sovereign Pair - N8N Zero Cost Architecture
 # Módulo Complementar de Automação Cíbrida (Phase 42)
 
@@ -66,5 +64,4 @@ volumes:
     # Conecta na malha existente levantada pelo docker-compose.yml primário.
 networks:
   sovereign-net:
-    external: true
     name: sovereign-pair_sovereign-net
