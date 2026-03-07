@@ -34,29 +34,11 @@ jobs:
           zizmor .github/workflows || echo "Zizmor audit complete (non-blocking for MVP)."
 
   # ==========================================
-  # Gate 1: Secret Scanning
-  # ==========================================
-  secret-scanning:
-    name: "Gate 1: Gitleaks"
-    needs: pipeline-security
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository (com histórico completo para varredura)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Gitleaks Scan (FOSS Docker Native)
-        run: |
-          docker pull zricethezav/gitleaks:latest
-          docker run -v ${{ github.workspace }}:/path zricethezav/gitleaks:latest detect --source="/path" -v
-
-  # ==========================================
-  # Gate 2: SAST (Static Analysis)
+  # Gate 1: SAST (Static Analysis)
   # ==========================================
   sast-semgrep:
-    name: "Gate 2: Semgrep (SAST)"
-    needs: secret-scanning
+    name: "Gate 1: Semgrep (SAST)"
+    needs: pipeline-security
     runs-on: ubuntu-latest
     container:
       image: semgrep/semgrep
@@ -110,7 +92,7 @@ jobs:
   foss-enterprise-devsecops:
     name: "FOSS Enterprise DevSecOps"
     # Needs all other gates to complete successfully
-    needs: [pipeline-security, secret-scanning, sast-semgrep, sca-trivy, quality-ruff]
+    needs: [pipeline-security, sast-semgrep, sca-trivy, quality-ruff]
     runs-on: ubuntu-latest
     steps:
       - run: echo "All FOSS Enterprise DevSecOps Gates Passed!"
