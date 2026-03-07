@@ -60,4 +60,4 @@ runcmd:
   # 6. Clone Sovereign Pair and Spin Up Cibrid Services (RAG + N8N Zero Cost)
   - git clone https://${pat_ghcr}@github.com/Personal-Digital-Sovereignty/sovereign-pair.git /opt/sovereign-pair
   # Prepare environments and vault architecture (Using sh -c because cloud-init runcmd executes each line in a fresh shell)
-  - sh -c "cd /opt/sovereign-pair && cp .env.example .env && mkdir -p ./data/vault && docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d"
+  - sh -c "cd /opt/sovereign-pair && cp .env.example .env && mkdir -p ./data/vault && sudo docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d"
