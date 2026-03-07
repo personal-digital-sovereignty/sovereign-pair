@@ -1,5 +1,8 @@
 #cloud-config
 
+hostname: sovereign-coder
+preserve_hostname: false
+
 ssh_authorized_keys:
   - ${ssh_public_key}
 
@@ -54,8 +57,9 @@ runcmd:
   - runuser -l root -c "nohup ollama pull llama3.2:3b > /var/log/ollama_pull_doctor.log 2>&1 &"
 
   # 5. Install Docker Engine Native
-  - curl -fsSL https://get.docker.com -o get-docker.sh
-  - sh get-docker.sh
+  - curl -fsSL https://get.docker.com | sh
+  - systemctl enable docker
+  - systemctl start docker
 
   # 6. Clone Sovereign Pair and Spin Up Cibrid Services (RAG + N8N Zero Cost)
   - git clone https://${pat_ghcr}@github.com/Personal-Digital-Sovereignty/sovereign-pair.git /opt/sovereign-pair
