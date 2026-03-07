@@ -19,6 +19,7 @@ import os
 from pathlib import Path
 
 router = APIRouter()
+import httpx
 
 # Importando o limiter configurado no main.py
 try:
@@ -215,13 +216,32 @@ EXTREMA IMPORTÂNCIA:
                         yield f"data: {json.dumps({'content': '*(🧠 Raciocínio Profundo do The Doctor ativado...)*\\n\\n'})}\n\n"
                         
                         print(f"[DEBUG RAG] Executando The Doctor (Tier 4) via {getattr(doctor.llm, 'model', 'N/A')}...", flush=True)
-                        response_gen = await doctor.execute_deep_reasoning(body_request.message, context_str, intent_data)
-                        
-                        full_ai_response = "*(🧠 Raciocínio Profundo do The Doctor ativado...)*\n\n"
-                        async for token in response_gen:
-                            if token:
-                                full_ai_response += token
-                                yield f"data: {json.dumps({'content': token})}\n\n"
+                        try:
+                            # Se a flag de integração remota estiver desligada ou se der timeout na rede (Tailscale/Oracle)
+                            integration_enabled_str = _get_setting_value(db, "remote_integration_enabled", "true", tenant_id)
+                            if integration_enabled_str.lower() != "true":
+                                raise TimeoutError("Restricted Mode Local-First ativado pelo usuário.")
+
+                            response_gen = await doctor.execute_deep_reasoning(body_request.message, context_str, intent_data)
+                            
+                            full_ai_response = "*(🧠 Raciocínio Profundo do The Doctor ativado...)*\n\n"
+                            async for token in response_gen:
+                                if token:
+                                    full_ai_response += token
+                                    yield f"data: {json.dumps({'content': token})}\n\n"
+                                    
+                        except (TimeoutError, httpx.TimeoutException, Exception) as e:
+                            # Fallback Gracioso de Rede
+                            print(f"[FALLBACK RAG] Erro ao alcançar o Cloud Node ({str(e)}). Redirecionando para The Nurse SLM Local...")
+                            fallback_msg = f"*(⚠️ Raciocínio Profundo Indisponível (Nó Remoto Offline). Redirecionando para The Nurse Local...)*\n\n"
+                            yield f"data: {json.dumps({'content': fallback_msg})}\n\n"
+                            full_ai_response = fallback_msg
+                            
+                            response_gen = await nurse.execute_tactical_task(body_request.message, context_str, intent_data)
+                            async for token in response_gen:
+                                if token:
+                                    full_ai_response += token
+                                    yield f"data: {json.dumps({'content': token})}\n\n"
                         
                 # Após o streaming, verifique se a resposta foi apenas um aviso de que não achou o documento.
                 if full_ai_response:
@@ -437,6 +457,10 @@ EXTREMA IMPORTÂNCIA:
                         
             return ChatResponse(response=full_ai_response, sources=citations)
             
+        except (TimeoutError, httpx.TimeoutException) as e:
+            # Captura exception generica se nao engolida e ja estavamos no Fallback mode, manda um friendly error
+            err_msg = f"*(⚠️ Conexão Remota Inalcançável. The Mom e The Nurse falharam ao processar Localmente)*"
+            return ChatResponse(response=err_msg, sources=[])
         except Exception as e:
             err_msg = f"❌ Exceção Crítica no Motor LLM ({body_request.provider}/{body_request.model}): {str(e)}"
             return ChatResponse(response=err_msg, sources=[])
@@ -746,7 +770,8 @@ def get_settings(request: Request, db: Session = Depends(get_db), tenant_id: str
         gemini_api_key=_get_setting_value(db, "gemini_api_key", "", tenant_id),
         custom_ollama_url=_get_setting_value(db, "custom_ollama_url", "", tenant_id),
         default_intake_vault=_get_setting_value(db, "default_intake_vault", "", tenant_id),
-        workspaces=json.loads(_get_setting_value(db, "workspaces", "[]", tenant_id))
+        workspaces=json.loads(_get_setting_value(db, "workspaces", "[]", tenant_id)),
+        remote_integration_enabled=(_get_setting_value(db, "remote_integration_enabled", "true", tenant_id).lower() == "true")
     )
 
 @router.post("/settings", response_model=SettingsResponse)
@@ -778,6 +803,9 @@ def update_settings(request: Request, body_request: SettingsRequest, db: Session
         _set_setting_value(db, "default_intake_vault", body_request.default_intake_vault, tenant_id)
         _set_setting_value(db, "workspaces", json.dumps(body_request.workspaces), tenant_id)
         
+        # --- Local-First Agnosticism ---
+        _set_setting_value(db, "remote_integration_enabled", "true" if body_request.remote_integration_enabled else "false", tenant_id)
+        
         db.commit()
     except Exception as e:
         db.rollback()
@@ -798,6 +826,42 @@ def update_settings(request: Request, body_request: SettingsRequest, db: Session
 def get_authorized_workspaces(db: Session, tenant_id: str) -> list:
     from src.config import RAW_DOCS_DIR
     import json
+    
+@router.get("/health/cluster")
+@limiter.limit("60/minute")
+async def check_cluster_health(request: Request, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Verifica a conectividade do cluster (Ollama/N8N) e avisa a UI sobre Degradação"""
+    is_enabled_str = _get_setting_value(db, "remote_integration_enabled", "true", tenant_id)
+    is_enabled = is_enabled_str.lower() == "true"
+    
+    if not is_enabled:
+        return {"status": "degraded", "reason": "remote_disabled_by_user", "active_agents": ["The Mom", "The Dad", "The Nurse"]}
+        
+    ollama_url = _get_setting_value(db, "custom_ollama_url", "", tenant_id)
+    if not ollama_url:
+        import os
+        ollama_url = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+        
+    try:
+        async with httpx.AsyncClient(timeout=1.5) as client:
+            res = await client.get(f"{ollama_url}/api/tags")
+            if res.status_code == 200:
+                return {"status": "optimal", "active_agents": ["The Mom", "The Dad", "The Nurse", "The Doctor", "The Coder"]}
+            else:
+                return {"status": "degraded", "reason": "ollama_unreachable", "active_agents": ["The Mom", "The Dad", "The Nurse"]}
+    except Exception:
+        return {"status": "degraded", "reason": "ollama_timeout", "active_agents": ["The Mom", "The Dad", "The Nurse"]}
+
+@router.post("/settings/remote-toggle")
+@limiter.limit("20/minute")
+def toggle_remote_integration(request: Request, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Inverte rapidamente a chave de integração remota (Local-First Mode)"""
+    current_val_str = _get_setting_value(db, "remote_integration_enabled", "true", tenant_id)
+    new_val = "false" if current_val_str.lower() == "true" else "true"
+    _set_setting_value(db, "remote_integration_enabled", new_val, tenant_id)
+    db.commit()
+    return {"status": "success", "remote_integration_enabled": new_val == "true"}
+
     import os
     intake = _get_setting_value(db, "default_intake_vault", str(RAW_DOCS_DIR), tenant_id)
     ws_str = _get_setting_value(db, "workspaces", "[]", tenant_id)
