@@ -133,6 +133,11 @@ const checkClusterHealth = async () => {
     });
     if (res.ok) {
       clusterState.value = await res.json();
+    } else if (res.status === 401) {
+      console.warn("Sovereign Token Expirado ou Inválido. Deslogando.");
+      localStorage.removeItem('sovereign_token');
+      authPhase.value = 'login';
+      if (healthInterval) clearInterval(healthInterval);
     } else {
       clusterState.value = { status: 'degraded', reason: 'backend_down', active_agents: ['The Mom', 'The Dad', 'The Nurse'] };
     }

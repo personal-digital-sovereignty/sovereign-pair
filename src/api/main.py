@@ -32,9 +32,10 @@ models.Base.metadata.create_all(bind=engine)
 limiter = Limiter(key_func=get_remote_address)
 
 def auto_pull_ollama_models():
-    """Baixa automaticamente os modelos definidos no config.py se eles faltarem no contêiner do Ollama."""
+    """Baixa automaticamente os modelos definidos no config.py se eles faltarem no contêiner do Ollama (do cluster Atual)."""
     import logging
-    from src.config import validate_ollama_models, OLLAMA_BASE_URL
+    from src.config import validate_ollama_models
+    from src.llm_factory import _get_active_ollama_url
     import time
     from ollama import Client
     
@@ -44,9 +45,10 @@ def auto_pull_ollama_models():
     try:
         is_valid, missing = validate_ollama_models()
         if not is_valid and missing:
-            logging.info(f"🚀 Modelos ausentes no Ollama em rede isolada detectados: {missing}. Iniciando Auto-Pull via SDK...")
+            dynamic_url = _get_active_ollama_url()
+            logging.info(f"🚀 Modelos ausentes no Ollama em rede isolada detectados: {missing}. Iniciando Auto-Pull em {dynamic_url}...")
             
-            client = Client(host=OLLAMA_BASE_URL)
+            client = Client(host=dynamic_url)
             for model in missing:
                 logging.info(f"📥 Baixando pesos do modelo {model}... (Isso pode demorar dependendo da banda larga e do tamanho do modelo)")
                 try:
