@@ -164,6 +164,8 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/v1/auth", tags=["Authentication"])
+from .routes_opencode import router as opencode_router
+app.include_router(opencode_router, prefix="/v1/opencode", tags=["OpenAI Compatible Proxy"])
 app.include_router(router, prefix="/v1", dependencies=[Depends(get_current_user)])
 
 # CISO GOTCHA: Route Amputation & B2B Stripping
