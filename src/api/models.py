@@ -131,11 +131,18 @@ class ProjectModel(Base):
     progress_percent = Column(Integer, default=0)
     friction_radar = Column(Text, nullable=True) # Why is it blocked?
     deadline = Column(String(100), nullable=True) # ISO Date string or description
+    
+    # Híbrido: Reflexo Markdown
+    file_path = Column(String(1024), nullable=True, unique=True)
+    last_synced_at = Column(DateTime, nullable=True)
+
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     links = relationship("ProjectLinkModel", back_populates="project", cascade="all, delete-orphan")
     logs = relationship("ProjectLogModel", back_populates="project", cascade="all, delete-orphan")
+    tasks = relationship("TaskModel", back_populates="project", cascade="all, delete-orphan")
+    notes = relationship("NoteModel", back_populates="project", cascade="all, delete-orphan")
 
 class ProjectLinkModel(Base):
     __tablename__ = "project_links"
@@ -156,3 +163,61 @@ class ProjectLogModel(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     project = relationship("ProjectModel", back_populates="logs")
+
+class TaskModel(Base):
+    __tablename__ = "tasks"
+
+    id = Column(String(36), primary_key=True, index=True) # UUID
+    project_id = Column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(String(50), nullable=False, index=True, default="default")
+    
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(String(50), default="TODO") # TODO, DOING, DONE, BLOCKED
+    priority = Column(String(20), default="Medium") # High, Medium, Low
+    order_index = Column(Integer, default=0) # Para ordenação Kanban
+    deadline = Column(String(100), nullable=True)
+    
+    # Híbrido: Reflexo Markdown
+    file_path = Column(String(1024), nullable=True, unique=True)
+    last_synced_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    project = relationship("ProjectModel", back_populates="tasks")
+
+class NoteModel(Base):
+    __tablename__ = "notes"
+
+    id = Column(String(36), primary_key=True, index=True) # UUID
+    project_id = Column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=True) # Opcional
+    tenant_id = Column(String(50), nullable=False, index=True, default="default")
+    
+    title = Column(String(255), nullable=False)
+    content = Column(Text, nullable=True)
+    is_pinned = Column(Boolean, default=False)
+    tags = Column(JSON, default=list)
+    
+    # Híbrido: Reflexo Markdown
+    file_path = Column(String(1024), nullable=True, unique=True)
+    last_synced_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    project = relationship("ProjectModel", back_populates="notes")
+
+class ActivityLogModel(Base):
+    __tablename__ = "activity_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(String(50), nullable=False, index=True, default="default")
+    
+    agent_name = Column(String(100), nullable=True) # Nome do Agente que disparou ou "User"
+    action = Column(String(100), nullable=False) # Ex: CREATE_TASK, ANALYZE_PROJECT, UPDATE_STATE
+    entity_type = Column(String(50), nullable=False) # PROJECT, TASK, NOTE, SYSTEM
+    entity_id = Column(String(100), nullable=True)
+    details = Column(JSON, nullable=True) # Diff detalhado ou mensagem
+    
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

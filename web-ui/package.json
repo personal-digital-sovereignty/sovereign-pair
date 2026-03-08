@@ -25,6 +25,7 @@
     "force-graph": "^1.51.1",
     "js-yaml": "^4.1.1",
     "lucide-vue-next": "^0.575.0",
+    "pinia": "^3.0.4",
     "tippy.js": "^6.3.7",
     "tiptap-markdown": "^0.9.0",
     "turndown": "^7.2.2",

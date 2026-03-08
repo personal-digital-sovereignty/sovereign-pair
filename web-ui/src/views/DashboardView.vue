@@ -7,7 +7,7 @@
           {{ sensusMode === 'enterprise' ? 'Enterprise Command Center' : 'Centro de Comando Temporal' }}
         </h1>
         <p class="text-[11px] text-surface-400 font-mono tracking-widest mt-1 uppercase flex items-center gap-2">
-           <span v-if="sensusMode === 'enterprise'" class="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded text-[9px] font-bold">B2B ACTIVE</span>
+           <span v-if="false" class="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded text-[9px] font-bold">B2B ACTIVE</span>
            Sovereign Cognitive Hub
         </p>
       </div>
