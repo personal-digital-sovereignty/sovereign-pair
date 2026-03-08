@@ -185,3 +185,24 @@ class ProjectResponse(BaseModel):
     logs: List[ProjectLogSchema] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- OPENAI COMPATIBLE ENDPOINT (OpenCode / Cursor / Cline Proxy) ---
+
+class OpenAIChatMessage(BaseModel):
+    role: str
+    content: str
+    name: Optional[str] = None
+
+class OpenAIChatRequest(BaseModel):
+    model: str
+    messages: List[OpenAIChatMessage]
+    temperature: Optional[float] = 0.5
+    top_p: Optional[float] = 1.0
+    n: Optional[int] = 1
+    stream: Optional[bool] = False
+    stop: Optional[Any] = None
+    max_tokens: Optional[int] = None
+    presence_penalty: Optional[float] = 0.0
+    frequency_penalty: Optional[float] = 0.0
+    user: Optional[str] = None
