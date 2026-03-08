@@ -41,7 +41,7 @@ Tudo isso de forma 100% silenciosa.
 
 O Open-Source moderno na área de IA é espetacular, mas as ferramentas e bibliotecas que orquestram esses modelos não são neutras. Elas priorizam a conveniência do desenvolvedor corporativo acima da privacidade do desenvolvedor independente.
 
-Se você está construindo aplicações de IA para o setor Jurídico, Médico, de Defesa ou até mesmo para o seu diário pessoal (como o Obsidian), **você não pode confiar cegamente nos defaults (padrões) do mercado**.
+Se você está construindo aplicações de IA para o setor Jurídico, Médico, de Defesa ou até mesmo para o seu diário pessoal (como o Sensus Vault), **você não pode confiar cegamente nos defaults (padrões) do mercado**.
 
 ### Como Blindar sua Aplicação:
 

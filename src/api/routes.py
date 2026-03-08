@@ -63,7 +63,7 @@ async def chat_endpoint(request: Request, body_request: ChatRequest, engine=Depe
             temp_sys_msg = None
             if body_request.active_document:
                 from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
-                temp_sys_msg = LlamaMsg(role=MessageRole.USER, content=f"Aqui está o texto do meu documento ativo no Obsidian, APENAS CONSIDERE ele caso minha próxima pergunta tenha a ver com ele. NÃO invente informações se eu não perguntar:\n{body_request.active_document}")
+                temp_sys_msg = LlamaMsg(role=MessageRole.USER, content=f"Aqui está o texto do meu documento ativo no Sovereign Vault, APENAS CONSIDERE ele caso minha próxima pergunta tenha a ver com ele. NÃO invente informações se eu não perguntar:\n{body_request.active_document}")
                 engine._memory.put(temp_sys_msg)
 
             try:
@@ -427,7 +427,7 @@ EXTREMA IMPORTÂNCIA:
         active_doc = getattr(body_request, 'active_document', None)
         if active_doc:
             from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
-            temp_sys_msg = LlamaMsg(role=MessageRole.USER, content=f"Aqui está o texto do meu documento ativo no Obsidian, APENAS CONSIDERE ele caso minha próxima pergunta tenha a ver com ele. NÃO invente informações se eu não perguntar:\n{active_doc}")
+            temp_sys_msg = LlamaMsg(role=MessageRole.USER, content=f"Aqui está o texto do meu documento ativo no Sovereign Vault, APENAS CONSIDERE ele caso minha próxima pergunta tenha a ver com ele. NÃO invente informações se eu não perguntar:\n{active_doc}")
             engine._memory.put(temp_sys_msg)
 
         try:
@@ -1032,7 +1032,7 @@ async def get_vault_tree(db: Session = Depends(get_db), tenant_id: str = Depends
                 entries = sorted(list(it), key=lambda e: (not e.is_dir(), e.name.lower()))
                 
             for entry in entries:
-                if entry.name.startswith("."): # ignore hidden like .git, .obsidian
+                if entry.name.startswith("."): # ignore hidden like .git
                     continue
                     
                 if entry.is_dir():

@@ -34,7 +34,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - **Automação OCI e Cloud-Init**:
   - Extirpado o hostname default confuso `primaryvnic` mapeando assincronamente a label nativa de VNIC `sovereign-coder` da Terraform.
   - Abordado falha silenciosa do daemon instalador da Docker (`Failure writing output to destination`) no bootstrap inicial via piping ramificado (`curl | sh`).
-- **Zizmor Audit & Ruff Compliance**: Varredura limpando formatação quebrada obsoleto da codificação py (strings F vazias). Inseridos rótulos seletivos da ferramenta de inspeção Zizmor no release do Obsidian.
+- **Zizmor Audit & Ruff Compliance**: Varredura limpando formatação quebrada obsoleto da codificação py (strings F vazias). Inseridos rótulos seletivos da ferramenta de inspeção Zizmor no release do Sensus Vault.
 
 ## [3.1.0] - 2026-02-27
 
@@ -44,7 +44,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - **Esteira DevSecOps (Gate 0 a 4)**: Implementação e fixação de pipeline estrito no GitHub Actions (`devsecops.yml`) validando integridade com `Actionlint`, `Zizmor`, `Gitleaks`, `Semgrep`, `Trivy` e `Ruff`.
 - **Zero-Warning SAST Compliance**:
   - Eliminação de vulnerabilidades XSS no frontend Vue utilizando sanitização via `DOMPurify` e encapsulamento em diretiva customizada `v-safe-html`.
-  - Correção de injeção DOM-XSS crítica no Obsidian Plugin, migrando de `innerHTML` para construção segura DOM (`setText()`, `createEl()`).
+  - Correção de injeção DOM-XSS crítica no Sensus Vault Plugin, migrando de `innerHTML` para construção segura DOM (`setText()`, `createEl()`).
 - **Hardening de Infraestrutura Docker**:
   - Aplicação de RootFS imutável (`read_only: true`) em todos os containers, com montagens seguras voláteis (`tmpfs`) no Caddy, PostgreSQL, ChromaDB e Tailscale.
   - Mitigação de escape de containers negando escalação em executáveis `setuid/setgid` (`no-new-privileges:true`).
@@ -55,7 +55,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [3.0.0] - 2026-02-26
 
-### 🚀 Major Release - UX Revolucionária, Concorrência e Integração Obsidian 3.0
+### 🚀 Major Release - UX Revolucionária, Concorrência e Integração Sensus Vault 3.0
 
 ### Adicionado
 - **Arquitetura de Pastas (Chat Folders)**: Hierarquia nativa de diretórios para as sessões de RAG. Criação, renomeio e deleção dinâmica via Web UI e API (`PATCH/DELETE v1/sessions`).
@@ -65,7 +65,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - **App Vue3 Modernizado**: Web UI reconstruída com suporte responsivo a `Dark Mode / Light Mode`, Barra Lateral Redimensionável (persistente via Session Storage) e design Cyber-Minimalista polido.
 - **Avatar Dinâmico da IA**: Nova direção de arte substituindo emojis por Avatares Vetoriais generativos e ícones customizados no fluxo da conversa.
 
-### Integração Obsidian (3.0)
+### Integração Sensus Vault (3.0)
 - **Três Perfis de Visualização Inéditos**:
   - `Mini-Web`: Experiência rica 1:1 renderizada idêntica à janela do Web UI moderno na barra direita.
   - `Minimalist Chat`: Chat enxuto e estrito focando na densidade do texto.
@@ -82,7 +82,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ### Adicionado
 - **Provedores LLM Modulares**: Refatoração profunda no núcleo (`config.py` e `llm_factory.py`) para permitir plugar facilmente `openai`, `anthropic`, `groq`, `gemini`, mantendo o `ollama` como a escolha local padrão e blindando a soberania digital.
-- **FastAPI e Server-Sent Events (SSE)**: Desacoplamento do motor LlamaIndex do CLI. Adicionados endpoints RESTful em `src/api` rodando em portas dedicadas (`uvicorn`) com streaming de respostas em tempo real para conectar frontends (Chat UIs, Obsidian, WhatsApp).
+- **FastAPI e Server-Sent Events (SSE)**: Desacoplamento do motor LlamaIndex do CLI. Adicionados endpoints RESTful em `src/api` rodando em portas dedicadas (`uvicorn`) com streaming de respostas em tempo real para conectar frontends (Chat UIs, Sensus Vault, WhatsApp).
 - **Extração Formal de Citações e Fontes**: O RAG agora retorna proativamente ao usuário os arquivos locais ` caminho/do/arquivo.md` ou URLs ` url` usados na inferência, inserindo-os no final de cada streaming.
 - **Auto-pull Inteligente do Ollama**: O CLI deteta a falta de modelos vitais no Ollama e proativamente força o download transparente ao invés de abortar o terminal secamente.
 - **Tipagem Forte e Testes Modernos**: Atualização completa na validação da base convertendo testes estáticos ao ecossistema `pytest`, utilizando `fixtures` puras e o isolamento seguro vía `pytest-mock` e `MagicMock`, blindando regressões na pipeline de ingestão.

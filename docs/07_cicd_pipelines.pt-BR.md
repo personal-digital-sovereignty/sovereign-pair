@@ -39,9 +39,9 @@ O Coração da transição para a Oracle Cloud (Automação de Infraestrutura).
   * **OpenTofu Init / Validate:** Abre o motor Open Source reativo para aplicar infra como código, lendo as receitas das chaves do Oracle em Segredo (GitHub Secrets).
   * **Orquestração da Nuvem:** Dispara via API as regras configurando uma arquitetura *Zero-Trust Network* (Tailscale Mesh), requisitando a instância A1 e injetando instaleção *cloud-init* do Docker e do RAG instantaneamente. Executa o *Apply* ou, sob demanda, o *Destroy* da máquina toda.
 
-## 📦 5. Obsidian Plugin Release (`release-obsidian.yml`)
-Cria os pacotes (artefatos) auto-instaláveis para a poderosa integração com o Obsidian PKM.
-* **Gatilho:** A cada subida de tags de versão formatadas como `obsidian-v*`.
+## 📦 5. Sensus Vault Plugin Release (`release-sensusvault.yml`)
+Cria os pacotes (artefatos) auto-instaláveis para a poderosa integração com o Sensus Vault PKM.
+* **Gatilho:** A cada subida de tags de versão formatadas como `sensusvault-v*`.
 * **Etapas de Ação:**
   * Usa repositórios NPM do NodeJS purificados.
   * Constrói e condensa (minify) o `main.js`, `styles.css` e o `manifest.json`.

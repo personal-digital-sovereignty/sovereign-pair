@@ -154,7 +154,7 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
-# CORS configuration para permitir plugins Obsidian e Web UIs futuramente
+# CORS configuration para permitir Web UIs e Sensus Vault futuramente
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
