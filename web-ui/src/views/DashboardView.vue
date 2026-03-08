@@ -172,39 +172,47 @@
                    </div>
                </section>
                
-               <!-- Projetos em Voo (Bento Boxes) -->
-               <section>
-                   <div class="flex items-center justify-between mb-4">
-                       <h2 class="text-base font-medium text-surface-300 flex items-center gap-2">
-                           <span class="i-ph-folder-open-duotone"></span> 
-                           Projetos em Voo
-                       </h2>
-                       <button class="text-xs bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-md font-medium transition-colors flex items-center gap-1">
-                           <span class="i-ph-plus-bold"></span> Novo Projeto
-                       </button>
-                   </div>
-                   
-                   <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                       <div v-for="project in projects" :key="project.id" @click="openProjectWorkspace(project.id)" class="bg-surface-800 border border-surface-700 hover:border-surface-500 rounded-xl p-4 flex flex-col gap-3 cursor-pointer group transition-all hover:shadow-lg">
-                           <div class="flex items-start justify-between">
-                               <h3 class="font-medium text-surface-200 group-hover:text-white truncate" :title="project.name">{{ project.name }}</h3>
-                               <span class="text-xl" :title="project.traction_status">{{ getStatusEmoji(project.traction_status) }}</span>
-                           </div>
-                           
-                           <p class="text-xs text-surface-400 line-clamp-2 min-h-[32px]">{{ project.purpose || 'Sem propósito definido.' }}</p>
-                           
-                           <div class="mt-auto pt-2">
-                               <div class="flex justify-between items-center mb-1 text-[10px] text-surface-500 font-mono">
-                                   <span>PROGRESSO</span>
-                                   <span>{{ project.progress_percent }}%</span>
-                               </div>
-                               <div class="w-full bg-surface-900 rounded-full h-1.5 overflow-hidden">
-                                   <div class="bg-primary-500 h-1.5 rounded-full" :style="{ width: project.progress_percent + '%' }"></div>
-                               </div>
-                           </div>
-                       </div>
-                   </div>
-               </section>
+               <!-- Grid Splitter: Projetos e Logs -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Projetos em Voo -->
+                    <section class="lg:col-span-2">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-base font-medium text-surface-300 flex items-center gap-2">
+                                <span class="i-ph-folder-open-duotone"></span> 
+                                Projetos em Voo
+                            </h2>
+                            <button class="text-xs bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-md font-medium transition-colors flex items-center gap-1">
+                                <span class="i-ph-plus-bold"></span> Novo Projeto
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div v-for="project in projects" :key="project.id" @click="openProjectWorkspace(project.id)" class="bg-surface-800 border border-surface-700 hover:border-surface-500 rounded-xl p-4 flex flex-col gap-3 cursor-pointer group transition-all hover:shadow-lg">
+                                <div class="flex items-start justify-between">
+                                    <h3 class="font-medium text-surface-200 group-hover:text-white truncate" :title="project.name">{{ project.name }}</h3>
+                                    <span class="text-xl" :title="project.traction_status">{{ getStatusEmoji(project.traction_status) }}</span>
+                                </div>
+                                
+                                <p class="text-xs text-surface-400 line-clamp-2 min-h-[32px]">{{ project.purpose || 'Sem propósito definido.' }}</p>
+                                
+                                <div class="mt-auto pt-2">
+                                    <div class="flex justify-between items-center mb-1 text-[10px] text-surface-500 font-mono">
+                                        <span>PROGRESSO</span>
+                                        <span>{{ project.progress_percent }}%</span>
+                                    </div>
+                                    <div class="w-full bg-surface-900 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-primary-500 h-1.5 rounded-full" :style="{ width: project.progress_percent + '%' }"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Sovereign Engine Runtime Logs -->
+                    <section class="h-full min-h-[400px]">
+                        <RealtimeLogs />
+                    </section>
+                </div>
                
            </div>
        </div>
@@ -294,6 +302,7 @@ import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import CognitiveGraph from '../components/Vault/CognitiveGraph.vue'
 import PomodoroWidget from '../components/Dashboard/PomodoroWidget.vue'
+import RealtimeLogs from '../components/Dashboard/RealtimeLogs.vue'
 
 const router = useRouter()
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
