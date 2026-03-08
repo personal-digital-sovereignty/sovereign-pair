@@ -1,41 +1,19 @@
 {
-    "name": "sovereign-pair-mcp",
-    "version": "1.0.0",
-    "description": "Sovereign Pair Cognitive RAG - Model Context Protocol Server",
-    "tools": [
-        {
-            "name": "sensus_vault_search",
-            "description": "Busca informações na base de conhecimento semântica do projeto local. Use isso para encontrar contexto, regras de negócio ou exemplos de código já escritos.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "A pergunta descritiva em formato de linguagem natural, ex: 'Quais são as regras de roteamento da API?'"
-                    }
-                },
-                "required": [
-                    "query"
-                ]
-            }
-        },
-        {
-            "name": "sensus_project_context",
-            "description": "Puxa a Arquitetura em 7 Camadas (Context7) do Projeto Ativo no Sovereign Pair.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "project_name": {
-                        "type": "string",
-                        "description": "Opcional: Nome do projeto. Se vazio, pega o default."
-                    }
+    "$schema": "https://opencode.ai/config.json",
+    "provider": {
+        "sovereign-coder": {
+            "npm": "@ai-sdk/openai-compatible",
+            "name": "Sovereign The Coder (Local)",
+            "options": {
+                "baseURL": "http://localhost:8000/v1/opencode/v1",
+                "apiKey": "test"
+            },
+            "models": {
+                "the-coder-model": {
+                    "name": "The Coder (Ollama/Custom)"
                 }
             }
         }
-    ],
-    "author": "Sovereign Pair",
-    "repository": {
-        "type": "git",
-        "url": ""
-    }
+    },
+    "model": "sovereign-coder/the-coder-model"
 }
