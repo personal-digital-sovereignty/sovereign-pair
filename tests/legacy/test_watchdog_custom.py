@@ -28,7 +28,7 @@ if __name__ == "__main__":
     os.makedirs("test_vault/good_dir", exist_ok=True)
     
     obs = Observer()
-    watcher = CustomWatcher(obs, ["node_modules", ".git", ".venv", ".obsidian"])
+    watcher = CustomWatcher(obs, ["node_modules", ".git", ".venv", ".sensusvault"])
     watcher.schedule_recursively("test_vault")
     obs.start()
     

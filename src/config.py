@@ -145,7 +145,7 @@ ABOUT_USER = os.getenv("ABOUT_USER", "").strip()
 # ============================================================================
 # SEGURANÇA E CORS (Microserviços)
 # ============================================================================
-ALLOWED_ORIGINS_STR = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000,app://obsidian.md").strip()
+ALLOWED_ORIGINS_STR = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000,app://sensusvault.local").strip()
 ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS_STR.split(",") if origin.strip()]
 
 # ============================================================================
@@ -347,71 +347,17 @@ def validate_document_paths() -> tuple[bool, list[str]]:
     return len(problems) == 0, problems
 
 
-def detect_obsidian_vault() -> Optional[Path]:
+def detect_sensus_vault() -> Optional[Path]:
     """
-    Tenta detectar Obsidian vault no sistema.
-    
-    Procura em locais comuns e verifica a presença do diretório .obsidian
-    que marca um vault válido.
-    
-    Returns:
-        Path: Caminho do primeiro vault encontrado ou None
+    Tenta detectar Sensus Vault no sistema.
     """
-    vaults = find_obsidian_vaults()
-    return vaults[0] if vaults else None
+    return VAULT_DIR
 
-
-def find_obsidian_vaults(search_paths: Optional[list[Path]] = None) -> list[Path]:
+def find_sensus_vaults(search_paths: Optional[list[Path]] = None) -> list[Path]:
     """
-    Busca todos os Obsidian vaults no sistema.
-    
-    Args:
-        search_paths: Lista de caminhos para buscar. Se None, usa locais comuns.
-    
-    Returns:
-        list[Path]: Lista de caminhos de vaults encontrados
+    Busca vaults no sistema.
     """
-    home = Path.home()
-    vaults = []
-    
-    # Locais comuns para buscar
-    if search_paths is None:
-        search_paths = [
-            home / "Documents",
-            home / "Obsidian",
-            home / "Notes",
-            home / "Dropbox",
-            home / "iCloudDrive",
-            home,  # Buscar também no home
-        ]
-    
-    # Buscar recursivamente (mas não muito profundo para evitar lentidão)
-    max_depth = 3
-    
-    for base_path in search_paths:
-        if not base_path.exists():
-            continue
-        
-        try:
-            # Buscar diretórios .obsidian (marca de vault)
-            for obsidian_dir in base_path.rglob(".obsidian"):
-                if obsidian_dir.is_dir():
-                    vault_path = obsidian_dir.parent
-                    
-                    # Verificar profundidade
-                    try:
-                        depth = len(vault_path.relative_to(base_path).parts)
-                        if depth <= max_depth:
-                            if vault_path not in vaults:
-                                vaults.append(vault_path)
-                    except ValueError:
-                        # Caminho não é relativo ao base_path
-                        continue
-        except (PermissionError, OSError):
-            # Ignorar diretórios sem permissão
-            continue
-    
-    return sorted(vaults)  # Ordenar para consistência
+    return [VAULT_DIR]
 
 
 # ============================================================================

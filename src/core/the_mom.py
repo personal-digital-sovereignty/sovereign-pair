@@ -29,7 +29,7 @@ def should_use_polling() -> bool:
 # --- Ignore Parser ---
 def get_ignores(base_path: str) -> Set[str]:
     """Parses .sovereignignore and returns a set of directory names to skip (protecting inotify descriptor limits)."""
-    ignores = {".git", "node_modules", ".venv", "venv", "env", ".obsidian", "__pycache__", "dist", "build"}
+    ignores = {".git", "node_modules", ".venv", "venv", "env", ".sensusvault", "__pycache__", "dist", "build"}
     ignore_file = os.path.join(base_path, ".sovereignignore")
     if os.path.exists(ignore_file):
         try:
@@ -234,7 +234,7 @@ class VaultWatcher(FileSystemEventHandler):
                 if not os.path.exists(vault_path):
                     continue
                 for root, dirs, files in os.walk(vault_path):
-                    # Ignorar pastas ocultas (como .obsidian, .git)
+                    # Ignorar pastas ocultas (como .sensusvault, .git)
                     dirs[:] = [d for d in dirs if not d.startswith('.')]
                     
                     for file in files:
@@ -399,7 +399,7 @@ class VaultWatcher(FileSystemEventHandler):
         if event.is_directory:
             name = os.path.basename(event.src_path)
             # Default fallback ignores to protect kernel
-            ignores = {".git", "node_modules", ".venv", "venv", ".obsidian", "__pycache__"}
+            ignores = {".git", "node_modules", ".venv", "venv", ".sensusvault", "__pycache__"}
             if name not in ignores and not name.startswith('.'):
                 print(f"[The Mom] Novo diretório detetado: {event.src_path}. Injetando watch de inotify sob demanda.")
                 try:
