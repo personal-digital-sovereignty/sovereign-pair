@@ -58,3 +58,50 @@ Da exata contagem do momento que sua IDE liga as antenas de conexão com o `mcp_
 > [!NOTE] 🧬 **Código Vivo: O Servidor Anthropic MCP (SHA: `94bfb2f`)**
 > ▫️ **Motor de IPC local (Stdio Server):** `src/mcp_stdio.py`
 > ▫️ **Config do Assistente (OpenCode/Cline):** `cline_mcp_settings.json`
+
+---
+
+## 3. O Ecossistema OpenCode (TUI & Pair Programming)
+
+O **OpenCode** foi integrado oficialmente ao ecossistema Sovereign Pair para oferecer uma via expressa ao VS Code. Através dessa integração, toda a sua digitação na IDE flui por um Proxy *OpenAI-Compatible*, sem bater na Internet, batendo diretamente no RAG Híbrido Cíbrido (Ollama Local ou no *"The Coder"* remoto rodando num nó Oracle de alta densidade).
+
+### 3.1 Instalação e Engate
+Para instalar e espelhar o poder do Sovereign Pair no seu Visual Studio Code usando o OpenCode Terminal User Interface (TUI):
+
+1. **Instale o Binário Subjacente:**
+   No Arch Linux (ou via gerenciador correspondente):
+   ```bash
+   sudo pacman -S opencode
+   ```
+2. **Instale a Extensão Mágica na IDE:**
+   Acesse as Extensões do seu VS Code, procure e instale o pacote oficial `OpenCode` (desenvolvedor SST). Isso criará a "Command Unit" no seu painel lateral.
+3. **Plante o Arquivo JSON Isolador (`opencode.json`):**
+   Na raiz absoluta do Workspace que você deseja analisar (como dentro do próprio repo `sovereign-pair` ou em projetos do `home-organizer`), crie um arquivo chamado `opencode.json`:
+   
+   ```json
+   {
+       "$schema": "https://opencode.ai/config.json",
+       "provider": {
+           "sovereign-local": {
+               "npm": "@ai-sdk/openai",
+               "name": "Sovereign Pair Local Gateway",
+               "options": {
+                   "baseURL": "http://localhost:8000/v1/opencode",
+                   "apiKey": "sovereign-local"
+               },
+               "models": {
+                   "qwen2.5-coder:7b": {
+                       "name": "Local NPU/GPU Worker"
+                   },
+                   "coder": {
+                       "name": "Sovereign The Coder (Oracle Remote Node)"
+                   }
+               }
+           }
+       }
+   }
+   ```
+4. **O Teste de Sangue (Atalho Divino):**
+   Com a API rodando no `uvicorn` local (porta 8000, e bypass estrito rodando), abra qualquer arquivo da sua IDE. Ao invés de usar as caixas engessadas de Chat nativas de mercado, você deve **Disparar o OpenCode TUI Nativo**.
+   * Pressione o atalho estrito: `Ctrl+Esc`
+   * Imediatamente um sub-terminal dinâmico da OpenCode nascerá. Este módulo intercepta seu Workspace por inteiro e despeja os blocos para o endpoint da sua máquina. Testado com 20.000 tokens e **Custo Zero**.
