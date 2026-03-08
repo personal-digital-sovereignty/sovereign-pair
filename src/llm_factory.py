@@ -17,8 +17,36 @@ def _get_setting(key: str, default: str) -> str:
     except Exception:
         return default
 
+import time
+
+_health_cache = {}
+_HEALTH_CACHE_TTL = 30.0
+
+def _check_url_health(url: str) -> bool:
+    """Valida rapidamente se o Host Remoto está vivo enviando HEAD na porta, cacheando resultado."""
+    now = time.time()
+    if url in _health_cache:
+        status, ts = _health_cache[url]
+        if now - ts < _HEALTH_CACHE_TTL:
+            return status
+
+    import requests
+    try:
+        # Ping agressivo de 2 segundos. Se não responder, o nó não serve pro RAG Fast-Path.
+        r = requests.get(f"{url}/api/tags", timeout=2.0)
+        is_up = r.status_code == 200
+    except Exception:
+        is_up = False
+        
+    _health_cache[url] = (is_up, now)
+    
+    if not is_up:
+        logger.warning(f"⚠️  Nó remoto {url} está OFFLINE (Timeout > 2s). Forçando bypass.")
+        
+    return is_up
+
 def _get_active_ollama_url() -> str:
-    """Resolve a URL do cluster ativo em tempo real no banco, ignorando o .env."""
+    """Resolve a URL do cluster ativo em tempo real no banco, aplicando TTL Healthcheck."""
     from src.config import OLLAMA_BASE_URL
     import json
     
@@ -31,7 +59,12 @@ def _get_active_ollama_url() -> str:
         clusters = json.loads(clusters_json)
         for c in clusters:
             if c.get("id") == active_id:
-                return c.get("url", OLLAMA_BASE_URL)
+                url = c.get("url", OLLAMA_BASE_URL)
+                
+                # Se for diferente do nó local padrāo, valida a saúde pra não travar a UI toda
+                if url and url != OLLAMA_BASE_URL and not _check_url_health(url):
+                    return OLLAMA_BASE_URL
+                return url
     except Exception:
         pass
         
@@ -53,11 +86,13 @@ def get_llm(provider: str, model: str, temperature: float = 0.1, request_timeout
     
     if provider == "ollama":
         from llama_index.llms.ollama import Ollama
-        from src.config import OLLAMA_NUM_CTX
+        from src.config import OLLAMA_NUM_CTX, OLLAMA_BASE_URL
         
         # Override the static base URL if a Custom Cluster was selected
         dynamic_url = _get_active_ollama_url()
-        base_url = kwargs.get("base_url", dynamic_url).rstrip('/')
+        # Se o url dinamico do DB for diferente do hardcoded passadocomo kwarg (OLLAMA_BASE_URL), a gente força o dinâmico
+        base_url = dynamic_url if dynamic_url != OLLAMA_BASE_URL else kwargs.get("base_url", dynamic_url)
+        base_url = base_url.rstrip('/')
         
         return Ollama(
             model=model,
@@ -130,8 +165,14 @@ def get_embedding_model(provider: str, model: str, **kwargs) -> Any:
     
     if provider == "ollama":
         from llama_index.embeddings.ollama import OllamaEmbedding
+        from src.config import OLLAMA_BASE_URL
+        
         dynamic_url = _get_active_ollama_url()
-        base_url = kwargs.get("base_url", dynamic_url).rstrip('/')
+        base_url = dynamic_url if dynamic_url != OLLAMA_BASE_URL else kwargs.get("base_url", dynamic_url)
+        base_url = base_url.rstrip('/')
+        
+        logger.info(f"🧩 [DEBUG] get_embedding_model: resolving '{model}' | default={OLLAMA_BASE_URL} | DB={dynamic_url} -> FINAL_URL={base_url}")
+        
         return OllamaEmbedding(
             model_name=model,
             base_url=base_url,

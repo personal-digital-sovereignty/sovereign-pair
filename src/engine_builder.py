@@ -4,7 +4,7 @@ from llama_index.core.retrievers.fusion_retriever import QueryFusionRetriever, F
 from llama_index.core.chat_engine import CondensePlusContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
 from src.custom_retrievers import CustomBM25Retriever
-from src.config import CHROMA_COLLECTION_NAME, llm as default_llm, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
+from src.config import CHROMA_COLLECTION_NAME, get_default_llm, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
      OWNER_NICKNAME, OCCUPATION, ABOUT_USER, LANGUAGE, GEOLOCATION, REQUEST_TIMEOUT, \
      OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY
 from datetime import datetime
@@ -12,7 +12,9 @@ from llama_index.core.llms import ChatMessage, MessageRole
 
 logger = logging.getLogger(__name__)
 
-def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm, api_keys: dict = None):
+def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm=None, api_keys: dict = None):
+    if fallback_llm is None:
+        fallback_llm = get_default_llm()
     if not provider or not model_name:
         return fallback_llm
         
@@ -37,9 +39,13 @@ def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm, api_keys: 
             return Gemini(model=model_name, api_key=key)
         elif p == "ollama":
             from llama_index.llms.ollama import Ollama
-            from src.config import OLLAMA_BASE_URL, OLLAMA_NUM_CTX
+            from src.config import OLLAMA_NUM_CTX
+            from src.llm_factory import _get_active_ollama_url
+            
             custom_url = api_keys.get("custom_ollama_url")
-            url_to_use = custom_url if custom_url and custom_url.strip() else OLLAMA_BASE_URL
+            dynamic_url = _get_active_ollama_url()
+            url_to_use = custom_url if custom_url and custom_url.strip() else dynamic_url
+            
             return Ollama(
                 model=model_name, 
                 base_url=url_to_use, 
@@ -113,6 +119,7 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
         use_async=False,
         similarity_top_k=3,  # Top-3 final para manter contexto leve no LLM
         mode=FUSION_MODES.RECIPROCAL_RANK,
+        llm=active_llm
     )
     logger.info("   ✓ Hybrid Retriever configurado.")
 
@@ -204,7 +211,7 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
     # Resolve o LLM Ativo (Nuvem ou Local) com base no Request ou no Banco de Dados
     active_provider = provider or db_provider
     active_model = model_name or db_model
-    active_llm = resolve_dynamic_llm(active_provider, active_model, default_llm, api_keys)
+    active_llm = resolve_dynamic_llm(active_provider, active_model, get_default_llm(), api_keys)
 
     # Log da Mídia utilizada (Para telemetria no terminal FastAPI)
     provider_log = provider or "Ollama (Default)"
@@ -237,7 +244,7 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
     
     return chat_engine
 
-def build_system_chat_engine(provider=None, model_name=None):
+def build_system_chat_engine(provider=None, model_name=None, api_keys=None):
     """
     Constrói a instância do ChatEngine específica para o Meta-RAG (System Knowledge).
     Conecta-se à coleção isolada que contém o próprio código fonte do Sovereign.
@@ -251,7 +258,11 @@ def build_system_chat_engine(provider=None, model_name=None):
         db = get_chroma_client()
         chroma_collection = db.get_collection(CHROMA_SYSTEM_COLLECTION_NAME)
         vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
-        index = VectorStoreIndex.from_vector_store(vector_store)
+        from src.config import get_embed_model
+        index = VectorStoreIndex.from_vector_store(
+            vector_store,
+            embed_model=get_embed_model()
+        )
         
         # IGNORAR o modelo vindo do Frontend para a aba Sistema (Meta-RAG)
         # OMeta-RAG deve SEMPRE usar um modelo enxuto e rápido para não dar OOM (Out Of Memory)
@@ -262,7 +273,7 @@ def build_system_chat_engine(provider=None, model_name=None):
             sys_provider = provider
             sys_model = model_name
             
-        active_llm = resolve_dynamic_llm(sys_provider, sys_model, default_llm)
+        active_llm = resolve_dynamic_llm(sys_provider, sys_model, get_default_llm(), api_keys)
         
         chat_engine = index.as_chat_engine(
             llm=active_llm,

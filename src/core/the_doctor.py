@@ -26,9 +26,9 @@ class TheDoctor:
         to bypass LlamaIndex's rigid prompt templates for deep reasoning.
         """
         from src.engine_builder import resolve_dynamic_llm
-        from src.config import llm as default_llm
+        from src.config import get_default_llm
         
-        self.llm = resolve_dynamic_llm(llm_provider, llm_model, default_llm, api_keys)
+        self.llm = resolve_dynamic_llm(llm_provider, llm_model, get_default_llm(), api_keys)
         self.engine = chat_engine
 
     async def execute_deep_reasoning(self, user_prompt: str, context_str: str, intent_data: dict):

@@ -191,31 +191,34 @@ MAX_WEB_SEARCH_RESULTS = int(os.getenv("MAX_WEB_SEARCH_RESULTS", "3"))
 # ============================================================================
 
 # Configuração do LLM para chat e geração de respostas
-llm = get_llm(
-    provider=LLM_PROVIDER,
-    model=LLM_MODEL,
-    temperature=0.1,
-    request_timeout=REQUEST_TIMEOUT,
-    base_url=OLLAMA_BASE_URL,
-)
+def get_default_llm():
+    from src.llm_factory import get_llm
+    from src.llm_factory import _get_active_ollama_url
+    return get_llm(
+        provider=LLM_PROVIDER,
+        model=LLM_MODEL,
+        temperature=0.1,
+        request_timeout=REQUEST_TIMEOUT,
+        base_url=_get_active_ollama_url() or OLLAMA_BASE_URL,
+    )
 
 def get_embed_model():
     """Retorna o Embed Model despachado para a Nuvem Mapeada dinamicamente."""
     # Importar get_embedding_model aqui para carregamento dinâmico, se necessário
     from src.llm_factory import get_embedding_model
+    from src.llm_factory import _get_active_ollama_url
     return get_embedding_model(
         provider=EMBEDDING_PROVIDER,
         model=EMBED_MODEL_NAME,
-        base_url=OLLAMA_BASE_URL,
+        base_url=_get_active_ollama_url() or OLLAMA_BASE_URL,
     )
 
 # ============================================================================
 # CONFIGURAÇÃO GLOBAL DO LLAMAINDEX
 # ============================================================================
 
-# Configurar Settings globalmente para que todos os componentes usem
-Settings.llm = llm
-Settings.embed_model = get_embed_model()
+# O LlamaIndex prefere instâncias nos Settings. Deixaremos 'none' explicitamente 
+# configurado para OBRIGAR injeção local de dependência dinâmica nos componentes.
 Settings.chunk_size = 512
 Settings.chunk_overlap = 50
 
@@ -224,43 +227,31 @@ Settings.chunk_overlap = 50
 # ============================================================================
 
 def validate_ollama_connection() -> bool:
-    """
-    Valida se o Ollama está acessível e rodando.
-    Pula a validação se o provedor for diferente de Ollama.
-    """
-    if LLM_PROVIDER != "ollama" and EMBEDDING_PROVIDER != "ollama":
+    """Verifica se o serviço principal do Ollama (do cluster ativo) está acessível."""
+    if LLM_PROVIDER != "ollama":
         return True
-        
     import requests
     try:
-        response = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
+        from src.llm_factory import _get_active_ollama_url
+        dynamic_url = _get_active_ollama_url()
+        response = requests.get(f"{dynamic_url}/api/tags", timeout=5)
         return response.status_code == 200
     except Exception as e:
-        logging.error(f"Erro ao conectar com Ollama: {e}")
+        logging.error(f"Erro ao conectar com Ollama no cluster ativo: {e}")
         return False
 
-
-def validate_ollama_models() -> tuple[bool, list[str]]:
-    """
-    Verifica se os modelos necessários estão disponíveis no Ollama.
-    Pula a verificação se o provedor não for Ollama.
-    """
-    if LLM_PROVIDER != "ollama" and EMBEDDING_PROVIDER != "ollama":
+def validate_ollama_models() -> tuple[bool, list]:
+    """Valida se os modelos requeridos estão instalados no Ollama atual configurado."""
+    if LLM_PROVIDER != "ollama":
         return True, []
         
     import requests
-    required_models = set()
-    if LLM_PROVIDER == "ollama":
-        required_models.add(LLM_MODEL)
-    if EMBEDDING_PROVIDER == "ollama":
-        required_models.add(EMBED_MODEL_NAME)
-        
-    if not required_models:
-        return True, []
-        
-    missing_models = []
+    required_models = set([LLM_MODEL, EMBED_MODEL_NAME])
+    
     try:
-        response = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
+        from src.llm_factory import _get_active_ollama_url
+        dynamic_url = _get_active_ollama_url()
+        response = requests.get(f"{dynamic_url}/api/tags", timeout=5)
         if response.status_code == 200:
             models_data = response.json().get("models", [])
             available_models = set()
@@ -275,10 +266,9 @@ def validate_ollama_models() -> tuple[bool, list[str]]:
         else:
             return False, list(required_models)
     except Exception as e:
-        logging.error(f"Erro ao verificar modelos Ollama: {e}")
+        import logging
+        logging.error(f"Erro ao verificar modelos Ollama no cluster ativo: {e}")
         return False, list(required_models)
-
-
 def ensure_directories() -> None:
     """
     Garante que todos os diretórios necessários existam.

@@ -4,7 +4,10 @@
      <!-- Header -->
      <header class="h-14 border-b border-surface-800 flex items-center px-4 justify-between bg-surface-900/80 backdrop-blur-md shrink-0">
         <div class="flex items-center gap-2">
-           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" class="text-emerald-500" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+           <div class="w-4 h-4 rounded-full flex items-center justify-center relative shadow-[0_0_8px_rgba(16,185,129,0.3)]">
+              <div class="absolute inset-0 rounded-full border border-current opacity-30 text-emerald-500"></div>
+              <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+           </div>
            <h3 class="font-bold text-sm text-slate-200 tracking-wide">The Doctor</h3>
         </div>
         <button @click="$emit('close')" class="p-1.5 text-slate-400 hover:text-white hover:bg-surface-800 rounded-md transition-colors" title="Fechar Spotlight">
@@ -180,10 +183,9 @@ const sendQuery = async () => {
            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
            // Forced context bypasses normal SLM retrieval and injects active doc directly
            body: JSON.stringify({
-               query: finalQuery,
-               options: {
-                   forced_local_context: props.activeDocumentContent // Pass the entire markdown
-               }
+               message: finalQuery,
+               stream: true,
+               active_document: props.activeDocumentContent
            })
        })
 
