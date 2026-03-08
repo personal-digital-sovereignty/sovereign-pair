@@ -54,6 +54,21 @@ def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm=None, api_k
                 client_kwargs={"timeout": REQUEST_TIMEOUT},
                 additional_kwargs={"num_ctx": OLLAMA_NUM_CTX, "keep_alive": "24h"}
             )
+        elif p == "coder":
+            # Conexão transparente com API OpenAI-Compatible na Oracle OCI via mTLS Tailscale
+            from llama_index.llms.openai_like import OpenAILike
+            import os
+            # IP estático do Node Headless Oracle A1 na rede interna mesh 
+            oci_endpoint = os.getenv("OCI_CODER_ENDPOINT", "http://100.100.100.100:8000/v1") 
+            oci_key = os.getenv("OCI_CODER_API_KEY", "sovereign-tailnet-key")
+            
+            return OpenAILike(
+                model="qwen2.5-coder:7b", # Modelo padrão forte para Engenharia na OCI
+                api_base=oci_endpoint,
+                api_key=oci_key,
+                is_chat_model=True,
+                timeout=REQUEST_TIMEOUT
+            )
     except ImportError as e:
         logger.error(f"Failed to load provider {p}: {e} - pip install llama-index-llms-{p} may be required.")
         
