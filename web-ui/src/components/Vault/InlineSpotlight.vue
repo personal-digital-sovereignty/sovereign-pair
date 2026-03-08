@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full w-80 bg-surface-900 border-l border-surface-800 flex flex-col shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] z-20 transition-all duration-300 relative" :class="isOpen ? 'translate-x-0' : 'translate-x-full absolute right-0'">
+  <div class="h-full bg-surface-900 border-l border-surface-800 flex flex-col shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] z-20 transition-all duration-300 relative overflow-hidden" :class="isOpen ? 'w-80 min-w-[20rem] translate-x-0' : 'w-0 min-w-0 border-l-0 translate-x-full opacity-0 pointer-events-none'">
      
      <!-- Header -->
      <header class="h-14 border-b border-surface-800 flex items-center px-4 justify-between bg-surface-900/80 backdrop-blur-md shrink-0">

@@ -208,9 +208,14 @@
                         </div>
                     </section>
 
-                    <!-- Sovereign Engine Runtime Logs -->
-                    <section class="h-full min-h-[400px]">
-                        <RealtimeLogs />
+                    <!-- Sovereign Engine Runtime Logs & Telemetry -->
+                    <section class="h-full min-h-[400px] flex flex-col gap-4">
+                        <div class="h-48 shrink-0">
+                           <TokenMetricsTracker />
+                        </div>
+                        <div class="flex-1 min-h-[300px]">
+                           <RealtimeLogs />
+                        </div>
                     </section>
                 </div>
                
@@ -303,7 +308,9 @@ import { useRouter } from 'vue-router'
 import CognitiveGraph from '../components/Vault/CognitiveGraph.vue'
 import PomodoroWidget from '../components/Dashboard/PomodoroWidget.vue'
 import RealtimeLogs from '../components/Dashboard/RealtimeLogs.vue'
+import TokenMetricsTracker from '../components/dashboard/TokenMetricsTracker.vue'
 
+// O "User Mode" simula a visão B2B (Enterprise) x B2C (Personal)
 const router = useRouter()
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 

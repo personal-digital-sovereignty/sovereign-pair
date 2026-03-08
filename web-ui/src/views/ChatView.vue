@@ -224,6 +224,14 @@ const sendMessage = async () => {
   })
   scrollToBottom()
 
+  // Telemetry Reset
+  tokenMetrics.value = {
+     tokenCount: 0,
+     startTime: performance.now(),
+     tokensPerSecond: 0,
+     isActive: true
+  }
+
   try {
     const response = await fetch(`${API_BASE_URL}/v1/chat`, {
       method: 'POST',
@@ -276,6 +284,14 @@ const sendMessage = async () => {
             const textDelta = data.content || data.token
             if (textDelta && messages.value[assistantMsgIndex]) {
               messages.value[assistantMsgIndex].content += textDelta
+              
+              // Telemetry Update
+              tokenMetrics.value.tokenCount++
+              const elapsedMs = performance.now() - tokenMetrics.value.startTime
+              if (elapsedMs > 100) {
+                 tokenMetrics.value.tokensPerSecond = Math.round((tokenMetrics.value.tokenCount / elapsedMs) * 1000)
+              }
+              
               scrollToBottom()
             }
           } catch (e) {
@@ -300,6 +316,7 @@ const sendMessage = async () => {
     }
   } finally {
     isThinking.value = false
+    tokenMetrics.value.isActive = false // Congela a métrica visual final
   }
 }
 
@@ -477,6 +494,14 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
   }
   conflictFile.value = null
 }
+
+// Telemetry State
+const tokenMetrics = ref({
+   tokenCount: 0,
+   startTime: 0,
+   tokensPerSecond: 0,
+   isActive: false
+})
 </script>
 
 <template>
@@ -618,16 +643,28 @@ const resolveConflict = (action: 'cancel' | 'overwrite' | 'rename') => {
           <h2 class="font-medium text-slate-300 truncate max-w-[200px] md:max-w-md">
              {{ activeSession ? activeSession.title : 'Sovereign Pair' }}
           </h2>
-          <button v-if="activeSession" @click="openEditSessionModal(activeSession as any)" class="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-surface-700 rounded-md transition-colors" title="Editar Sessão">
+           <button v-if="activeSession" @click="openEditSessionModal(activeSession as any)" class="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-surface-700 rounded-md transition-colors" title="Editar Sessão">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
           </button>
         </div>
-        <div class="flex items-center gap-2 px-2 py-1 rounded-md transition-colors group" title="Motor Pronto">
-          <span class="flex h-2 w-2 relative">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span class="text-xs font-medium text-slate-400">Motor Pronto</span>
+        
+        <!-- Right Status Indicators -->
+        <div class="flex items-center gap-3">
+          <!-- Telemetry Badge -->
+          <div v-show="tokenMetrics.tokenCount > 0" class="flex items-center gap-2 border border-surface-700/60 bg-surface-900/50 rounded flex-shrink-0 px-2 py-0.5" title="Telemetria de Geração (Tokens/segundo) e Consumo">
+             <svg class="w-3 h-3 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+             <span class="text-[10px] text-sky-400 font-mono tracking-wider font-bold">{{ tokenMetrics.tokensPerSecond }} t/s</span>
+             <span class="text-[10px] text-surface-500">|</span>
+             <span class="text-[10px] text-surface-400 font-mono tracking-wider">{{ tokenMetrics.tokenCount }} T</span>
+          </div>
+          
+          <div class="flex items-center gap-2 px-2 py-1 rounded-md transition-colors group" title="Motor Pronto">
+            <span class="flex h-2 w-2 relative">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span class="text-xs font-medium text-slate-400">Motor Pronto</span>
+          </div>
         </div>
       </header>
 

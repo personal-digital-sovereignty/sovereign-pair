@@ -5,6 +5,7 @@ import uuid
 from pydantic import BaseModel, Field
 from fastapi.responses import StreamingResponse
 from .schemas import ChatRequest, ChatResponse, Citation, SettingsRequest, SettingsResponse, SessionUpdateRequest, UploadResponse, DocumentUpdateRequest, ProjectCreateRequest, ProjectUpdateRequest, ProjectResponse, TaskCreateRequest, TaskUpdateRequest, TaskResponse, NoteCreateRequest, NoteUpdateRequest, NoteResponse, ActivityLogResponse
+from .schemas import OpenAIChatRequest, OpenAIChatResponse, OpenAIChatChoice, OpenAIChatChoiceMessage, OpenAIChatChunkResponse, OpenAIChatChunkChoice, OpenAIChatChunkDelta, OpenAITokenUsage
 from .dependencies import get_chat_engine
 from typing import List
 
