@@ -4,13 +4,13 @@ from fastapi import APIRouter, Depends, Request
 import uuid
 from pydantic import BaseModel, Field
 from fastapi.responses import StreamingResponse
-from .schemas import ChatRequest, ChatResponse, Citation, SettingsRequest, SettingsResponse, SessionUpdateRequest, UploadResponse, DocumentUpdateRequest, ProjectCreateRequest, ProjectUpdateRequest, ProjectResponse
+from .schemas import ChatRequest, ChatResponse, Citation, SettingsRequest, SettingsResponse, SessionUpdateRequest, UploadResponse, DocumentUpdateRequest, ProjectCreateRequest, ProjectUpdateRequest, ProjectResponse, TaskCreateRequest, TaskUpdateRequest, TaskResponse, NoteCreateRequest, NoteUpdateRequest, NoteResponse, ActivityLogResponse
 from .dependencies import get_chat_engine
 from typing import List
 
 from sqlalchemy.orm import Session
 from .database import get_db
-from .models import ChatSession, ChatMessage, SystemSettings, SensusDocumentModel, QuarantineLog, ProjectModel, ProjectLinkModel, ProjectLogModel, DocumentCache
+from .models import ChatSession, ChatMessage, SystemSettings, SensusDocumentModel, QuarantineLog, ProjectModel, ProjectLinkModel, ProjectLogModel, DocumentCache, TaskModel, NoteModel, ActivityLogModel
 from .auth import get_current_user
 from .schemas import SessionResponse, FeedbackRequest
 from fastapi import HTTPException, File, UploadFile, Form
@@ -1646,9 +1646,14 @@ async def create_project(request: Request, body: ProjectCreateRequest, db: Sessi
         new_link = ProjectLinkModel(
             project_id=project_id,
             url=link.url,
-            label=link.label
+            label=link.label,
         )
         db.add(new_link)
+        
+    from src.core.sync_engine import save_to_markdown
+    from datetime import datetime, timezone
+    new_project.file_path = save_to_markdown(new_project, "project")
+    new_project.last_synced_at = datetime.now(timezone.utc)
         
     db.commit()
     db.refresh(new_project)
@@ -1685,6 +1690,11 @@ async def update_project(request: Request, project_id: str, body: ProjectUpdateR
         
     for key, value in update_data.items():
         setattr(project, key, value)
+        
+    from src.core.sync_engine import save_to_markdown
+    from datetime import datetime, timezone
+    project.file_path = save_to_markdown(project, "project")
+    project.last_synced_at = datetime.now(timezone.utc)
         
     db.commit()
     db.refresh(project)
@@ -1767,5 +1777,187 @@ def save_ollama_clusters(request: Request, payload: ClusterUpdatePayload, db: Se
     db.commit()
     return {"status": "success"}
 
+# ---------------------------------------------------------
+# TASKS MANAGEMENT (Plan & Execute)
+# ---------------------------------------------------------
 
+@router.get("/projects/{project_id}/tasks", response_model=List[TaskResponse])
+@limiter.limit("60/minute")
+def get_project_tasks(request: Request, project_id: str, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    tasks = db.query(TaskModel).filter(TaskModel.project_id == project_id, TaskModel.tenant_id == tenant_id).order_by(TaskModel.order_index.asc()).all()
+    return tasks
 
+@router.post("/projects/{project_id}/tasks", response_model=TaskResponse)
+@limiter.limit("60/minute")
+def create_project_task(request: Request, project_id: str, body: TaskCreateRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    project = db.query(ProjectModel).filter(ProjectModel.id == project_id, ProjectModel.tenant_id == tenant_id).first()
+    if not project:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Projeto não encontrado.")
+    
+    import uuid
+    new_task = TaskModel(
+        id=str(uuid.uuid4()),
+        project_id=project_id,
+        tenant_id=tenant_id,
+        title=body.title,
+        description=body.description,
+        status=body.status,
+        priority=body.priority,
+        deadline=body.deadline
+    )
+    db.add(new_task)
+    
+    log = ActivityLogModel(tenant_id=tenant_id, agent_name="User", action="CREATE_TASK", entity_type="TASK", entity_id=new_task.id, details={"title": new_task.title})
+    db.add(log)
+    
+    from src.core.sync_engine import save_to_markdown
+    from datetime import datetime, timezone
+    new_task.file_path = save_to_markdown(new_task, "task")
+    new_task.last_synced_at = datetime.now(timezone.utc)
+    
+    db.commit()
+    db.refresh(new_task)
+    return new_task
+
+@router.put("/tasks/{task_id}", response_model=TaskResponse)
+@limiter.limit("60/minute")
+def update_task(request: Request, task_id: str, body: TaskUpdateRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    task = db.query(TaskModel).filter(TaskModel.id == task_id, TaskModel.tenant_id == tenant_id).first()
+    if not task:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada.")
+    
+    update_data = body.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(task, key, value)
+        
+    log = ActivityLogModel(tenant_id=tenant_id, agent_name="User", action="UPDATE_TASK", entity_type="TASK", entity_id=task.id, details=update_data)
+    db.add(log)
+    
+    from src.core.sync_engine import save_to_markdown
+    from datetime import datetime, timezone
+    task.file_path = save_to_markdown(task, "task")
+    task.last_synced_at = datetime.now(timezone.utc)
+    
+    db.commit()
+    db.refresh(task)
+    return task
+
+@router.delete("/tasks/{task_id}")
+@limiter.limit("20/minute")
+def delete_task(request: Request, task_id: str, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    task = db.query(TaskModel).filter(TaskModel.id == task_id, TaskModel.tenant_id == tenant_id).first()
+    if not task:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada.")
+        
+    db.delete(task)
+    log = ActivityLogModel(tenant_id=tenant_id, agent_name="User", action="DELETE_TASK", entity_type="TASK", entity_id=task_id)
+    db.add(log)
+    
+    db.commit()
+    return {"status": "success"}
+
+# ---------------------------------------------------------
+# NOTES MANAGEMENT (Refinement)
+# ---------------------------------------------------------
+
+@router.get("/projects/{project_id}/notes", response_model=List[NoteResponse])
+@limiter.limit("60/minute")
+def get_project_notes(request: Request, project_id: str, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    notes = db.query(NoteModel).filter(NoteModel.project_id == project_id, NoteModel.tenant_id == tenant_id).all()
+    return notes
+
+@router.post("/projects/{project_id}/notes", response_model=NoteResponse)
+@limiter.limit("60/minute")
+def create_project_note(request: Request, project_id: str, body: NoteCreateRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    import uuid
+    new_note = NoteModel(
+        id=str(uuid.uuid4()),
+        project_id=project_id,
+        tenant_id=tenant_id,
+        title=body.title,
+        content=body.content,
+        is_pinned=body.is_pinned,
+        tags=body.tags
+    )
+    db.add(new_note)
+    
+    from src.core.sync_engine import save_to_markdown
+    from datetime import datetime, timezone
+    new_note.file_path = save_to_markdown(new_note, "note")
+    new_note.last_synced_at = datetime.now(timezone.utc)
+    
+    db.commit()
+    db.refresh(new_note)
+    return new_note
+
+@router.put("/notes/{note_id}", response_model=NoteResponse)
+@limiter.limit("60/minute")
+def update_note(request: Request, note_id: str, body: NoteUpdateRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    note = db.query(NoteModel).filter(NoteModel.id == note_id, NoteModel.tenant_id == tenant_id).first()
+    if not note:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Nota não encontrada.")
+        
+    update_data = body.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(note, key, value)
+        
+    from src.core.sync_engine import save_to_markdown
+    from datetime import datetime, timezone
+    note.file_path = save_to_markdown(note, "note")
+    note.last_synced_at = datetime.now(timezone.utc)
+        
+    db.commit()
+    db.refresh(note)
+    return note
+
+@router.delete("/notes/{note_id}")
+@limiter.limit("20/minute")
+def delete_note(request: Request, note_id: str, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    note = db.query(NoteModel).filter(NoteModel.id == note_id, NoteModel.tenant_id == tenant_id).first()
+    if not note:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Nota não encontrada.")
+        
+    db.delete(note)
+    db.commit()
+    return {"status": "success"}
+
+# ---------------------------------------------------------
+# SYNC STATUS CHECK
+# ---------------------------------------------------------
+
+@router.get("/sync-status/{entity_type}/{entity_id}")
+@limiter.limit("60/minute")
+def get_sync_status(request: Request, entity_type: str, entity_id: str, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    from src.core.sync_engine import check_sync_status
+    
+    entity = None
+    if entity_type == "project":
+        entity = db.query(ProjectModel).filter(ProjectModel.id == entity_id, ProjectModel.tenant_id == tenant_id).first()
+    elif entity_type == "task":
+        entity = db.query(TaskModel).filter(TaskModel.id == entity_id, TaskModel.tenant_id == tenant_id).first()
+    elif entity_type == "note":
+        entity = db.query(NoteModel).filter(NoteModel.id == entity_id, NoteModel.tenant_id == tenant_id).first()
+        
+    if not entity:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Entidade não encontrada.")
+        
+    if not entity.file_path or not entity.updated_at:
+        return {"status": "UNTRACKED", "message": "Entidade sem reflexo em Markdown ainda."}
+        
+    return check_sync_status(entity.file_path, entity.updated_at)
+
+# ---------------------------------------------------------
+# ACTIVITY LOG FEED
+# ---------------------------------------------------------
+
+@router.get("/activity-logs", response_model=List[ActivityLogResponse])
+@limiter.limit("60/minute")
+def get_activity_logs(request: Request, limit: int = 50, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    logs = db.query(ActivityLogModel).filter(ActivityLogModel.tenant_id == tenant_id).order_by(ActivityLogModel.created_at.desc()).limit(limit).all()
+    return logs

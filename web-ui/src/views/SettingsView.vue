@@ -334,7 +334,7 @@ onMounted(() => {
           <button @click="activeTab = 'workspaces'" :class="activeTab === 'workspaces' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200'" class="pb-3 border-b-2 text-sm font-medium transition-colors flex items-center gap-2">
               <span class="i-ph-folders-duotone text-lg"></span> Workspaces O.S.
           </button>
-          <button @click="activeTab = 'licensing'" :class="activeTab === 'licensing' ? 'border-amber-500 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-200'" class="pb-3 border-b-2 text-sm font-medium transition-colors flex items-center gap-2 ml-auto">
+          <button v-show="false" @click="activeTab = 'licensing'" :class="activeTab === 'licensing' ? 'border-amber-500 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-200'" class="pb-3 border-b-2 text-sm font-medium transition-colors flex items-center gap-2 ml-auto">
               <span class="i-ph-certificate-duotone text-lg"></span> B2B Licensing
           </button>
       </div>
@@ -676,7 +676,7 @@ onMounted(() => {
          </div>
          
          <!-- ================= SOVEREIGN LICENSING (B2B) TAB ================= -->
-         <div v-show="activeTab === 'licensing'" class="space-y-8">
+         <div v-show="false" class="space-y-8">
             <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-5 flex items-start gap-4 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
                <span class="i-ph-shield-check-duotone text-3xl text-amber-400 shrink-0"></span>
                <div class="flex-1">
