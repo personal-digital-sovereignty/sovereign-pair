@@ -5,8 +5,8 @@
             "npm": "@ai-sdk/openai-compatible",
             "name": "Sovereign The Coder (Local)",
             "options": {
-                "baseURL": "http://localhost:8000/v1/opencode/v1",
-                "apiKey": "test"
+                "baseURL": "http://localhost:8000/v1/opencode",
+                "apiKey": "sovereign-local"
             },
             "models": {
                 "the-coder-model": {
