@@ -279,3 +279,43 @@ class OpenAIChatRequest(BaseModel):
     presence_penalty: Optional[float] = 0.0
     frequency_penalty: Optional[float] = 0.0
     user: Optional[str] = None
+
+class OpenAIChatChoiceMessage(BaseModel):
+    role: str
+    content: str
+    
+class OpenAIChatChoice(BaseModel):
+    index: int
+    message: OpenAIChatChoiceMessage
+    finish_reason: Optional[str] = None
+
+class OpenAITokenUsage(BaseModel):
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+
+class OpenAIChatResponse(BaseModel):
+    id: str
+    object: str = "chat.completion"
+    created: int
+    model: str
+    choices: List[OpenAIChatChoice]
+    usage: Optional[OpenAITokenUsage] = None
+
+# --- SSE Stream Chunk Models ---
+
+class OpenAIChatChunkDelta(BaseModel):
+    role: Optional[str] = None
+    content: Optional[str] = None
+
+class OpenAIChatChunkChoice(BaseModel):
+    index: int
+    delta: OpenAIChatChunkDelta
+    finish_reason: Optional[str] = None
+
+class OpenAIChatChunkResponse(BaseModel):
+    id: str
+    object: str = "chat.completion.chunk"
+    created: int
+    model: str
+    choices: List[OpenAIChatChunkChoice]
