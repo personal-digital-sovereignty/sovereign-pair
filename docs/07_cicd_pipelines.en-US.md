@@ -39,9 +39,9 @@ The Heart of automation transiting the edge to Oracle Cloud (Infrastructure Auto
   * **OpenTofu Init:** Consumes repository injected encrypted secrets mapping private `Tailscale` clusters, OCI keys, and Network parameters.
   * **Infrastructure Orchestration:** Applies the architecture strictly via OpenTofu (stateful IaC code), communicating recursively with Oracle resolving the *Zero-Trust Network*, creating the A1 processor node, mapping cloud-init payload, booting Docker natively alongside RAG/N8N Cibrid integration. It serves both scaling upwards and total cloud-burn down (Destroy mode).
 
-## 📦 5. Obsidian Plugin Release (`release-obsidian.yml`)
-Distribution module rendering auto-installable packages linking sovereign context into the Obsidian PKM grid.
-* **Triggers:** Upon any tagged releases configured under `obsidian-v*`.
+## 📦 5. Sensus Vault Plugin Release (`release-sensusvault.yml`)
+Distribution module rendering auto-installable packages linking sovereign context into the Sensus Vault PKM grid.
+* **Triggers:** Upon any tagged releases configured under `sensusvault-v*`.
 * **Action Steps:**
   * Uses pristine Node/NPM cache hooks.
   * Condenses typescript configurations (`main.js`, `styles.css` and `manifest.json`) targeting the local Vault renderer.

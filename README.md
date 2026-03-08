@@ -1,6 +1,6 @@
 # Sovereign Pair - Sistema Avançado de RAG e Inteligência Artificial Soberana
 
-**Sovereign Pair** é um sistema completo de Retrieval-Augmented Generation (RAG) em arquitetura desacoplada, focado em **alta performance, privacidade absoluta e segurança Zero-Trust**. Projetado para unificar inteligência local via modelos locais (Ollama) ou provedores em nuvem, o sistema se integra nativamente ao seu fluxo de trabalho através de uma API robusta e de um plugin nativo para Obsidian.
+**Sovereign Pair** é um sistema completo de Retrieval-Augmented Generation (RAG) em arquitetura desacoplada, focado em **alta performance, privacidade absoluta e segurança Zero-Trust**. Projetado para unificar inteligência local via modelos locais (Ollama) ou provedores em nuvem, o sistema se integra nativamente ao seu fluxo de trabalho através de uma API robusta e de um plugin nativo para Sensus Vault.
 
 > [!TIP]
 > **Quer ver o motor funcionando e ter aquele "brilho nos olhos"? 👀✨**
@@ -29,7 +29,7 @@ O sistema superou a fase inicial de "Apenas Ingestão Incremental" e funciona ho
 
 4. **Trindade de Clientes Nativos**
    - **App Vue 3 (Web UI / God Mode Cockpit)**: Além da experiência PWA de IA, integra consoles de governança absoluta de IPs/UUIDs engaiolados, quarentena do Sentinel e Anti-Injeção.
-   - **Plugin Obsidian 3.0**: Interface hiper-integrada oferecendo 3 visualizações (Mini-Web lateral, Minimalista focado no texto, e Spotlight Modal gigantesco para brainstormings).
+   - **Plugin Sensus Vault 3.0**: Interface hiper-integrada oferecendo 3 visualizações (Mini-Web lateral, Minimalista focado no texto, e Spotlight Modal gigantesco para brainstormings).
    - **Agente Terminal (CLI)**: Uma das mais parrudas interfaces interativas de Terminal.
 
 5. **Orquestração Cíbrida Zero-Cost (N8N OCI)**
@@ -67,7 +67,7 @@ O sistema opera através de controle restritivo militar. Requisições HTTP limi
 
 ### Pré-Requisitos
 - Python 3.10+
-- Node.js 18+ (Para compilar o Plugin do Obsidian / Interface Web)
+- Node.js 18+ (Para compilar o Plugin do Sensus Vault / Interface Web)
 - Ollama instalado e em execução (se desejar inferência 100% local)
 
 ### Setup Básico
@@ -140,14 +140,14 @@ Roda absolutamente **tudo** localmente, *incluindo* um Docker isolado do Ollama 
 docker compose -f docker-compose.local.yml up -d --build
 ```
 
-### Integrando o Obsidian (Plugin Nativo)
-Sovereign Pair vem com um plugin em TypeScript embutido para Obsidian, criando uma simbiose profunda com sua base de texto.
+### Integrando o Sensus Vault (Plugin Nativo)
+Sovereign Pair vem com um plugin em TypeScript embutido para Sensus Vault, criando uma simbiose profunda com sua base de texto.
 ```bash
-cd obsidian-plugin
+cd sensusvault-plugin
 npm install
 npm run build
 ```
-O Plugin empacotado reside em `.obsidian/plugins/sovereign-pair/` no seu Vault. Uma vez habilitado no Obsidian, você ganha o controle do histórico de pastas e o superpoder da injeção de contexto ativo diretamente pelo editor, sob as 3 filosofias visuais fornecidas pelo plugin.
+O Plugin empacotado reside em `.sensusvault/plugins/sovereign-pair/` no seu Vault. Uma vez habilitado no Sensus Vault, você ganha o controle do histórico de pastas e o superpoder da injeção de contexto ativo diretamente pelo editor, sob as 3 filosofias visuais fornecidas pelo plugin.
 
 ---
 
@@ -157,7 +157,7 @@ O Plugin empacotado reside em `.obsidian/plugins/sovereign-pair/` no seu Vault. 
 - `src/api/` - Controladores, Rotas FastAPI, Middlewares, Tokens e Modelos de Banco de Dados SQLite.
 - `docs/` - Acondiciona os **6 Tratados/Manifestos Mestres** explicando minuciosamente o ecossistema, todos fornecidos em versões nativas unificadas (`.en-US.md` e `.pt-BR.md`).
 - `data/` - Repositório da Inteligência (Vault Cru, Banco de Dados Chroma DB Vetorial e Banco Relacional memory.db).
-- `obsidian-plugin/` - Código fonte TypeScript da Interface Nativa do Obsidian.
+- `sensusvault-plugin/` - Código fonte TypeScript da Interface Nativa do Sensus Vault.
 
 Para um detalhamento microscópico de como cada classe, banco ou servidor operam, dedique a leitura ao manifesto inaugural de arquitetura: **[01_architecture_and_philosophy](docs/01_architecture_and_philosophy.pt-BR.md)**.
 

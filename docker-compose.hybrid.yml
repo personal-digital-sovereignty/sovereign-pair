@@ -81,7 +81,7 @@ services:
       - CHROMA_PORT=8000
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
-      - ALLOWED_ORIGINS=http://localhost:8080,http://localhost:5173,app://obsidian.md
+      - ALLOWED_ORIGINS=http://localhost:8080,http://localhost:5173,app://sensusvault.local
       - SOVEREIGN_CONF=/app/data/sovereign.conf
       - VAULT_PATH=/app/data/vault
     extra_hosts:

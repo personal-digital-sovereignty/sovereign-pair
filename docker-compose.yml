@@ -78,7 +78,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - GROQ_API_KEY=${GROQ_API_KEY}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://sovereign-pair.local,https://localhost,https://127.0.0.1,app://obsidian.md,capacitor://localhost,http://localhost}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://sovereign-pair.local,https://localhost,https://127.0.0.1,app://sensusvault.local,capacitor://localhost,http://localhost}
       - SOVEREIGN_CONF=/app/data/sovereign.conf
       - VAULT_PATH=/app/data/vault
     # Montagem Bind para espelhar a pasta data local caso o SQLite precise sobreviver por qualquer motivo legal,
