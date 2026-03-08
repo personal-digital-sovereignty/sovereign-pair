@@ -179,10 +179,83 @@ class ProjectResponse(BaseModel):
     progress_percent: int
     friction_radar: Optional[str] = None
     deadline: Optional[str] = None
+    file_path: Optional[str] = None
+    last_synced_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     links: List[ProjectLinkSchema] = []
     logs: List[ProjectLogSchema] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+class TaskCreateRequest(BaseModel):
+    title: str = Field(..., description="O título prático da Tarefa")
+    description: Optional[str] = None
+    status: Optional[str] = "TODO"
+    priority: Optional[str] = "Medium"
+    deadline: Optional[str] = None
+
+class TaskUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    order_index: Optional[int] = None
+    deadline: Optional[str] = None
+
+class TaskResponse(BaseModel):
+    id: str
+    project_id: str
+    tenant_id: str
+    title: str
+    description: Optional[str] = None
+    status: str
+    priority: str
+    order_index: int
+    deadline: Optional[str] = None
+    file_path: Optional[str] = None
+    last_synced_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class NoteCreateRequest(BaseModel):
+    title: str
+    content: Optional[str] = None
+    is_pinned: Optional[bool] = False
+    tags: Optional[List[str]] = Field(default_factory=list)
+
+class NoteUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    is_pinned: Optional[bool] = None
+    tags: Optional[List[str]] = None
+
+class NoteResponse(BaseModel):
+    id: str
+    project_id: Optional[str] = None
+    tenant_id: str
+    title: str
+    content: Optional[str] = None
+    is_pinned: bool
+    tags: List[str] = []
+    file_path: Optional[str] = None
+    last_synced_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ActivityLogResponse(BaseModel):
+    id: int
+    tenant_id: str
+    agent_name: Optional[str] = None
+    action: str
+    entity_type: str
+    entity_id: Optional[str] = None
+    details: Optional[Dict[str, Any]] = None
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
