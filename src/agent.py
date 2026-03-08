@@ -33,7 +33,7 @@ from config import (
     CHROMA_SYSTEM_COLLECTION_NAME,
     OWNER_NAME,
     AGENT_VERBOSE,
-    llm,
+    get_default_llm,
     get_embed_model,
     validate_ollama_connection,
     validate_ollama_models
@@ -99,6 +99,9 @@ def initialize_rag_tool() -> Optional[QueryEngineTool]:
             embed_model=get_embed_model(),
             storage_context=storage_context
         )
+        
+        from src.config import get_default_llm
+        llm = get_default_llm()
         
         # Criar query engine
         # Aumentamos similarity_top_k para 10 para garantir mais contexto ao LLM
@@ -216,7 +219,12 @@ async def main():
         
         # Inicializar ferramentas
         # Note: initialize_rag_tool pode demorar, mas é síncrono.
-        # Em produção, poderíamos executar em thread separada, mas ok por agora.
+        system_prompt = f"""Você é o Sovereign Pair CLI Assistant.
+Responda diretamente e seja claro.
+Use idioma Português do Brasil por padrão."""
+
+        active_llm = get_default_llm()
+
         index, local_tool = initialize_rag_tool()
         # web_tool = initialize_web_tool()
         

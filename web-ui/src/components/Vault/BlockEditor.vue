@@ -293,7 +293,6 @@ import { PresentationBlock } from './extensions/PresentationBlock'
 import SlashCommand from './extensions/SlashCommand'
 import suggestion from './extensions/suggestion'
 import yaml from 'js-yaml'
-import TurndownService from 'turndown'
 
 // TipTap Extended Plugins for Data Ingestion
 const SensusTableCell = TableCell.extend({
@@ -384,26 +383,27 @@ const parseFrontmatter = (markdown: string | undefined) => {
     const yamlRegex = /^---\n([\s\S]*?)\n---(?:\n([\s\S]*))?$/
     const match = markdown.match(yamlRegex)
     if (match) {
+        const safeMatchContent = match[2] || '';
+        const contentAfterFrontmatter = safeMatchContent.trimStart();
+        const linesData = contentAfterFrontmatter.split('\n');
+
+        // Detect Title fallback if Frontmatter title empty
+        const rawFirstLine = linesData[0];
+        const autoTitle = rawFirstLine ? rawFirstLine.trim().replace(/^#{1,6}\s/, '') : 'Untitled Document';
+        
         try {
-            const safeMatchContent = match[2] || '';
-            const contentAfterFrontmatter = safeMatchContent.trimStart();
-            const linesData = contentAfterFrontmatter.split('\n');
-
-            // Detect Title fallback if Frontmatter title empty
-            const rawFirstLine = linesData[0];
-            const autoTitle = rawFirstLine ? rawFirstLine.trim().replace(/^#{1,6}\s/, '') : 'Untitled Document';
-            
             docData.value.frontmatter = yaml.load(match[1] as string) || {};
-            docData.value.content = contentAfterFrontmatter;
-            docData.value.autoTitle = autoTitle;
-
-            return {
-                frontmatter: docData.value.frontmatter,
-                content: docData.value.content
-            }
         } catch(e) {
             console.error("YAML Parse Error", e)
-            return { frontmatter: {}, content: markdown }
+            docData.value.frontmatter = { "_invalid_yaml_parse_error": match[1] as string };
+        }
+        
+        docData.value.content = contentAfterFrontmatter;
+        docData.value.autoTitle = autoTitle;
+
+        return {
+            frontmatter: docData.value.frontmatter,
+            content: docData.value.content
         }
     }
     const linesData = markdown ? markdown.split('\n') : [''];
@@ -530,7 +530,7 @@ const debounceTableEvaluate = (editorInstance: any) => {
             
             // Tenta enviar para avaliação matemática no Back-end
             const res = await fetch(`${API_BASE_URL}/v1/vault/table/evaluate`, {
-                method: "POST",
+                method: 'POST',
                 headers,
                 body: JSON.stringify({ cells, deleted_column: null })
             })
@@ -774,26 +774,22 @@ const debounceSave = (content: string) => {
     }, 1500) // 1.5s debounce local
 }
 
-const saveDocument = async (htmlContent: string) => {
+const saveDocument = async (markdownContent: string) => {
     if (!props.fileId) return
     
     try {
         const token = localStorage.getItem('sovereign_token')
-        const turndownService = new TurndownService({
-           headingStyle: 'atx',
-           codeBlockStyle: 'fenced'
-        })
-        const finalMarkdownContent = turndownService.turndown(htmlContent)
         
+        // O conteúdo já vem como Markdown correto do TipTap (editor.storage.markdown.getMarkdown())
         // Reconstrói com frontmatter se existir
-        let finalOutput = finalMarkdownContent
+        let finalOutput = markdownContent
         if (Object.keys(docData.value.frontmatter).length > 0) {
             const yamlStr = yaml.dump(docData.value.frontmatter)
-            finalOutput = `---\n${yamlStr}---\n${finalMarkdownContent}`
+            finalOutput = `---\n${yamlStr}---\n${markdownContent}`
         }
 
-        const res = await fetch(`${API_BASE_URL}/v1/vault/document`, {
-            method: 'POST',
+        const res = await fetch(`${API_BASE_URL}/v1/vault/document/${encodeURIComponent(props.fileId)}`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 ...(token ? { 'Authorization': `Bearer ${token}` } : {})

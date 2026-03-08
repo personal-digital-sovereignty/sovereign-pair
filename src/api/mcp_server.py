@@ -114,12 +114,12 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent]:
     elif name == "the_doctor_reasoning":
         try:
             from src.engine_builder import resolve_dynamic_llm
-            from src.config import llm as default_llm
+            from src.config import get_default_llm
             from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
             
             prompt = arguments.get("prompt")
             # Invoca dinamicamente o LLM ativo no config
-            llm = resolve_dynamic_llm("ollama", os.getenv("LLM_MODEL", "qwen2.5"), default_llm)
+            llm = resolve_dynamic_llm("ollama", os.getenv("LLM_MODEL", "qwen2.5"), get_default_llm())
             
             messages = [
                 LlamaMsg(role=MessageRole.SYSTEM, content="Você é The Doctor, agente especialista rodando embarcado no IDE via Protocolo MCP. Baseie-se apenas em fatos de engenharia de software e RAG."),

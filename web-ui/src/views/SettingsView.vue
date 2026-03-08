@@ -76,7 +76,10 @@ const addCluster = async () => {
         await fetch(`${API_BASE_URL}/v1/settings/ollama_clusters`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-            body: JSON.stringify({ clusters: ollamaClusters.value })
+            body: JSON.stringify({ 
+                clusters: ollamaClusters.value,
+                active_cluster_id: activeClusterId.value 
+            })
         });
         newClusterName.value = '';
         newClusterUrl.value = '';
@@ -94,7 +97,10 @@ const removeCluster = async (id: string) => {
         await fetch(`${API_BASE_URL}/v1/settings/ollama_clusters`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-            body: JSON.stringify({ clusters: ollamaClusters.value })
+            body: JSON.stringify({ 
+                clusters: ollamaClusters.value,
+                active_cluster_id: activeClusterId.value 
+            })
         });
         await onClusterChange();
     } catch(e) { console.error(e) }
@@ -375,8 +381,8 @@ onMounted(() => {
                              <span class="text-[11px] font-semibold text-slate-300 truncate" :class="activeClusterId === c.id ? 'text-indigo-300' : ''">{{ c.name }} <span v-if="activeClusterId === c.id" class="text-[9px] text-indigo-500/70 ml-1">(Ativo)</span></span>
                              <span class="text-[9px] text-slate-500 font-mono truncate">{{ c.url }}</span>
                           </div>
-                          <!-- Hide delete for default unbreakables -->
-                          <button v-show="c.id !== 'local' && c.id !== 'oracle'" @click="removeCluster(c.id)" class="text-rose-500/70 hover:text-rose-400 p-1 shrink-0" title="Remover Nó da Frota">
+                          <!-- Hide delete only for the local unbreakable fallback -->
+                          <button v-show="c.id !== 'local'" @click="removeCluster(c.id)" class="text-rose-500/70 hover:text-rose-400 p-1 shrink-0" title="Remover Nó da Frota">
                              <span class="i-ph-trash-duotone text-sm"></span>
                           </button>
                        </li>
