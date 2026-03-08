@@ -75,7 +75,7 @@ async def chat_endpoint(request: Request, body_request: ChatRequest, engine=Depe
                     import re
                     from src.web_search import search_web
                     from src.engine_builder import resolve_dynamic_llm
-                    from src.config import llm as default_llm
+                    from src.config import get_default_llm
                     from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
                     
                     from datetime import datetime
@@ -114,8 +114,22 @@ EXTREMA IMPORTÂNCIA:
                         # Injetar Histórico Base para a IA se lembrar do contexto da conversa
                         history_msgs = engine._memory.get_all() if engine else []
                         messages_to_send = [sys_msg] + history_msgs + [context_msg]
+
+                        db_provider = _get_setting_value(db, "llm_provider", "openai", tenant_id)
+                        db_model = _get_setting_value(db, "llm_model", "gpt-4o-mini", tenant_id)
                         
-                        active_llm = resolve_dynamic_llm(body_request.provider, body_request.model, default_llm)
+                        api_keys = {
+                            "openai_api_key": _get_setting_value(db, "openai_api_key", "", tenant_id),
+                            "anthropic_api_key": _get_setting_value(db, "anthropic_api_key", "", tenant_id),
+                            "gemini_api_key": _get_setting_value(db, "gemini_api_key", "", tenant_id),
+                            "custom_ollama_url": _get_setting_value(db, "custom_ollama_url", "", tenant_id)
+                        }
+
+                        target_provider = body_request.provider or db_provider
+                        target_model = body_request.model or db_model
+                        
+                        active_llm = resolve_dynamic_llm(target_provider, target_model, get_default_llm(), api_keys)
+                        
                         response_gen = await active_llm.astream_chat(messages_to_send)
                         
                         full_ai_response = f"🌐 *Buscando na web...{time_info}*\n\n"
@@ -139,7 +153,20 @@ EXTREMA IMPORTÂNCIA:
                     else:
                         yield f"data: {json.dumps({'content': '🧠 *Consultando Sistema Meta-RAG...*\n\n'})}\n\n"
                         try:
-                            sys_engine = build_system_chat_engine(body_request.provider, body_request.model)
+                            db_provider = _get_setting_value(db, "llm_provider", "openai", tenant_id)
+                            db_model = _get_setting_value(db, "llm_model", "gpt-4o-mini", tenant_id)
+                            
+                            api_keys = {
+                                "openai_api_key": _get_setting_value(db, "openai_api_key", "", tenant_id),
+                                "anthropic_api_key": _get_setting_value(db, "anthropic_api_key", "", tenant_id),
+                                "gemini_api_key": _get_setting_value(db, "gemini_api_key", "", tenant_id),
+                                "custom_ollama_url": _get_setting_value(db, "custom_ollama_url", "", tenant_id)
+                            }
+
+                            target_provider = body_request.provider or db_provider
+                            target_model = body_request.model or db_model
+                            
+                            sys_engine = build_system_chat_engine(target_provider, target_model, api_keys)
                             if not sys_engine:
                                 full_ai_response = "❌ Erro: O Motor de Sistema não pôde ser iniciado. O banco vetorial foi criado?"
                                 yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
@@ -212,8 +239,7 @@ EXTREMA IMPORTÂNCIA:
                         # --- EXECUÇÃO TIER 4: O Médico (Heavy LLM & Deep Synthesis) ---
                         from src.core.the_doctor import TheDoctor
                         doctor = TheDoctor(body_request.provider, body_request.model, engine, api_keys)
-                        
-                        yield f"data: {json.dumps({'content': '*(🧠 Raciocínio Profundo do The Doctor ativado...)*\\n\\n'})}\n\n"
+                        yield f"data: {json.dumps({'content': '*(🧠 Raciocínio Profundo do The Doctor ativado...)*\n\n'})}\n\n"
                         
                         print(f"[DEBUG RAG] Executando The Doctor (Tier 4) via {getattr(doctor.llm, 'model', 'N/A')}...", flush=True)
                         try:
@@ -304,7 +330,7 @@ EXTREMA IMPORTÂNCIA:
             import re
             from src.web_search import search_web
             from src.engine_builder import resolve_dynamic_llm
-            from src.config import llm as default_llm
+            from src.config import get_default_llm
             from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
             
             from datetime import datetime
@@ -859,10 +885,7 @@ async def check_cluster_health(request: Request, db: Session = Depends(get_db), 
     if not is_enabled:
         return {"status": "degraded", "reason": "remote_disabled_by_user", "active_agents": ["The Mom", "The Dad", "The Nurse"]}
         
-    ollama_url = _get_setting_value(db, "custom_ollama_url", "", tenant_id)
-    if not ollama_url:
-        import os
-        ollama_url = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+    ollama_url = get_active_ollama_url(db, tenant_id)
         
     try:
         async with httpx.AsyncClient(timeout=1.5) as client:

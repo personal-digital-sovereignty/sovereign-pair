@@ -41,16 +41,24 @@ Conteúdo:
 {truncated_content}
 """
         messages = [ChatMessage(role=MessageRole.USER, content=prompt)]
-        
         try:
-            logger.info(f"[The Dad] 🤖 Gerando sumário semântico para '{title}' via SLM...")
-            # Pega o LLM global do sistema (ex: llama3.2 configurado em config.py)
-            llm = Settings.llm
+            logger.info(f"[The Dad] 🤖 Gerando sumário semântico para '{title}' via SLM LOCAL...")
+            from src.config import LLM_PROVIDER, LLM_MODEL, REQUEST_TIMEOUT, OLLAMA_BASE_URL
+            from llama_index.llms.ollama import Ollama
+            
+            # FORÇAMENTO DE TOPOLOGIA: O Background Worker (The Dad) NUNCA deve competir na mesma
+            # fila do Cloud Node com o UI/Chat. Fazemos bypass chamando o nó local diretamente.
+            if LLM_PROVIDER == "ollama":
+                llm = Ollama(model=LLM_MODEL, request_timeout=REQUEST_TIMEOUT, base_url=OLLAMA_BASE_URL)
+            else:
+                from src.llm_factory import get_llm
+                llm = get_llm(LLM_PROVIDER, LLM_MODEL, request_timeout=REQUEST_TIMEOUT)
+            
             response = await llm.achat(messages)
             return response.message.content.strip()
         except Exception as e:
-            logger.error(f"[The Dad] ❌ Erro ao gerar resumo para {title}: {e}")
-            return "Resumo indisponível devido a erro no LLM."
+            logger.warning(f"[The Dad] ⚠️ Bypass de LLM ativado para '{title}' (Erro: {e}). Usando heurística veloz de corte de texto.")
+            return content[:250].replace('\n', ' ') + "..."
 
     async def _vectorize_and_save(self, doc: SensusDocumentModel, summary: str, file_content: str):
         """Usa o BGE-M3 (ou modelo atual) para gerar o Embedding geográfico e salva no Chroma."""
@@ -62,9 +70,17 @@ Conteúdo:
         embedding_text = f"TÍTULO: {title}\nRESUMO: {summary}\nCONTEÚDO ORIGINAL:\n{file_content[:1000]}"
         
         try:
-            # Pega o modelo de embedding global do LlamaIndex instanciado no config
-            logger.info(f"[The Dad] 🧬 Calculando vetores espaciais para '{title}'...")
-            embed_model = Settings.embed_model
+            # Pegar o Embedding LOCALMENTE para respeitar isolamento de Topologia
+            logger.info(f"[The Dad] 🧬 Calculando vetores espaciais para '{title}' LOCALMENTE...")
+            from src.config import EMBEDDING_PROVIDER, EMBED_MODEL_NAME, OLLAMA_BASE_URL
+            
+            if EMBEDDING_PROVIDER == "ollama":
+                from llama_index.embeddings.ollama import OllamaEmbedding
+                embed_model = OllamaEmbedding(model_name=EMBED_MODEL_NAME, base_url=OLLAMA_BASE_URL)
+            else:
+                from src.config import get_embed_model
+                embed_model = get_embed_model()
+            
             vector = await embed_model.aget_text_embedding(embedding_text)
             
             vector_id = str(uuid.uuid4())

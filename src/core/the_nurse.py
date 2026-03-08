@@ -24,8 +24,8 @@ class TheNurse:
         # or a specifically tuned smaller model if the user requested a heavy one natively.
         # For V1, she runs on the same config but with a strict "Intent Parsing" system prompt.
         from src.engine_builder import resolve_dynamic_llm
-        from src.config import llm as default_llm
-        self.llm = resolve_dynamic_llm(llm_provider, llm_model, default_llm, api_keys)
+        from src.config import get_default_llm
+        self.llm = resolve_dynamic_llm(llm_provider, llm_model, get_default_llm(), api_keys)
         
     async def evaluate_intent(self, user_prompt: str) -> dict:
         """
