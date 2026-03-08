@@ -7,7 +7,14 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-## [3.1.2] - 2026-03-07
+## [3.1.2] - 2026-03-08
+
+### 🤖 The Coder & OpenCode Integration (Pair Programming)
+
+### Adicionado
+- **OpenAI-Compatible Proxy API**: Construção de um endpoint dedicado (`/v1/opencode/chat/completions`) isolado do middleware de autenticação transacional para suportar nativamente plugins e IDEs como OpenCode/Cursor.
+- **Oracle OCI Bypass (The Coder)**: Adicionado roteamento dinâmico inteligente no `engine_builder.py`. Quando models nomeados como `coder` são requisitados pela IDE, o proxy descarta o Ollama local e transparente injeta o modelo pesado `qwen2.5-coder:7b` conectando via tunelamento mTLS Tailscale diretamente ao nó isolado The Coder na Oracle Cloud.
+- **Server-Sent Events (SSE)**: Pleno suporte ao stream token a token em requisições assíncronas assincronamente da Oracle para a interface do editor local, reduzindo a sensação de latência de cold start.
 
 ### 🕸️ Arquitetura de Rede & Resolvibilidade VPN Isolada
 
