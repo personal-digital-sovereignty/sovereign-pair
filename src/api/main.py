@@ -11,6 +11,9 @@ from .security_logger import setup_security_logging
 from src.config import ALLOWED_ORIGINS
 from fastapi import Depends
 from .auth import router as auth_router, get_current_user
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest # Renamed to avoid conflict with fastapi.Request
+import logging
 
 # Setup PYTHONPATH e SysPath
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
