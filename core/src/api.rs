@@ -1,0 +1,145 @@
+use axum::{
+    extract::{Json, State},
+    response::{
+        sse::{Event, Sse},
+        IntoResponse, Response,
+    },
+};
+use futures_util::StreamExt;
+use reqwest::{Client, StatusCode};
+use serde_json::{json, Value};
+use std::convert::Infallible;
+use std::sync::Arc;
+use tracing::{error, info, warn};
+
+use crate::models::{
+    OpenAIChatChunkChoice, OpenAIChatChunkDelta, OpenAIChatChunkResponse, OpenAIChatRequest,
+};
+use crate::AppState;
+
+/// O Primeiro Controlador Cíbrido: Recebendo os Pensamentos do VS Code.
+pub async fn chat_completions_handler(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<OpenAIChatRequest>,
+) -> Response {
+    
+    // Fallback/Extrator: Se 'stream' não vier especificado, assumimos True em respeito aos IDs nativos
+    let is_stream = payload.stream.unwrap_or(true);
+    let requested_model = payload.model.clone();
+    
+    info!("🔥 [Sovereign Core] Interceptando requisição OpenCode para o modelo: [{}] | Streaming: {}", requested_model, is_stream);
+
+    // O Roteamento de Conversão (OpenAI -> Ollama)
+    // Forçamos "stream": true para o Ollama local, de forma a capturar os tokens e jorrá-los
+    let ollama_payload = json!({
+        "model": &requested_model,
+        "messages": payload.messages,
+        "stream": true
+    });
+
+    let res = match state
+        .http_client
+        .post("http://127.0.0.1:11434/api/chat")
+        .json(&ollama_payload)
+        .send()
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            error!("🚨 Falha FATAL ao encontrar o motor LLM: {}", e);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Motor Cognitive Air-Gapped não está respondendo na porta 11434.",
+            ).into_response();
+        }
+    };
+
+    if !res.status().is_success() {
+        error!("❌ Ollama recusou a requisição HTTP. Status: {}", res.status());
+        return (StatusCode::BAD_GATEWAY, "Erro no gateway interno LLM.").into_response();
+    }
+
+    // Criamos o Túnel de Transmissão contínua em Rust
+    // Extraímos os Bytes Chunk a Chunk e mapeamos pro formato OpenAI SSE:
+    let stream = res.bytes_stream().map(move |result| {
+        match result {
+            Ok(bytes) => {
+                // Tenta transformar os bytes em string (pode vir linha cortada)
+                if let Ok(chunk_str) = String::from_utf8(bytes.to_vec()) {
+                    // Pra cada linha (Event), tentamos fazer parse se for um JSON Ollama
+                    for line in chunk_str.lines() {
+                        let line = line.trim();
+                        if line.is_empty() {
+                            continue;
+                        }
+
+                        if let Ok(ollama_resp) = serde_json::from_str::<Value>(line) {
+                            if let Some(msg_obj) = ollama_resp.get("message") {
+                                if let Some(content) = msg_obj.get("content").and_then(|c| c.as_str()) {
+                                    
+                                    // Temos o Fragmento! Vamos envelopá-lo no formato OpenAI
+                                    let chunk_response = OpenAIChatChunkResponse {
+                                        id: format!("chatcmpl-{}", uuid::Uuid::new_v4().to_string().replace("-", "").chars().take(12).collect::<String>()),
+                                        object: "chat.completion.chunk".to_string(),
+                                        created: 1234567890, // Epoch Genérico
+                                        model: requested_model.clone(),
+                                        choices: vec![OpenAIChatChunkChoice {
+                                            index: 0,
+                                            delta: OpenAIChatChunkDelta {
+                                                role: Some("assistant".to_string()),
+                                                content: Some(content.to_string()),
+                                            },
+                                            finish_reason: None,
+                                        }],
+                                    };
+
+                                    // Retornamos esse Chunk empacotado como SSE (Server Sent Event)
+                                    // Axum injetará "data: {JSON}" na placa de rede do cliente
+                                    if let Ok(json_str) = serde_json::to_string(&chunk_response) {
+                                        return Ok::<Event, Infallible>(Event::default().data(json_str));
+                                    }
+                                }
+                            }
+                            
+                            // Tratar Evento de Fim de Transmissão do Ollama
+                            // (Ollama envia "done": true no último pacote)
+                            if let Some(done) = ollama_resp.get("done").and_then(|d| d.as_bool()) {
+                                if done {
+                                   let finish_response = OpenAIChatChunkResponse {
+                                        id: "chatcmpl-end".to_string(),
+                                        object: "chat.completion.chunk".to_string(),
+                                        created: 1234567890,
+                                        model: requested_model.clone(),
+                                        choices: vec![OpenAIChatChunkChoice {
+                                            index: 0,
+                                            delta: OpenAIChatChunkDelta {
+                                                role: None,
+                                                content: None,
+                                            },
+                                            finish_reason: Some("stop".to_string()),
+                                        }],
+                                    };
+                                    if let Ok(json_str) = serde_json::to_string(&finish_response) {
+                                        return Ok::<Event, Infallible>(Event::default().data(json_str));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Keep-alive/vazios
+                Ok::<Event, Infallible>(Event::default())
+            }
+            Err(e) => {
+                error!("Erro mapeando os bytes de inferência da porta Ollama: {}", e);
+                Ok::<Event, Infallible>(Event::default())
+            }
+        }
+    });
+
+    // Envolve a Stream num responder SSE do Axum e devolve o header Keep-Alive.
+    Sse::new(stream)
+        .keep_alive(axum::response::sse::KeepAlive::new())
+        .into_response()
+}
