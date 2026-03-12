@@ -133,98 +133,32 @@
            </div>
        </div>
 
-       <!-- THE GOD MODE COCKPIT (PHASE 39) -->
-       <div v-show="activeTab === 'cockpit'" class="absolute inset-0 w-full h-full overflow-y-auto p-6 bg-surface-900/90 custom-scroll">
-           <div class="max-w-6xl mx-auto flex flex-col gap-6 relative">
-               
-               <!-- Top Bar: Radar de Ação -->
-               <section class="bg-surface-800/80 border border-primary-500/20 rounded-xl p-5 backdrop-blur-sm shadow-xl relative overflow-hidden">
-                   <!-- Decorative accent -->
-                   <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary-400 to-indigo-500"></div>
-                   
-                   <div class="flex items-center justify-between mb-4 pl-2">
-                       <h2 class="text-lg font-medium text-white flex items-center gap-2">
-                           <span class="i-ph-crosshair-duotone text-primary-400 text-xl"></span> 
-                           Radar de Ação Tática
-                       </h2>
-                       <p class="text-xs text-surface-400 font-mono">Consolidating Next Actions</p>
-                   </div>
-                   
-                   <div v-if="isLoadingProjects" class="py-10 flex justify-center text-primary-500/50">
-                       <span class="i-ph-spinner-gap animate-spin text-3xl"></span>
-                   </div>
-                   
-                   <div v-else-if="activeNextActions.length === 0" class="py-4 text-center text-surface-500 text-sm border border-dashed border-surface-700 rounded-lg">
-                       Você está totalmente livre. Nenhum projeto ativo exige sua atenção no momento.
-                   </div>
-                   
-                   <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-2">
-                       <div v-for="action in activeNextActions" :key="action.projectId" class="bg-surface-900/80 border border-surface-700/50 rounded-lg p-3 hover:border-primary-500/50 transition-colors group cursor-pointer" @click="openProjectWorkspace(action.projectId)">
-                           <div class="flex items-center justify-between mb-2">
-                               <span class="text-[10px] font-mono text-surface-400 truncate pr-2">{{ action.projectName }}</span>
-                               <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest" :class="getEnergyBadgeClass(action.energy)">{{ action.energy }}</span>
-                           </div>
-                           <p class="text-sm text-surface-200 group-hover:text-white transition-colors flex items-start gap-2">
-                               <span class="i-ph-arrow-elbow-down-right-duotone text-primary-500 mt-1 shrink-0"></span>
-                               {{ action.text }}
-                           </p>
-                       </div>
-                   </div>
-               </section>
-               
-               <!-- Grid Splitter: Projetos e Logs -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                    <!-- Projetos em Voo -->
-                    <section class="lg:col-span-2">
-                        <div class="flex items-center justify-between mb-4">
-                            <h2 class="text-base font-medium text-surface-300 flex items-center gap-2">
-                                <span class="i-ph-folder-open-duotone"></span> 
-                                Projetos em Voo
-                            </h2>
-                            <button class="text-xs bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-md font-medium transition-colors flex items-center gap-1">
-                                <span class="i-ph-plus-bold"></span> Novo Projeto
-                            </button>
-                        </div>
-                        
-                        <div class="max-h-[500px] overflow-y-auto custom-scroll pr-2">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div v-for="project in projects" :key="project.id" @click="openProjectWorkspace(project.id)" class="bg-surface-800 border border-surface-700 hover:border-surface-500 rounded-xl p-4 flex flex-col gap-3 cursor-pointer group transition-all hover:shadow-lg">
-                                    <div class="flex items-start justify-between">
-                                    <h3 class="font-medium text-surface-200 group-hover:text-white truncate" :title="project.name">{{ project.name }}</h3>
-                                    <span class="text-xl" :title="project.traction_status">{{ getStatusEmoji(project.traction_status) }}</span>
-                                </div>
-                                
-                                <p class="text-xs text-surface-400 line-clamp-2 min-h-[32px]">{{ project.purpose || 'Sem propósito definido.' }}</p>
-                                
-                                <div class="mt-auto pt-2">
-                                    <div class="flex justify-between items-center mb-1 text-[10px] text-surface-500 font-mono">
-                                        <span>PROGRESSO</span>
-                                        <span>{{ project.progress_percent }}%</span>
-                                    </div>
-                                    <div class="w-full bg-surface-900 rounded-full h-1.5 overflow-hidden">
-                                        <div class="bg-primary-500 h-1.5 rounded-full" :style="{ width: project.progress_percent + '%' }"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Sovereign Engine Runtime Logs & Telemetry -->
-                    <section class="flex flex-col gap-4">
-                        <div class="h-auto shrink-0">
-                           <TokenMetricsTracker />
-                        </div>
-                        <div class="flex-1 min-h-[300px]">
-                           <RealtimeLogs />
-                        </div>
-                    </section>
+       <!-- THE GOD MODE COCKPIT (PHASE 27: FULL-WIDTH MASTERPLAN) -->
+        <div v-show="activeTab === 'cockpit'" class="absolute inset-0 w-full h-full overflow-y-auto p-6 bg-surface-900/90 custom-scroll">
+            <div class="w-full flex flex-col gap-6 relative min-h-full">
+                
+                <!-- O.S Terminal Integrado (The Hacker's CLI) -->
+                <HackerCommandLine class="shrink-0 z-20" />
+                
+                <!-- Tri-Core Trackers (Telemetria, Cronos, RAG) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 shrink-0 min-h-[220px]">
+                    <div class="bg-surface-900/80 border border-surface-700/50 rounded-xl overflow-hidden relative p-4 flex flex-col justify-center shadow-xl">
+                        <TokenMetricsTracker />
+                    </div>
+                    
+                    <CronosTimeMap class="h-full shadow-xl" />
+                    <RagPipelineTracker class="h-full shadow-xl" />
                 </div>
-               
-           </div>
-       </div>
+                
+                <!-- Sovereign Event Stream -->
+                <div class="flex-1 min-h-[300px] h-full bg-surface-900/80 border border-surface-700/50 rounded-xl overflow-hidden flex flex-col p-4 custom-scroll shadow-xl">
+                    <RealtimeLogs />
+                </div>
 
-       <!-- QUARANTINE (THE SENTINEL) VIEW -->
+            </div>
+        </div>
+
+        <!-- QUARANTINE (THE SENTINEL) VIEW -->
        <div v-show="activeTab === 'quarantine'" class="absolute inset-0 w-full h-full overflow-y-auto p-6">
            <div class="max-w-5xl mx-auto flex flex-col gap-6 relative">
                <div class="flex items-center justify-between mb-2">
@@ -311,6 +245,9 @@ import CognitiveGraph from '../components/Vault/CognitiveGraph.vue'
 import PomodoroWidget from '../components/Dashboard/PomodoroWidget.vue'
 import RealtimeLogs from '../components/Dashboard/RealtimeLogs.vue'
 import TokenMetricsTracker from '../components/dashboard/TokenMetricsTracker.vue'
+import HackerCommandLine from '../components/Dashboard/HackerCommandLine.vue'
+import RagPipelineTracker from '../components/Dashboard/RagPipelineTracker.vue'
+import CronosTimeMap from '../components/Dashboard/CronosTimeMap.vue'
 
 // O "User Mode" simula a visão B2B (Enterprise) x B2C (Personal)
 const router = useRouter()
@@ -342,143 +279,6 @@ const isLoadingAgenda = ref(true)
 const graphComponent = ref<any>(null)
 
 // --- COCKPIT LOGIC ---
-const projects = ref<any[]>([])
-const isLoadingProjects = ref(true)
-import { computed } from 'vue'
-
-const activeNextActions = computed(() => {
-    return projects.value
-        .filter(p => p.next_action && p.traction_status !== 'Hibernating' && p.traction_status !== 'Done')
-        .map(p => ({
-            projectId: p.id,
-            projectName: p.name,
-            text: p.next_action,
-            energy: p.energy_level || 'Med'
-        }))
-})
-
-const getEnergyBadgeClass = (energy: string) => {
-    if (energy === 'High') return 'bg-amber-500/20 text-amber-500 border-amber-500/30'
-    if (energy === 'Low') return 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
-    return 'bg-blue-500/20 text-blue-400 border-blue-500/30' // Med
-}
-
-const getStatusEmoji = (status: string) => {
-    const map: Record<string, string> = {
-        'Ideation': '💡',
-        'Flowing': '🟢',
-        'Blocked': '🔴',
-        'Hibernating': '❄️',
-        'Done': '🏁'
-    }
-    return map[status] || '⚪'
-}
-
-const fetchProjects = async () => {
-    isLoadingProjects.value = true
-    try {
-        const token = localStorage.getItem('sensus_token')
-        const endpoint = `${API_BASE_URL}/v1/projects`
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-        if (token) headers['Authorization'] = `Bearer ${token}`
-        
-        const response = await fetch(endpoint, { headers })
-        if (response.ok) {
-            projects.value = await response.json()
-        }
-    } catch (e) {
-        console.error("Failed to fetch projects:", e)
-    } finally {
-        isLoadingProjects.value = false
-    }
-}
-
-const openProjectWorkspace = (projectId: string) => {
-    alert(`Visão Foco (Microscópio) para o Projeto ${projectId} será injetada aqui na próxima iteração da Fase 39!`)
-}
-
-// --- TAB WATCHER ---
-watch(activeTab, (newVal: string) => {
-    if (newVal === 'graph') {
-        setTimeout(() => {
-            window.dispatchEvent(new Event('resize'))
-            if (graphComponent.value && graphComponent.value.handleResize) {
-                graphComponent.value.handleResize()
-            }
-        }, 100)
-    } else if (newVal === 'quarantine') {
-        fetchQuarantineLogs()
-    } else if (newVal === 'cockpit') {
-        fetchProjects()
-    }
-
-})
-
-// -- Pomodoro State Integration --
-const pomodoroTarget = ref<string | null>(null)
-
-const focusOnTask = (taskText: string) => {
-    // Scroll To Top to see the timer
-    const mainContainer = document.querySelector('main > div > div.max-w-5xl')
-    if(mainContainer) mainContainer.scrollIntoView({ behavior: 'smooth' })
-    
-    pomodoroTarget.value = taskText
-}
-
-interface AgendaBucket {
-    docs: any[]
-    tasks: any[]
-}
-
-const agenda = ref<Record<string, AgendaBucket>>({})
-
-const fetchAgenda = async () => {
-    isLoadingAgenda.value = true
-    try {
-        const token = localStorage.getItem('sovereign_token') || ''
-        const headers = { 'Authorization': `Bearer ${token}` }
-        
-        const res = await fetch(`${API_BASE_URL}/v1/vault/agenda`, { headers })
-        if (res.ok) {
-            agenda.value = await res.json()
-        }
-    } catch(e) {
-        console.error("Erro ao puxar dados da Agenda Temporal:", e)
-    } finally {
-        isLoadingAgenda.value = false
-    }
-}
-
-const sensusMode = ref('standard')
-const fetchSystemMode = async () => {
-    try {
-        const token = localStorage.getItem('sovereign_token') || ''
-        const headers = { 'Authorization': `Bearer ${token}` }
-        const res = await fetch(`${API_BASE_URL}/v1/settings`, { headers })
-        if (res.ok) {
-            const data = await res.json()
-            if (data.sensus_mode) {
-                sensusMode.value = data.sensus_mode
-            }
-        }
-    } catch(e) {
-        console.warn("Could not fetch system mode", e)
-    }
-}
-
-const formatTime = (isoString: string) => {
-    if (!isoString) return ''
-    const d = new Date(isoString)
-    return d.toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'}) + ' ' + d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})
-}
-
-const openInVault = (doc: any) => {
-    // Navigate straight to vault with query param
-    router.push({ path: '/vault', query: { file: doc.path } })
-}
-
-// --- QUARANTINE LOGIC ---
-const quarantineLogs = ref<any[]>([])
 const isLoadingQuarantine = ref(false)
 const actionLoading = ref<number | null>(null)
 

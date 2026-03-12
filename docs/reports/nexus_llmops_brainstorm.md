@@ -76,3 +76,23 @@ ALERTAS RECENTES     |                                                    Econom
 
 ## Próximos Passos Consolidados
 Este diagrama será o "Target State" para a UI do **Command Hub (VueJS)**. Nos próximos marcos da arquitetura, implementaremos os Endpoints de FastAPI / Rust (Core) para cuspir os Analytics mapeados (`/v1/analytics/tracing`, `/v1/analytics/cache_hits`), que serão consumidos passivamente por estes componentes *brutalistas*.
+
+---
+
+## 📋 Epic: The Sovereign Command Hub (Roadmap Tasks)
+As metas deste Brainstorm descritas acima foram quebradas no seguinte Pipeline Sistêmico para iniciarmos o Hardcoding Imediato.
+
+### 🏗️ Stage 1: The Hacker's CLI & Interface Ativa
+- [ ] Construir componente `HackerCommandLine.vue` para fixação central no Command Hub.
+- [ ] Implementar Parsing de prefixo `>` e `/<comando>` na CLI Box isolando do Input comum de Chat.
+- [ ] Plugar Dispatcher Frontend para atuar sobre Endpoints Cíbridos (ex: `/flush`, `/sync`).
+
+### ⚙️ Stage 2: RAG Pipeline Tracker
+- [ ] Criar Componente Sidebar `RagIngestionTracker.vue` substituindo espaço oscilante do Dashboard.
+- [ ] Linkar Visualizador de Status às Filas Globais (Workers emitindo SSE das fases: Parser, Chunking, Embedding).
+- [ ] Integrar Alertas Visuais (Piscar/Cores ANSI) para Ingestões Travadas ou Finalizadas com sucesso no Vault Local.
+
+### ⏳ Stage 3: Cronos Time-Map & RAG Gaps
+- [ ] Condensar Agendamentos VUE num Widget compacto ("3 Tasks Hoje, 1 Quarentena pendente").
+- [ ] Adicionar View Lateral de "Buracos Negros do Conhecimento" escutando LLM Fallbacks do Rust/Python.
+- [ ] Refinar a leitura passiva da Interface Mestre O.S ("NEXUS AI COMMAND CENTER" ASCII Layout).

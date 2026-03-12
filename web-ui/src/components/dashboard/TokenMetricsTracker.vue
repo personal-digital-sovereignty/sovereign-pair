@@ -90,37 +90,34 @@ const averageTPS = ref(0)
 const hardware = ref({ cpu: 12, ram: 14.5, io: 45.2 })
 let hwInterval: any = null
 
-// O custo é estimado na API do Llama-3-70B/GPT-4o padrão (Aprox $0.015 / 1K output tokens)
-const COST_PER_1K = 0.0150 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+// O custo é calculado dinamicamente no Backend Node (Rust) baseado no Provider/Model
 
 const fetchTelemetry = async () => {
    try {
-      const res = await fetch(`${API_BASE_URL}/v1/analytics/telemetry`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token')}` }
+      // O Core Cíbrido (Rust) expõe a API de Telemetria na porta 8001
+      const RUST_CORE_URL = 'http://127.0.0.1:8001'
+      const res = await fetch(`${RUST_CORE_URL}/v1/analytics/telemetry`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` }
       })
+      
       if (res.ok) {
           const data = await res.json()
-          totalTokens.value = data.total_tokens || 12450 // Mocked default until Backend implemented
-          averageTPS.value = data.avg_tps || 45
-          estimatedSavings.value = (totalTokens.value / 1000) * COST_PER_1K
-      } else {
-         // Mock Mode for now
-         totalTokens.value = 45912
-         averageTPS.value = 52
-         estimatedSavings.value = (totalTokens.value / 1000) * COST_PER_1K
+          totalTokens.value = data.total_tokens || 0 
+          averageTPS.value = data.avg_tps || 0
+          estimatedSavings.value = data.estimated_cost || 0
       }
    } catch(e) {
-      // Mock Data if API not ready
-      totalTokens.value = 89431
-      averageTPS.value = 65
-      estimatedSavings.value = (totalTokens.value / 1000) * COST_PER_1K
+      console.warn("⚠️ Servidor Rust (Core) não alcançável. Mantendo último estado de Telemetria.")
    }
 }
 
+let fetchInterval: any = null
+
 onMounted(() => {
    fetchTelemetry()
-   // setInterval(fetchTelemetry, 30000) 
+   
+   // Polling Agressivo no Rust O.S (Rust resolve JSONs em nanosegundos com zero I/O Bound)
+   fetchInterval = setInterval(fetchTelemetry, 2500) 
    
    // Randomizer visual para a Barrinha Mock do Hardware (Variando uso pra dar 'vida')
    hwInterval = setInterval(() => {
@@ -136,5 +133,6 @@ onMounted(() => {
 import { onUnmounted } from 'vue'
 onUnmounted(() => {
     if (hwInterval) clearInterval(hwInterval)
+    if (fetchInterval) clearInterval(fetchInterval)
 })
 </script>
