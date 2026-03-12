@@ -1,0 +1,174 @@
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+    Json,
+};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use crate::AppState;
+use tracing::error;
+
+#[derive(Serialize, Deserialize, sqlx::FromRow)]
+pub struct ChatSessionRow {
+    pub id: i64,
+    pub title: Option<String>,
+    pub folder_name: Option<String>,
+    pub created_at: Option<chrono::NaiveDateTime>,
+    pub updated_at: Option<chrono::NaiveDateTime>,
+}
+
+#[derive(Serialize, Deserialize, sqlx::FromRow)]
+pub struct ChatMessageRow {
+    pub id: i64,
+    pub session_id: i64,
+    pub role: String,
+    pub content: String,
+    pub thumbs_up: Option<bool>,
+    pub thumbs_down: Option<bool>,
+    pub created_at: Option<chrono::NaiveDateTime>,
+}
+
+#[derive(Serialize)]
+pub struct ChatSessionResponse {
+    pub id: i64,
+    pub title: Option<String>,
+    pub folder_name: Option<String>,
+    pub tags: Vec<String>,
+    pub created_at: Option<chrono::NaiveDateTime>,
+    pub updated_at: Option<chrono::NaiveDateTime>,
+    pub messages: Vec<ChatMessageRow>,
+}
+
+/// A Rota V1 Legada (Recriada em Rust) que alimenta o Menu Esquerdo c/ Historico
+pub async fn get_sessions_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let rows = sqlx::query_as::<_, ChatSessionRow>(
+        "SELECT id, title, folder_name, created_at, updated_at FROM chat_sessions ORDER BY updated_at DESC"
+    )
+    .fetch_all(&state.db)
+    .await;
+
+    match rows {
+        Ok(sessions) => Json(sessions).into_response(),
+        Err(e) => {
+            error!("Erro SQLx Cíbrido ao ler chat_sessions: {}", e);
+            Json(serde_json::json!([])).into_response()
+        }
+    }
+}
+
+/// Rota Singular: Carga Cognitiva Completa ao selecionar uma Sessão
+pub async fn get_session_by_id_handler(
+    Path(id): Path<i64>,
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    let session = sqlx::query_as::<_, ChatSessionRow>(
+        "SELECT id, title, folder_name, created_at, updated_at FROM chat_sessions WHERE id = ?"
+    )
+    .bind(id)
+    .fetch_optional(&state.db)
+    .await;
+
+    match session {
+        Ok(Some(s)) => {
+            let msgs = sqlx::query_as::<_, ChatMessageRow>(
+                r#"SELECT id, session_id, role, content, thumbs_up, thumbs_down, created_at 
+                   FROM chat_messages 
+                   WHERE session_id = ? 
+                   ORDER BY created_at ASC"#
+            )
+            .bind(s.id)
+            .fetch_all(&state.db)
+            .await
+            .unwrap_or_default();
+
+            let res = ChatSessionResponse {
+                id: s.id,
+                title: s.title,
+                folder_name: s.folder_name,
+                tags: vec![], // Bypass temporal Cíbrido 
+                created_at: s.created_at,
+                updated_at: s.updated_at,
+                messages: msgs,
+            };
+
+            Json(res).into_response()
+        }
+        _ => {
+            let empty = serde_json::json!({
+                "id": id,
+                "title": "Sessão Órfã",
+                "messages": []
+            });
+            Json(empty).into_response()
+        }
+    }
+}
+
+/// Rota Deletar: Obliterando Conversas Passadas do SQLite
+pub async fn delete_session_handler(
+    Path(id): Path<i64>,
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    let _ = sqlx::query("DELETE FROM chat_sessions WHERE id = ?")
+        .bind(id)
+        .execute(&state.db)
+        .await;
+
+    Json(serde_json::json!({ "status": "deleted" })).into_response()
+}
+
+// -------------------------------------------------------------
+// Core Engine Helpers - Persistência Atômica do Event Loop LLM
+// -------------------------------------------------------------
+
+/// Valida um ID de sessão recebido ou cria uma Nova Sessão derivando Título Atômico
+pub async fn get_or_create_session(
+    db: &sqlx::SqlitePool,
+    session_id: Option<i64>,
+    first_msg: &str,
+) -> i64 {
+    if let Some(id) = session_id {
+        return id;
+    }
+
+    // Título autogerado baseado no Início do Prompt
+    let title = first_msg.chars().take(40).collect::<String>();
+    
+    let res = sqlx::query("INSERT INTO chat_sessions (title) VALUES (?)")
+        .bind(&title)
+        .execute(db)
+        .await;
+
+    match res {
+        Ok(exec) => exec.last_insert_rowid(),
+        Err(e) => {
+            error!("🚨 Falha FATAL ao instanciar Sovereign Chat Session: {}", e);
+            0 // ID De Queda
+        }
+    }
+}
+
+/// Crava fisicamente As Memórias (Humano e Agente) no Sovereign Memory (DB)
+pub async fn save_message(
+    db: &sqlx::SqlitePool,
+    session_id: i64,
+    role: &str,
+    content: &str,
+) {
+    if session_id <= 0 { return; }
+
+    let _ = sqlx::query(
+        "INSERT INTO chat_messages (session_id, role, content) VALUES (?, ?, ?)"
+    )
+    .bind(session_id)
+    .bind(role)
+    .bind(content)
+    .execute(db)
+    .await;
+
+    // Engatilha Atualização do Relógio Temporal na Sessão Mãe
+    let _ = sqlx::query("UPDATE chat_sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+        .bind(session_id)
+        .execute(db)
+        .await;
+}

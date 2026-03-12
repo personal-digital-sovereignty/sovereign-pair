@@ -363,6 +363,7 @@ const props = defineProps({
 const emit = defineEmits(['editor-stats', 'update-view-mode', 'editor-saving'])
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || 'http://localhost:8001'
 const isLoading = ref(true)
 const fetchError = ref<string | null>(null)
 const isSaving = ref(false)
@@ -732,7 +733,7 @@ const fetchDocument = async () => {
         const headers: Record<string, string> = {}
         if (token) headers['Authorization'] = `Bearer ${token}`
 
-        const res = await fetch(`${API_BASE_URL}/v1/vault/document/${props.fileId}`, { headers })
+        const res = await fetch(`${RUST_CORE_URL}/v1/vault/document/${props.fileId}`, { headers })
         if (!res.ok) throw new Error("Documento não encontrado no Vault")
         
         docData.value = await res.json()
@@ -817,7 +818,7 @@ const saveDocument = async (markdownContent: string) => {
             finalOutput = `---\n${yamlStr}---\n${markdownContent}`
         }
 
-        const res = await fetch(`${API_BASE_URL}/v1/vault/document/${encodeURIComponent(props.fileId)}`, {
+        const res = await fetch(`${RUST_CORE_URL}/v1/vault/document/${encodeURIComponent(props.fileId)}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',

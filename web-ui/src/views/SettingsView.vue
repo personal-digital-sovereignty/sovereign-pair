@@ -2,6 +2,7 @@
 import { ref, watch, onMounted } from 'vue'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || 'http://localhost:8001'
 
 const getAuthHeaders = (): Record<string, string> => {
    const token = localStorage.getItem('sovereign_token')
@@ -32,7 +33,7 @@ const newClusterUrl = ref('')
 const loadClusters = async () => {
     isFetchingClusters.value = true
     try {
-        const res = await fetch(`${API_BASE_URL}/v1/settings/ollama_clusters`, { headers: getAuthHeaders() })
+        const res = await fetch(`${RUST_CORE_URL}/v1/settings/ollama_clusters`, { headers: getAuthHeaders() })
         if (res.ok) {
             const data = await res.json()
             ollamaClusters.value = data.clusters || []
@@ -47,7 +48,7 @@ const loadClusters = async () => {
 
 const onClusterChange = async () => {
     try {
-        await fetch(`${API_BASE_URL}/v1/settings/ollama_clusters`, {
+        await fetch(`${RUST_CORE_URL}/v1/settings/ollama_clusters`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({
@@ -73,7 +74,7 @@ const addCluster = async () => {
     
     // Save to backend
     try {
-        await fetch(`${API_BASE_URL}/v1/settings/ollama_clusters`, {
+        await fetch(`${RUST_CORE_URL}/v1/settings/ollama_clusters`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ 
@@ -94,7 +95,7 @@ const removeCluster = async (id: string) => {
     
     // Save to backend
     try {
-        await fetch(`${API_BASE_URL}/v1/settings/ollama_clusters`, {
+        await fetch(`${RUST_CORE_URL}/v1/settings/ollama_clusters`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ 
@@ -167,7 +168,7 @@ const selectPersona = (p: { id: string, prompt: string }) => {
 
 const loadConfig = async () => {
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/settings`, {
+    const res = await fetch(`${RUST_CORE_URL}/v1/settings`, {
       headers: getAuthHeaders()
     })
     if (res.ok) {
@@ -189,7 +190,7 @@ const loadConfig = async () => {
 const saveConfig = async () => {
   isLoadingConfig.value = true
   try {
-    await fetch(`${API_BASE_URL}/v1/settings`, {
+    await fetch(`${RUST_CORE_URL}/v1/settings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
