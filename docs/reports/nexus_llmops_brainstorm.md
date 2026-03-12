@@ -31,7 +31,18 @@ O Centro de Comando atuará como vigilante contínuo do Conhecimento da Nação 
 
 ---
 
-## 4. O.S Layout Abstraction (The Nexus Matrix)
+## 4. Integrações do Híbrido Cíbrido e Operações Ativas (Command Base)
+
+Para garantir não apenas observabilidade passiva, mas também **Interatividade Resiliente**, o Command Center deve herdar as premissas originais do projeto:
+
+- **Sync Status Monitor & Oracle Link Gauge:** Painel restrito demonstrando a integridade da Ponte *Host-to-Cloud*. Status do Uptime da API Cloud para The Doctor e tracking de KB/MBs sincronizados ativamente com o Storage local (SQLite / Markdown) em tempo real via The Sync Engine.
+- **The Hacker's CLI (Terminal Prompt do Coder):** Um input rígido formatado em bloco (`>_`) subjacente aos Logs. Transforma o passivo Command Hub numa linha de comando de manutenção vital para operar a frota sem a burocracia do ChatBot. (Ex: `/flush-cache`, `/reindex /docs --force`, `/wake The Doctor`).
+- **RAG Ingestion Queue Tracker:** A vetorização real-time exige monitoramento. O Front-end deve abrigar uma mini-quadro "Job List" acusando ativamente as etapas de leitura contínua ( `Parsing JSON ➔ Chunking ➔ Embedding ➔ Storing` ) toda vez que um lote de documentos for drag-and-dropado no *Vault*.
+- **Cronos Time-Map (Agregador Restrito):** Visor que mastiga cronogramas, focando no essencial diário em substituição aos grids complexos. Exibe sinteticamente: `"1 Deadline crítico | 3 Docs Bloqueados em Quarentena"` entrelaçando dados sistêmicos, bugs de código referenciados e projetos em atraso.
+
+---
+
+## 5. O.S Layout Abstraction (The Nexus Matrix)
 
 *Representação do Grid Brutalista em CLI / Block-UI. Layout limpo, sem emojis, guiado a indicadores em cores de terminal (Red, Yellow, Green, Cyan).*
 
