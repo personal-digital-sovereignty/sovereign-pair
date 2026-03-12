@@ -27,9 +27,44 @@ pub enum MessageContent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OpenAIChatMessage {
     pub role: String,
-    pub content: MessageContent,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content: Option<MessageContent>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<Vec<ToolCall>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<String>,
+}
+
+// ==========================================
+// Tools & Agentic Capabilities
+// ==========================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FunctionCall {
+    pub name: String,
+    pub arguments: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolCall {
+    pub id: String,
+    pub r#type: String,
+    pub function: FunctionCall,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FunctionDefinition {
+    pub name: String,
+    pub description: String,
+    pub parameters: Value, // JSON schema object
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolDefinition {
+    pub r#type: String,
+    pub function: FunctionDefinition,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,6 +75,12 @@ pub struct OpenAIChatRequest {
     // O Vercel AI SDK muitas vezes manda o prompt num campo "input" em vez de "messages" (Endpoint /responses)
     #[serde(alias = "input")]
     pub messages: Vec<OpenAIChatMessage>,
+    
+    // Tools Injection Opcional
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tools: Option<Vec<ToolDefinition>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_choice: Option<Value>,
     
     // Parâmetros de Inferência Opcionais
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -76,7 +117,10 @@ pub struct OpenAIChatRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OpenAIChatChoiceMessage {
     pub role: String,
-    pub content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<Vec<ToolCall>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -115,6 +159,28 @@ pub struct OpenAIChatChunkDelta {
     pub role: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<Vec<ChunkToolCall>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChunkFunctionCall {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub arguments: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChunkToolCall {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub index: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub function: Option<ChunkFunctionCall>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
