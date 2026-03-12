@@ -1,19 +1,26 @@
 <template>
   <div class="flex flex-col text-sm pt-4 relative w-full" style="min-height: 200px;" @click="closeContextMenu">
     <!-- Header -->
-    <div class="px-4 pb-4 border-b border-[#222] cursor-context-menu hover:bg-zinc-800/30 transition-colors" @contextmenu.prevent="handleRootContextMenu($event, true)">
+    <div class="px-4 pb-4 border-b border-[#222]">
       <div class="flex items-center justify-between mb-2">
-        <div class="flex items-center gap-2 text-zinc-100 font-semibold tracking-wide">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-open opacity-75"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          Sensus Vault
+        <div class="flex items-center gap-2 text-zinc-100 font-semibold tracking-wide" title="Sovereign Multi-Drive O.S">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database opacity-75"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+          Sensus Drives
         </div>
-        <button @click.stop="loadVaultTree" title="Atualizar Vault Nativamente" class="p-1 hover:bg-zinc-700/50 rounded-md text-zinc-400 hover:text-emerald-400 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="{'animate-spin': isLoading}"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-        </button>
+        <div class="flex gap-2">
+          <!-- Mount O.S Drive -->
+          <button @click="showMountModal = true" title="Atrelar Novo Diretório (Host OS)" class="p-1 hover:bg-zinc-700/50 rounded-md text-zinc-400 hover:text-emerald-400 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          </button>
+          <!-- Refresh Geral -->
+          <button @click.stop="loadAllWorkspaces" title="Atualizar Discos Nativamente" class="p-1 hover:bg-zinc-700/50 rounded-md text-zinc-400 hover:text-emerald-400 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="{'animate-spin': isLoading}"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          </button>
+        </div>
       </div>
-      <div class="text-xs text-zinc-500 flex items-center gap-1">
-        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-        Watching SharedBrain
+      <div class="text-[10px] text-zinc-500 flex items-center gap-1 uppercase tracking-widest font-bold">
+        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></div>
+        Multi-Workspace Tracking
       </div>
     </div>
 
@@ -25,11 +32,55 @@
         Carregando OS Directory...
       </div>
 
-      <!-- Recursive Tree Component -->
-      <div v-else @contextmenu.prevent="handleRootContextMenu">
-         <SidebarTreeNode :nodes="vaultTree" @show-context-menu="handleContextMenu" />
+      <!-- Global Tree Loop -->
+      <div v-else class="space-y-6">
+         <!-- Cada Workspace Atua como uma Raíz Virtual Independente no Frontend -->
+         <div v-for="ws in workspacesTrees" :key="ws.workspace_id" class="workspace-block">
+            <!-- Título do Drive Falso, p/ Clique de Context Menu e Expand -->
+             <div class="flex items-center justify-between px-2 py-1.5 cursor-context-menu hover:bg-zinc-800/50 rounded-md group text-zinc-400 uppercase text-[10px] font-bold tracking-widest" @contextmenu.prevent="handleRootContextMenu($event, ws.workspace_id)">
+                 <div class="flex items-center gap-2">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                     {{ ws.name }}
+                 </div>
+                 
+                 <!-- Guilhotina de Drive (Desatrelar) -->
+                 <!-- Só exibimos se o Workspace Não For a Raiz Nativa O.S Primordial (id > 1 ou todos, deixarei p/ todos com Warning) -->
+                 <button @click.stop="removeWorkspace(ws.workspace_id, ws.name)" title="Destruir Integração Cíbrida (Desatrelar Drive)" class="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-900/50 text-red-500 rounded transition-all">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" class="lucide lucide-trash-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                 </button>
+            </div>
+            <!-- Filhos do Drive -->
+            <SidebarTreeNode :nodes="ws.tree" :workspaceId="ws.workspace_id" @show-context-menu="handleContextMenu" />
+         </div>
       </div>
 
+    </div>
+
+    <!-- Mount OS Modal -->
+    <div v-if="showMountModal" class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-zinc-900 border border-zinc-700/50 rounded-xl shadow-2xl w-full max-w-md p-6 relative">
+            <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Mount O.S Directory</h3>
+            <p class="text-sm text-zinc-400 mb-6">Insira um caminho absoluto válido do seu sistema Hospedeiro para indexar um novo Drive Cíbrido.</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs uppercase text-zinc-500 font-bold tracking-widest mb-1.5">Drive Label Name</label>
+                    <input v-model="newDriveName" type="text" placeholder="Ex: Personal Docs" class="w-full bg-black/50 border border-zinc-700 text-zinc-200 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase text-zinc-500 font-bold tracking-widest mb-1.5">OS Absolute Path</label>
+                    <input v-model="newDrivePath" type="text" placeholder="Ex: /home/user/Documents" class="w-full bg-black/50 border border-zinc-700 text-zinc-200 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none transition-all font-mono">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 mt-8">
+                <button @click="showMountModal = false" class="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors">Cancelar</button>
+                <button @click="mountOsDrive" :disabled="!newDrivePath || isLoading" class="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors ring-1 ring-emerald-400/30 disabled:opacity-50 flex items-center gap-2">
+                   <svg v-if="isLoadingMount" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                   Atrelar Drive
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Context Menu Overlay -->
@@ -65,48 +116,55 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import SidebarTreeNode from './SidebarTreeNode.vue'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || 'http://localhost:8001'
 const isLoading = ref(true)
-const vaultTree = ref<any[]>([])
 
-// --- Context Menu State ---
+// O Estado UI Mestre de Workspaces Array (Não mais FileRoot única)
+const workspacesTrees = ref<Array<{ workspace_id: number, name: string, path: string, tree: any[] }>>([])
+
+// Context Menu Tracking Adaptado
 const contextMenu = ref({
   visible: false,
   x: 0,
   y: 0,
-  node: null as any
+  node: null as any,
+  workspaceId: null as number | null
 })
+
+// Modals
+const showMountModal = ref(false)
+const newDriveName = ref('')
+const newDrivePath = ref('')
+const isLoadingMount = ref(false)
 
 const closeContextMenu = () => {
   contextMenu.value.visible = false
 }
 
-const handleContextMenu = (payload: { event: MouseEvent, node: any }) => {
+const handleContextMenu = (payload: { event: MouseEvent, node: any, workspaceId: number }) => {
   contextMenu.value = {
     visible: true,
     x: payload.event.clientX,
     y: payload.event.clientY,
-    node: payload.node
+    node: payload.node,
+    workspaceId: payload.workspaceId
   }
 }
 
-const handleRootContextMenu = (event: MouseEvent, forceRoot: boolean = false) => {
-  // Se for forceRoot (clique no header) ou no vazio da sidebar, assume root
-  if (forceRoot || event.target === event.currentTarget) {
+const handleRootContextMenu = (event: MouseEvent, targetWorkspaceId: number) => {
     contextMenu.value = {
       visible: true,
       x: event.clientX,
       y: event.clientY,
-      node: null // null indica Raiz da Vault
+      node: null, // null indica Raiz
+      workspaceId: targetWorkspaceId
     }
-  }
 }
 
 onMounted(() => {
   window.addEventListener('click', closeContextMenu)
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeContextMenu() })
-  loadVaultTree()
+  loadAllWorkspaces()
 })
 
 onUnmounted(() => {
@@ -116,34 +174,80 @@ onUnmounted(() => {
 const getHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('sovereign_token')
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
+  if (token) headers['Authorization'] = `Bearer ${token}`
   return headers
 }
 
-// --- CRUD Operations ---
+// --- CRUD Operations (RUST NATIVE PORT 8001) ---
 const getTargetParentPath = () => {
-  if (!contextMenu.value.node) return "" // Root
-  if (contextMenu.value.node.type === 'dir') return contextMenu.value.node.path
-  // se for arquivo, o parent path seria o dirname. Mas o backend `routes.py` usa `RAW_DOCS_DIR` como root se o path for em branco?
-  // O ideal era enviar o path do parent. Vamos mandar a string exata tirando o nome do arquivo.
-  return contextMenu.value.node.path.replace(`/${contextMenu.value.node.name}`, '')
+  if (!contextMenu.value.node) return "" // Root of Workspace
+  if (contextMenu.value.node.type === 'dir' || contextMenu.value.node.is_dir) return contextMenu.value.node.id // Id em rust node é o path relativo ao root!
+  return contextMenu.value.node.id.replace(`/${contextMenu.value.node.filename}`, '')
+}
+
+const mountOsDrive = async () => {
+    if (!newDriveName.value || !newDrivePath.value) return;
+    isLoadingMount.value = true;
+    try {
+        const res = await fetch(`${RUST_CORE_URL}/v1/workspaces`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ name: newDriveName.value, path: newDrivePath.value })
+        })
+        if (res.ok) {
+            showMountModal.value = false;
+            newDriveName.value = '';
+            newDrivePath.value = '';
+            await loadAllWorkspaces();
+        } else {
+            const err = await res.json()
+            alert(`Falha Cíbrida ao Atrelar Drive O.S: ${err.message || 'Desconhecida'}`)
+        }
+    } catch (e) {
+        alert("Erro fatal na comunicação com o Motor Rust (8001).")
+    } finally {
+        isLoadingMount.value = false;
+    }
+}
+
+const removeWorkspace = async (id: number, name: string) => {
+    const confirmation = window.confirm(`ATENÇÃO CÍBRIDA!\nVocê está prestes a desatrelar o Disco: [ ${name} ].\n\nIsso removerá a pasta do Sensus Hub e Acionará a Guilhotina Vetorial (Erradicando Fantasmas O.S) do Cerebro Local. O processo pode levar alguns segundos.\n\nDeseja prosseguir com a Decapitação?`)
+    if (!confirmation) return;
+
+    isLoading.value = true;
+    try {
+        const res = await fetch(`${RUST_CORE_URL}/v1/workspaces/${id}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        })
+        
+        if (res.ok) {
+            console.log("💥 [UI] O.S Workspace Removido com Sucesso. Guilhotina Vectorial Iniciada no Backend.");
+            await loadAllWorkspaces(); // Reload Interface Cíbrida
+        } else {
+            const err = await res.json()
+            alert(`Falha Cíbrida ao Desatrelar Workspace: ${err.message || 'Desconhecida'}`)
+        }
+    } catch (e) {
+        alert("Erro fatal na comunicação com o Motor Rust (8001).")
+    } finally {
+        isLoading.value = false;
+    }
 }
 
 const createNewFolder = async () => {
   const name = prompt("Nome da Nova Pasta:")
-  if (!name) return closeContextMenu()
+  if (!name || contextMenu.value.workspaceId === null) return closeContextMenu()
   
   const parentPath = getTargetParentPath()
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/vault/fs/create`, {
+    const res = await fetch(`${RUST_CORE_URL}/v1/vault/fs/create`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ type: 'folder', name, path: parentPath })
+      body: JSON.stringify({ workspace_id: contextMenu.value.workspaceId, type: 'folder', name, path: parentPath })
     })
     
-    if (res.ok) await loadVaultTree()
+    if (res.ok) await loadAllWorkspaces()
     else {
         const errorData = await res.json()
         alert(`Erro ao criar pasta: ${errorData.detail}`)
@@ -157,18 +261,18 @@ const createNewFolder = async () => {
 
 const createNewFile = async () => {
   let name = prompt("Nome do Novo Arquivo (sem .md):")
-  if (!name) return closeContextMenu()
+  if (!name || contextMenu.value.workspaceId === null) return closeContextMenu()
   if (!name.endsWith('.md')) name += '.md'
   
   const parentPath = getTargetParentPath()
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/vault/fs/create`, {
+    const res = await fetch(`${RUST_CORE_URL}/v1/vault/fs/create`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ type: 'file', name, path: parentPath })
+      body: JSON.stringify({ workspace_id: contextMenu.value.workspaceId, type: 'file', name, path: parentPath })
     })
     
-    if (res.ok) await loadVaultTree()
+    if (res.ok) await loadAllWorkspaces()
     else {
         const errorData = await res.json()
         alert(`Erro ao criar arquivo: ${errorData.detail}`)
@@ -181,24 +285,23 @@ const createNewFile = async () => {
 }
 
 const renameItem = async () => {
-  if (!contextMenu.value.node) return
-  const currentName = contextMenu.value.node.name
+  if (!contextMenu.value.node || contextMenu.value.workspaceId === null) return
+  const currentName = contextMenu.value.node.filename
   let newName = prompt("Renomear para:", currentName)
   if (!newName || newName === currentName) return closeContextMenu()
   
-  // Garantir a extensão
-  if (contextMenu.value.node.type === 'file' && !newName.endsWith('.md')) {
+  if (!contextMenu.value.node.is_dir && !newName.endsWith('.md')) {
       newName += '.md'
   }
 
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/vault/fs/rename`, {
+    const res = await fetch(`${RUST_CORE_URL}/v1/vault/fs/rename`, {
       method: 'PUT',
       headers: getHeaders(),
-      body: JSON.stringify({ path: contextMenu.value.node.path, new_name: newName })
+      body: JSON.stringify({ workspace_id: contextMenu.value.workspaceId, path: contextMenu.value.node.id, new_name: newName })
     })
     
-    if (res.ok) await loadVaultTree()
+    if (res.ok) await loadAllWorkspaces()
     else {
         const errorData = await res.json()
         alert(`Erro ao renomear: ${errorData.detail}`)
@@ -211,17 +314,17 @@ const renameItem = async () => {
 }
 
 const deleteItem = async () => {
-  if (!contextMenu.value.node) return
-  if (!confirm(`Tem certeza que deseja apagar permanentemente '${contextMenu.value.node.name}'?`)) return closeContextMenu()
+  if (!contextMenu.value.node || contextMenu.value.workspaceId === null) return
+  if (!confirm(`Tem certeza que deseja apagar permanentemente '${contextMenu.value.node.filename}'?`)) return closeContextMenu()
   
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/vault/fs/delete`, {
+    const res = await fetch(`${RUST_CORE_URL}/v1/vault/fs/delete`, {
       method: 'DELETE',
       headers: getHeaders(),
-      body: JSON.stringify({ path: contextMenu.value.node.path })
+      body: JSON.stringify({ workspace_id: contextMenu.value.workspaceId, path: contextMenu.value.node.id })
     })
     
-    if (res.ok) await loadVaultTree()
+    if (res.ok) await loadAllWorkspaces()
     else {
         const errorData = await res.json()
         alert(`Erro ao deletar: ${errorData.detail}`)
@@ -233,31 +336,39 @@ const deleteItem = async () => {
   }
 }
 
-// --- Init ---
-const loadVaultTree = async () => {
+// --- The Sovereign Multi-Drive Fetcher ---
+const loadAllWorkspaces = async () => {
   isLoading.value = true
   try {
-    const res = await fetch(`${RUST_CORE_URL}/v1/vault/tree`, {
-      method: 'GET',
-      headers: getHeaders()
-    })
+    // 1. Descarrega os Registros O.S do SQLite Configurado
+    const resWs = await fetch(`${RUST_CORE_URL}/v1/workspaces`, { headers: getHeaders() })
+    if (!resWs.ok) throw new Error("Falha ao comunicar com os Registros Globais do Cíbrido")
     
-    if (res.ok) {
-        const text = await res.text()
+    const dbRows = await resWs.json()
+    const treesAggregated = []
+
+    // 2. Itera puramente cada Espaço de Trabalho pedindo sua árvore nativa 100% Rust Std::FS
+    for (const ws of dbRows) {
         try {
-            const data = JSON.parse(text)
-            // Force vue reactivity by re-assigning a new array object
-            vaultTree.value = Array.isArray(data) ? [...data] : (data && typeof data === 'object' ? [data] : [])
-        } catch (parseErr) {
-            console.error("[Vault API] Failed to parse:", parseErr)
-            vaultTree.value = []
+           const resTree = await fetch(`${RUST_CORE_URL}/v1/workspaces/${ws.id}/tree`, { headers: getHeaders() })
+           if (resTree.ok) {
+               const rootJson = await resTree.json()
+               treesAggregated.push({
+                   workspace_id: ws.id,
+                   name: ws.name,
+                   path: ws.path,
+                   tree: rootJson
+               })
+           }
+        } catch (e) {
+            console.error(`Falha Escaneando o Drive Físico ${ws.name}`, e)
         }
-    } else {
-        vaultTree.value = []
     }
+
+    workspacesTrees.value = treesAggregated
   } catch (error) {
-    console.error("[Vault API] Network fetch failed:", error)
-    vaultTree.value = []
+    console.error("[Workspace API] Network fetch falhou de forma bruta:", error)
+    workspacesTrees.value = []
   } finally {
     isLoading.value = false
   }

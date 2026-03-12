@@ -1962,3 +1962,43 @@ def get_sync_status(request: Request, entity_type: str, entity_id: str, db: Sess
 def get_activity_logs(request: Request, limit: int = 50, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     logs = db.query(ActivityLogModel).filter(ActivityLogModel.tenant_id == tenant_id).order_by(ActivityLogModel.created_at.desc()).limit(limit).all()
     return logs
+
+
+# ---------------------------------------------------------
+# OMNI-DIRECTORY (MULTI-DRIVE) RAG INTEGRATION (Phase 33)
+# ---------------------------------------------------------
+
+@router.delete("/chroma/flush")
+@limiter.limit("10/minute")
+def secure_vectorial_flush(request: Request, db: Session = Depends(get_db)):
+    """
+    Sovereign Pair Multi-Drive Security:
+    Acionado via The Gateway (Rust) sempre que um Workspace Físico é desatrelado pelo usuário
+    na Interface. Invoca um 'Flush Profilático' erradicando 100% da Coleção Vetorial para impedir
+    que Mentes LLM alucinem com 'Fantasmas Vetoriais' de arquivos deletados ou removidos do Hub.
+    O Sensus Sync re-ingerirá os Drives remanescentes na próxima varredura orgânica.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        from src.config import get_chroma_client, CHROMA_COLLECTION_NAME
+        chroma_client = get_chroma_client()
+        
+        try:
+            # Guilhotina Vetorial
+            chroma_client.delete_collection(CHROMA_COLLECTION_NAME)
+            logger.info(f"💥 [Omni-Drive Security] A Coleção Vetorial '{CHROMA_COLLECTION_NAME}' foi profilaticamente destruída (Flush O.S).")
+            # Recria a Coleção Virgem para a Engine LlamaIndex não falhar nos instanciamentos vindouros
+            chroma_client.get_or_create_collection(CHROMA_COLLECTION_NAME)
+            
+            return {"status": "success", "detail": "Vector Database Destroyed due to Workspace Unmount"}
+        except ValueError:
+            # Se a Coleção já não existia, seguimos passivamente
+            logger.info("ℹ️ [Omni-Drive Security] Coleção vetorial já estava morta.")
+            return {"status": "success", "detail": "Vector Database was already empty"}
+            
+    except Exception as e:
+        logger.error(f"🚨 [Omni-Drive Security] Falha Crítica ao tentar Flushear ChromaDB: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))

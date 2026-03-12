@@ -21,7 +21,7 @@
         
         <!-- Recursion -->
         <div v-show="isOpen(node.path)" class="pl-2.5 border-l border-zinc-800/50 ml-3.5 mt-0.5">
-           <SidebarTreeNode :nodes="node.children" @show-context-menu="forwardContextMenu" />
+           <SidebarTreeNode :nodes="node.children" :workspaceId="workspaceId" @show-context-menu="forwardContextMenu" />
         </div>
       </div>
 
@@ -51,7 +51,7 @@ import { useRouter } from 'vue-router'
 
 defineOptions({ name: 'SidebarTreeNode' })
 
-const props = defineProps<{ nodes: any[] }>()
+const props = defineProps<{ nodes: any[], workspaceId: number }>()
 const emit = defineEmits(['show-context-menu'])
 const router = useRouter()
 
@@ -87,7 +87,7 @@ const openGlobalToc = (file: any) => {
 }
 
 const openFile = (file: any) => {
-    const query: any = { name: file.name, path: file.path }
+    const query: any = { name: file.name || file.filename, path: file.path, workspace_id: props.workspaceId }
     if (file.id) {
         query.file = file.id
     }
@@ -95,7 +95,7 @@ const openFile = (file: any) => {
 }
 
 const onContextMenu = (event: MouseEvent, node: any) => {
-    emit('show-context-menu', { event, node })
+    emit('show-context-menu', { event, node, workspaceId: props.workspaceId })
 }
 
 const forwardContextMenu = (payload: any) => {
