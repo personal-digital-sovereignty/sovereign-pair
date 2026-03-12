@@ -63,6 +63,10 @@ pub struct OpenAIChatRequest {
     pub frequency_penalty: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<String>,
+    
+    // Extensão Cíbrida p/ Persistência Local
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<i64>,
 }
 
 // ==========================================
