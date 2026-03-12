@@ -44,3 +44,22 @@ def get_db():
         yield db
     finally:
         db.close()
+
+def get_all_workspace_paths():
+    """
+    Sovereign OS Router: Extrai a lista atômica de todos os Drives atrelados
+    na Tabela `workspaces` do Banco Híbrido Cíbrido. 
+    Usado pelo Motor RAG (LlamaIndex) para engolir múltiplos diretórios simultâneos.
+    """
+    from sqlalchemy.sql import text
+    db = SessionLocal()
+    try:
+        # Puxa apenas a coluna `path` absolutizada
+        result = db.execute(text("SELECT path FROM workspaces"))
+        paths = [row[0] for row in result.fetchall()]
+        return paths
+    except Exception as e:
+        print(f"🚨 Sovereign Memory Error: Falha ao extrair Workspaces O.S: {e}")
+        return []
+    finally:
+        db.close()

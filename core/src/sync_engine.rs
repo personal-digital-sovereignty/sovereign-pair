@@ -19,21 +19,21 @@ pub struct IngestionJob {
 
 pub struct SyncEngine {
     pub tx: broadcast::Sender<IngestionJob>,
-    vault_path: PathBuf,
+    db: sqlx::SqlitePool,
 }
 
 impl SyncEngine {
-    pub fn new(vault_path: PathBuf) -> Self {
+    pub fn new(db: sqlx::SqlitePool) -> Self {
         let (tx, _) = broadcast::channel(100);
-        Self { tx, vault_path }
+        Self { tx, db }
     }
 
     pub async fn start_watcher(&self) {
-        let vault_path = self.vue_path();
+        let db = self.db.clone();
         let current_tx = self.tx.clone();
 
         tokio::spawn(async move {
-            info!("🔬 [Sensus Sync Engine] Watcher ativado no Vault: {:?}", vault_path);
+            info!("🔬 [Sensus Sync Engine] Acordando o Motor Multi-Drive Watcher...");
             
             let (watcher_tx, mut watcher_rx) = tokio::sync::mpsc::channel(100);
 
@@ -47,7 +47,24 @@ impl SyncEngine {
                 Config::default(),
             ).expect("Sovereign falhou ao criar FSEvent Watcher");
 
-            watcher.watch(Path::new(&vault_path), RecursiveMode::Recursive).expect("Falha ao assistir pasta Vault");
+            // 1. Coletar e Atrelar todos os Workspaces do Banco de Dados Dinâmico
+            #[derive(sqlx::FromRow)]
+            struct PathRow { path: String }
+
+            if let Ok(rows) = sqlx::query_as::<_, PathRow>("SELECT path FROM workspaces").fetch_all(&db).await {
+                for row in rows {
+                    let ws_path = Path::new(&row.path);
+                    if ws_path.exists() && ws_path.is_dir() {
+                        if let Err(e) = watcher.watch(ws_path, RecursiveMode::Recursive) {
+                            error!("🚨 [Sensus Sync] Falha ao assistir drive secundário {:?}: {}", ws_path, e);
+                        } else {
+                            info!("✅ [Sensus Sync] Vigilância Periférica ativada em: {:?}", ws_path);
+                        }
+                    }
+                }
+            } else {
+                warn!("⚠️ [Sensus Sync] Falha ao ler Tabela de Workspaces para The Watcher");
+            }
 
             // Loop assíncrono recebendo eventos
             while let Some(event) = watcher_rx.recv().await {
@@ -84,10 +101,6 @@ impl SyncEngine {
                 }
             }
         });
-    }
-
-    fn vue_path(&self) -> PathBuf {
-        self.vault_path.clone()
     }
 
     async fn simulate_ingestion_pipeline(mut job: IngestionJob, tx: broadcast::Sender<IngestionJob>) {
