@@ -9,6 +9,7 @@ mod api_chat;
 mod api_vault;
 mod api_projects;
 mod api_settings;
+mod api_tools;
 
 use axum::{routing::post, Router};
 use reqwest::Client;
@@ -97,7 +98,10 @@ async fn main() {
         .route("/opencode/v1/chat/completions", post(api::chat_completions_handler))
         .route("/v1/chat/completions", post(api::chat_completions_handler))
         .route("/chat/completions", post(api::chat_completions_handler))
-        .route("/v1/responses", post(realtime::realtime_responses_handler)) // Rota secreta da Vercel AI SDK! (Zod Protocol)
+        .route("/v1/responses", post(realtime::realtime_responses_handler))
+        // ------------------ Tools & Agentic Capabilities ----
+        .route("/v1/tools/read_vault_file", post(api_tools::read_vault_file_handler))
+        .route("/v1/tools/create_kanban_task", post(api_tools::create_kanban_task_handler))
         .route("/responses", post(realtime::realtime_responses_handler))
         // Bypass pacificador para TUI que tenta carregar modelos disponíveis antes da call
         .route("/v1/models", axum::routing::get(|| async {

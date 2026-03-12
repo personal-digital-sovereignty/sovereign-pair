@@ -95,7 +95,7 @@
       <main class="flex-1 flex flex-col overflow-hidden relative min-w-0 focus:outline-none bg-[#0E0E10] shadow-[inset_10px_0_30px_rgba(0,0,0,0.5)]">
         
         <!-- Local-First Restricted Mode Banner -->
-        <div v-if="clusterState.status === 'degraded'" class="flex-shrink-0 bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 flex items-center justify-center text-amber-500 text-xs gap-2 select-none z-40 relative">
+        <div v-if="clusterState.status === 'degraded' && showRestrictedBanner" class="flex-shrink-0 bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 flex items-center justify-center text-amber-500 text-xs gap-2 select-none z-40 relative">
           <CloudOff class="w-3.5 h-3.5 shrink-0" />
           <span><strong>Modo Restrito (Local-First):</strong> Nó Remoto isolado ou desativado. Operando com {{ clusterState.active_agents ? clusterState.active_agents.join(', ') : 'The Mom, The Dad, The Nurse' }}.</span>
         </div>
@@ -108,7 +108,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, CloudOff } from 'lucide-vue-next'
 import Setup from './views/Setup.vue'
 import Login from './views/Login.vue'
@@ -124,6 +124,19 @@ const clusterState = ref<{status: string, reason?: string, active_agents?: strin
   active_agents: []
 });
 let healthInterval: any;
+
+const showRestrictedBanner = ref(false);
+let bannerTimeout: any;
+
+watch(() => clusterState.value.status, (newStatus, oldStatus) => {
+  if (newStatus === 'degraded' && oldStatus !== 'degraded') {
+    showRestrictedBanner.value = true;
+    if (bannerTimeout) clearTimeout(bannerTimeout);
+    bannerTimeout = setTimeout(() => {
+      showRestrictedBanner.value = false;
+    }, 5000);
+  }
+}, { immediate: true });
 
 const checkClusterHealth = async () => {
   if (authPhase.value !== 'authenticated') return;
