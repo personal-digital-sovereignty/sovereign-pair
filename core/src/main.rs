@@ -4,6 +4,11 @@ mod realtime;
 mod rag;
 mod telemetry;
 mod sync_engine;
+mod db;
+mod api_chat;
+mod api_vault;
+mod api_projects;
+mod api_settings;
 
 use axum::{routing::post, Router};
 use reqwest::Client;
@@ -19,6 +24,7 @@ pub struct AppState {
     pub telemetry: Arc<RwLock<telemetry::TelemetryState>>,
     pub log_sender: broadcast::Sender<models::LogEntry>,
     pub sync_sender: broadcast::Sender<sync_engine::IngestionJob>,
+    pub db: sqlx::SqlitePool,
 }
 
 #[tokio::main]
@@ -42,6 +48,9 @@ async fn main() {
     r_sync_engine.start_watcher().await;
     let sync_tx = r_sync_engine.tx.clone();
 
+    // Invoca o SQLite Master O.S
+    let db_pool = db::init_pool().await;
+
     // Inicializa o Corredor de Eventos Cíbridos (Capacidade p/ 100 Logs antes de lag)
     let (log_tx, _) = broadcast::channel(100);
 
@@ -52,13 +61,36 @@ async fn main() {
         telemetry: Arc::new(RwLock::new(telemetry::TelemetryState::new())),
         log_sender: log_tx,
         sync_sender: sync_tx,
+        db: db_pool,
     });
 
     let app = Router::new()
         // ------------------ LLMOps Telemetry & Logs ------------------
         .route("/v1/analytics/telemetry", axum::routing::get(api::telemetry_snapshot_handler))
         .route("/v1/logs", axum::routing::get(api::realtime_logs_handler))
+        // ------------------ RAG & Vault O.S --------------------------
         .route("/v1/vault/sync/status", axum::routing::get(api::rag_sync_handler))
+        .route("/v1/vault/tree", axum::routing::get(api_vault::vault_tree_handler))
+        .route("/v1/vault/document/:id", axum::routing::get(api_vault::vault_document_read)
+            .put(api_vault::vault_document_write))
+        .route("/v1/vault/fs/create", axum::routing::post(api_vault::vault_fs_create_handler))
+        .route("/v1/vault/fs/rename", axum::routing::put(api_vault::vault_fs_rename_handler))
+        .route("/v1/vault/fs/delete", axum::routing::delete(api_vault::vault_fs_delete_handler))
+        // ------------------ Historical Chat API (Sovereign O.S) ------
+        .route("/v1/sessions", axum::routing::get(api_chat::get_sessions_handler))
+        .route("/v1/sessions/:id", axum::routing::get(api_chat::get_session_by_id_handler)
+            .delete(api_chat::delete_session_handler))
+        // ------------------ Projects & Tasks (Kanban O.S) ------------
+        .route("/v1/projects", axum::routing::get(api_projects::get_projects_handler)
+            .post(api_projects::create_project_handler))
+        .route("/v1/projects/:id", axum::routing::delete(api_projects::delete_project_handler))
+        .route("/v1/projects/:project_id/tasks", axum::routing::get(api_projects::get_project_tasks_handler))
+        .route("/v1/tasks/:id", axum::routing::delete(api_projects::delete_task_handler))
+        // ------------------ Settings & Identity O.S -----------
+        .route("/v1/settings", axum::routing::get(api_settings::get_system_settings_handler)
+            .post(api_settings::set_system_settings_handler))
+        .route("/v1/settings/ollama_clusters", axum::routing::get(api_settings::get_ollama_clusters_handler)
+            .post(api_settings::set_ollama_clusters_handler))
         // ------------------ Chat Endpoints ------------------
         .route("/opencode/v1/chat/completions", post(api::chat_completions_handler))
         .route("/v1/chat/completions", post(api::chat_completions_handler))
