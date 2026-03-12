@@ -251,3 +251,23 @@ pub async fn realtime_logs_handler(State(state): State<Arc<AppState>>) -> impl I
 
     Sse::new(stream).keep_alive(axum::response::sse::KeepAlive::new())
 }
+
+/// Stream Cíbrido SSE para o Sensus Sync Engine (RAG Pipeline Ocular)
+pub async fn rag_sync_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let rx = state.sync_sender.subscribe();
+    
+    let stream = tokio_stream::wrappers::BroadcastStream::new(rx).filter_map(|res| async move {
+        match res {
+            Ok(job) => {
+                if let Ok(json) = serde_json::to_string(&job) {
+                    Some(Ok::<Event, Infallible>(Event::default().data(json)))
+                } else {
+                    None
+                }
+            }
+            Err(_) => None,
+        }
+    });
+
+    Sse::new(stream).keep_alive(axum::response::sse::KeepAlive::new())
+}
