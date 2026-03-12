@@ -40,14 +40,26 @@ interface ActionMeta {
   error?: string
 }
 
+interface ToolCall {
+  index: number
+  id: string
+  type: string
+  function: { name: string, arguments: string }
+  result?: any
+  status: 'running' | 'done' | 'error'
+}
+
 interface Message {
   id: number
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'tool'
   content: string
   isStreaming?: boolean
   thumbs_up?: boolean
   thumbs_down?: boolean
   actions?: ActionMeta[]
+  tool_calls?: ToolCall[]
+  tool_call_id?: string
+  name?: string
 }
 
 interface ChatSession {
@@ -214,18 +226,22 @@ const scrollToBottom = async () => {
 }
 
 // Conectar ao backend FastAPI usando SSE
-const sendMessage = async () => {
-  if (!inputMessage.value.trim() || isThinking.value) return
+const sendMessage = async (invokeSource: boolean | Event = false) => {
+  const isRecursiveToolCall = typeof invokeSource === 'boolean' ? invokeSource : false;
 
-  const userText = inputMessage.value
-  inputMessage.value = ''
-  
-  messages.value.push({
-    id: Date.now(),
-    role: 'user',
-    content: userText
-  })
-  scrollToBottom()
+  if (!isRecursiveToolCall) {
+    if (!inputMessage.value.trim() || isThinking.value) return
+
+    const userText = inputMessage.value
+    inputMessage.value = ''
+    
+    messages.value.push({
+      id: Date.now(),
+      role: 'user',
+      content: userText
+    })
+    scrollToBottom()
+  }
 
   isThinking.value = true
   
@@ -234,7 +250,8 @@ const sendMessage = async () => {
     id: assistantMsgId,
     role: 'assistant',
     content: '',
-    isStreaming: true
+    isStreaming: true,
+    tool_calls: []
   })
   scrollToBottom()
 
@@ -251,13 +268,19 @@ const sendMessage = async () => {
     // Deixamos a 8000 para histórico, mas o tráfego RAG quente flui pela 8001
     const RUST_CORE_URL = 'http://127.0.0.1:8001/v1/chat/completions'
     
-    // Convertemos o Histórico Atual da UI para a estrutura estrita OpenAI Role/Content
+    // Convertemos o Histórico Atual da UI para a estrutura estrita OpenAI Role/Content/ToolCalls
     const rustMessages = messages.value
-        .filter(m => m.content && !m.isStreaming)
-        .map(m => ({
-            role: m.role,
-            content: m.content
-        }))
+        .filter(m => (m.content || m.tool_calls || m.role === 'tool') && !m.isStreaming)
+        .map(m => {
+           let msg: any = { role: m.role }
+           if (m.content) msg.content = m.content
+           if (m.tool_calls && m.tool_calls.length > 0) {
+               msg.tool_calls = m.tool_calls.map(tc => ({ id: tc.id, type: tc.type, function: { name: tc.function.name, arguments: tc.function.arguments } }))
+           }
+           if (m.tool_call_id) msg.tool_call_id = m.tool_call_id
+           if (m.name) msg.name = m.name
+           return msg
+        })
 
     const response = await fetch(RUST_CORE_URL, {
       method: 'POST',
@@ -268,6 +291,40 @@ const sendMessage = async () => {
       body: JSON.stringify({
         model: 'qwen2.5:3b', // Fallback ou seleção dinâmica
         messages: rustMessages,
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "read_vault_file",
+              description: "Lê o conteúdo de um arquivo restrito do Cofre (Vault). Use para extrair e entender arquivos brutos no disco baseado no nome/path.",
+              parameters: {
+                type: "object",
+                properties: {
+                  workspace_id: { type: "string", description: "O ID Absoluto (Numero) retornado no Workspace Tree Context." },
+                  relative_path: { type: "string", description: "O caminho local exato do arquivo requisitado para leitura. (ex: 'src/main.rs')" }
+                },
+                required: ["workspace_id", "relative_path"]
+              }
+            }
+          },
+          {
+            type: "function",
+            function: {
+               name: "create_kanban_task",
+               description: "Registra nativamente uma nova tarefa no O.S Task Board.",
+               parameters: {
+                 type: "object",
+                 properties: {
+                   project_id: { type: "string", description: "ID Numérico do Projeto alvo que receberá a Task." },
+                   title: { type: "string", description: "Título curto da Task a ser cumprida." },
+                   description: { type: "string", description: "Briefing contextual em rich text ou markdown da tarefa técnica." },
+                   priority: { type: "string", enum: ["Low", "Med", "High"], description: "Prioridade Sistêmica" }
+                 },
+                 required: ["project_id", "title"]
+               }
+            }
+          }
+        ],
         stream: true
       })
     })
@@ -303,9 +360,37 @@ const sendMessage = async () => {
             if (data.choices && data.choices.length > 0 && data.choices[0].delta) {
                  textDelta = data.choices[0].delta.content
                  
+                 // Intercept Agentic Function Calls (Tool Calls)
+                 if (data.choices[0].delta.tool_calls) {
+                     const assistantMsg = messages.value[assistantMsgIndex]
+                     if (assistantMsg) {
+                         if (!assistantMsg.tool_calls) assistantMsg.tool_calls = []
+                         
+                         for (const tCall of data.choices[0].delta.tool_calls) {
+                             let existing = assistantMsg.tool_calls.find(tc => tc.index === tCall.index)
+                             if (!existing) {
+                                 // Inicializa a call! A ID pode vir apenas no primeiro chunk!
+                                 existing = { index: tCall.index, id: tCall.id || `call_${Date.now()}_${tCall.index}`, type: "function", function: { name: tCall.function?.name || "", arguments: "" }, result: null, status: 'running' }
+                                 assistantMsg.tool_calls.push(existing)
+                             }
+                             if (tCall.function?.name && !existing.function.name) {
+                                  existing.function.name = tCall.function.name;
+                             }
+                             if (tCall.function?.arguments) {
+                                 existing.function.arguments += tCall.function.arguments
+                             }
+                         }
+                         scrollToBottom()
+                     }
+                 }
+                 
                  // Handle Finish Reason Stop do Rust
                  if (data.choices[0].finish_reason === 'stop') {
                      continue
+                 }
+                 
+                 if (data.choices[0].finish_reason === 'tool_calls') {
+                     // Flag that streaming is done for tools
                  }
             } else if (data.content || data.token) {
                  // Formato Legado LlamaIndex (Fallback)
@@ -354,6 +439,65 @@ const sendMessage = async () => {
     
     if (assistantMsgIndex !== -1 && messages.value[assistantMsgIndex]) {
       messages.value[assistantMsgIndex].isStreaming = false
+      const assistantMsg = messages.value[assistantMsgIndex]
+      
+      // Execute Pending Agentic Tool Calls
+      if (assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
+          for (const tc of assistantMsg.tool_calls) {
+              try {
+                  let args: any = {}
+                  try { args = JSON.parse(tc.function.arguments) } catch (e) {
+                      console.warn("Tool Arguments Parse Fail (Misto)", tc.function.arguments)
+                      // Fallback LLM output fix? (Not handled yet)
+                  }
+                  
+                  let toolResult = null
+                  const RUST_CORE_URL_TOOLS = 'http://127.0.0.1:8001'
+                  
+                  if (tc.function.name === 'read_vault_file') {
+                      const res = await fetch(`${RUST_CORE_URL_TOOLS}/v1/tools/read_vault_file`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                          body: JSON.stringify(args)
+                      })
+                      toolResult = await res.json()
+                  } else if (tc.function.name === 'create_kanban_task') {
+                      const res = await fetch(`${RUST_CORE_URL_TOOLS}/v1/tools/create_kanban_task`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                          body: JSON.stringify(args)
+                      })
+                      toolResult = await res.json()
+                  } else {
+                      toolResult = { error: `Ferramenta '${tc.function.name}' não reconhecida pelo Cíbrido` }
+                  }
+                  
+                  tc.status = toolResult.error ? 'error' : 'done'
+                  tc.result = toolResult
+                  
+                  // Append tool message to feed back to LLM context
+                  messages.value.push({
+                      id: Date.now() + Math.random(),
+                      role: 'tool',
+                      content: JSON.stringify(toolResult),
+                      tool_call_id: tc.id,
+                      name: tc.function.name
+                  })
+              } catch (e: any) {
+                  tc.status = 'error'
+                  messages.value.push({
+                      id: Date.now() + Math.random(),
+                      role: 'tool',
+                      content: JSON.stringify({ error: String(e) }),
+                      tool_call_id: tc.id,
+                      name: tc.function.name
+                  })
+              }
+          }
+          scrollToBottom()
+          // Automatically trigger the LLM to complete its thought based on tool results!
+          await sendMessage(true) // Recursive Auto-Drive!
+      }
     }
 
   } catch (error) {
@@ -361,7 +505,11 @@ const sendMessage = async () => {
     if (assistantMsgId !== undefined) {
       const assistantMsgIndex = messages.value.findIndex(m => m.id === assistantMsgId)
       if (assistantMsgIndex !== -1 && messages.value[assistantMsgIndex]) {
-        messages.value[assistantMsgIndex].content += '\n\n**Erro**: Não foi possível comunicar com o servidor. Garanta que a API FastAPI (`uvicorn src.api.main:app`) está em execução.'
+        if (!messages.value[assistantMsgIndex].content) {
+            messages.value[assistantMsgIndex].content = '\n\n**Erro Cíbrido**: Não foi possível comunicar com o servidor. Garanta que The Mom (`sovereign-core`) está ativa.'
+        } else {
+            messages.value[assistantMsgIndex].content += '\n\n*(Conexão rompida no Stream)*'
+        }
         messages.value[assistantMsgIndex].isStreaming = false
       }
     }
