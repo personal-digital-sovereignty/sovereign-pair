@@ -39,5 +39,29 @@ pub async fn init_pool() -> SqlitePool {
         );
     ").execute(&pool).await;
 
+    // Garante a existência da Multi-Drive Tabela (Fase 32: Global Workspace Architecture)
+    let _ = sqlx::query("
+        CREATE TABLE IF NOT EXISTS workspaces (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            path TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    ").execute(&pool).await;
+
+    // Se o banco estiver vazio, engolimos a V1 Retrocompatível como 'Workspace 1' atómica
+    let path_str = env::var("RAG_VAULT_PATH").unwrap_or_else(|_| {
+        let mut path = env::current_dir().expect("Hostile Environment");
+        if path.ends_with("core") { path.pop(); }
+        path.push("Vault");
+        path.to_string_lossy().into_owned()
+    });
+
+    let _ = sqlx::query("
+        INSERT INTO workspaces (id, name, path)
+        SELECT 1, 'Default Vault', ?
+        WHERE NOT EXISTS (SELECT 1 FROM workspaces WHERE id = 1)
+    ").bind(&path_str).execute(&pool).await;
+
     pool
 }

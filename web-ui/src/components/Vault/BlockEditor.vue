@@ -357,6 +357,7 @@ const SensusTableHeader = TableHeader.extend({
 
 const props = defineProps({
   fileId: { type: String, required: true },
+  workspaceId: { type: Number, required: false }, // Fase 32 Multi-Drives
   viewMode: { type: String as () => 'visual' | 'source' | 'split', default: 'visual' }
 })
 
@@ -825,6 +826,7 @@ const saveDocument = async (markdownContent: string) => {
                 ...(token ? { 'Authorization': `Bearer ${token}` } : {})
             },
             body: JSON.stringify({
+                 workspace_id: props.workspaceId ? Number(props.workspaceId) : null,
                  file_path: props.fileId,
                  content: finalOutput
             })

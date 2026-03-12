@@ -280,11 +280,16 @@ def scan_all_files() -> Set[Path]:
     """
     all_files = set()
     
-    # Escanear vault
-    if VAULT_DIR.exists():
-        all_files.update(get_all_files_recursive(VAULT_DIR, FOLLOW_SYMLINKS))
+    from api.database import get_all_workspace_paths
+    workspace_paths = get_all_workspace_paths()
     
-    # Escanear raw_docs (pode ser múltiplos caminhos)
+    # Escanear todos os Workspaces Cíbridos Atrelados
+    for ws_path_str in workspace_paths:
+        ws_path = Path(ws_path_str)
+        if ws_path.exists() and ws_path.is_dir():
+            all_files.update(get_all_files_recursive(ws_path, FOLLOW_SYMLINKS))
+    
+    # Escanear raw_docs complementar (legado O.S)
     for raw_docs_dir in RAW_DOCS_DIRS:
         if raw_docs_dir.exists():
             all_files.update(get_all_files_recursive(raw_docs_dir, FOLLOW_SYMLINKS))
@@ -333,12 +338,18 @@ def load_all_documents() -> List[Document]:
     """
     all_docs = []
     
-    # Carregar do Vault
-    if VAULT_DIR.exists():
-        docs = load_documents_from_directory(VAULT_DIR, "Vault", FOLLOW_SYMLINKS)
-        all_docs.extend(docs)
+    from api.database import get_all_workspace_paths
+    workspace_paths = get_all_workspace_paths()
     
-    # Carregar de raw_docs
+    # Carregar de todos os Workspaces Cíbridos (Múltiplos Drives O.S)
+    for i, ws_path_str in enumerate(workspace_paths):
+        ws_path = Path(ws_path_str)
+        if ws_path.exists() and ws_path.is_dir():
+            dir_name = f"Workspace {i+1} ({ws_path.name})"
+            docs = load_documents_from_directory(ws_path, dir_name, FOLLOW_SYMLINKS)
+            all_docs.extend(docs)
+    
+    # Carregar de raw_docs (Legados)
     for i, raw_dir in enumerate(RAW_DOCS_DIRS):
         if raw_dir.exists():
             dir_name = f"Raw Docs {i+1}" if len(RAW_DOCS_DIRS) > 1 else "Raw Docs"

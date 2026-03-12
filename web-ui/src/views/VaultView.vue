@@ -24,7 +24,8 @@
       <div class="flex-1 overflow-y-auto relative bg-surface-900">
         <BlockEditor 
            v-if="activeTabId" 
-           :fileId="activeTabId" 
+           :fileId="activeTabId"
+           :workspaceId="activeTabObject?.workspaceId"
            :key="activeTabId" 
            :viewMode="activeTabObject?.viewMode || 'visual'"
            @editor-stats="handleEditorStats" 
@@ -107,6 +108,7 @@ import InlineSpotlight from '../components/Vault/InlineSpotlight.vue'
 interface Tab {
   id: string
   name: string
+  workspaceId?: number
   viewMode?: 'visual' | 'source' | 'split'
 }
 
@@ -140,7 +142,7 @@ const handleDocumentContent = (text: string) => {
     activeDocumentContent.value = text
 }
 
-const handleSelectFile = (file: { id: string | null, name?: string, path?: string }) => {
+const handleSelectFile = (file: { id: string | null, name?: string, path?: string, workspace_id?: number }) => {
   // Se o Sidebar/Sophi enviar nome, usa ele, senão faz um fallback pegando do basename doc
   let fallbackName = file.name
   const tabId = file.id || file.path // Fallback for OS files without database ID
@@ -159,7 +161,7 @@ const handleSelectFile = (file: { id: string | null, name?: string, path?: strin
     activeTabId.value = tabId
   } else {
     // Abre nova tab
-    tabs.value.push({ id: tabId, name: fallbackName, viewMode: 'visual' })
+    tabs.value.push({ id: tabId, name: fallbackName, workspaceId: file.workspace_id, viewMode: 'visual' })
     activeTabId.value = tabId
   }
 }
@@ -173,10 +175,13 @@ const processRouteQuery = () => {
         let fileId = route.query.file as string | null
         if (fileId === 'undefined') fileId = null
         
+        const wsId = route.query.workspace_id ? Number(route.query.workspace_id) : undefined
+
         handleSelectFile({
             id: fileId,
             name: route.query.name as string | undefined,
-            path: route.query.path as string | undefined
+            path: route.query.path as string | undefined,
+            workspace_id: wsId
         })
         // Clear query to avoid re-triggering on local tab switch
         router.replace({ path: '/vault' })
