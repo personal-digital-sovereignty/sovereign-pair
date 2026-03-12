@@ -2,6 +2,7 @@ import logging
 import warnings
 import requests
 import re
+import concurrent.futures
 from typing import Optional
 from ddgs import DDGS
 from bs4 import BeautifulSoup
@@ -11,8 +12,8 @@ logger = logging.getLogger(__name__)
 # Constants (could be imported from config, but keeping it simple or injecting it)
 MAX_WEB_SEARCH_RESULTS = 5
 
-def scrape_url_text(url: str, max_chars: int = 3500) -> str:
-    """Busca o html da página real para obter contexto profundo (tabelas, textos longos)."""
+def scrape_url_text(url: str, max_chars: int = 1500) -> str:
+    """Busca o html da página real para obter contexto profundo (tabelas, textos longos). Otimizado (max_chars=1500) para não travar RAG."""
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
         resp = requests.get(url, headers=headers, timeout=6)
@@ -71,24 +72,33 @@ def search_web(query: str, timelimit: Optional[str] = None) -> str:
         if not results:
             return "Nenhum resultado encontrado na busca web."
         
-        formatted_results = []
-        for i, result in enumerate(results, 1):
+        def fetch_deep_content(i_result):
+            i, result = i_result
             href = result.get('href', '')
             body = result.get('body', 'Sem descrição')
+            title = result.get('title', 'Sem Título')
             
-            # Scrape deep content for the top 2 results to allow AI to read inner tables and long texts
-            if i <= 2 and href:
+            # Scrape deep content for the top 2 results concurrently to feed the LLM richly but efficiently
+            if i <= 1 and href:
                 deep_text = scrape_url_text(href)
                 if deep_text and len(deep_text) > 200:
                     body = f"{body}\n\n   --- Extração Profunda da Página ---\n   \"{deep_text}...\""
                     
-            formatted_results.append(
-                f"{i}. **{result.get('title', 'Sem título')}**\n"
-                f"   {body}\n"
-                f"   🌐 {href}"
-            )
-        
-        return "\n\n".join(formatted_results)
+            return (i, f"{i}. **{title}**\n   {body}\n   🌐 {href}")
+            
+        formatted_list = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            futures = [executor.submit(fetch_deep_content, (i, res)) for i, res in enumerate(results, 1)]
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    formatted_list.append(future.result())
+                except Exception as e:
+                    logger.debug(f"Erro na thread do scraper: {e}")
+                    
+        # Ordenar os resultados voltando à ordem nativa de relevância do DDG (1..N)
+        formatted_list.sort(key=lambda x: x[0])
+        final_strings = [x[1] for x in formatted_list]
+        return "\n\n".join(final_strings)
         
     except Exception as e:
         logger.error(f"❌ Erro na busca web: {e}")

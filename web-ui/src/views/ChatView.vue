@@ -246,18 +246,28 @@ const sendMessage = async () => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/v1/chat`, {
+    // 🚀 BYPASS CÍBRIDO: Redirecionar Inferência para o Core Rust (Fase 25)
+    // Deixamos a 8000 para histórico, mas o tráfego RAG quente flui pela 8001
+    const RUST_CORE_URL = 'http://127.0.0.1:8001/v1/chat/completions'
+    
+    // Convertemos o Histórico Atual da UI para a estrutura estrita OpenAI Role/Content
+    const rustMessages = messages.value
+        .filter(m => m.content && !m.isStreaming)
+        .map(m => ({
+            role: m.role,
+            content: m.content
+        }))
+
+    const response = await fetch(RUST_CORE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...getAuthHeaders()
       },
       body: JSON.stringify({
-        message: userText,
-        stream: true,
-        session_id: currentSessionId.value,
-        provider: 'ollama',
-        model: 'llama3.2'
+        model: 'qwen2.5:3b', // Fallback ou seleção dinâmica
+        messages: rustMessages,
+        stream: true
       })
     })
 
@@ -279,26 +289,35 @@ const sendMessage = async () => {
         if (line.startsWith('data: ')) {
           const dataStr = line.slice(6).trim()
           if (dataStr === '[DONE]') {
-             loadSessions() // Recarrega o menu da sidebar no final da conversa
              continue
           }
           
           try {
             const data = JSON.parse(dataStr)
-            if (data.session_id_established && currentSessionId.value === null) {
-               currentSessionId.value = data.session_id_established
+            
+            // 🦀 RUST SSE PARSER (OpenAI Format)
+            let textDelta = null
+            
+            // Suporte para o Formato OpenAI injetado pelo sovereign-core Rust
+            if (data.choices && data.choices.length > 0 && data.choices[0].delta) {
+                 textDelta = data.choices[0].delta.content
+                 
+                 // Handle Finish Reason Stop do Rust
+                 if (data.choices[0].finish_reason === 'stop') {
+                     continue
+                 }
+            } else if (data.content || data.token) {
+                 // Formato Legado LlamaIndex (Fallback)
+                 textDelta = data.content || data.token
             }
-            if (data.message_id) {
-               if (messages.value[assistantMsgIndex]) {
-                 messages.value[assistantMsgIndex].id = data.message_id
-               }
-            }
+            
+            // Tratamento das Actions Cíbridas Legadas Python (Bypass)
             if (data.action) {
                if (!messages.value[assistantMsgIndex].actions) {
                    messages.value[assistantMsgIndex].actions = []
                }
                const msgActions = messages.value[assistantMsgIndex].actions!
-               const existingIdx = msgActions.findIndex(a => a.action === data.action)
+               const existingIdx = msgActions.findIndex((a: any) => a.action === data.action)
                if (existingIdx >= 0) {
                    msgActions[existingIdx] = data
                } else {
@@ -307,16 +326,17 @@ const sendMessage = async () => {
                scrollToBottom()
                continue
             }
-            
-            const textDelta = data.content || data.token
+
             if (textDelta && messages.value[assistantMsgIndex]) {
               messages.value[assistantMsgIndex].content += textDelta
               
               // Telemetry Update
-              tokenMetrics.value.tokenCount++
-              const elapsedMs = performance.now() - tokenMetrics.value.startTime
-              if (elapsedMs > 100) {
-                 tokenMetrics.value.tokensPerSecond = Math.round((tokenMetrics.value.tokenCount / elapsedMs) * 1000)
+              if (tokenMetrics.value && typeof tokenMetrics.value.tokenCount === 'number') {
+                  tokenMetrics.value.tokenCount++
+                  const elapsedMs = performance.now() - (tokenMetrics.value.startTime || 0)
+                  if (elapsedMs > 100) {
+                     tokenMetrics.value.tokensPerSecond = Math.round((tokenMetrics.value.tokenCount / elapsedMs) * 1000)
+                  }
               }
               
               scrollToBottom()
