@@ -79,7 +79,62 @@
 
     </div>
 
-    <!-- Modals seriam renderizados aqui se tivéssemos a store ativada nesse pedaço abstraído -->
+    <!-- Modal de Nova Tarefa -->
+    <Teleport to="body">
+      <div v-if="showNewTaskModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div class="bg-[#151518] border border-white/10 p-6 rounded-xl shadow-2xl w-full max-w-md flex flex-col gap-4 text-white" @click.stop>
+          <div class="flex justify-between items-center mb-1">
+             <h3 class="text-lg font-medium tracking-tight text-white flex items-center gap-2">
+                <i class="i-lucide-check-square text-blue-400"></i>
+                Nova Micro-Tarefa O.S
+             </h3>
+             <button @click="showNewTaskModal = false" class="text-zinc-500 hover:text-white"><i class="i-lucide-x text-lg"></i></button>
+          </div>
+          
+          <div class="flex flex-col gap-3">
+             <label class="flex flex-col gap-1.5 text-xs font-medium text-zinc-400">
+               TÍTULO DA TAREFA
+               <input v-model="newTaskForm.title" type="text" class="bg-black/50 border border-white/10 p-2.5 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50 transition-colors" placeholder="Ex: Analisar dependência do Rust" @keyup.enter="handleCreateTask" autofocus>
+             </label>
+             
+             <label class="flex flex-col gap-1.5 text-xs font-medium text-zinc-400">
+               DESCRIÇÃO
+               <textarea v-model="newTaskForm.description" rows="3" class="bg-black/50 border border-white/10 p-2.5 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50 transition-colors resize-none" placeholder="O que exatamente precisa ser feito?"></textarea>
+             </label>
+
+             <div class="flex gap-4">
+               <label class="flex flex-col gap-1.5 text-xs font-medium text-zinc-400 flex-1">
+                 NÍVEL DE PRIORIDADE
+                 <select v-model="newTaskForm.priority" class="bg-black/50 border border-white/10 p-2.5 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50 appearance-none">
+                   <option value="High">🔴 Alta (High)</option>
+                   <option value="Medium">🟡 Média (Medium)</option>
+                   <option value="Low">🔵 Baixa (Low)</option>
+                 </select>
+               </label>
+               
+               <label class="flex flex-col gap-1.5 text-xs font-medium text-zinc-400 flex-1">
+                 ESTADO INICIAL
+                 <select v-model="newTaskForm.status" class="bg-black/50 border border-white/10 p-2.5 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50 appearance-none">
+                   <option v-for="col in columns" :key="col.id" :value="col.id">{{ col.title }}</option>
+                 </select>
+               </label>
+             </div>
+             
+             <label class="flex flex-col gap-1.5 text-xs font-medium text-zinc-400 mt-1">
+               DEADLINE / PRAZO (Opcional)
+               <input v-model="newTaskForm.deadline" type="date" class="bg-black/50 border border-white/10 p-2.5 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50 [color-scheme:dark]">
+             </label>
+          </div>
+
+          <div class="flex justify-end gap-2 mt-4">
+            <button @click="showNewTaskModal = false" class="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors">Cancelar</button>
+            <button @click="handleCreateTask" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors border border-blue-500/20 shadow-[0_0_15px_rgba(37,99,235,0.2)]" :disabled="!newTaskForm.title.trim()">
+               Criar Tarefa
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -93,6 +148,13 @@ const props = defineProps<{
 
 const tasksStore = useTasksStore()
 const showNewTaskModal = ref(false)
+const newTaskForm = ref({
+  title: '',
+  description: '',
+  priority: 'Medium',
+  status: 'TODO',
+  deadline: '' // ISO Date string (YYYY-MM-DD)
+})
 
 const columns = [
   { id: 'TODO', title: 'To Do', colorClass: 'bg-zinc-500' },
@@ -100,6 +162,25 @@ const columns = [
   { id: 'BLOCKED', title: 'Blocked', colorClass: 'bg-red-500' },
   { id: 'DONE', title: 'Done', colorClass: 'bg-emerald-500' }
 ]
+
+const handleCreateTask = async () => {
+    if (!newTaskForm.value.title.trim()) return
+    const maxOrder = Math.max(0, ...tasksStore.tasksByProject(props.projectId).map((t: any) => t.order_index || 0))
+    
+    await tasksStore.createTask(props.projectId, {
+        title: newTaskForm.value.title,
+        description: newTaskForm.value.description,
+        priority: newTaskForm.value.priority,
+        status: newTaskForm.value.status,
+        order_index: maxOrder + 1,
+        // Envia null se vazio, ou timestamp se preenchido.
+        deadline: newTaskForm.value.deadline ? new Date(newTaskForm.value.deadline).toISOString() : undefined
+    })
+    
+    // Reset form
+    newTaskForm.value = { title: '', description: '', priority: 'Medium', status: 'TODO', deadline: '' }
+    showNewTaskModal.value = false
+}
 
 const getTasksByStatus = (statusId: string) => {
   return tasksStore.tasksByProject(props.projectId)

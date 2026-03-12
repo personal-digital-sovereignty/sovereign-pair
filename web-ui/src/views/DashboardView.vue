@@ -58,7 +58,7 @@
                    </div>
 
                    <!-- Grid: Left (Notes) / Right (Tasks & Pomodoro) (Somente Agenda Regular) -->
-                   <div v-if="activeTab !== 'quarantine' && agenda[activeTab]" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                   <div v-if="activeTab !== 'quarantine' && agenda[activeTab]" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                        
                        <!-- Modificações -->
                        <section class="bg-surface-800/50 border border-surface-700/50 rounded-xl p-5 backdrop-blur-sm flex flex-col">
@@ -66,11 +66,11 @@
                                Fluxo de Conhecimento (Notas Modificadas)
                            </h3>
                            
-                           <div v-if="!agenda[activeTab]?.docs?.length" class="flex-1 flex flex-col items-center justify-center py-6 text-surface-500 border border-dashed border-surface-700 rounded-lg bg-surface-900/40">
+                           <div v-if="!agenda[activeTab]?.docs?.length" class="h-32 flex flex-col items-center justify-center text-surface-500 border border-dashed border-surface-700 rounded-lg bg-surface-900/40">
                                <p class="text-xs">Nenhum registro nesta janela de tempo.</p>
                            </div>
                            
-                           <div v-else class="space-y-2">
+                           <div v-else class="space-y-2 max-h-[450px] overflow-y-auto custom-scroll pr-1">
                                <div v-for="doc in agenda[activeTab]?.docs" :key="doc.path" 
                                     @click="openInVault(doc)"
                                     class="group flex flex-col p-3 rounded-lg bg-surface-900/50 border border-surface-700/30 hover:bg-surface-700/50 hover:border-primary-500/30 cursor-pointer transition-all">
@@ -173,7 +173,7 @@
                </section>
                
                <!-- Grid Splitter: Projetos e Logs -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                     <!-- Projetos em Voo -->
                     <section class="lg:col-span-2">
                         <div class="flex items-center justify-between mb-4">
@@ -186,9 +186,10 @@
                             </button>
                         </div>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div v-for="project in projects" :key="project.id" @click="openProjectWorkspace(project.id)" class="bg-surface-800 border border-surface-700 hover:border-surface-500 rounded-xl p-4 flex flex-col gap-3 cursor-pointer group transition-all hover:shadow-lg">
-                                <div class="flex items-start justify-between">
+                        <div class="max-h-[500px] overflow-y-auto custom-scroll pr-2">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div v-for="project in projects" :key="project.id" @click="openProjectWorkspace(project.id)" class="bg-surface-800 border border-surface-700 hover:border-surface-500 rounded-xl p-4 flex flex-col gap-3 cursor-pointer group transition-all hover:shadow-lg">
+                                    <div class="flex items-start justify-between">
                                     <h3 class="font-medium text-surface-200 group-hover:text-white truncate" :title="project.name">{{ project.name }}</h3>
                                     <span class="text-xl" :title="project.traction_status">{{ getStatusEmoji(project.traction_status) }}</span>
                                 </div>
@@ -205,12 +206,13 @@
                                     </div>
                                 </div>
                             </div>
+                            </div>
                         </div>
                     </section>
 
                     <!-- Sovereign Engine Runtime Logs & Telemetry -->
-                    <section class="h-full min-h-[400px] flex flex-col gap-4">
-                        <div class="h-48 shrink-0">
+                    <section class="flex flex-col gap-4">
+                        <div class="h-auto shrink-0">
                            <TokenMetricsTracker />
                         </div>
                         <div class="flex-1 min-h-[300px]">
@@ -246,7 +248,7 @@
                    <p class="text-xs text-emerald-500/60 mt-1">Nenhum documento detectado com Prompt Injection ou scripts maliciosos.</p>
                </div>
                
-               <div v-else class="grid grid-cols-1 gap-4">
+               <div v-else class="grid grid-cols-1 gap-4 max-h-[600px] overflow-y-auto custom-scroll pr-2">
                    <div v-for="log in quarantineLogs" :key="log.id" class="bg-surface-800/80 border border-red-900/50 rounded-xl p-5 backdrop-blur-sm flex flex-col md:flex-row gap-6 relative overflow-hidden group">
                        <!-- Alert Strip -->
                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-500/50"></div>

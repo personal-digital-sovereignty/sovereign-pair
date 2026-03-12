@@ -6,11 +6,15 @@ import DOMPurify from 'dompurify'
 // Custom directive to securely render HTML, bypassing the need for unsafe `v-html`
 const vSafeHtml = {
   mounted(el: HTMLElement, binding: import('vue').DirectiveBinding) {
-    el.innerHTML = DOMPurify.sanitize(binding.value)
+    el.innerHTML = DOMPurify.sanitize(binding.value, { ADD_TAGS: ['svg', 'path', 'circle', 'line', 'g', 'rect'] })
   },
   updated(el: HTMLElement, binding: import('vue').DirectiveBinding) {
-    el.innerHTML = DOMPurify.sanitize(binding.value)
+    el.innerHTML = DOMPurify.sanitize(binding.value, { ADD_TAGS: ['svg', 'path', 'circle', 'line', 'g', 'rect'] })
   }
+}
+
+const formatMessageIcons = (content: string) => {
+  return content;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -27,6 +31,14 @@ const md = new MarkdownIt({
   linkify: true
 })
 
+interface ActionMeta {
+  action: string
+  status: 'running' | 'done' | 'error' | 'warning'
+  provider?: string
+  message?: string
+  error?: string
+}
+
 interface Message {
   id: number
   role: 'user' | 'assistant'
@@ -34,6 +46,7 @@ interface Message {
   isStreaming?: boolean
   thumbs_up?: boolean
   thumbs_down?: boolean
+  actions?: ActionMeta[]
 }
 
 interface ChatSession {
@@ -279,6 +292,20 @@ const sendMessage = async () => {
                if (messages.value[assistantMsgIndex]) {
                  messages.value[assistantMsgIndex].id = data.message_id
                }
+            }
+            if (data.action) {
+               if (!messages.value[assistantMsgIndex].actions) {
+                   messages.value[assistantMsgIndex].actions = []
+               }
+               const msgActions = messages.value[assistantMsgIndex].actions!
+               const existingIdx = msgActions.findIndex(a => a.action === data.action)
+               if (existingIdx >= 0) {
+                   msgActions[existingIdx] = data
+               } else {
+                   msgActions.push(data)
+               }
+               scrollToBottom()
+               continue
             }
             
             const textDelta = data.content || data.token
@@ -709,8 +736,29 @@ const tokenMetrics = ref({
                 {{ msg.content }}
               </template>
               <template v-else>
-                <div v-safe-html="md.render(msg.content)"></div>
-                <span v-if="msg.isStreaming" class="w-2 h-4 bg-sky-400 inline-block animate-pulse ml-1 vertical-align-middle"></span>
+                <!-- Container de React-Badges de Ação (Engine Info, Timeout, Warnings) -->
+                <div v-if="msg.actions && msg.actions.length > 0" class="mb-3 flex flex-col gap-2">
+                   <div v-for="(act, idx) in msg.actions" :key="idx" 
+                        class="flex flex-row items-center gap-2.5 px-3 py-2 text-[11px] font-mono tracking-wider uppercase rounded-lg border w-fit shadow-md transition-all" 
+                        :class="act.status === 'running' ? 'bg-sky-500/10 border-sky-500/20 text-sky-400' : (act.status === 'error' ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 font-bold' : (act.status === 'warning' ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 font-bold' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'))">
+                      
+                      <svg v-if="act.status === 'running'" class="w-4 h-4 animate-spin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                      <svg v-else-if="act.status === 'error'" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                      <svg v-else-if="act.status === 'warning'" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                      <svg v-else class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+
+                      <div class="flex flex-col">
+                         <span>{{ act.action === 'web_search' ? 'Scanner Web (DuckDuckGo)' : (act.action === 'sys_rag' ? 'Motor O.S (Source Code)' : act.action) }}</span>
+                         <span v-if="act.status === 'running'" class="text-[9.5px] opacity-70 normal-case">Capturando contexto externo...</span>
+                         <span v-else-if="act.status === 'error'" class="text-[9.5px] opacity-90 normal-case font-medium whitespace-pre-wrap">{{ act.error || 'Falha Crítica do Engine' }}</span>
+                         <span v-else-if="act.status === 'warning'" class="text-[9.5px] opacity-90 normal-case font-medium">{{ act.message || 'Sistema disparou um aviso' }}</span>
+                         <span v-else class="text-[9.5px] opacity-70 normal-case">{{ act.message || 'Dados engolidos com sucesso' }}</span>
+                      </div>
+                   </div>
+                </div>
+
+                <div v-if="msg.content" v-safe-html="md.render(formatMessageIcons(msg.content))" class="prose-h1:text-xl prose-h2:text-lg prose-p:my-2 prose-pre:bg-[#000000] prose-pre:border prose-pre:border-zinc-800 prose-pre:rounded-lg prose-pre:shadow-xl prose-a:text-sky-400 prose-a:no-underline hover:prose-a:underline prose-code:text-emerald-300 prose-code:bg-emerald-500/10 prose-code:px-1 prose-code:rounded"></div>
+                <span v-if="msg.isStreaming" class="w-2 h-4 bg-emerald-400 inline-block animate-pulse ml-1 vertical-align-middle mt-1 rounded-sm shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
               </template>
             </div>
             
@@ -802,7 +850,12 @@ const tokenMetrics = ref({
           </div>
           <div class="space-y-2">
             <label class="block text-sm font-medium text-slate-400">Pasta (Opcional)</label>
-            <input v-model="editingSession.folder_name" type="text" placeholder="Nome da pasta" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
+            <input v-model="editingSession.folder_name" list="session-folders-list" type="text" placeholder="Selecione ou digite o nome da pasta" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
+            <datalist id="session-folders-list">
+               <template v-for="(_val, folderName) in expandedFolders" :key="folderName">
+                  <option v-if="folderName !== ''" :value="folderName"></option>
+               </template>
+            </datalist>
           </div>
 
           <div class="space-y-2 pt-2 border-t border-surface-700/50">
