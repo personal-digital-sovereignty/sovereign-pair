@@ -47,8 +47,8 @@ pub async fn chat_completions_handler(
     // Extraindo o Prompt do User p/ Persistir
     let human_prompt = payload.messages.last()
         .map(|msg| match &msg.content {
-            crate::models::MessageContent::Text(t) => t.clone(),
-            crate::models::MessageContent::Multimodal(parts) => {
+            Some(crate::models::MessageContent::Text(t)) => t.clone(),
+            Some(crate::models::MessageContent::Multimodal(parts)) => {
                 let mut full = String::new();
                 for part in parts {
                     if let Some(txt) = part.get("text").and_then(|t| t.as_str()) {
@@ -56,7 +56,8 @@ pub async fn chat_completions_handler(
                     }
                 }
                 full
-            }
+            },
+            None => "".to_string(),
         })
         .unwrap_or_else(|| "Interação O.S".to_string());
 
@@ -77,8 +78,8 @@ pub async fn chat_completions_handler(
     // Injeta as Mensagens da própria TUI (Código e Prompts)
     purified_messages.extend(payload.messages.into_iter().map(|msg| {
         let content_str = match msg.content {
-            crate::models::MessageContent::Text(t) => t,
-            crate::models::MessageContent::Multimodal(parts) => {
+            Some(crate::models::MessageContent::Text(t)) => t,
+            Some(crate::models::MessageContent::Multimodal(parts)) => {
                 let mut full = String::new();
                 for part in parts {
                     if let Some(txt) = part.get("text").and_then(|t| t.as_str()) {
@@ -86,7 +87,8 @@ pub async fn chat_completions_handler(
                     }
                 }
                 full
-            }
+            },
+            None => "".to_string(),
         };
 
         json!({
@@ -96,11 +98,19 @@ pub async fn chat_completions_handler(
     }));
 
     // 3. Empacotar para o Servidor Local com Streaming Exigido
-    let ollama_payload = json!({
+    let mut ollama_payload = json!({
         "model": ollama_model,
         "messages": purified_messages,
         "stream": true
     });
+
+    // Injeção de Tools Requisitadas pelo Frontend (Vercel AI SDK JSON Schema)
+    if let Some(tools) = payload.tools {
+        ollama_payload["tools"] = json!(tools);
+    }
+    if let Some(tool_choice) = payload.tool_choice {
+        ollama_payload["tool_choice"] = tool_choice;
+    }
 
     let res = match state
         .http_client
@@ -149,30 +159,66 @@ pub async fn chat_completions_handler(
 
                         if let Ok(ollama_resp) = serde_json::from_str::<Value>(line) {
                             if let Some(msg_obj) = ollama_resp.get("message") {
+                                let mut has_content_or_tools = false;
+                                let mut extracted_content = None;
+                                let mut extracted_tool_calls: Option<Vec<crate::models::ChunkToolCall>> = None;
+
                                 if let Some(content) = msg_obj.get("content").and_then(|c| c.as_str()) {
-                                    
-                                    // Incremento ingênuo para cada Token yieldado
-                                    session_tokens += 1;
-                                    accumulator.push_str(content); // Acopla p/ DB
-                                    
-                                    // Temos o Fragmento! Vamos envelopá-lo no formato OpenAI
+                                    if !content.is_empty() {
+                                        session_tokens += 1;
+                                        accumulator.push_str(content);
+                                        extracted_content = Some(content.to_string());
+                                        has_content_or_tools = true;
+                                    }
+                                }
+
+                                if let Some(tool_calls_arr) = msg_obj.get("tool_calls").and_then(|tc| tc.as_array()) {
+                                    let mut tcs = Vec::new();
+                                    for (i, tc) in tool_calls_arr.iter().enumerate() {
+                                        let mut new_tc = crate::models::ChunkToolCall {
+                                            index: Some(i as i32),
+                                            id: Some(format!("call_{}", uuid::Uuid::new_v4().to_string().replace("-", "").chars().take(8).collect::<String>())),
+                                            r#type: Some("function".to_string()),
+                                            function: None,
+                                        };
+                                        if let Some(func) = tc.get("function") {
+                                            let name = func.get("name").and_then(|n| n.as_str()).map(|n| n.to_string());
+                                            let args = func.get("arguments").map(|a| {
+                                                if a.is_string() {
+                                                    a.as_str().unwrap().to_string()
+                                                } else {
+                                                    serde_json::to_string(a).unwrap_or_default()
+                                                }
+                                            });
+                                            new_tc.function = Some(crate::models::ChunkFunctionCall {
+                                                name,
+                                                arguments: args,
+                                            });
+                                        }
+                                        tcs.push(new_tc);
+                                    }
+                                    if !tcs.is_empty() {
+                                        extracted_tool_calls = Some(tcs);
+                                        has_content_or_tools = true;
+                                    }
+                                }
+
+                                if has_content_or_tools {
                                     let chunk_response = OpenAIChatChunkResponse {
                                         id: format!("chatcmpl-{}", uuid::Uuid::new_v4().to_string().replace("-", "").chars().take(12).collect::<String>()),
                                         object: "chat.completion.chunk".to_string(),
-                                        created: 1234567890, // Epoch Genérico
+                                        created: 1234567890,
                                         model: requested_model.clone(),
                                         choices: vec![OpenAIChatChunkChoice {
                                             index: 0,
                                             delta: OpenAIChatChunkDelta {
                                                 role: Some("assistant".to_string()),
-                                                content: Some(content.to_string()),
+                                                content: extracted_content,
+                                                tool_calls: extracted_tool_calls,
                                             },
                                             finish_reason: None,
                                         }],
                                     };
-
-                                    // Retornamos esse Chunk empacotado como SSE (Server Sent Event)
-                                    // Axum injetará "data: {JSON}" na placa de rede do cliente
                                     if let Ok(json_str) = serde_json::to_string(&chunk_response) {
                                         return Ok::<Event, Infallible>(Event::default().data(json_str));
                                     }
@@ -211,6 +257,7 @@ pub async fn chat_completions_handler(
                                             delta: OpenAIChatChunkDelta {
                                                 role: None,
                                                 content: None,
+                                                tool_calls: None,
                                             },
                                             finish_reason: Some("stop".to_string()),
                                         }],
