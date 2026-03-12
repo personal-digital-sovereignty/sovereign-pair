@@ -43,9 +43,14 @@
          <button @click="emit('update-view-mode', 'split')" :class="viewMode === 'split' ? 'bg-surface-700 text-white' : 'text-surface-600 hover:text-white'" class="px-3 py-1 text-xs rounded font-medium transition-colors">Split</button>
          <button @click="emit('update-view-mode', 'source')" :class="viewMode === 'source' ? 'bg-surface-700 text-white' : 'text-surface-600 hover:text-white'" class="px-3 py-1 text-xs rounded font-medium transition-colors">Código</button>
          <div class="w-px h-4 bg-surface-700 mx-1 self-center"></div>
-         <button @click="showProperties = !showProperties" :class="showProperties ? 'bg-emerald-500/20 text-emerald-400' : 'text-emerald-500 hover:bg-surface-800'" class="px-2 py-1 text-xs rounded font-medium transition-colors flex items-center gap-1" title="Propriedades do Documento">
+         <button @click="showProperties = !showProperties" :class="showProperties ? 'bg-primary-500/20 text-primary-400' : 'text-primary-500 hover:bg-surface-800'" class="px-2 py-1 text-xs rounded font-medium transition-colors flex items-center gap-1" title="Propriedades do Documento">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
             Props
+         </button>
+         <div class="w-px h-4 bg-zinc-700/50 mx-1 self-center"></div>
+         <button @click="injectFileToAI" class="px-2 py-1 text-xs rounded font-medium text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 transition-colors flex items-center gap-1 animate-pulse hover:animate-none" title="Invocar Analista de Sistema IA para ler este Documento Abstrato">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><circle cx="12" cy="12" r="4"></circle></svg>
+            Analisar
          </button>
       </div>
 
@@ -117,10 +122,17 @@
            <span class="max-w-[50%] flex items-center" :title="docData.path">
              <span class="truncate" dir="rtl">&lrm;{{ docData.path }}</span>
            </span>
-           <span v-if="docData.has_vector" class="flex items-center gap-1.5 ml-2 text-emerald-500/80 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[10px] font-medium border border-emerald-500/20" title="Indexado para IA">
+           <span v-if="isBinaryFile" class="flex items-center gap-1.5 ml-2 text-amber-500/80 bg-amber-500/10 px-1.5 py-0.5 rounded text-[10px] font-medium border border-amber-500/20" title="Binário O.S protegido (Apenas Leitura via Pandoc/MuPdf)">
+               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+               Somente Leitura (Parser Dinâmico)
+           </span>
+           <span v-if="docData.has_vector && !docData.vector_id?.startsWith('ERROR')" class="flex items-center gap-1.5 ml-2 text-emerald-500/80 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[10px] font-medium border border-emerald-500/20" title="Indexado para IA">
                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-               <span v-if="docData.vector_id" class="font-mono opacity-80 uppercase">{{ docData.vector_id.substring(0, 8) }}</span>
-               <span v-else>Vectorized</span>
+               <span class="font-mono opacity-80 uppercase tracking-widest">{{ docData.vector_id ? docData.vector_id.substring(0, 8) : 'VECTORIZED' }}</span>
+           </span>
+           <span v-else-if="!docData.has_vector || docData.vector_id?.startsWith('ERROR')" class="flex items-center gap-1.5 ml-2 text-zinc-500/80 bg-zinc-500/10 px-1.5 py-0.5 rounded text-[10px] font-medium border border-zinc-500/20" title="Ainda não lido pela arquitetura RAG Vector Database.">
+               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-60"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+               Não Indexado
            </span>
         </div>
         
@@ -277,7 +289,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import { BubbleMenu, FloatingMenu } from '@tiptap/vue-3/menus'
 import StarterKit from '@tiptap/starter-kit'
@@ -368,6 +380,12 @@ const docData = ref<any>({})
 const rawMarkdown = ref('')
 let sourceUpdateTimeout: ReturnType<typeof setTimeout> | null = null
 
+const isBinaryFile = computed(() => {
+    if (!docData.value?.name) return false
+    const ext = docData.value.name.split('.').pop()?.toLowerCase() || ''
+    return ['pdf', 'docx', 'odt', 'epub', 'rtf', 'pptx', 'xlsx'].includes(ext)
+})
+
 const injectToSpotlight = () => {
     if (!editor.value) return
     const selection = editor.value.state.selection
@@ -376,6 +394,15 @@ const injectToSpotlight = () => {
     if (text && text.trim().length > 0) {
         window.dispatchEvent(new CustomEvent('sensus-spotlight-inject', { detail: { text: text.trim() } }))
     }
+}
+
+const injectFileToAI = () => {
+    if (!docData.value?.path) return
+    const sysPrompt = `Inicie Análise ou Estruturação Crítica O.S do documento atual: ${docData.value.path}`
+
+    window.dispatchEvent(new CustomEvent('sensus-spotlight-inject', { 
+         detail: { text: sysPrompt } 
+    }))
 }
 
 const parseFrontmatter = (markdown: string | undefined) => {
@@ -717,6 +744,7 @@ const fetchDocument = async () => {
         
         if (editor.value) {
            editor.value.commands.setContent(parsed.content, { emitUpdate: false }) 
+           editor.value.setEditable(!isBinaryFile.value)
            computeEditorStats(docData.value.content)
         }
         
@@ -766,6 +794,7 @@ const handleTocRequest = () => {
 }
 
 const debounceSave = (content: string) => {
+    if (isBinaryFile.value) return; // Disarms I/O saving mutabilities over OS binaries
     isSaving.value = true
     emit('editor-saving', true)
     if (saveTimeout) clearTimeout(saveTimeout)

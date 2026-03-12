@@ -9,14 +9,14 @@
         <span class="i-ph-trash"></span>
       </button>
     </div>
-    <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-1 custom-scroll" ref="logsContainer">
+    <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-0.5 custom-scroll" ref="logsContainer">
       <div v-if="logs.length === 0" class="text-surface-600 italic text-center py-4">
         Aguardando eventos do Synesis Core...
       </div>
-      <div v-for="(log, idx) in logs" :key="idx" class="flex items-start gap-2 hover:bg-surface-800/30 p-1 rounded transition-colors break-words">
-        <span class="text-surface-500 shrink-0">[{{ formatTime(log.timestamp) }}]</span>
-        <span :class="getLogColor(log.level)" class="shrink-0 uppercase w-12">{{ log.level }}</span>
-        <span class="text-surface-300 flex-1">{{ log.message }}</span>
+      <div v-for="(log, idx) in logs" :key="idx" class="flex items-start gap-1.5 hover:bg-surface-800/30 px-1 py-0.5 rounded transition-colors text-[10px] leading-tight overflow-hidden">
+        <span class="text-surface-500 shrink-0 select-none">[{{ formatTime(log.timestamp) }}]</span>
+        <span :class="getLogColor(log.level)" class="shrink-0 uppercase font-bold w-10 select-none">{{ log.level }}</span>
+        <span class="text-surface-300 flex-1 truncate" :title="log.message">{{ log.message }}</span>
       </div>
     </div>
   </div>
