@@ -40,8 +40,8 @@ pub async fn realtime_responses_handler(
 
     purified_messages.extend(payload.messages.into_iter().map(|msg| {
         let content_str = match msg.content {
-            crate::models::MessageContent::Text(t) => t,
-            crate::models::MessageContent::Multimodal(parts) => {
+            Some(crate::models::MessageContent::Text(t)) => t,
+            Some(crate::models::MessageContent::Multimodal(parts)) => {
                 let mut full = String::new();
                 for part in parts {
                     if let Some(txt) = part.get("text").and_then(|t| t.as_str()) {
@@ -49,7 +49,8 @@ pub async fn realtime_responses_handler(
                     }
                 }
                 full
-            }
+            },
+            None => "".to_string(),
         };
         json!({"role": msg.role, "content": content_str})
     }));
