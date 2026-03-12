@@ -34,7 +34,6 @@ interface LogEntry {
 const logs = ref<LogEntry[]>([])
 const isConnecting = ref(true)
 const logsContainer = ref<HTMLElement | null>(null)
-let mockInterval: any = null
 
 const formatTime = (d: Date) => {
   return d.toLocaleTimeString('pt-BR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -66,33 +65,46 @@ const clearLogs = () => {
   logs.value = []
 }
 
-// TODO: Connect to actual /v1/logs SSE endpoint
-// For now we simulate background activity to show the concept
-onMounted(() => {
-  setTimeout(() => {
-    isConnecting.value = false
-    addLog('info', 'Conexão segura restabelecida com Sovereign Core.')
-    addLog('info', 'Guardrails do The Sentinel: ACTIVE.')
-  }, 1000)
+// Conectando ao Verdadeiro Core Cíbrido (Rust Node)
+let eventSource: EventSource | null = null
 
-  // Simulation of background tasks
-  mockInterval = setInterval(() => {
-    const events = [
-      { level: 'rag', msg: 'The Dad (Oracle) roteando RAG query para Vector DB...' },
-      { level: 'agent', msg: 'The Coder detectou modificações na pasta src/' },
-      { level: 'info', msg: 'Sincronização assíncrona efetuada com sucesso.' },
-      { level: 'rag', msg: 'Hyrbid Search retornou 3 contextos relevantes.' },
-      { level: 'warn', msg: 'Pico de temperatura detectado na nuvem Cibrid.' }
-    ]
-    if (Math.random() > 0.7) {
-      const ev = events[Math.floor(Math.random() * events.length)]
-      if (ev) addLog(ev.level as any, ev.msg)
+const connectToSSE = () => {
+    // Endereço físico do Sovereign Core
+    eventSource = new EventSource('http://127.0.0.1:8001/v1/logs')
+    
+    eventSource.onopen = () => {
+        isConnecting.value = false
+        addLog('info', 'Link Asíncrono Live estabelecido com The Sentinel (Core Rust).')
     }
-  }, 4500)
+
+    eventSource.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data)
+            // Usa o timestamp nativo do Browser se o Rust não mandar a crônica cravada
+            const level = data.level ? data.level.toLowerCase() : 'info'
+            addLog(level as any, data.message)
+        } catch (e) {
+            console.error("The Nurse perdeu um pacote: ", e)
+        }
+    }
+
+    eventSource.onerror = (e) => {
+        if (!isConnecting.value) {
+            addLog('warn', 'Sovereign Core Inacessível. Varredura cíbrida comprometida. Tentando reconexão O.S...')
+            isConnecting.value = true
+        }
+    }
+}
+
+onMounted(() => {
+    // Iniciando Handshake VUE-RUST
+    connectToSSE()
 })
 
 onUnmounted(() => {
-  if (mockInterval) clearInterval(mockInterval)
+  if (eventSource) {
+      eventSource.close()
+  }
 })
 </script>
 
