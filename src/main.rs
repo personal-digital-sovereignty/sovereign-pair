@@ -43,13 +43,13 @@ async fn main() {
     // Inicializa as Engrenagens do RAG Indexer nativo (Std::fs)
     let active_vault = rag::init_vault();
 
-    // Inicializa o Motor Físico RAG
-    let r_sync_engine = sync_engine::SyncEngine::new(active_vault.clone());
-    r_sync_engine.start_watcher().await;
-    let sync_tx = r_sync_engine.tx.clone();
-
     // Invoca o SQLite Master O.S
     let db_pool = db::init_pool().await;
+
+    // Inicializa o Motor Físico RAG O.S Multi-Drive
+    let r_sync_engine = sync_engine::SyncEngine::new(db_pool.clone());
+    r_sync_engine.start_watcher().await;
+    let sync_tx = r_sync_engine.tx.clone();
 
     // Inicializa o Corredor de Eventos Cíbridos (Capacidade p/ 100 Logs antes de lag)
     let (log_tx, _) = broadcast::channel(100);
@@ -68,9 +68,11 @@ async fn main() {
         // ------------------ LLMOps Telemetry & Logs ------------------
         .route("/v1/analytics/telemetry", axum::routing::get(api::telemetry_snapshot_handler))
         .route("/v1/logs", axum::routing::get(api::realtime_logs_handler))
-        // ------------------ RAG & Vault O.S --------------------------
-        .route("/v1/vault/sync/status", axum::routing::get(api::rag_sync_handler))
-        .route("/v1/vault/tree", axum::routing::get(api_vault::vault_tree_handler))
+        // ------------------ RAG & SOVEREIGN DRIVES (Workspaces O.S) --------------------------
+        .route("/v1/workspaces", axum::routing::get(api_vault::list_workspaces_handler)
+            .post(api_vault::create_workspace_handler))
+        .route("/v1/workspaces/:workspace_id", axum::routing::delete(api_vault::delete_workspace_handler))
+        .route("/v1/workspaces/:workspace_id/tree", axum::routing::get(api_vault::workspace_tree_handler))
         .route("/v1/vault/document/:id", axum::routing::get(api_vault::vault_document_read)
             .put(api_vault::vault_document_write))
         .route("/v1/vault/fs/create", axum::routing::post(api_vault::vault_fs_create_handler))
