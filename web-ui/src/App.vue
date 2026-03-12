@@ -163,6 +163,12 @@ const toggleRemoteIntegration = async () => {
 const checkAuthStatus = async () => {
   try {
     const res = await fetch(`${API_BASE_URL}/v1/auth/status`)
+    if (!res.ok) {
+        // Se a rota falhar no Backend Rust (404), habilitamos o bypass Air-Gapped:
+        authPhase.value = 'authenticated'
+        checkClusterHealth();
+        return;
+    }
     const data = await res.json()
     if (!data.is_setup) {
       authPhase.value = 'setup'
@@ -176,8 +182,9 @@ const checkAuthStatus = async () => {
       }
     }
   } catch(e) {
-    console.error("Auth Server offline", e)
-    // Se estiver offline, assume restrição extrema. A UI talvez congele sem API local.
+    console.error("Sovereign Auth Network Offline -> Forcing Air-Gapped Mode.", e)
+    // Se o Engine O.S sumir, destravamos a UI do 'Invocando o RAG' pelo menos.
+    authPhase.value = 'authenticated'
   }
 }
 

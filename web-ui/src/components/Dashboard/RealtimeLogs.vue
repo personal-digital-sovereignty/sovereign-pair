@@ -88,7 +88,7 @@ const connectToSSE = () => {
         }
     }
 
-    eventSource.onerror = (e) => {
+    eventSource.onerror = () => {
         if (!isConnecting.value) {
             addLog('warn', 'Sovereign Core Inacessível. Varredura cíbrida comprometida. Tentando reconexão O.S...')
             isConnecting.value = true

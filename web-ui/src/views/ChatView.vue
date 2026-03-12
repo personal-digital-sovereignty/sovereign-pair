@@ -313,17 +313,20 @@ const sendMessage = async () => {
             
             // Tratamento das Actions Cíbridas Legadas Python (Bypass)
             if (data.action) {
-               if (!messages.value[assistantMsgIndex].actions) {
-                   messages.value[assistantMsgIndex].actions = []
+               const assistantMsg = messages.value[assistantMsgIndex]
+               if (assistantMsg) {
+                   if (!assistantMsg.actions) {
+                       assistantMsg.actions = []
+                   }
+                   const msgActions = assistantMsg.actions
+                   const existingIdx = msgActions.findIndex((a: any) => a.action === data.action)
+                   if (existingIdx >= 0) {
+                       msgActions[existingIdx] = data
+                   } else {
+                       msgActions.push(data)
+                   }
+                   scrollToBottom()
                }
-               const msgActions = messages.value[assistantMsgIndex].actions!
-               const existingIdx = msgActions.findIndex((a: any) => a.action === data.action)
-               if (existingIdx >= 0) {
-                   msgActions[existingIdx] = data
-               } else {
-                   msgActions.push(data)
-               }
-               scrollToBottom()
                continue
             }
 
