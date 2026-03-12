@@ -127,58 +127,48 @@ const getStepBgColor = (currentStep: number, boxIndex: number) => {
 }
 
 // ==========================================
-// MOCK FAKE PARA O MASTERPLAN: SENSUS SYNC ENGINE
-// Será substituído pelo SSE real (`/v1/vault/sync/status`) na Fase de Conexão Cíbrida!
+// RAG VAULT SYNC ENGINE: SSE NATIVE OBSERVER
 // ==========================================
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001'
+let eventSource: EventSource | null = null
 
-let simInterval: number
+const startSseConnection = () => {
+    eventSource = new EventSource(`${API_BASE_URL}/v1/vault/sync/status`)
 
-const runSimulator = () => {
-    // A cada 14 segundos, jogar um "Documento Virtual" na Fila de Ingestão RAG!
-    simInterval = window.setInterval(() => {
-        const mockFiles = [
-            'Relatório_Q3_Financeiro.pdf',
-            'api_rust_architecture.md',
-            'Cyber_Ops_Manual.epub',
-            'Logs_Apache_Raw.txt',
-            'Tributacao_Brasil_2026.docx'
-        ]
-        
-        const novoJob: IngestionJob = {
-            id: `job-${Math.random().toString(36).substr(2, 6)}`,
-            filename: mockFiles[Math.floor(Math.random() * mockFiles.length)] || 'Arquivo_Nao_Identificado.pdf',
-            status: 'queued',
-            currentStep: 0,
-            progress_ms: 0
-        }
-        
-        jobs.value.unshift(novoJob)
-        if (jobs.value.length > 5) jobs.value.pop() // Limita histórico
-        
-        processQueue()
-    }, 18000)
-}
+    eventSource.onopen = () => {
+        // Tracker conectado à Máquina Física
+    }
 
-const processQueue = () => {
-    jobs.value.filter(j => j.status === 'queued').forEach(job => {
-        job.status = 'processing'
-        
-        // Loop de simulação dos Spans do Ingest do Rust
-        const intervalId = setInterval(() => {
-            job.currentStep += 1
-            if (job.currentStep >= 4) {
-                job.status = 'completed'
-                clearInterval(intervalId)
+    eventSource.onmessage = (event) => {
+        try {
+            const data: IngestionJob = JSON.parse(event.data)
+            const existingJobIndex = jobs.value.findIndex(j => j.id === data.id)
+            
+            if (existingJobIndex >= 0) {
+                // Atualiza progresso da barra em tempo-real (Processamento In Loco)
+                jobs.value[existingJobIndex] = { ...jobs.value[existingJobIndex], ...data }
+            } else {
+                // Push no novo trabalho de Indexação
+                jobs.value.unshift(data)
+                
+                // Manter UI fluída c/ Garbage Collector de Jobs Ativos (Histórico)
+                if (jobs.value.length > 5) jobs.value.pop()
             }
-        }, 1500 + Math.random() * 2000) // Steps levam entre 1.5s a 3.5s
-    })
+        } catch (err) {
+            console.error("Masterplan Rag Tracker falhou no Sync Decode", err)
+        }
+    }
+
+    eventSource.onerror = () => {
+        // Reconexão Invisivel
+    }
 }
 
 onMounted(() => {
-    runSimulator()
+    startSseConnection()
 })
 
 onUnmounted(() => {
-    clearInterval(simInterval)
+    if (eventSource) eventSource.close()
 })
 </script>

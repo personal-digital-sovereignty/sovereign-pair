@@ -3,7 +3,7 @@
     <div v-for="node in nodes" :key="node.path">
       
       <!-- FOLDER -->
-      <div v-if="node.type === 'dir'">
+      <div v-if="node.type === 'dir' || node.is_dir">
         <div 
           @click="toggleFolder(node.path)"
           @contextmenu.prevent="onContextMenu($event, node)"

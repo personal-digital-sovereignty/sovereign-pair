@@ -18,6 +18,7 @@ const formatMessageIcons = (content: string) => {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || 'http://localhost:8001'
 
 const getAuthHeaders = (): Record<string, string> => {
    const token = localStorage.getItem('sovereign_token')
@@ -126,7 +127,7 @@ const deleteSessionConfirmed = async () => {
   if (!sessionToDelete.value) return
   
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/sessions/${sessionToDelete.value}`, {
+    const res = await fetch(`${RUST_CORE_URL}/v1/sessions/${sessionToDelete.value}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     })
@@ -151,7 +152,7 @@ const saveSessionEdit = async () => {
     if (editingTagsInput.value.trim()) {
       addTag()
     }
-    const res = await fetch(`${API_BASE_URL}/v1/sessions/${editingSession.value.id}`, {
+    const res = await fetch(`${RUST_CORE_URL}/v1/sessions/${editingSession.value.id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -186,7 +187,7 @@ const chatContainer = ref<HTMLElement | null>(null)
 // Recuperar Sessões do Backend
 const loadSessions = async () => {
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/sessions`, {
+    const res = await fetch(`${RUST_CORE_URL}/v1/sessions`, {
         headers: getAuthHeaders()
     })
     if (res.ok) {
@@ -386,7 +387,7 @@ const resendMessage = (msg: Message) => {
 // Carregar Histórico Antigo
 const loadSession = async (id: number) => {
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/sessions/${id}`, {
+    const res = await fetch(`${RUST_CORE_URL}/v1/sessions/${id}`, {
         headers: getAuthHeaders()
     })
     if (res.ok) {

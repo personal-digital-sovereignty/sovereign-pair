@@ -66,6 +66,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import SidebarTreeNode from './SidebarTreeNode.vue'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || 'http://localhost:8001'
 const isLoading = ref(true)
 const vaultTree = ref<any[]>([])
 
@@ -236,7 +237,7 @@ const deleteItem = async () => {
 const loadVaultTree = async () => {
   isLoading.value = true
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/vault/tree`, {
+    const res = await fetch(`${RUST_CORE_URL}/v1/vault/tree`, {
       method: 'GET',
       headers: getHeaders()
     })
@@ -246,7 +247,7 @@ const loadVaultTree = async () => {
         try {
             const data = JSON.parse(text)
             // Force vue reactivity by re-assigning a new array object
-            vaultTree.value = Array.isArray(data) ? [...data] : []
+            vaultTree.value = Array.isArray(data) ? [...data] : (data && typeof data === 'object' ? [data] : [])
         } catch (parseErr) {
             console.error("[Vault API] Failed to parse:", parseErr)
             vaultTree.value = []

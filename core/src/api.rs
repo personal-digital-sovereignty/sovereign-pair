@@ -44,6 +44,27 @@ pub async fn chat_completions_handler(
         requested_model.clone()
     };
 
+    // Extraindo o Prompt do User p/ Persistir
+    let human_prompt = payload.messages.last()
+        .map(|msg| match &msg.content {
+            crate::models::MessageContent::Text(t) => t.clone(),
+            crate::models::MessageContent::Multimodal(parts) => {
+                let mut full = String::new();
+                for part in parts {
+                    if let Some(txt) = part.get("text").and_then(|t| t.as_str()) {
+                        full.push_str(txt);
+                    }
+                }
+                full
+            }
+        })
+        .unwrap_or_else(|| "Interação O.S".to_string());
+
+    let active_session_id = crate::api_chat::get_or_create_session(&state.db, payload.session_id, &human_prompt).await;
+    
+    // Grava no Banco a pergunta Humana
+    crate::api_chat::save_message(&state.db, active_session_id, "user", &human_prompt).await;
+
     // 2. Transcrever Mensagens Complexas (Multimodal/Arrays) para Strict Strings + Injeção de RAG Nativo
     let mut purified_messages: Vec<Value> = Vec::new();
 
@@ -106,9 +127,12 @@ pub async fn chat_completions_handler(
     // Criamos o Túnel de Transmissão contínua em Rust
     // Variáveis locais puras para contabilização na Closure do Stream
     let tracking_telemetry = state.telemetry.clone();
+    let tracking_db = state.db.clone();
+    let tracking_session = active_session_id;
     let tracking_model = ollama_model.clone();
     let start_time = std::time::Instant::now();
     let mut session_tokens = 0;
+    let mut accumulator = String::new(); // Memory Builder da Resposta do Agente
 
     // Extraímos os Bytes Chunk a Chunk e mapeamos pro formato OpenAI SSE:
     let stream = res.bytes_stream().map(move |result| {
@@ -129,6 +153,7 @@ pub async fn chat_completions_handler(
                                     
                                     // Incremento ingênuo para cada Token yieldado
                                     session_tokens += 1;
+                                    accumulator.push_str(content); // Acopla p/ DB
                                     
                                     // Temos o Fragmento! Vamos envelopá-lo no formato OpenAI
                                     let chunk_response = OpenAIChatChunkResponse {
@@ -168,6 +193,13 @@ pub async fn chat_completions_handler(
                                     if let Ok(mut t) = tracking_telemetry.write() {
                                         t.record_session(total_real_tokens, duration, &tracking_model);
                                     }
+
+                                    // 🗄️ Imortalidade de Diálogo: Insere via Spawn para não bloquear o Axum Stream
+                                    let final_text = accumulator.clone();
+                                    let db_clone = tracking_db.clone();
+                                    tokio::spawn(async move {
+                                        crate::api_chat::save_message(&db_clone, tracking_session, "assistant", &final_text).await;
+                                    });
 
                                    let finish_response = OpenAIChatChunkResponse {
                                         id: "chatcmpl-end".to_string(),
