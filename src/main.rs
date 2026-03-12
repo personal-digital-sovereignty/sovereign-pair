@@ -3,6 +3,7 @@ mod models;
 mod realtime;
 mod rag;
 mod telemetry;
+mod sync_engine;
 
 use axum::{routing::post, Router};
 use reqwest::Client;
@@ -17,6 +18,7 @@ pub struct AppState {
     pub vault_path: std::path::PathBuf,
     pub telemetry: Arc<RwLock<telemetry::TelemetryState>>,
     pub log_sender: broadcast::Sender<models::LogEntry>,
+    pub sync_sender: broadcast::Sender<sync_engine::IngestionJob>,
 }
 
 #[tokio::main]
@@ -35,6 +37,11 @@ async fn main() {
     // Inicializa as Engrenagens do RAG Indexer nativo (Std::fs)
     let active_vault = rag::init_vault();
 
+    // Inicializa o Motor Físico RAG
+    let r_sync_engine = sync_engine::SyncEngine::new(active_vault.clone());
+    r_sync_engine.start_watcher().await;
+    let sync_tx = r_sync_engine.tx.clone();
+
     // Inicializa o Corredor de Eventos Cíbridos (Capacidade p/ 100 Logs antes de lag)
     let (log_tx, _) = broadcast::channel(100);
 
@@ -44,12 +51,14 @@ async fn main() {
         vault_path: active_vault,
         telemetry: Arc::new(RwLock::new(telemetry::TelemetryState::new())),
         log_sender: log_tx,
+        sync_sender: sync_tx,
     });
 
     let app = Router::new()
         // ------------------ LLMOps Telemetry & Logs ------------------
         .route("/v1/analytics/telemetry", axum::routing::get(api::telemetry_snapshot_handler))
         .route("/v1/logs", axum::routing::get(api::realtime_logs_handler))
+        .route("/v1/vault/sync/status", axum::routing::get(api::rag_sync_handler))
         // ------------------ Chat Endpoints ------------------
         .route("/opencode/v1/chat/completions", post(api::chat_completions_handler))
         .route("/v1/chat/completions", post(api::chat_completions_handler))
