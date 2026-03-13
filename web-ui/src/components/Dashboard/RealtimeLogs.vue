@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full flex flex-col bg-surface-50 dark:bg-[#0f0f12] border border-surface-200 dark:border-surface-700/50 rounded-xl overflow-hidden font-mono text-xs">
+  <div class="h-full flex flex-col bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700/50 rounded-xl overflow-hidden font-mono text-xs">
     <div class="flex items-center justify-between px-3 py-2 bg-surface-100/80 dark:bg-surface-800/80 border-b border-surface-200 dark:border-surface-700/50">
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full" :class="isConnecting ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'"></span>
