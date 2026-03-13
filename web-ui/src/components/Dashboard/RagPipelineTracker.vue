@@ -1,7 +1,7 @@
 <template>
-  <div class="w-full bg-surface-50 dark:bg-surface-900/80 border border-surface-200 dark:border-surface-700/50 rounded-xl overflow-hidden flex flex-col min-h-0">
+  <div class="w-full bg-surface-800 border border-surface-700/50 rounded-xl overflow-hidden flex flex-col min-h-0">
     <!-- Header O.S -->
-    <div class="px-3 py-2 border-b border-surface-200 dark:border-surface-700/50 bg-surface-100 dark:bg-surface-950 flex items-center justify-between">
+    <div class="px-3 py-2 border-b border-surface-700/50 bg-surface-900 flex items-center justify-between">
       <h3 class="text-[11px] font-mono tracking-widest text-surface-400 uppercase flex items-center gap-2">
         <span class="i-ph-brain-duotone text-emerald-500 text-sm"></span> 
         RAG Ingestion Queue
@@ -21,7 +21,7 @@
       </div>
 
       <!-- Item Tracker -->
-      <div v-for="job in jobs" :key="job.id" class="flex flex-col gap-2 p-2.5 rounded-lg border border-surface-200 dark:border-surface-800 bg-surface-100 dark:bg-surface-950 transition-colors relative overflow-hidden group">
+      <div v-for="job in jobs" :key="job.id" class="flex flex-col gap-2 p-2.5 rounded-lg border border-surface-700 bg-surface-900 transition-colors relative overflow-hidden group">
         <!-- Barra Lateral Dinamica -->
         <div class="absolute left-0 top-0 bottom-0 w-[2px]" :class="getStatusColor(job.status)"></div>
 
