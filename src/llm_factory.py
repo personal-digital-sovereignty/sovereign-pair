@@ -145,15 +145,7 @@ def get_llm(provider: str, model: str, temperature: float = 0.1, request_timeout
             request_timeout=request_timeout,
         )
     elif provider == "gemini":
-        from llama_index.llms.gemini import Gemini
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            logger.warning("GEMINI_API_KEY não configurada no .env")
-        return Gemini(
-            model=model.replace("gemini/", ""),
-            temperature=temperature,
-            api_key=api_key,
-        )
+        raise ValueError("O provedor Gemini foi temporariamente blindado e removido do Sovereign Pair para permitir a mitigação de Nível Crítico (CVE do pacote Pillow >= 12.1.1).")
     else:
         raise ValueError(f"Provedor LLM não suportado: {provider}")
 

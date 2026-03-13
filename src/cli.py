@@ -208,7 +208,7 @@ def run_setup():
     language = input("4. Qual o idioma ou sotaque principal para a IA adotar? [Português do Brasil]: ") or "Português do Brasil"
     geo = input("5. Qual a sua cidade/base (Geolocalização)? [Em Branco]: ") or ""
     occ = input("6. Qual a sua ocupação ou área de atuação primária? [Em Branco]: ") or ""
-    provider = input("7. Qual o motor LLM padrão que será usado? (ollama/openai/gemini) [ollama]: ") or "ollama"
+    provider = input("7. Qual o motor LLM padrão que será usado? (ollama/openai/anthropic/groq) [ollama]: ") or "ollama"
     
     print("\\n🔧 Configurações Adicionais:")
     origins = input("8. CORS: Quais URLs (Domínio Web UI) estarão permitidas bater na API? [http://localhost:5173]: ") or "http://localhost:5173,http://localhost:3000"
