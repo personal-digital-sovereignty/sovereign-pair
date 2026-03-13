@@ -45,3 +45,9 @@ variable "pat_ghcr" {
   description = "GitHub Personal Access Token for cloning private Sovereign Pair repo"
   sensitive   = true
 }
+
+variable "boot_volume_size_in_gbs" {
+  type        = number
+  description = "Size of the Boot Volume (GB). Default to 200 (Oracle Max Always Free)"
+  default     = 200
+}

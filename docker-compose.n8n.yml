@@ -28,13 +28,13 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      - N8N_HOST=${N8N_HOST:-100.106.246.15}
+      - N8N_HOST=${N8N_HOST:-n8n.sovereign.local}
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
       - NODE_ENV=production
       - N8N_PATH=/n8n/
       - N8N_SECURE_COOKIE=false
-      - WEBHOOK_URL=https://${N8N_HOST:-100.106.246.15}/n8n/
+      - WEBHOOK_URL=https://${N8N_HOST:-n8n.sovereign.local}/n8n/
       # Timezone
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-America/Sao_Paulo}
       # Conexão com o Banco Postgres Principal (sovereign-db)
