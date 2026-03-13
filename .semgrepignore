@@ -1,4 +1,3 @@
 docker-compose.n8n.yml
 node_modules/
 web-ui/node_modules/
-obsidian-plugin/node_modules/
