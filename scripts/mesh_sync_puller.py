@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # IP Configurado do Oracle Cloud (Blue Collar)
-BLUE_COLLAR_IP = os.getenv("TAILSCALE_BLUE_COLLAR_IP", "100.111.92.xx")
+BLUE_COLLAR_IP = os.getenv("TAILSCALE_BLUE_COLLAR_IP")
 BLUE_COLLAR_USER = os.getenv("OCI_WORKER_USER", "ubuntu")
 SYNC_VAULT_TARGET = os.getenv("SOVEREIGN_VAULT_ROOT", "/path/to/vault")
 
@@ -25,6 +25,10 @@ os.makedirs(RAG_VAULT_DESTINATION, exist_ok=True)
 
 def pull_harvested_rag_files():
     """Via SSH Key (Rsync), puxamos o banco SQLite cru do Worker."""
+    if not BLUE_COLLAR_IP:
+        print("[ERRO MESH SYNC] Variável TAILSCALE_BLUE_COLLAR_IP não configurada no ambiente (.env). Abortando rotina.")
+        return
+
     print(f"[{datetime.utcnow().isoformat()}] Iniciando RAG Mesh Sync do Node: {BLUE_COLLAR_IP}...")
     
     # O script rsync extrai apenas do Docker Folder mapeado `infra/oci/worker_data/`
