@@ -1,5 +1,5 @@
 <template>
-  <section class="bg-surface-50 border-surface-200 dark:bg-surface-900/80 border dark:border-amber-500/20 rounded-xl p-5 shadow-xl relative overflow-hidden flex flex-col h-full group">
+  <section class="bg-surface-800 border-surface-700 border rounded-xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.15)] relative overflow-hidden flex flex-col h-full group">
     <!-- Decorative accent -->
     <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-500 to-orange-600 opacity-80 group-hover:opacity-100 transition-opacity"></div>
     
@@ -13,7 +13,7 @@
     
     <div class="flex-1 flex flex-col gap-4 pl-2 font-mono">
         <!-- RAG Gaps / Quarantine -->
-        <div class="bg-surface-100 dark:bg-surface-950 border border-surface-200 dark:border-surface-800 rounded-lg p-3 flex items-center justify-between hover:border-red-500/30 transition-colors cursor-pointer" title="Ver Arquivos em Quarentena">
+        <div class="bg-surface-900 border border-surface-700 rounded-lg p-3 flex items-center justify-between hover:border-red-500/30 transition-colors cursor-pointer" title="Ver Arquivos em Quarentena">
             <div>
                 <p class="text-[10px] text-surface-500 uppercase tracking-wider mb-1">Knowledge Gaps (RAG)</p>
                 <div class="flex items-end gap-2">
@@ -25,7 +25,7 @@
         </div>
 
         <!-- Kanban Tasks For Today -->
-        <div class="bg-surface-100 dark:bg-surface-950 border border-surface-200 dark:border-surface-800 rounded-lg p-3 flex flex-col hover:border-emerald-500/30 transition-colors cursor-pointer" title="Abrir Kanban de Hoje">
+        <div class="bg-surface-900 border border-surface-700 rounded-lg p-3 flex flex-col hover:border-emerald-500/30 transition-colors cursor-pointer" title="Abrir Kanban de Hoje">
             <div class="flex items-center justify-between mb-2">
                 <p class="text-[10px] text-surface-500 uppercase tracking-wider">Missões de Hoje</p>
                 <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-widest bg-emerald-500/10 text-emerald-500">

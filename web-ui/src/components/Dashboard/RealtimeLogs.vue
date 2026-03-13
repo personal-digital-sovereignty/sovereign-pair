@@ -1,11 +1,11 @@
 <template>
-  <div class="h-full flex flex-col bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700/50 rounded-xl overflow-hidden font-mono text-xs">
-    <div class="flex items-center justify-between px-3 py-2 bg-surface-100/80 dark:bg-surface-800/80 border-b border-surface-200 dark:border-surface-700/50">
+  <div class="h-full flex flex-col bg-surface-800 border border-surface-700/50 rounded-xl overflow-hidden font-mono text-xs shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
+    <div class="flex items-center justify-between px-3 py-2 bg-surface-900/80 border-b border-surface-700/50">
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full" :class="isConnecting ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'"></span>
-        <span class="font-semibold text-surface-900 dark:text-surface-200 uppercase tracking-widest">Sovereign Event Stream</span>
+        <span class="font-semibold text-surface-200 uppercase tracking-widest">Sovereign Event Stream</span>
       </div>
-      <button @click="clearLogs" class="text-surface-500 hover:text-surface-900 dark:hover:text-white transition-colors" title="Limpar Logs">
+      <button @click="clearLogs" class="text-surface-500 hover:text-surface-100 transition-colors" title="Limpar Logs">
         <span class="i-ph-trash"></span>
       </button>
     </div>
@@ -13,7 +13,7 @@
       <div v-if="logs.length === 0" class="text-surface-600 italic text-center py-4">
         Aguardando eventos do Synesis Core...
       </div>
-      <div v-for="(log, idx) in logs" :key="idx" class="flex items-start gap-1.5 hover:bg-surface-200/50 dark:hover:bg-surface-800/30 px-1 py-0.5 rounded transition-colors text-[10px] leading-tight overflow-hidden">
+      <div v-for="(log, idx) in logs" :key="idx" class="flex items-start gap-1.5 hover:bg-surface-700/30 px-1 py-0.5 rounded transition-colors text-[10px] leading-tight overflow-hidden">
         <span class="text-surface-500 shrink-0 select-none">[{{ formatTime(log.timestamp) }}]</span>
         <span :class="getLogColor(log.level)" class="shrink-0 uppercase font-bold w-10 select-none">{{ log.level }}</span>
         <span class="text-surface-300 flex-1 truncate" :title="log.message">{{ log.message }}</span>
