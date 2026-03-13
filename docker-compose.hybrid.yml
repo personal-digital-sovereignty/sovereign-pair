@@ -27,43 +27,6 @@ services:
     networks:
       - sovereign-net-local
 
-  # 1. Banco de Dados Relacional Local
-  postgres:
-    image: postgres:15-alpine
-    container_name: sovereign-db-local
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /var/run/postgresql
-    security_opt:
-      - no-new-privileges:true
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-sovereign}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-master_pwd}
-      POSTGRES_DB: ${POSTGRES_DB:-sovereign_db}
-    volumes:
-      - pgdata-local:/var/lib/postgresql/data
-    networks:
-      - sovereign-net-local
-
-  # 2. Banco Vetorial Local (ChromaDB)
-  chroma:
-    image: chromadb/chroma:latest
-    container_name: sovereign-chroma-local
-    read_only: true
-    tmpfs:
-      - /tmp
-    security_opt:
-      - no-new-privileges:true
-    restart: always
-    volumes:
-      - chroma-data-local:/data
-    environment:
-      - IS_PERSISTENT=TRUE
-    networks:
-      - sovereign-net-local
-
   # 3. Backend Mestre da Inteligência (FastAPI) - Lendo cofres locais!
   api:
     build:
@@ -72,13 +35,8 @@ services:
     container_name: sovereign-api-local
     user: "1000:1000"
     restart: always
-    depends_on:
-      - postgres
-      - chroma
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-sovereign}:${POSTGRES_PASSWORD:-master_pwd}@postgres:5432/${POSTGRES_DB:-sovereign_db}
-      - CHROMA_HOST=chroma
-      - CHROMA_PORT=8000
+      - DATABASE_URL=sqlite:////app/data/sovereign_memory.db
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
       - ALLOWED_ORIGINS=http://localhost:8080,http://localhost:5173,app://sensusvault.local
@@ -112,8 +70,6 @@ services:
           - sovereign-web
 
 volumes:
-  pgdata-local:
-  chroma-data-local:
   caddy-data-local:
   caddy-config-local:
 
