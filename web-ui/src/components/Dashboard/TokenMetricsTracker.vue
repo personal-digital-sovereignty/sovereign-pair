@@ -1,7 +1,7 @@
 <template>
-  <div class="h-full flex flex-col bg-surface-50 dark:bg-[#0f1012] border border-surface-200 dark:border-[#1a1c21] rounded-xl overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
+  <div class="h-full flex flex-col bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-xl overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
     <!-- Header -->
-    <div class="flex items-center justify-between px-4 py-3 border-b border-surface-200 dark:border-[#1a1c21] bg-surface-100/80 dark:bg-[#141518]/80 backdrop-blur-sm">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-surface-200 dark:border-surface-800 bg-surface-100/80 dark:bg-surface-900/80 backdrop-blur-sm">
       <div class="flex items-center gap-2">
          <div class="w-2 h-2 rounded-full bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.6)]"></div>
          <h3 class="text-[12px] font-bold tracking-widest text-[#6c7585] uppercase">Telemetry Center</h3>

@@ -13,7 +13,7 @@
     
     <div class="flex-1 flex flex-col gap-4 pl-2 font-mono">
         <!-- RAG Gaps / Quarantine -->
-        <div class="bg-surface-100 dark:bg-[#0a0a0a] border border-surface-200 dark:border-surface-800 rounded-lg p-3 flex items-center justify-between hover:border-red-500/30 transition-colors cursor-pointer" title="Ver Arquivos em Quarentena">
+        <div class="bg-surface-100 dark:bg-surface-950 border border-surface-200 dark:border-surface-800 rounded-lg p-3 flex items-center justify-between hover:border-red-500/30 transition-colors cursor-pointer" title="Ver Arquivos em Quarentena">
             <div>
                 <p class="text-[10px] text-surface-500 uppercase tracking-wider mb-1">Knowledge Gaps (RAG)</p>
                 <div class="flex items-end gap-2">
@@ -25,7 +25,7 @@
         </div>
 
         <!-- Kanban Tasks For Today -->
-        <div class="bg-surface-100 dark:bg-[#0a0a0a] border border-surface-200 dark:border-surface-800 rounded-lg p-3 flex flex-col hover:border-emerald-500/30 transition-colors cursor-pointer" title="Abrir Kanban de Hoje">
+        <div class="bg-surface-100 dark:bg-surface-950 border border-surface-200 dark:border-surface-800 rounded-lg p-3 flex flex-col hover:border-emerald-500/30 transition-colors cursor-pointer" title="Abrir Kanban de Hoje">
             <div class="flex items-center justify-between mb-2">
                 <p class="text-[10px] text-surface-500 uppercase tracking-wider">Missões de Hoje</p>
                 <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-widest bg-emerald-500/10 text-emerald-500">
