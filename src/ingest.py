@@ -20,7 +20,6 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 # Importar configurações centralizadas
 from config import (
     RAW_DOCS_DIRS,
-    VAULT_DIR,
     CHROMA_DIR,
     CHROMA_COLLECTION_NAME,
     FOLLOW_SYMLINKS,
@@ -29,9 +28,7 @@ from config import (
     CHUNK_OVERLAP,
     HISTORY_FILE,
     INTERACTIVE_MODE,
-    LLM_MODEL_NAME,
     get_embed_model,
-    OLLAMA_NUM_CTX,
     validate_document_paths,
 )
 

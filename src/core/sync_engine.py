@@ -1,7 +1,6 @@
 import os
 import yaml
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Dict, Any, Union
 
 from src.api.models import ProjectModel, TaskModel, NoteModel

@@ -14,7 +14,6 @@ import time
 import uuid
 import schedule
 import requests
-import json
 from datetime import datetime
 from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
