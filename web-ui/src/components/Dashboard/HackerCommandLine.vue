@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] relative group">
+  <div class="w-full bg-surface-800 border border-surface-700/50 rounded-xl overflow-hidden relative group shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
     <!-- Efeito Glitch/Glow Superior -->
     <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
     
@@ -32,7 +32,7 @@
     </div>
     
     <!-- Output Console (Expandido via Toggle) -->
-    <div v-if="commandLog.length > 0" class="border-t border-surface-200 dark:border-surface-800/80 bg-surface-100 dark:bg-surface-950 p-3 max-h-32 overflow-y-auto custom-scroll">
+    <div v-if="commandLog.length > 0" class="border-t border-surface-700/80 bg-surface-900 p-3 max-h-32 overflow-y-auto custom-scroll">
       <div v-for="(log, idx) in commandLog" :key="idx" class="font-mono text-[11px] mb-1.5 flex gap-2" :class="getLogColor(log.type)">
         <span class="opacity-50 select-none">[{{ log.timestamp }}]</span>
         <span>{{ log.text }}</span>
