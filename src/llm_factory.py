@@ -17,7 +17,7 @@ def _get_setting(key: str, default: str) -> str:
     except Exception:
         return default
 
-import time
+import time  # noqa: E402
 
 _health_cache = {}
 _HEALTH_CACHE_TTL = 30.0

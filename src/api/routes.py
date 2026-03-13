@@ -5,7 +5,6 @@ import uuid
 from pydantic import BaseModel, Field
 from fastapi.responses import StreamingResponse
 from .schemas import ChatRequest, ChatResponse, Citation, SettingsRequest, SettingsResponse, SessionUpdateRequest, UploadResponse, DocumentUpdateRequest, ProjectCreateRequest, ProjectUpdateRequest, ProjectResponse, TaskCreateRequest, TaskUpdateRequest, TaskResponse, NoteCreateRequest, NoteUpdateRequest, NoteResponse, ActivityLogResponse
-from .schemas import OpenAIChatRequest, OpenAIChatResponse, OpenAIChatChoice, OpenAIChatChoiceMessage, OpenAIChatChunkResponse, OpenAIChatChunkChoice, OpenAIChatChunkDelta, OpenAITokenUsage
 from .dependencies import get_chat_engine
 from typing import List
 
@@ -634,7 +633,6 @@ async def release_quarantine(request: Request, log_id: int, db: Session = Depend
 async def delete_quarantine(request: Request, log_id: int, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Remove a entrada da quarentena e deleta o PDF fisicamente."""
     from fastapi import HTTPException
-    import os
     
     log = db.query(QuarantineLog).filter(QuarantineLog.id == log_id, QuarantineLog.tenant_id == tenant_id).first()
     if not log:
@@ -685,9 +683,9 @@ async def save_feedback(req: FeedbackRequest, db: Session = Depends(get_db), ten
     if not msg:
         raise HTTPException(status_code=404, detail="Mensagem não encontrada e Fallback via session_id falhou.")
 
-    if req.thumbs_up is not None: msg.thumbs_up = req.thumbs_up
-    if req.thumbs_down is not None: msg.thumbs_down = req.thumbs_down
-    if req.feedback_text is not None: msg.feedback_text = req.feedback_text
+    if req.thumbs_up is not None: msg.thumbs_up = req.thumbs_up  # noqa: E701
+    if req.thumbs_down is not None: msg.thumbs_down = req.thumbs_down  # noqa: E701
+    if req.feedback_text is not None: msg.feedback_text = req.feedback_text  # noqa: E701
     
     db.commit()
     return {"status": "ok"}
@@ -870,7 +868,6 @@ def update_settings(request: Request, body_request: SettingsRequest, db: Session
 def get_authorized_workspaces(db: Session, tenant_id: str) -> list:
     from src.config import RAW_DOCS_DIR
     import json
-    import os
     
     intake = _get_setting_value(db, "default_intake_vault", str(RAW_DOCS_DIR), tenant_id)
     ws_str = _get_setting_value(db, "workspaces", "[]", tenant_id)
@@ -926,7 +923,6 @@ def toggle_remote_integration(request: Request, db: Session = Depends(get_db), t
     return {"status": "success", "remote_integration_enabled": new_val == "true"}
 
 def is_path_authorized(target_path: str, auth_dirs: list) -> bool:
-    import os
     abs_target = os.path.abspath(target_path)
     for auth_dir in auth_dirs:
         if abs_target.startswith(auth_dir):
@@ -1038,7 +1034,6 @@ async def get_vault_tree(db: Session = Depends(get_db), tenant_id: str = Depends
     Retorna a árvore do File System real (RAW_DOCS_DIR) convertida em JSON hierárquico.
     cruza a existência dos arquivos com a Database para informar o 'has_vector'.
     """
-    import os
     
     # 1. Puxa todos os arquivos sincronizados da DB (unindo default e ativo)
     docs = db.query(SensusDocumentModel.file_path, SensusDocumentModel.vector_id, SensusDocumentModel.id, SensusDocumentModel.extracted_tags).filter(SensusDocumentModel.tenant_id.in_(["default", tenant_id])).all()
@@ -1102,7 +1097,6 @@ class FSDeleteRequest(BaseModel):
 
 @router.post("/vault/fs/create")
 async def fs_create(req: FSCreateRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
-    import os
     
     auth_dirs = get_authorized_workspaces(db, tenant_id)
     target_dir = os.path.abspath(req.path)
@@ -1126,7 +1120,6 @@ async def fs_create(req: FSCreateRequest, db: Session = Depends(get_db), tenant_
 
 @router.put("/vault/fs/rename")
 async def fs_rename(req: FSRenameRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
-    import os
     
     auth_dirs = get_authorized_workspaces(db, tenant_id)
     target_path = os.path.abspath(req.path)
@@ -1144,7 +1137,6 @@ async def fs_rename(req: FSRenameRequest, db: Session = Depends(get_db), tenant_
 
 @router.delete("/vault/fs/delete")
 async def fs_delete(req: FSDeleteRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
-    import os
     import shutil
     
     auth_dirs = get_authorized_workspaces(db, tenant_id)
@@ -1223,7 +1215,6 @@ async def execute_on_coder_node(req: CoderExecuteRequest, request: Request, tena
     Recebe comandos do VSCode/Sensus locais e redireciona (Proxy) via rede Tailscale (mTLS) 
     diretamente para a API do "The Coder" hospedada na Oracle Cloud A1.
     """
-    import os
     import httpx
     from fastapi import HTTPException
     import logging
@@ -1266,7 +1257,6 @@ async def execute_on_coder_node(req: CoderExecuteRequest, request: Request, tena
 @router.get("/vault/document/{doc_id}")
 async def get_vault_document(doc_id: str, db: Session = Depends(get_db)):
     """Busca o conteúdo cru do respectivo markdown no disco."""
-    import os
     from fastapi import HTTPException
     
     doc = db.query(SensusDocumentModel).filter(SensusDocumentModel.id == doc_id).first()
@@ -1292,7 +1282,6 @@ async def get_vault_document(doc_id: str, db: Session = Depends(get_db)):
 @router.put("/vault/document/{doc_id}")
 async def update_vault_document(doc_id: str, request: DocumentUpdateRequest, db: Session = Depends(get_db)):
     """Atualiza o conteúdo físico do markdown no disco. O Watchdog 'The Mom' se encarrega do sync SQLite e Vetor."""
-    import os
     from fastapi import HTTPException
     
     doc = db.query(SensusDocumentModel).filter(SensusDocumentModel.id == doc_id).first()
@@ -1368,7 +1357,6 @@ async def evaluate_table(request: Request, body: TableCalcRequest, tenant_id: st
 @router.get("/vault/search")
 async def search_vault(q: str, db: Session = Depends(get_db)):
     """Pesquisa heurística super-rápida via SQLite LIKE no Título, Resumo Semântico e Tags."""
-    import os
     from sqlalchemy import or_
     
     # Limita a busca em 10 resultados para a Sophi Bar não travar
@@ -1398,7 +1386,6 @@ async def search_vault(q: str, db: Session = Depends(get_db)):
 @router.get("/vault/recent")
 async def get_recent_documents(db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Retorna os documentos ordenados por modificação (Recent Activities)"""
-    import os
     docs = db.query(SensusDocumentModel).filter(
         SensusDocumentModel.tenant_id == tenant_id
     ).order_by(SensusDocumentModel.updated_at.desc()).limit(15).all()
@@ -1442,7 +1429,6 @@ async def get_vault_tasks(db: Session = Depends(get_db), tenant_id: str = Depend
 async def get_vault_agenda(db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Retorna documentos e tarefas aglomerados por buckets de tempo (Hoje, Semana, Mês, Ano)."""
     from datetime import datetime, timezone, timedelta
-    import os
     
     docs = db.query(SensusDocumentModel).filter(
         SensusDocumentModel.tenant_id.in_(["default", tenant_id])
@@ -1508,7 +1494,6 @@ async def get_vault_agenda(db: Session = Depends(get_db), tenant_id: str = Depen
 @router.get("/vault/graph")
 async def get_vault_graph(db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Retorna nós e vértices para o Sovereign Cognitive Graph."""
-    import os
     docs = db.query(SensusDocumentModel).filter(SensusDocumentModel.tenant_id.in_(["default", tenant_id])).all()
     
     nodes = []
@@ -1594,7 +1579,6 @@ async def execute_mcp_tool(request: Request, body: MCPToolRequest):
     Executa ferramentas expostas via MCP (VSCode OpenCode / Cline).
     Permite que o Editor consuma o RAG e o Context7 do Sovereign Pair.
     """
-    import os
     
     if body.tool == "sensus_vault_search":
         # Simula uma busca heurística rápida para o Coder na IDE

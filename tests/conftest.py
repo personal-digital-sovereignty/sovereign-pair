@@ -10,8 +10,8 @@ os.environ["DATABASE_URL"] = "sqlite:///./test_sensus.db"
 os.environ["VAULT_DIR"] = "/tmp/sovereign_tests_vault"
 os.environ["CHROMA_DIR"] = "/tmp/sovereign_tests_chroma"
 
-import pytest
-from src.api.database import engine, Base
+import pytest  # noqa: E402
+from src.api.database import engine, Base  # noqa: E402
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_environment():

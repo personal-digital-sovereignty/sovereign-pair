@@ -144,12 +144,12 @@ def _run_worker_sync(task_id: str, tenant_id: str):
         from src.web_search import search_web
         
         # Puxa sumários online via the Dad Agent / FlashRank Searchers
-        web_results = search_web(task.topic)
+        web_results = search_web(task.topic)  # noqa: F841
         
         # Emulando latência de parseamento do Scraper
         time.sleep(5)
         
-        task.last_log = f"Sucesso. Ingestão Web extraiu context chunks de DDGS. RAG Cíbrido alimentado."
+        task.last_log = "Sucesso. Ingestão Web extraiu context chunks de DDGS. RAG Cíbrido alimentado."
         task.status = "idle"
         db.commit()
         logger.info(f"✅ [Blue Collar] Finalizou missão: '{task.topic}'")
@@ -161,7 +161,7 @@ def _run_worker_sync(task_id: str, tenant_id: str):
              task.status = "error"
              task.last_log = f"Falha Crítica do Scraper: {str(e)}"
              db.commit()
-        except:
+        except:  # noqa: E722
              pass
     finally:
         db.close()

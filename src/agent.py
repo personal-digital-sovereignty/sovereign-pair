@@ -21,14 +21,12 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 
 from typing import Optional
-from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
 
 from config import (
     OWNER_NAME,
     AGENT_VERBOSE,
     get_default_llm,
-    get_embed_model,
     validate_ollama_connection,
     validate_ollama_models
 )
@@ -79,7 +77,7 @@ def initialize_rag_tool() -> Optional[QueryEngineTool]:
         # [SQLite VEC MIGRATION]: O RAG passou a ser inteiramente gerido via The Nurse / Engine Builder com o Retriever Cíbrido nativo
         # Não iniciamos mais instâncias atômicas de vector store aqui, deixamos pro builder gerenciar a conector do SQLAlchemy
         from src.config import get_default_llm
-        llm = get_default_llm()
+        llm = get_default_llm()  # noqa: F841
         
         # Fake index passage placeholder for CLI tool loop (Desacoplaremos futuramente)
         index = None
@@ -200,11 +198,11 @@ async def main():
         
         # Inicializar ferramentas
         # Note: initialize_rag_tool pode demorar, mas é síncrono.
-        system_prompt = f"""Você é o Sovereign Pair CLI Assistant.
+        system_prompt = """Você é o Sovereign Pair CLI Assistant.
 Responda diretamente e seja claro.
-Use idioma Português do Brasil por padrão."""
+Use idioma Português do Brasil por padrão."""  # noqa: F841
 
-        active_llm = get_default_llm()
+        active_llm = get_default_llm()  # noqa: F841
 
         index, local_tool = initialize_rag_tool()
         # web_tool = initialize_web_tool()

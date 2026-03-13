@@ -11,8 +11,6 @@ from .security_logger import setup_security_logging
 from src.config import ALLOWED_ORIGINS
 from fastapi import Depends
 from .auth import router as auth_router, get_current_user
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request as StarletteRequest # Renamed to avoid conflict with fastapi.Request
 import logging
 
 # Setup PYTHONPATH e SysPath
@@ -80,7 +78,6 @@ async def app_lifespan(app: FastAPI):
     pull_thread.start()
     
     # Iniciar "The Mom" (Predictor/Watcher silêncioso no background)
-    from src.core.the_mom import VaultWatcher
     from src.config import VAULT_DIR
     from src.api.database import SessionLocal
     from src.api.routes import get_authorized_workspaces
@@ -171,10 +168,10 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/v1/auth", tags=["Authentication"])
-from .routes_opencode import router as opencode_router
+from .routes_opencode import router as opencode_router  # noqa: E402
 app.include_router(opencode_router, prefix="/opencode/v1", tags=["OpenAI Compatible Proxy"])
 
-from .blue_collar import router as blue_collar_router
+from .blue_collar import router as blue_collar_router  # noqa: E402
 app.include_router(blue_collar_router, prefix="/v1", dependencies=[Depends(get_current_user)])
 
 app.include_router(router, prefix="/v1", dependencies=[Depends(get_current_user)])

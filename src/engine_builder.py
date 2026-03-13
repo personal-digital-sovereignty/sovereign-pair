@@ -1,12 +1,9 @@
 import logging
-from llama_index.core.schema import TextNode
-from llama_index.core.retrievers.fusion_retriever import QueryFusionRetriever, FUSION_MODES
 from llama_index.core.chat_engine import CondensePlusContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
-from src.custom_retrievers import CustomBM25Retriever
 from src.config import get_default_llm, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
      OWNER_NICKNAME, OCCUPATION, ABOUT_USER, LANGUAGE, GEOLOCATION, REQUEST_TIMEOUT, \
-     OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY
+     OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY
 from datetime import datetime
 from llama_index.core.llms import ChatMessage, MessageRole
 
@@ -93,7 +90,7 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
     # 2. BM25 Retriever (Palavras-chave / Datas exatas)
     # [Fase A] - Temporariamente desligado até migrarmos os tokens fts5 no sqlite-vec
     logger.info("   📊 Índice BM25 suspenso durante transição pro SQLite-vec...")
-    nodes = []
+    nodes = []  # noqa: F841
     
     # Fusion Retriever (RRF) fará by-pass provisório (só vector-search)
     # até a compilação do BM25 local via SQLAlchemy
@@ -233,7 +230,6 @@ def build_system_chat_engine(provider=None, model_name=None, api_keys=None):
     """
     logger.info("⚙️  Configurando System Chat Engine (Meta-RAG)...")
     try:
-        from src.api.database import SessionLocal
         # Implementação Futura: O System Engine será atado a uma Base Vector SQL isolada
         # Enquanto preparamos a Fase B, ele atua via in-memory basic-rag.
         index = None
