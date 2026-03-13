@@ -4,7 +4,6 @@
       
       <!-- FOLDER -->
       <div v-if="node.type === 'dir' || node.is_dir">
-        <div 
         <div class="flex items-center gap-1.5 flex-1 min-w-0" @click="toggleFolder(node.path)" @contextmenu.prevent="onContextMenu($event, node)">
           <!-- Chevron -->
           <svg v-if="!isOpen(node.path)" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-50 group-hover:opacity-100 shrink-0"><path d="m9 18 6-6-6-6"/></svg>
