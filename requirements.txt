@@ -130,7 +130,7 @@ pillow==10.4.0
 platformdirs==4.9.2
 pluggy==1.6.0
 posthog==5.4.0
-primp==1.1.1
+# primp==1.1.1  # Removido temporariamente por estar causando 404/Crash no Docker O.S Build
 propcache==0.4.1
 proto-plus==1.27.1
 protobuf==5.29.6
