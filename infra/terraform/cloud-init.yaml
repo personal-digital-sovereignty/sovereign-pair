@@ -67,10 +67,14 @@ runcmd:
 
   # 7. Clone Sovereign Pair and Spin Up Cibrid Services (RAG + N8N Zero Cost)
   - git clone https://${pat_ghcr}@github.com/Personal-Digital-Sovereignty/sovereign-pair.git /opt/sovereign-pair
-  # Prepare environments and vault architecture (Using sh -c because cloud-init runcmd executes each line in a fresh shell)
+  # Prepare environments and vault architecture
   - sh -c "cd /opt/sovereign-pair && cp .env.example .env && sed -i 's/TS_AUTHKEY=tskey-auth-xxxxxxxxx/TS_AUTHKEY=${tailscale_auth_key}/g' .env && mkdir -p ./data/vault"
   
   # 8. Start Tailscale last to secure MagicDNS routing without breaking build resolvers
-  - tailscale up --authkey=${tailscale_auth_key} --ssh --accept-dns=true
+  # Atrasamos 5 segundos entre a instalação do daemon e o Up para evitar Timeout Socket.
+  - sleep 5
+  - tailscale up --authkey=${tailscale_auth_key} --ssh --accept-dns=true --hostname=sovereign-coder
   - sleep 10
-  - sh -c "cd /opt/sovereign-pair && sudo docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d"
+  
+  # 9. Inicializar a Malha de Containers (OCI Edge) apontando para os sub-paths corretos
+  - sh -c "cd /opt/sovereign-pair && sudo docker compose -f infra/oci/docker-compose.yml -f docker-compose.n8n.yml up -d"
