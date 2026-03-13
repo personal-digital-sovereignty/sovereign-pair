@@ -34,9 +34,7 @@ def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm=None, api_k
             key = api_keys.get("groq_api_key") or GROQ_API_KEY
             return Groq(model=model_name, api_key=key, request_timeout=REQUEST_TIMEOUT)
         elif p == "gemini":
-            from llama_index.llms.gemini import Gemini
-            key = api_keys.get("gemini_api_key") or GEMINI_API_KEY
-            return Gemini(model=model_name, api_key=key)
+            raise ValueError("O provedor 'gemini' foi cirurgicamente amputado. A dependência google-generativeai bloqueia a correção de Segurança Crítica do Pillow.")
         elif "ollama" in p:
             from llama_index.llms.ollama import Ollama
             from src.config import OLLAMA_NUM_CTX
