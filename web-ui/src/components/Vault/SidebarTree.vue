@@ -50,7 +50,7 @@
                  </button>
             </div>
             <!-- Filhos do Drive -->
-            <SidebarTreeNode :nodes="ws.tree" :workspaceId="ws.workspace_id" @show-context-menu="handleContextMenu" />
+            <SidebarTreeNode :nodes="ws.tree" :workspaceId="ws.workspace_id" @show-context-menu="handleContextMenu" @node-action="handleNodeAction" />
          </div>
       </div>
 
@@ -334,6 +334,46 @@ const deleteItem = async () => {
   } finally {
     closeContextMenu()
   }
+}
+
+const moveItem = async () => {
+  if (!contextMenu.value.node || contextMenu.value.workspaceId === null) return
+  const currentName = contextMenu.value.node.filename
+  let newPath = prompt(`Mover '${currentName}' para qual diretório interno?\n\n- Deixe VAZIO para jogar na Raiz do Drive.\n- Ou escreva o caminho relativo (Ex: pasta/subpasta)`, "")
+  
+  if (newPath === null) return closeContextMenu() // Cancelou
+  
+  try {
+    const res = await fetch(`${RUST_CORE_URL}/v1/vault/fs/move`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ 
+          workspace_id: contextMenu.value.workspaceId, 
+          path: contextMenu.value.node.id,
+          target_path: newPath 
+      })
+    })
+    
+    if (res.ok) await loadAllWorkspaces()
+    else {
+        const errorData = await res.json()
+        alert(`Falha Cíbrida ao Mover: ${errorData.detail}`)
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    closeContextMenu()
+  }
+}
+
+const handleNodeAction = (payload: { action: string, node: any, workspaceId: number }) => {
+  // Preenche context state pra reusar as funções originais
+  contextMenu.value.node = payload.node
+  contextMenu.value.workspaceId = payload.workspaceId
+  
+  if (payload.action === 'rename') renameItem()
+  if (payload.action === 'delete') deleteItem()
+  if (payload.action === 'move') moveItem()
 }
 
 // --- The Sovereign Multi-Drive Fetcher ---
