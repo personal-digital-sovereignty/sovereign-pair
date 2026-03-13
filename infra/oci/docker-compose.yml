@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # The Web Scraper Spider (Blue Collar Worker)
+  blue_collar_spider:
+    build:
+      context: ../../
+      dockerfile: infra/oci/Dockerfile.worker
+    container_name: sovereign_blue_collar
+    restart: unless-stopped
+    volumes:
+      # O banco remoto SQLite onde o Worker injetará os documentos RAG mastigados
+      - ./worker_data:/app/data
+      - ./logs:/app/logs
+    environment:
+      # Aponta para o localhost pois o script foi projetado para rodar Ollama via rede host-gateway
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      # Define que a instância roda em contexto Núvem
+      - NODE_ENV=oci
+      # Modelos prediletos O.S para inferências Edge-Cloud
+      - OLLAMA_MODEL=llama3.2:latest
+    networks:
+      - sovereign_net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  sovereign_net:
+    driver: bridge
+
+volumes:
+  worker_data:
+  logs:
