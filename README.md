@@ -8,39 +8,27 @@
 
 ---
 
-## Visa Geral da Arquitetura
+## Visão Geral da Arquitetura
 
-O sistema superou a fase inicial de "Apenas Ingestão Incremental" e funciona hoje como um **Motor de Contexto** central, dividido em quatro grandes pilares:
+O sistema superou as iterações base e opera hoje como um **Córtex Mestre Tri-Core O.S**, sustentado nos seguintes pilares:
 
-1. **Inteligência e Processamento Base (LLM & Embeddings)**
-   - Integração com **Ollama** para execução 100% local e offline na própria GPU/CPU.
-   - Suporte transparente (via `LlamaIndex`) a provedores em nuvem (OpenAI, Anthropic, Gemini, Groq).
-   - Embedding models locais (ex: `bge-m3`, `nomic-embed-text`) alimentando bases vetoriais.
+1. **Inteligência Local e Reflexiva (LLM)**
+   - Execução 100% offline via **Ollama** gerenciado de forma implacável pela O.S., travando contextos na VRAM em tempo de compilação sem "Cold Boots".
+   - Inferência RAG assisturada por **LangGraph** (StateGraphs) permitindo o sistema agir instintivamente com tags `<thinking>` e autocriticar antes de responder (Loop Agentic).
 
-2. **Memória Híbrida e Persistência de Dados**
-   - **ChromaDB**: Banco de dados vetorial operando em arquitetura persistente local (`data/chromadb`).
-   - **SQLite + SQLAlchemy**: Banco de dados relacional que mantém todo o histórico de conversas e estado da API (`data/sovereign_memory.db`).
+2. **Memória Atômica Cíbrida (SQLite Native)**
+   - O absoleto banco ChromaDB e ineficiências transacionais do O.S. foram **extirpados**.
+   - **sovereign_memory.db**: Única fonte da verdade O(1). O banco Sqlite O.S (`journal_mode=WAL`) gerencia histórico de chat, quadros Kanban e a infraestrutura Vetorial, alcançando escrita atômica instantânea dos textos no SSD local.
 
-3. **Backend RAG e Servidor de Contexto (FastAPI/MCP)**
-   - Exposição via API RESTful de alta concorrência gerida por corrotinas assíncronas do LlamaIndex (`astream_chat`).
-   - Servidor **MCP (Model Context Protocol)** embutido, convertendo o Sovereign Vault (ChromaDB + Markdown) em recursos nativos mapeados diretamente para sistemas HOST (como Claude Desktop e VSCode).
-   - Suporte a **Server-Sent Events (SSE)** nativo para respostas textuais em Streaming Real-Time.
-   - Segurança e autenticação rigorosa via **JWT (JSON Web Tokens)**.
+3. **Backend RAG (Sovereign Core - Rust & Python)**
+   - O.S Tri-Core Engine construído em **Rust (Axum + Tokio)** entregando milissegundos de latência em leitura de diretórios O.S, gestão Kanban e roteamento LLM.
+   - Suporte nativo ao **Server-Sent Events (SSE)** em tempo asíncrono e extração de telemetria precisa cravando o uso de CPU e Custos Ocultos por Token.
 
-4. **Trindade de Clientes Nativos**
-   - **App Vue 3 (Web UI / God Mode Cockpit)**: Além da experiência PWA de IA, integra consoles de governança absoluta de IPs/UUIDs engaiolados, quarentena do Sentinel e Anti-Injeção.
-   - **Plugin Sensus Vault 3.0**: Interface hiper-integrada oferecendo 3 visualizações (Mini-Web lateral, Minimalista focado no texto, e Spotlight Modal gigantesco para brainstormings).
-   - **Agente Terminal (CLI)**: Uma das mais parrudas interfaces interativas de Terminal.
+4. **Omni-Dashboard O.S (God Mode Cockpit Vue JS)**
+   - A Interface Web PWA evoluiu para uma central de Guerra Panorâmica de Múltiplos Painéis (Tri-Core Tracker O.S), substituindo de forma integral quaisquer antigos "plugins de terceiros". Aqui, os logs de Kernel, Monitoria de Recursos (VRAM/RAM) e gerenciamento dos drives virtuais se fundem numa obra de design Wide-screen O.S extrema.
 
-5. **Orquestração Cíbrida Zero-Cost (N8N OCI)**
-   - Integração com o orquestrador N8N (Queue Mode) atrelado a banco Postgres.
-   - Broker efêmero rápido via **Redis** hospedado no nível gratuito da Nuvem (Oracle A1 Flex OCPU).
-   - Tunelamento estático 100% blindado por **Gatekeeper Cloudflare / Tailscale VPN**, isolando portas da internet pública.
-
-6. **SecOps FOSS Enterprise (A Tríade de Defesa)**
-   - **Gitleaks (Native Local Docker)**: Scanner militar bloqueando nativamente pushes com credenciais (pre-push hook).
-   - **Semgrep SAST**: Análise estática avançada de código procurando bypasses, hardcoding e injeções no repositório.
-   - **Zizmor & Trivy**: Auditoria de imagens OCI (Containers) e verificação extrema de permissões e segurança na esteira Github Actions.
+5. **A Ciber-Malha de Interligação Mesh (Oracle OCI)**
+   - Servidor Local atua também de forma assimétrica acoplado ao servidor autônomo na infraestrutura Cloud. O **MeshSyncWorker** e o "The Blue Collar" mineram PDFs internet afora de forma autônoma 24/7 na Oracle e os disparam para o RAG DOMESTICO assíncronamente.
 
 ---
 
@@ -126,32 +114,16 @@ python src/cli.py chat
 O Sovereign Pair evoluiu para uma infraestrutura Multi-Topológica, dividindo-se baseando-se no que roda Localmente *versus* Nuvem:
 
 **Cenário 1: The Cloud Citadel (100% Servidor OCI)**  
-Tudo centralizado no Oracle (Tailscale, N8N, Ollama, Bancos, etc).
+Tudo centralizado no Oracle (Tailscale, Ollama, SQLite, Mesh Tunneling).
 ```bash
 docker compose up -d --build
 ```
 
-**Cenário 2: The True Cibrid (Cofre Local + Músculo OCI)**  
-Roda localmente apenas o Frontend, Banco de Dados, Chroma Vetorial e API (lendo os arquivos do seu PC), mas direciona a carga mental pesada para a Nuvem via Tailscale (Configure `OLLAMA_BASE_URL` apontando para o Servidor). Sem VPN e Sem Caddy local:
-```bash
-docker compose -f docker-compose.hybrid.yml up -d --build
-```
-> *Telas Expostas Localmente:* Frontend (`localhost:8080`) e API (`localhost:8000`)
-
-**Cenário 4: The Offline Bunker (100% Local / Desktop)**  
-Roda absolutamente **tudo** localmente, *incluindo* um Docker isolado do Ollama devorando a RAM/VRAM da sua máquina física sem internet.
+**Cenário 2: The Offline Bunker (100% Local / Desktop)**  
+Roda absolutamente **tudo** localmente na sua máquina física, englobando a carga de processamento das GPUs e CPUS via motor Rust.
 ```bash
 docker compose -f docker-compose.local.yml up -d --build
 ```
-
-### Integrando o Sensus Vault (Plugin Nativo)
-Sovereign Pair vem com um plugin em TypeScript embutido para Sensus Vault, criando uma simbiose profunda com sua base de texto.
-```bash
-cd sensusvault-plugin
-npm install
-npm run build
-```
-O Plugin empacotado reside em `.sensusvault/plugins/sovereign-pair/` no seu Vault. Uma vez habilitado no Sensus Vault, você ganha o controle do histórico de pastas e o superpoder da injeção de contexto ativo diretamente pelo editor, sob as 3 filosofias visuais fornecidas pelo plugin.
 
 ---
 
