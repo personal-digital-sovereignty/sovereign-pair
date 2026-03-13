@@ -74,7 +74,7 @@ async def opencode_chat_completions(
     llama_msgs = []
     for msg in parsed_body.messages:
         role = MessageRole.USER if msg.role == "user" else MessageRole.ASSISTANT
-        if msg.role == "system": role = MessageRole.SYSTEM
+        if msg.role == "system": role = MessageRole.SYSTEM  # noqa: E701
         
         # Extrai texto puro caso o OpenCode envie um array multimodal
         content_str = msg.content

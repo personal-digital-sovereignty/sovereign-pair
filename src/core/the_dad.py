@@ -7,7 +7,6 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from src.api.database import SessionLocal
 from src.api.models import SensusDocumentModel
-from src.config import Settings
 
 logger = logging.getLogger(__name__)
 

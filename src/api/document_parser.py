@@ -1,6 +1,5 @@
 import os
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +29,10 @@ def _parse_pdf(filepath: str) -> str:
     try:
         import pymupdf4llm
         md_text = pymupdf4llm.to_markdown(filepath)
-        filename = os.path.basename(filepath)
+        filename = os.path.basename(filepath)  # noqa: F841
         
         # Adicionando um aviso de somete-leitura no TOPO do markdown gerado para PDFs
-        header = f"> [!NOTE]\n> **Pre-Renderização Dinâmica PDF:** Extração Textual Estrutural feita on-the-fly (`MuPdf Engine`). Edições visuais na UI não compilarão fisicamente como novo PDF de volta_.\n\n"
+        header = "> [!NOTE]\n> **Pre-Renderização Dinâmica PDF:** Extração Textual Estrutural feita on-the-fly (`MuPdf Engine`). Edições visuais na UI não compilarão fisicamente como novo PDF de volta_.\n\n"
         md_text = header + md_text
         return md_text
     except ImportError:

@@ -174,7 +174,6 @@ MAX_WEB_SEARCH_RESULTS = int(os.getenv("MAX_WEB_SEARCH_RESULTS", "3"))
 
 # Configuração do LLM para chat e geração de respostas
 def get_default_llm():
-    from src.llm_factory import get_llm
     from src.llm_factory import _get_active_ollama_url
     return get_llm(
         provider=LLM_PROVIDER,
@@ -187,7 +186,6 @@ def get_default_llm():
 def get_embed_model():
     """Retorna o Embed Model despachado para a Nuvem Mapeada dinamicamente."""
     # Importar get_embedding_model aqui para carregamento dinâmico, se necessário
-    from src.llm_factory import get_embedding_model
     from src.llm_factory import _get_active_ollama_url
     return get_embedding_model(
         provider=EMBEDDING_PROVIDER,
