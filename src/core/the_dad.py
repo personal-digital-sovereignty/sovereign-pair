@@ -7,7 +7,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from src.api.database import SessionLocal
 from src.api.models import SensusDocumentModel
-from src.config import Settings, CHROMA_COLLECTION_NAME, get_chroma_client
+from src.config import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +23,6 @@ class TheDadWorker:
         self.check_interval = check_interval_seconds
         self.is_running = False
         self._task: Optional[asyncio.Task] = None
-        
-        # Setup ChromaDB
-        self.chroma_client = get_chroma_client()
-        self.collection = self.chroma_client.get_or_create_collection(name=CHROMA_COLLECTION_NAME)
 
     async def _generate_summary(self, content: str, title: str) -> str:
         """Gera um resumo semântico ultra focado usando o LLM local."""
@@ -61,45 +57,20 @@ Conteúdo:
             return content[:250].replace('\n', ' ') + "..."
 
     async def _vectorize_and_save(self, doc: SensusDocumentModel, summary: str, file_content: str):
-        """Usa o BGE-M3 (ou modelo atual) para gerar o Embedding geográfico e salva no Chroma."""
-        # Se frontmatter for JSON/dict ou None
+        """Usa o BGE-M3 para gerar o Embedding geográfico. 
+           [Fase B] Persistência do SQLite-Vec desativada provisóriamente."""
         title = doc.file_path.split("/")[-1]
         
-        # O texto embedado será o Resumo Semântico, que carrega mais peso arquitetural para buscas heurísticas,
-        # juntado ao metadado do arquivo.
-        embedding_text = f"TÍTULO: {title}\nRESUMO: {summary}\nCONTEÚDO ORIGINAL:\n{file_content[:1000]}"
-        
         try:
-            # Pegar o Embedding LOCALMENTE para respeitar isolamento de Topologia
-            logger.info(f"[The Dad] 🧬 Calculando vetores espaciais para '{title}' LOCALMENTE...")
-            from src.config import EMBEDDING_PROVIDER, EMBED_MODEL_NAME, OLLAMA_BASE_URL
-            
-            if EMBEDDING_PROVIDER == "ollama":
-                from llama_index.embeddings.ollama import OllamaEmbedding
-                embed_model = OllamaEmbedding(model_name=EMBED_MODEL_NAME, base_url=OLLAMA_BASE_URL)
-            else:
-                from src.config import get_embed_model
-                embed_model = get_embed_model()
-            
-            vector = await embed_model.aget_text_embedding(embedding_text)
+            logger.info(f"[The Dad] 🧬 Skip temporário de vetorização de `{title}` (Aguardando SQLite-Vec na Fase B)...")
             
             vector_id = str(uuid.uuid4())
-            
-            # Persistir no ChromaDB
-            self.collection.upsert(
-                ids=[vector_id],
-                embeddings=[vector],
-                documents=[file_content], # Salva o content bruto real no Chroma para recuperação RAG perfeita
-                metadatas=[{
-                    "file_path": doc.file_path,
-                    "tenant_id": doc.tenant_id,
-                    "summary": summary
-                }]
-            )
+            # Retorna um ID fake temporariamente para o banco de dados local constar como processado
+            # Na Fase B recriaremos o Upsert injentando na tabela vec0
             return vector_id
             
         except Exception as e:
-            logger.error(f"[The Dad] ❌ Erro ao vetorizar {title}: {e}")
+            logger.error(f"[The Dad] ❌ Erro ao pular vetorização {title}: {e}")
             return None
 
     async def process_pending_documents(self):

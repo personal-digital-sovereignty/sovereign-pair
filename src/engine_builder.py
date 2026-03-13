@@ -4,7 +4,7 @@ from llama_index.core.retrievers.fusion_retriever import QueryFusionRetriever, F
 from llama_index.core.chat_engine import CondensePlusContextChatEngine
 from llama_index.core.memory import ChatMemoryBuffer
 from src.custom_retrievers import CustomBM25Retriever
-from src.config import CHROMA_COLLECTION_NAME, get_default_llm, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
+from src.config import get_default_llm, SOVEREIGN_NAME, ASSISTANT_PERSONA, \
      OWNER_NICKNAME, OCCUPATION, ABOUT_USER, LANGUAGE, GEOLOCATION, REQUEST_TIMEOUT, \
      OPENAI_API_KEY, ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY
 from datetime import datetime
@@ -37,7 +37,7 @@ def resolve_dynamic_llm(provider: str, model_name: str, fallback_llm=None, api_k
             from llama_index.llms.gemini import Gemini
             key = api_keys.get("gemini_api_key") or GEMINI_API_KEY
             return Gemini(model=model_name, api_key=key)
-        elif p == "ollama":
+        elif "ollama" in p:
             from llama_index.llms.ollama import Ollama
             from src.config import OLLAMA_NUM_CTX
             from src.llm_factory import _get_active_ollama_url
@@ -83,60 +83,24 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
     """
     logger.info("⚙️  Configurando Busca Híbrida (Vector + BM25)...")
     
-    # 1. Vector Retriever (Semântico) - Top-K conservador para performance
+    # 1. Vector Retriever (Semântico) - Extração Larga (Aspirador Inicial)
     filters = None
     if tenant_id:
         from llama_index.core.vector_stores import ExactMatchFilter, MetadataFilters
         filters = MetadataFilters(filters=[ExactMatchFilter(key="tenant_id", value=tenant_id)])
         logger.info(f"   🔍 Filtro de Inquecilino aplicado: {tenant_id}")
         
-    vector_retriever = index.as_retriever(similarity_top_k=5, filters=filters)
+    vector_retriever = index.as_retriever(similarity_top_k=15, filters=filters)
     
     # 2. BM25 Retriever (Palavras-chave / Datas exatas)
-    logger.info("   📊 Carregando nós para índice BM25...")
+    # [Fase A] - Temporariamente desligado até migrarmos os tokens fts5 no sqlite-vec
+    logger.info("   📊 Índice BM25 suspenso durante transição pro SQLite-vec...")
     nodes = []
-    try:
-        from src.config import get_chroma_client
-        db_client = get_chroma_client()
-        collection = db_client.get_collection(CHROMA_COLLECTION_NAME)
-        where_clause = {"tenant_id": tenant_id} if tenant_id else None
-        result = collection.get(where=where_clause)
-        
-        if result and result['documents']:
-            ids = result['ids']
-            texts = result['documents']
-            metadatas = result['metadatas']
-            
-            for i, text in enumerate(texts):
-                node_metadata = metadatas[i] if metadatas else {}
-                node = TextNode(
-                    text=text,
-                    id_=ids[i],
-                    metadata=node_metadata
-                )
-                nodes.append(node)
-            logger.info(f"   ✓ {len(nodes)} nós carregados do ChromaDB.")
-        else:
-            logger.warning("   ⚠️  Nenhum documento encontrado no ChromaDB para BM25.")
-            
-    except Exception as e:
-        logger.error(f"   ❌ Erro ao carregar nós do ChromaDB para BM25: {e}")
-
-    if not nodes:
-        logger.warning("   ⚠️  Índice BM25 iniciará vazio (Hybrid Search prejudicado).")
-
-    bm25_retriever = CustomBM25Retriever(nodes=nodes, similarity_top_k=5)
     
-    # 3. Fusion Retriever (RRF - Reciprocal Rank Fusion)
-    hybrid_retriever = QueryFusionRetriever(
-        [vector_retriever, bm25_retriever],
-        num_queries=1,
-        use_async=False,
-        similarity_top_k=3,  # Top-3 final para manter contexto leve no LLM
-        mode=FUSION_MODES.RECIPROCAL_RANK,
-        llm=active_llm
-    )
-    logger.info("   ✓ Hybrid Retriever configurado.")
+    # Fusion Retriever (RRF) fará by-pass provisório (só vector-search)
+    # até a compilação do BM25 local via SQLAlchemy
+    hybrid_retriever = vector_retriever
+    logger.info("   ✓ Single-Vector Retriever configurado (RRF By-Pass Temporário).")
 
     # Memory Buffer (Preparar histórico persistente se fornecido)
     chat_history = []
@@ -233,9 +197,14 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
     model_log = model_name or getattr(active_llm, "model", "Local")
     logger.info(f"   🧠 Engine inicializada via {provider_log.upper()} com modelo {model_log}")
 
-    # Criar Chat Engine com Retriever Híbrido e Condensador Explícito
+    # Inicializar FlashRank Pílula Cross-Encoder
+    from src.custom_reranker import FlashrankReranker
+    cross_encoder = FlashrankReranker(top_n=3)
+
+    # Criar Chat Engine com Retriever Híbrido, FlashRank e Condensador Explícito
     chat_engine = CondensePlusContextChatEngine.from_defaults(
         retriever=hybrid_retriever,
+        node_postprocessors=[cross_encoder],
         llm=active_llm,
         memory=memory, # Memória bufferizada re-hidratada
         system_prompt=(
@@ -265,19 +234,13 @@ def build_system_chat_engine(provider=None, model_name=None, api_keys=None):
     Conecta-se à coleção isolada que contém o próprio código fonte do Sovereign.
     """
     logger.info("⚙️  Configurando System Chat Engine (Meta-RAG)...")
-    from src.config import CHROMA_SYSTEM_COLLECTION_NAME, get_chroma_client
-    from llama_index.vector_stores.chroma import ChromaVectorStore
-    from llama_index.core import VectorStoreIndex
-    
     try:
-        db = get_chroma_client()
-        chroma_collection = db.get_collection(CHROMA_SYSTEM_COLLECTION_NAME)
-        vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
-        from src.config import get_embed_model
-        index = VectorStoreIndex.from_vector_store(
-            vector_store,
-            embed_model=get_embed_model()
-        )
+        from src.api.database import SessionLocal
+        # Implementação Futura: O System Engine será atado a uma Base Vector SQL isolada
+        # Enquanto preparamos a Fase B, ele atua via in-memory basic-rag.
+        index = None
+    except Exception as e:
+        logger.error(f"Erro no Meta-RAG: {e}")
         
         # IGNORAR o modelo vindo do Frontend para a aba Sistema (Meta-RAG)
         # OMeta-RAG deve SEMPRE usar um modelo enxuto e rápido para não dar OOM (Out Of Memory)

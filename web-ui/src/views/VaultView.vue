@@ -1,16 +1,23 @@
 <template>
-  <div class="flex h-screen w-full bg-surface-900 text-surface-200 overflow-hidden">
+  <div class="flex h-screen w-full bg-surface-900 text-surface-200 overflow-hidden relative">
     
+    <!-- Sidebar Teleport (Vault Explorer) -->
+    <Teleport to="#sidebar-context-area" v-if="teleportReady">
+      <div class="h-full w-full flex flex-col overflow-hidden bg-surface-800 border-r border-surface-700">
+        <SidebarTree />
+      </div>
+    </Teleport>
+
     <!-- Main Editor Area -->
-    <main class="flex-1 flex flex-col h-full bg-surface-900">
+    <main class="flex-1 flex flex-col h-full bg-surface-900 relative">
       <!-- Tab Bar -->
       <div v-if="tabs.length > 0" class="flex items-center overflow-x-auto bg-surface-800 border-b border-surface-700 hide-scrollbar select-none">
         <div 
           v-for="tab in tabs" 
           :key="tab.id"
           @click="activeTabId = tab.id"
-          class="group flex items-center gap-2 px-4 py-2 text-sm border-r border-surface-700 cursor-pointer cursor-default whitespace-nowrap min-w-[120px] max-w-[200px]"
-          :class="[activeTabId === tab.id ? 'bg-surface-700 text-emerald-400 border-t-2 border-t-emerald-500' : 'text-surface-400 hover:bg-[#1A1A1C] border-t-2 border-t-transparent']"
+          class="group flex items-center gap-2 px-4 py-2 text-sm border-r border-surface-700 cursor-pointer whitespace-nowrap min-w-[120px] max-w-[200px]"
+          :class="[activeTabId === tab.id ? 'bg-surface-700 text-primary-400 border-t-2 border-t-primary-500' : 'text-surface-400 hover:bg-surface-900 border-t-2 border-t-transparent']"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text opacity-75 flex-shrink-0"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
           <span class="truncate flex-1" :title="tab.name">{{ tab.name }}</span>
@@ -104,6 +111,7 @@ import BlockEditor from '../components/Vault/BlockEditor.vue'
 import SophiBar from '../components/Vault/SophiBar.vue'
 import TocModal from '../components/Vault/TocModal.vue'
 import InlineSpotlight from '../components/Vault/InlineSpotlight.vue'
+import SidebarTree from '../components/Vault/SidebarTree.vue'
 
 interface Tab {
   id: string
@@ -112,6 +120,7 @@ interface Tab {
   viewMode?: 'visual' | 'source' | 'split'
 }
 
+const teleportReady = ref(false)
 const tabs = ref<Tab[]>([])
 const activeTabId = ref<string | null>(null)
 
@@ -142,10 +151,10 @@ const handleDocumentContent = (text: string) => {
     activeDocumentContent.value = text
 }
 
-const handleSelectFile = (file: { id: string | null, name?: string, path?: string, workspace_id?: number }) => {
+const handleSelectFile = (file: { id?: string | null, name?: string, path?: string, workspace_id?: number }) => {
   // Se o Sidebar/Sophi enviar nome, usa ele, senão faz um fallback pegando do basename doc
   let fallbackName = file.name
-  const tabId = file.id || file.path // Fallback for OS files without database ID
+  const tabId = file.path || file.id // Prioridade Total O.S: Caminho Absoluto Cíbrido
   
   if (!tabId) return // Cannot open a tab without an identifier
   
@@ -197,6 +206,9 @@ onMounted(() => {
     window.addEventListener('sensus-toc-ready', handleTocReady)
     window.addEventListener('sensus-open-toc-modal', handleOpenTocModal)
     
+    // Libera a injeção da Árvore de UI
+    teleportReady.value = true
+
     // Global listener to auto-open the spotlight when text is highlighted and injected
     window.addEventListener('sensus-spotlight-inject', () => {
         isSpotlightOpen.value = true

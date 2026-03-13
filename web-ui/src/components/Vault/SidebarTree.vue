@@ -1,24 +1,24 @@
 <template>
   <div class="flex flex-col text-sm pt-4 relative w-full" style="min-height: 200px;" @click="closeContextMenu">
     <!-- Header -->
-    <div class="px-4 pb-4 border-b border-[#222]">
+    <div class="px-4 pb-4 border-b border-surface-700">
       <div class="flex items-center justify-between mb-2">
-        <div class="flex items-center gap-2 text-zinc-100 font-semibold tracking-wide" title="Sovereign Multi-Drive O.S">
+        <div class="flex items-center gap-2 text-surface-200 font-semibold tracking-wide" title="Sovereign Multi-Drive O.S">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database opacity-75"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
           Sensus Drives
         </div>
         <div class="flex gap-2">
           <!-- Mount O.S Drive -->
-          <button @click="showMountModal = true" title="Atrelar Novo Diretório (Host OS)" class="p-1 hover:bg-zinc-700/50 rounded-md text-zinc-400 hover:text-emerald-400 transition-colors">
+          <button @click="showMountModal = true" title="Atrelar Novo Diretório (Host OS)" class="p-1 hover:bg-surface-700/50 rounded-md text-surface-400 hover:text-primary-400 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
           </button>
           <!-- Refresh Geral -->
-          <button @click.stop="loadAllWorkspaces" title="Atualizar Discos Nativamente" class="p-1 hover:bg-zinc-700/50 rounded-md text-zinc-400 hover:text-emerald-400 transition-colors">
+          <button @click.stop="loadAllWorkspaces" title="Atualizar Discos Nativamente" class="p-1 hover:bg-surface-700/50 rounded-md text-surface-400 hover:text-primary-400 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="{'animate-spin': isLoading}"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
           </button>
         </div>
       </div>
-      <div class="text-[10px] text-zinc-500 flex items-center gap-1 uppercase tracking-widest font-bold">
+      <div class="text-[10px] text-surface-500 flex items-center gap-1 uppercase tracking-widest font-bold">
         <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></div>
         Multi-Workspace Tracking
       </div>
@@ -28,7 +28,7 @@
     <div class="flex-1 w-full overflow-y-auto pt-2 px-2 space-y-4 pb-12">
       
       <!-- Loading State -->
-      <div v-if="isLoading" class="text-xs text-zinc-500 text-center py-4 animate-pulse">
+      <div v-if="isLoading" class="text-xs text-surface-500 text-center py-4 animate-pulse">
         Carregando OS Directory...
       </div>
 
@@ -37,9 +37,9 @@
          <!-- Cada Workspace Atua como uma Raíz Virtual Independente no Frontend -->
          <div v-for="ws in workspacesTrees" :key="ws.workspace_id" class="workspace-block">
             <!-- Título do Drive Falso, p/ Clique de Context Menu e Expand -->
-             <div class="flex items-center justify-between px-2 py-1.5 cursor-context-menu hover:bg-zinc-800/50 rounded-md group text-zinc-400 uppercase text-[10px] font-bold tracking-widest" @contextmenu.prevent="handleRootContextMenu($event, ws.workspace_id)">
+             <div class="flex items-center justify-between px-2 py-1.5 cursor-context-menu hover:bg-surface-700/50 rounded-md group text-surface-500 uppercase text-[10px] font-bold tracking-widest" @contextmenu.prevent="handleRootContextMenu($event, ws.workspace_id)">
                  <div class="flex items-center gap-2">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-500"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                      {{ ws.name }}
                  </div>
                  
@@ -58,24 +58,24 @@
 
     <!-- Mount OS Modal -->
     <div v-if="showMountModal" class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="bg-zinc-900 border border-zinc-700/50 rounded-xl shadow-2xl w-full max-w-md p-6 relative">
-            <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Mount O.S Directory</h3>
-            <p class="text-sm text-zinc-400 mb-6">Insira um caminho absoluto válido do seu sistema Hospedeiro para indexar um novo Drive Cíbrido.</p>
+        <div class="bg-surface-900 border border-surface-700/50 rounded-xl shadow-2xl w-full max-w-md p-6 relative">
+            <h3 class="text-lg font-bold text-surface-100 mb-2 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-400"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Mount O.S Directory</h3>
+            <p class="text-sm text-surface-400 mb-6">Insira um caminho absoluto válido do seu sistema Hospedeiro para indexar um novo Drive Cíbrido.</p>
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs uppercase text-zinc-500 font-bold tracking-widest mb-1.5">Drive Label Name</label>
-                    <input v-model="newDriveName" type="text" placeholder="Ex: Personal Docs" class="w-full bg-black/50 border border-zinc-700 text-zinc-200 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none transition-all">
+                    <label class="block text-xs uppercase text-surface-500 font-bold tracking-widest mb-1.5">Drive Label Name</label>
+                    <input v-model="newDriveName" type="text" placeholder="Ex: Personal Docs" class="w-full bg-surface-900 border border-surface-700 text-surface-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
                 </div>
                 <div>
-                    <label class="block text-xs uppercase text-zinc-500 font-bold tracking-widest mb-1.5">OS Absolute Path</label>
-                    <input v-model="newDrivePath" type="text" placeholder="Ex: /home/user/Documents" class="w-full bg-black/50 border border-zinc-700 text-zinc-200 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 outline-none transition-all font-mono">
+                    <label class="block text-xs uppercase text-surface-500 font-bold tracking-widest mb-1.5">OS Absolute Path</label>
+                    <input v-model="newDrivePath" type="text" placeholder="Ex: /home/user/Documents" class="w-full bg-surface-900 border border-surface-700 text-surface-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all font-mono">
                 </div>
             </div>
 
             <div class="flex items-center justify-end gap-3 mt-8">
-                <button @click="showMountModal = false" class="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors">Cancelar</button>
-                <button @click="mountOsDrive" :disabled="!newDrivePath || isLoading" class="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors ring-1 ring-emerald-400/30 disabled:opacity-50 flex items-center gap-2">
+                <button @click="showMountModal = false" class="px-4 py-2 text-sm font-medium text-surface-400 hover:text-surface-100 transition-colors">Cancelar</button>
+                <button @click="mountOsDrive" :disabled="!newDrivePath || isLoading" class="px-4 py-2 text-sm font-bold text-white bg-primary-600 hover:bg-primary-500 rounded-lg transition-colors ring-1 ring-primary-400/30 disabled:opacity-50 flex items-center gap-2">
                    <svg v-if="isLoadingMount" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                    Atrelar Drive
                 </button>
@@ -87,21 +87,21 @@
     <div 
       v-if="contextMenu.visible" 
       :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
-      class="fixed z-[9999] w-48 bg-zinc-900 border border-zinc-700/50 shadow-xl rounded-md py-1 text-xs text-zinc-300"
+      class="fixed z-[9999] w-48 bg-surface-900 border border-surface-700/50 shadow-xl rounded-md py-1 text-xs text-surface-300"
       @click.stop
     >
-      <div class="px-3 py-1.5 text-[10px] uppercase font-bold text-zinc-500 border-b border-zinc-800/50 mb-1 tracking-wider truncate">
+      <div class="px-3 py-1.5 text-[10px] uppercase font-bold text-surface-500 border-b border-surface-800 mb-1 tracking-wider truncate">
         {{ contextMenu.node ? contextMenu.node.name : 'Sensus Vault' }}
       </div>
-      <button @click="createNewFolder" class="w-full text-left px-3 py-1.5 hover:bg-zinc-800 hover:text-white transition-colors flex items-center gap-2">
+      <button @click="createNewFolder" class="w-full text-left px-3 py-1.5 hover:bg-surface-800 hover:text-surface-100 transition-colors flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Nova Pasta
       </button>
-      <button @click="createNewFile" class="w-full text-left px-3 py-1.5 hover:bg-zinc-800 hover:text-white transition-colors flex items-center gap-2">
+      <button @click="createNewFile" class="w-full text-left px-3 py-1.5 hover:bg-surface-800 hover:text-surface-100 transition-colors flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg> Novo Arquivo
       </button>
       <template v-if="contextMenu.node">
-        <div class="my-1 border-t border-zinc-800/50"></div>
-        <button @click="renameItem" class="w-full text-left px-3 py-1.5 hover:bg-zinc-800 hover:text-white transition-colors flex items-center gap-2">
+        <div class="my-1 border-t border-surface-800"></div>
+        <button @click="renameItem" class="w-full text-left px-3 py-1.5 hover:bg-surface-800 hover:text-surface-100 transition-colors flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Renomear
         </button>
         <button @click="deleteItem" class="w-full text-left px-3 py-1.5 hover:bg-red-900/40 hover:text-red-400 text-red-500 transition-colors flex items-center gap-2">
@@ -116,7 +116,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import SidebarTreeNode from './SidebarTreeNode.vue'
 
-const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || 'http://localhost:8001'
+const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
 const isLoading = ref(true)
 
 // O Estado UI Mestre de Workspaces Array (Não mais FileRoot única)

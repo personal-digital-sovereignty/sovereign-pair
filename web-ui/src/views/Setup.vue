@@ -102,7 +102,7 @@ const nextStep = () => {
 
 const submitSetup = async () => {
   isSubmitting.value = true
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000`
   
   try {
     const res = await fetch(`${API_BASE_URL}/v1/auth/setup`, {

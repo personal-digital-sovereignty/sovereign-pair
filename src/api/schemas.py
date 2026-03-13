@@ -39,6 +39,7 @@ class ChatResponse(BaseModel):
 
 class FeedbackRequest(BaseModel):
     message_id: int = Field(..., description="ID da mensagem da IA a ser avaliada")
+    session_id: Optional[int] = Field(None, description="Opcional: ID da sessão para fallback se message_id for virtual")
     thumbs_up: bool = Field(False)
     thumbs_down: bool = Field(False)
     feedback_text: Optional[str] = Field(None)

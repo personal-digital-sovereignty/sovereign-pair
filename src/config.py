@@ -22,6 +22,12 @@ if global_conf.exists():
     load_dotenv(global_conf)
 
 # ============================================================================
+# TUNELAMENTO - MALHA MESH (EDGE VS CLOUD)
+# ============================================================================
+OCI_MESH_URL = os.getenv("OCI_MESH_URL", "").strip().rstrip("/")
+OCI_MESH_TOKEN = os.getenv("OCI_MESH_TOKEN", "").strip()
+
+# ============================================================================
 # PATHS DO PROJETO (Absolutos)
 # ============================================================================
 
@@ -36,8 +42,6 @@ except NameError:
 # Diretório de dados base
 DATA_DIR = BASE_DIR / "data"
 
-# Diretório ChromaDB (sempre no projeto)
-CHROMA_DIR = DATA_DIR / "chromadb"
 
 # ============================================================================
 # CAMINHOS DE INGESTÃO CUSTOMIZADOS
@@ -154,28 +158,6 @@ ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS_STR.split(",") i
 # If 'enterprise', student-tier features (e.g. Pomodoro routes) are strictly amputated from FastAPI Swagger.
 SENSUS_MODE = os.getenv("SENSUS_MODE", "standard").strip().lower()
 
-# ============================================================================
-# CONFIGURAÇÕES CHROMADB
-# ============================================================================
-# Nome da coleção no ChromaDB
-CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "sovereign_knowledge")
-
-# Coleção para o Meta-RAG (Auto-conhecimento da arquitetura do Sovereign Pair)
-CHROMA_SYSTEM_COLLECTION_NAME = os.getenv("CHROMA_SYSTEM_COLLECTION_NAME", "system_knowledge")
-
-def get_chroma_client():
-    """
-    Retorna o cliente ChromaDB adequado.
-    Se rodando no Docker (CHROMA_HOST existe), usa HttpClient.
-    Caso contrário, fallback para PersistentClient local.
-    """
-    import chromadb
-    chroma_host = os.getenv("CHROMA_HOST")
-    if chroma_host:
-        port = int(os.getenv("CHROMA_PORT", "8000"))
-        return chromadb.HttpClient(host=chroma_host, port=port)
-    return chromadb.PersistentClient(path=str(CHROMA_DIR))
-
 
 
 # ============================================================================
@@ -274,7 +256,7 @@ def ensure_directories() -> None:
     Garante que todos os diretórios necessários existam.
     Cria os diretórios se não existirem.
     """
-    directories = [DATA_DIR, RAW_DOCS_DIR, VAULT_DIR, CHROMA_DIR]
+    directories = [DATA_DIR, RAW_DOCS_DIR, VAULT_DIR]
     
     for directory in directories:
         directory.mkdir(parents=True, exist_ok=True)
@@ -296,16 +278,13 @@ def get_config_summary() -> str:
 📁 Paths:
    BASE_DIR:      {BASE_DIR}
    DATA_DIR:      {DATA_DIR}
-   CHROMA_DIR:    {CHROMA_DIR}
 
+🤖 Ollama:
 🤖 Ollama:
    URL:           {OLLAMA_BASE_URL}
    LLM Model:     {LLM_MODEL}
    Embed Model:   {EMBED_MODEL_NAME}
    Timeout:       {REQUEST_TIMEOUT}s
-
-💾 ChromaDB:
-   Collection:    {CHROMA_COLLECTION_NAME}
 
 👤 Agente:
    Owner Name:    {OWNER_NAME}

@@ -40,22 +40,6 @@ services:
     networks:
       - sovereign-net
 
-  # 2. Banco Vetorial Local (ChromaDB)
-  chroma:
-    image: chromadb/chroma:latest
-    container_name: sovereign-chroma
-    read_only: true
-    tmpfs:
-      - /tmp
-    security_opt:
-      - no-new-privileges:true
-    restart: always
-    volumes:
-      - chroma-data:/data
-    environment:
-      - IS_PERSISTENT=TRUE
-    networks:
-      - sovereign-net
 
   # 3. Backend Mestre da Inteligência (Python/FastAPI)
   api:
@@ -67,11 +51,8 @@ services:
     restart: always
     depends_on:
       - postgres
-      - chroma
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-sovereign}:${POSTGRES_PASSWORD:-master_pwd}@postgres:5432/${POSTGRES_DB:-sovereign_db}
-      - CHROMA_HOST=chroma
-      - CHROMA_PORT=8000
       - OLLAMA_BASE_URL=http://ollama:11434
       - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -142,7 +123,6 @@ services:
 
 volumes:
   pgdata:
-  chroma-data:
   ollama-data:
   tailscale-state:
   caddy-data:

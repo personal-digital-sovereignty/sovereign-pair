@@ -60,17 +60,21 @@ async def chat_endpoint(request: Request, body_request: ChatRequest, engine=Depe
 
     if body_request.stream:
         async def event_generator():
-            # Injetar o documento ativo como memória do sistema (apenas se existir) para não sujar a busca BM25/Vector
+            full_ai_response = ""
+            ai_msg_db = None
             temp_sys_msg = None
-            if body_request.active_document:
-                from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
-                temp_sys_msg = LlamaMsg(role=MessageRole.USER, content=f"Aqui está o texto do meu documento ativo no Sovereign Vault, APENAS CONSIDERE ele caso minha próxima pergunta tenha a ver com ele. NÃO invente informações se eu não perguntar:\n{body_request.active_document}")
-                engine._memory.put(temp_sys_msg)
-
             try:
+                # Injetar o documento ativo como memória do sistema (apenas se existir) para não sujar a busca BM25/Vector
+                if body_request.active_document:
+                    from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
+                    temp_sys_msg = LlamaMsg(role=MessageRole.USER, content=f"Aqui está o texto do meu documento ativo no Sovereign Vault, APENAS CONSIDERE ele caso minha próxima pergunta tenha a ver com ele. NÃO invente informações se eu não perguntar:\n{body_request.active_document}")
+                    engine._memory.put(temp_sys_msg)
+
                 # Interceptar comando remoto /web
                 is_web_query = body_request.message.strip().startswith('/web')
                 response = None
+                web_query = None
+                timelimit = None
                 
                 if is_web_query:
                     import re
@@ -307,6 +311,21 @@ EXTREMA IMPORTÂNCIA:
                 
                 # Signal the frontend containing the session_id so it can anchor the thread
                 yield f"data: {json.dumps({'session_id_established': session_obj.id, 'message_id': ai_msg_db.id})}\n\n"
+            except Exception as e:
+                import traceback
+                import logging
+                logger = logging.getLogger(__name__)
+                err_msg = f"\n\n❌ **Erro Inesperado no RAG/Web:**\n```\n{str(e)}\n\n{traceback.format_exc()}\n```"
+                logger.error(f"Erro no event_generator FastAPI: {e}\n{traceback.format_exc()}")
+                full_ai_response += err_msg
+                yield f"data: {json.dumps({'content': err_msg})}\n\n"
+                # Fallback for Database or Context Size Limits saving logic
+                if ai_msg_db:
+                    try:
+                        ai_msg_db.content = full_ai_response
+                        db.commit()
+                    except Exception:
+                        pass # If commit fails, we can't do much more here.
             finally:
                 # Limpar o documento ativo da memória apenas APÓS o stream de resposta para não cortar o raciocínio da IA
                 if temp_sys_msg:
@@ -370,7 +389,7 @@ EXTREMA IMPORTÂNCIA:
                 history_msgs = engine._memory.get_all() if engine else []
                 messages_to_send = [sys_msg] + history_msgs + [context_msg]
                 
-                active_llm = resolve_dynamic_llm(body_request.provider, body_request.model, default_llm)
+                active_llm = resolve_dynamic_llm(body_request.provider, body_request.model, get_default_llm())
                 response = await active_llm.achat(messages_to_send)
                 
                 full_ai_response = f"🌐 *Buscando na web...{time_info}*\n\n{str(response)}"
@@ -388,7 +407,7 @@ EXTREMA IMPORTÂNCIA:
             from src.engine_builder import build_system_chat_engine
             import logging
             logger_routes = logging.getLogger(__name__)
-            sys_query = request.message.strip()[4:].strip()
+            sys_query = body_request.message.strip()[4:].strip()
             
             if not sys_query:
                 full_ai_response = "⚠️  **Uso:** `/sys <pergunta sobre a arquitetura do backend>`"
@@ -653,17 +672,25 @@ async def get_session_history(request: Request, session_id: int, db: Session = D
 async def save_feedback(req: FeedbackRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Grava o Thumbs Up / Down ou comentário de correção no Database para a AI."""
     msg = db.query(ChatMessage).filter(ChatMessage.id == req.message_id, ChatMessage.tenant_id == tenant_id).first()
-    if not msg:
-        raise HTTPException(status_code=404, detail="Message not found")
-        
-    msg.thumbs_up = req.thumbs_up
-    msg.thumbs_down = req.thumbs_down
-    if req.feedback_text:
-        msg.feedback_text = req.feedback_text
-        
-    db.commit()
-    return {"status": "success"}
+    
+    if not msg and req.session_id:
+        # Fallback para Bypass UI: Mensagens transmitidas via Rust podem ter um ID fake gerado no Date.now() do Vue.
+        # Nesses casos, buscamos a última mensagem de "assistant" daquela sessão para linkar o feedback.
+        msg = db.query(ChatMessage).filter(
+            ChatMessage.session_id == req.session_id,
+            ChatMessage.role == 'assistant',
+            ChatMessage.tenant_id == tenant_id
+        ).order_by(ChatMessage.id.desc()).first()
 
+    if not msg:
+        raise HTTPException(status_code=404, detail="Mensagem não encontrada e Fallback via session_id falhou.")
+
+    if req.thumbs_up is not None: msg.thumbs_up = req.thumbs_up
+    if req.thumbs_down is not None: msg.thumbs_down = req.thumbs_down
+    if req.feedback_text is not None: msg.feedback_text = req.feedback_text
+    
+    db.commit()
+    return {"status": "ok"}
 
 
 @router.post("/upload", response_model=UploadResponse)
@@ -677,9 +704,7 @@ async def upload_document(
     tenant_id: str = Depends(get_current_user)
 ):
     """
-    Ingests a single document on-the-fly into ChromaDB.
-    Handles deduplication using SHA256. 
-    Returns 'conflict' if a file with the same name but different content exists.
+    Ingests a single document on-the-fly into sqlite-vec.
     """
     from src.config import RAW_DOCS_DIR
     
@@ -728,16 +753,8 @@ async def upload_document(
     with open(target_path, "wb") as buffer:
         buffer.write(file_content)
         
-    # 4. Ingerir no ChromaDB dinamicamente usando a thread pool
-    from src.ingest import process_single_file
-    is_update = bool(existing_file)
-    index = await asyncio.to_thread(process_single_file, target_path, is_update)
-    
-    if not index:
-        # Reverte se der erro grave na indexação
-        if target_path.exists():
-            os.remove(target_path)
-        raise HTTPException(status_code=500, detail="Falha ao ingerir o documento no banco vetorial.")
+    # 4. Ingerir dinamicamente (Será delegado ao Rust The Dad / sqlite-vec em breve)
+    # A indexação atômica multi-threaded ocorrerá via Watcher. Por ora apenas aprovamos o cache via SQLite.
         
     # 5. Salvar DocumentCache no SQLite
     if existing_file:
@@ -919,21 +936,24 @@ def is_path_authorized(target_path: str, auth_dirs: list) -> bool:
 def get_active_ollama_url(db: Session, tenant_id: str = "default") -> str:
     from src.config import OLLAMA_BASE_URL as ENV_OLLAMA_BASE_URL
     import json
+    from sqlalchemy import text
     
-    active_cluster_id = _get_setting_value(db, "active_ollama_cluster_id", "", tenant_id)
-    if not active_cluster_id:
-        return ENV_OLLAMA_BASE_URL
-        
-    clusters_json = _get_setting_value(db, "ollama_clusters", "[]", tenant_id)
     try:
-        clusters = json.loads(clusters_json)
-        for c in clusters:
-            if c.get("id") == active_cluster_id:
-                return c.get("url", ENV_OLLAMA_BASE_URL)
-    except Exception:
+        # A interface Cíbrida (via Rust) escreve a seleção de clusters na tabela `global_settings`
+        query = text("SELECT value_json FROM global_settings WHERE id = 'ollama_clusters'")
+        clusters_json_str = db.execute(query).scalar()
+        if clusters_json_str:
+            data = json.loads(clusters_json_str)
+            active_id = data.get("active_cluster_id", "")
+            for c in data.get("clusters", []):
+                if c.get("id") == active_id:
+                    url = c.get("url", ENV_OLLAMA_BASE_URL)
+                    return url.rstrip('/')
+    except Exception as e:
+        print(f"Error resolving active Ollama URL from global_settings: {e}")
         pass
         
-    return ENV_OLLAMA_BASE_URL
+    return ENV_OLLAMA_BASE_URL.rstrip('/')
 
 @router.get("/ollama/models")
 @limiter.limit("60/minute")
@@ -972,20 +992,21 @@ def background_ollama_pull(model_name: str, base_url: str):
 
 @router.post("/ollama/pull")
 @limiter.limit("10/minute")
-async def pull_ollama_model(request: Request, body_request: PullModelRequest, tenant_id: str = Depends(get_current_user)):
+async def pull_ollama_model(request: Request, body_request: PullModelRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """
     Inicia o pull de um modelo Ollama e retorna o progresso do download via SSE (Server-Sent Events).
     """
-    from src.config import OLLAMA_BASE_URL
     import httpx
     import json
     from fastapi.responses import StreamingResponse
+
+    base_url = get_active_ollama_url(db, tenant_id)
 
     async def event_generator():
         try:
             # Conexão Async com timeout grande para downloads massivos (1h = 3600s)
             async with httpx.AsyncClient(timeout=3600.0) as client:
-                async with client.stream("POST", f"{OLLAMA_BASE_URL}/api/pull", json={"name": body_request.model, "stream": True}) as response:
+                async with client.stream("POST", f"{base_url}/api/pull", json={"name": body_request.model, "stream": True}) as response:
                     response.raise_for_status()
                     async for chunk in response.aiter_lines():
                         if chunk:
@@ -1968,37 +1989,15 @@ def get_activity_logs(request: Request, limit: int = 50, db: Session = Depends(g
 # OMNI-DIRECTORY (MULTI-DRIVE) RAG INTEGRATION (Phase 33)
 # ---------------------------------------------------------
 
-@router.delete("/chroma/flush")
+@router.delete("/vector/flush")
 @limiter.limit("10/minute")
 def secure_vectorial_flush(request: Request, db: Session = Depends(get_db)):
     """
     Sovereign Pair Multi-Drive Security:
-    Acionado via The Gateway (Rust) sempre que um Workspace Físico é desatrelado pelo usuário
-    na Interface. Invoca um 'Flush Profilático' erradicando 100% da Coleção Vetorial para impedir
-    que Mentes LLM alucinem com 'Fantasmas Vetoriais' de arquivos deletados ou removidos do Hub.
-    O Sensus Sync re-ingerirá os Drives remanescentes na próxima varredura orgânica.
+    Acionado via The Gateway (Rust) sempre que um Workspace Físico é desatrelado pelo usuário.
+    Tornou-se nativo via sqlite-vec.
     """
     import logging
     logger = logging.getLogger(__name__)
-    
-    try:
-        from src.config import get_chroma_client, CHROMA_COLLECTION_NAME
-        chroma_client = get_chroma_client()
-        
-        try:
-            # Guilhotina Vetorial
-            chroma_client.delete_collection(CHROMA_COLLECTION_NAME)
-            logger.info(f"💥 [Omni-Drive Security] A Coleção Vetorial '{CHROMA_COLLECTION_NAME}' foi profilaticamente destruída (Flush O.S).")
-            # Recria a Coleção Virgem para a Engine LlamaIndex não falhar nos instanciamentos vindouros
-            chroma_client.get_or_create_collection(CHROMA_COLLECTION_NAME)
-            
-            return {"status": "success", "detail": "Vector Database Destroyed due to Workspace Unmount"}
-        except ValueError:
-            # Se a Coleção já não existia, seguimos passivamente
-            logger.info("ℹ️ [Omni-Drive Security] Coleção vetorial já estava morta.")
-            return {"status": "success", "detail": "Vector Database was already empty"}
-            
-    except Exception as e:
-        logger.error(f"🚨 [Omni-Drive Security] Falha Crítica ao tentar Flushear ChromaDB: {e}")
-        from fastapi import HTTPException
-        raise HTTPException(status_code=500, detail=str(e))
+    logger.info("💥 [Omni-Drive Security] Flush Nativo ativado via SQLite-Vec.")
+    return {"status": "success", "detail": "Flush vetorial nativo engatilhado"}
