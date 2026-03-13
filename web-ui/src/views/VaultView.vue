@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen w-full bg-surface-900 text-surface-200 overflow-hidden relative">
+  <div class="flex h-full w-full bg-surface-900 text-surface-200 overflow-hidden relative">
     
     <!-- Sidebar Teleport (Vault Explorer) -->
     <Teleport to="#sidebar-context-area" v-if="teleportReady">
