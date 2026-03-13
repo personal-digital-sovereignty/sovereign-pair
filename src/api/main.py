@@ -66,12 +66,14 @@ def auto_pull_ollama_models():
 @asynccontextmanager
 async def app_lifespan(app: FastAPI):
     # Startup: Disparar Ingestão do Meta-RAG (System Knowledge)
-    from src.system_ingest import ingest_system_knowledge
+    # [Fase A -> Fase B] Temporariamente Desligado pois utilizava ChromaDB.
+    # A reescrita será feita sobre SQLite-Vec futuramente.
+    # from src.system_ingest import ingest_system_knowledge
     import threading
     
     # Roda em thread separada para não bloquear o boot da API
-    ingest_thread = threading.Thread(target=ingest_system_knowledge, daemon=True)
-    ingest_thread.start()
+    # ingest_thread = threading.Thread(target=ingest_system_knowledge, daemon=True)
+    # ingest_thread.start()
     
     # Auto-Pull dos Ollama Models (Thread separada para não bloquear e lidar com gigabytes de I/O)
     pull_thread = threading.Thread(target=auto_pull_ollama_models, daemon=True)
@@ -108,26 +110,28 @@ async def app_lifespan(app: FastAPI):
     finally:
         db.close()
     
-    # The Mom vai escutar dezenas de diretórios e parsear qualquer Markdown
-    mom_watcher = VaultWatcher(tenant_id="default", vault_paths=workspaces)
-    mom_watcher.start()
+    # [Fase B] "The Mom" e "The Dad" transferidos para Rust (Sovereign Core Cíbrido)
+    # mom_watcher = VaultWatcher(tenant_id="default", vault_paths=workspaces)
+    # mom_watcher.start()
     
-    # Iniciar "The Dad" (SLM Context Pre-Fetcher & Vectorizer)
-    from src.core.the_dad import TheDadWorker
-    dad_worker = TheDadWorker(check_interval_seconds=15)
-    dad_worker.start()
+    # from src.core.the_dad import TheDadWorker
+    # dad_worker = TheDadWorker(check_interval_seconds=15)
+    # dad_worker.start()
     
-    yield
+    # Iniciar MeshSyncWorker (Clonador Distribuído Edge <-> Cloud)
+    from src.core.mesh_sync import MeshSyncWorker
+    mesh_worker = MeshSyncWorker(check_interval_seconds=600)  # Checa a cada 10 min
+    mesh_worker.start()
     
-    # Shutdown logic
-    mom_watcher.stop()
-    dad_worker.stop()
-    # Auto-Pull dos Ollama Models (Thread separada para não bloquear e lidar com gigabytes de I/O)
+    # Auto-Pull dos Ollama Models
+    import threading
     pull_thread = threading.Thread(target=auto_pull_ollama_models, daemon=True)
     pull_thread.start()
     
     yield
-    # Shutdown logic (opcional)
+    
+    # Shutdown logic
+    mesh_worker.stop()
 
 app = FastAPI(
     title="Sovereign Pair RAG API",
@@ -169,8 +173,11 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/v1/auth", tags=["Authentication"])
 from .routes_opencode import router as opencode_router
 app.include_router(opencode_router, prefix="/opencode/v1", tags=["OpenAI Compatible Proxy"])
-app.include_router(router, prefix="/v1", dependencies=[Depends(get_current_user)])
 
+from .blue_collar import router as blue_collar_router
+app.include_router(blue_collar_router, prefix="/v1", dependencies=[Depends(get_current_user)])
+
+app.include_router(router, prefix="/v1", dependencies=[Depends(get_current_user)])
 # CISO GOTCHA: Route Amputation & B2B Stripping
 if SENSUS_MODE != "enterprise":
     import logging

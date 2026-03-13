@@ -83,13 +83,46 @@ Por favor, analise o contexto (se aplicável) e entregue o raciocínio profundo 
         
         messages_to_send = [sys_msg] + history_msgs + [user_rag_msg]
 
-        # 5. Stream the Response
-        logger.info(f"   Dr. Prompt prepared. Initiating inference via {getattr(self.llm, 'model', 'default')}...")
-        response_stream = await self.llm.astream_chat(messages_to_send)
+        # 5. Invocação do COGNITIVE GRAPH (Motor de Refletão)
+        logger.info(f"   Dr. Prompt prepared. Initiating COGNITIVE REFLECTION GRAPH via {getattr(self.llm, 'model', 'default')}...")
+        
+        # Em vez do stream direto, passamos pelo State Machine para permitir que o LLM "pense" e se corrija
+        from src.api.core.cognitive_graph import get_cognitive_graph
+        app = get_cognitive_graph()
+        
+        # Preparando o input para o LangGraph (StateDict)
+        initial_state = {
+            "query": user_prompt,
+            "context": context_str,
+            "original_messages": [{"role": "user", "content": m.content} for m in messages_to_send if m.role == MessageRole.USER],
+            "iteration_count": 0,
+            "llm_instance": self.llm
+        }
         
         async def text_generator():
-            async for chunk in response_stream:
-                if chunk.delta:
-                    yield chunk.delta
+            # Devido à natureza State Machine (Multi-turn), vamos emular o "streaming" do pensamento (Thinking Chain)
+            yield f"*(⚙️ O Doutor está processando internamente em múltiplas camadas no Modelo: {getattr(self.llm, 'model', 'default')}...)*\n\n"
+            
+            # Invoca o Grafo Assincronamente 
+            # Num setup avançado LangGraph permite streamig the node state a node state
+            final_state = await app.ainvoke(initial_state)
+            
+            # Formatos de Tag Thinking pro front end parsear:
+            c_tag = final_state.get('reflection_notes', '')
+            final = final_state.get('final_response', '')
+            draft = final_state.get('draft_response', '')
+            
+            # Se deu block do fail-open (onde final_response == draft pq falhou o refine)
+            resp = final if final else draft
+            
+            if c_tag and "APROVADO" not in c_tag.upper():
+                 yield f"```thinking\n{c_tag}\n```\n\n"
+                 
+            # Como ainvokou bloco a bloco, streamamos chunk a chunk sintético para não gelar a UI
+            chunk_size = 20 # chars
+            for i in range(0, len(resp), chunk_size):
+                import asyncio
+                await asyncio.sleep(0.01) # Deliberate micro-delay to simulate fluid typing of the massive response
+                yield resp[i:i+chunk_size]
                     
         return text_generator()

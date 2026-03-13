@@ -32,7 +32,7 @@ export interface Project {
     logs: ProjectLog[]
 }
 
-const getBaseURL = () => import.meta.env.VITE_RUST_CORE_URL || 'http://localhost:8001'
+const getBaseURL = () => import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
 const getHeaders = () => {
     const token = localStorage.getItem('sovereign_token')
     return token ? { Authorization: `Bearer ${token}` } : {}

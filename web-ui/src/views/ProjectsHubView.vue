@@ -121,8 +121,8 @@ import { useTasksStore } from '../stores/tasks'
 import axios from 'axios'
 
 import ProjectKanban from '../components/projects/ProjectKanban.vue'
-import CalendarWidget from '../components/dashboard/CalendarWidget.vue'
-import ActivityLogFeed from '../components/dashboard/ActivityLogFeed.vue'
+import CalendarWidget from '../components/Dashboard/CalendarWidget.vue'
+import ActivityLogFeed from '../components/Dashboard/ActivityLogFeed.vue'
 import DiffModal from '../components/projects/DiffModal.vue'
 
 const projectsStore = useProjectsStore()
@@ -161,7 +161,7 @@ watch(activeProjectId, async (newVal) => {
 
 const checkSyncStatus = async (type: string, id: string) => {
   try {
-     const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+     const baseURL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000`
      const token = localStorage.getItem('sovereign_token')
      const headers = token ? { Authorization: `Bearer ${token}` } : {}
      

@@ -22,12 +22,44 @@
             <span class="text-sm font-mono tracking-widest text-primary-400/80 animate-pulse">RENDERIZANDO ORB...</span>
         </div>
     </div>
+    <!-- Menu de Contexto Customizado Flutuante -->
+    <div 
+      v-if="contextMenu.visible"
+      :style="{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }"
+      class="absolute z-[100] w-48 bg-surface-800 border border-surface-700 shadow-2xl rounded-lg py-1 text-sm overflow-hidden animate-in fade-in slide-in-from-top-1"
+      @click.stop
+    >
+      <div class="px-3 py-2 border-b border-surface-700/50">
+        <p class="text-[10px] font-bold tracking-wider text-surface-400 uppercase truncate" :title="contextMenu.node?.name">
+          {{ contextMenu.node?.name || 'Nó Desconhecido' }}
+        </p>
+      </div>
+      
+      <button 
+        v-if="contextMenu.node?.type === 'file'"
+        @click="handleMenuOpen" 
+        class="w-full text-left px-3 py-2 text-surface-200 hover:bg-surface-700 hover:text-white flex items-center gap-2 transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+        Abrir
+      </button>
+
+      <div class="h-px bg-surface-700 w-full my-1"></div>
+
+      <button 
+        @click="handleMenuDelete" 
+        class="w-full text-left px-3 py-2 text-red-400 hover:bg-red-500/10 hover:text-red-300 flex items-center gap-2 transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+        Excluir
+      </button>
+    </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
-import * as fgModule from 'force-graph'
 
 const props = defineProps<{
     width?: number
@@ -36,29 +68,87 @@ const props = defineProps<{
 
 const emit = defineEmits(['node-click'])
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000`
 const graphContainer = ref<HTMLElement | null>(null)
 const isLoading = ref(true)
 const graphData = ref({ nodes: [], links: [] })
 
 let graphInstance: any = null
-let animationFrameId: number
+let animationFrameId: number | null = null
 let time = 0
+let hoverNodeId: string | number | null = null
 
+// Custom Context Menu State
+const contextMenu = ref({
+  visible: false,
+  x: 0,
+  y: 0,
+  node: null as any
+})
 
-const initGraph = () => {
+// Fecha o context menu se clicar fora
+onMounted(() => {
+  document.addEventListener('click', closeContextMenu)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeContextMenu)
+})
+
+const closeContextMenu = () => {
+    contextMenu.value.visible = false
+}
+
+const handleMenuOpen = () => {
+    if (contextMenu.value.node && contextMenu.value.node.type === 'file') {
+        emit('node-click', contextMenu.value.node)
+    }
+    closeContextMenu()
+}
+
+const handleMenuDelete = async () => {
+    const node = contextMenu.value.node
+    if (!node) return
+    
+    if (confirm(`Tem certeza que deseja apagar o recurso gravitacional "${node.name}" permanentemente do disco?`)) {
+        try {
+            const token = localStorage.getItem('sovereign_token') || ''
+            const headers = { 'Authorization': `Bearer ${token}` }
+            const res = await fetch(`${API_BASE_URL}/v1/vault/fs/nodes/${node.id}`, { 
+                method: 'DELETE',
+                headers 
+            })
+            
+            if (res.ok) {
+                // Tira o node localmente usando splice/filter para não refazer todo o pull
+                if (graphData.value.nodes) {
+                    graphData.value.nodes = graphData.value.nodes.filter((n: any) => n.id !== node.id)
+                }
+                if (graphData.value.links) {
+                    graphData.value.links = graphData.value.links.filter((l: any) => l.source.id !== node.id && l.target.id !== node.id)
+                }
+                if (graphInstance) {
+                    graphInstance.graphData(graphData.value)
+                }
+            } else {
+                console.error("Falha ao deletar", await res.text())
+            }
+        } catch(e) {
+            console.error("Erro deletando do Grafo", e)
+        }
+    }
+    closeContextMenu()
+}
+
+const initGraph = async () => {
     if (!graphContainer.value) return
 
-    let hoverNodeId: string | number | null = null
     
     try {
-        // Resolve constructor dynamicly
+        const module = await import('force-graph')
+        const ForceGraph = module.default || module
+        if (!ForceGraph) return;
         // @ts-ignore
-        const ForceGraphInit = (typeof fgModule.default === 'function') ? fgModule.default : (typeof fgModule === 'function' ? fgModule : fgModule.default?.default)
-        if (!ForceGraphInit) return;
-        
-        // @ts-ignore
-        graphInstance = ForceGraphInit()(graphContainer.value)
+        graphInstance = ForceGraph()(graphContainer.value)
     } catch (err) {
         console.error("CRITICAL ERROR: Failed to instantiate ForceGraph engine:", err)
         return
@@ -66,6 +156,7 @@ const initGraph = () => {
 
     // Sovereign Orbital Constants (Massive Universe Scale)
     const CORE_RADIUS = 30; 
+
     const CORE_BORDER = 36;
     const INNER_BOUND = 180;   
     const OUTER_BOUND = 1600;  // As órbitas nominais devem permanecer profundamente dentro do limite
@@ -337,10 +428,13 @@ const initGraph = () => {
                 ctx.font = `600 ${hoverFontSize}px Inter, sans-serif`;
                 
                 const textWidth = ctx.measureText(label).width;
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-                ctx.fillRect(nx - textWidth / 2 - 4, ny + baseR + 4, textWidth + 8, hoverFontSize + 4);
+                ctx.fillStyle = 'rgba(10, 10, 12, 0.90)'; // Fundo O.S Sensus Escuro
+                // Padding em volta do texto e bordas arrentondades
+                ctx.beginPath();
+                ctx.roundRect(nx - textWidth / 2 - 6, ny + baseR + 2, textWidth + 12, hoverFontSize + 8, 4);
+                ctx.fill();
                 
-                ctx.fillStyle = `rgb(${rgbStr})`; // Texto acompanha o estado fluido de cor
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'; // Texto puro sempre legível em cima do fundo escuro
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'top';
                 ctx.fillText(label, nx, ny + baseR + 6);
@@ -353,11 +447,25 @@ const initGraph = () => {
              }
         })
         .onNodeClick((node: any) => {
+             closeContextMenu()
              if (node.type === 'file') {
                  emit('node-click', node);
              }
              graphInstance.centerAt(node.x, node.y, 1000);
              graphInstance.zoom(4, 2000);
+        })
+        .onNodeRightClick((node: any, event: MouseEvent) => {
+             event.preventDefault()
+             // Converte coord viewport
+             const rect = graphContainer.value?.getBoundingClientRect()
+             if (rect) {
+                contextMenu.value = {
+                    visible: true,
+                    x: event.clientX - rect.left,
+                    y: event.clientY - rect.top,
+                    node: node
+                }
+             }
         });
 
     // Garante que a câmera seja posicionada de maneira que envolva toda a galáxia

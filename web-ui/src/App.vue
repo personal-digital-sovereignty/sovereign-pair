@@ -6,15 +6,15 @@
   <Login v-else-if="authPhase === 'login'" @login-success="checkAuthStatus" />
   
   <!-- Render the active route when Authenticated -->
-  <div v-else class="flex w-full h-screen bg-[#0E0E10] text-[#E0E0E0] overflow-hidden font-sans">
+  <div v-else class="flex w-full h-screen bg-surface-900 text-surface-200 overflow-hidden font-sans">
     
     <!-- Global Wrapper for Sidebar + Content -->
     <div class="flex h-full w-full relative z-10">
       
       <!-- 1. Permanent Activity Bar (Always 64px) -->
-      <nav class="w-[64px] bg-[#0E0E10] border-r border-[#222222] flex flex-col h-full shrink-0 z-30 relative">
+      <nav class="w-[64px] bg-surface-900 border-r border-surface-700 flex flex-col h-full shrink-0 z-30 relative">
         <!-- Top Identity Logo (Toggles Context Panel) -->
-        <div class="h-14 flex items-center justify-center border-b border-[#222222] shrink-0">
+        <div class="h-14 flex items-center justify-center border-b border-surface-700 shrink-0">
           <button @click="isSidebarOpen = !isSidebarOpen" class="text-emerald-500 hover:scale-110 transition-transform p-2 rounded-lg" :title="isSidebarOpen ? 'Ocultar Contexto' : 'Mostrar Contexto'">
              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" class="shrink-0">
                <circle cx="12" cy="12" r="4.5" fill="currentColor"/>
@@ -25,30 +25,30 @@
 
         <!-- Global Navigation Icons -->
         <div class="p-3 flex flex-col gap-2 shrink-0 items-center">
-          <router-link to="/dashboard" @click="isSidebarOpen = true" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path === '/dashboard' ? 'text-emerald-400 bg-[#151517] shadow-[inset_3px_0_0_0_#34d399,inset_0_0_15px_0_rgba(52,211,153,0.1)]' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5']" title="Sensus Dashboard">
+          <router-link to="/dashboard" @click="isSidebarOpen = true" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path === '/dashboard' ? 'text-primary-400 bg-surface-800 shadow-[inset_3px_0_0_0_currentColor]' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/50']" title="Sensus Dashboard">
             <Home class="w-6 h-6 shrink-0" />
           </router-link>
           
-          <router-link to="/chat" @click="isSidebarOpen = true" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path.startsWith('/chat') ? 'text-purple-400 bg-[#151517] shadow-[inset_3px_0_0_0_#a855f7,inset_0_0_15px_0_rgba(168,85,247,0.1)]' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5']" title="Sovereign Chat">
+          <router-link to="/chat" @click="isSidebarOpen = true" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path.startsWith('/chat') ? 'text-primary-400 bg-surface-800 shadow-[inset_3px_0_0_0_currentColor]' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/50']" title="Sovereign Chat">
             <MessageCircle class="w-6 h-6 shrink-0" />
           </router-link>
           
-          <router-link to="/vault" @click="isSidebarOpen = true" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path.startsWith('/vault') ? 'text-cyan-400 bg-[#151517] shadow-[inset_3px_0_0_0_#22d3ee,inset_0_0_15px_0_rgba(34,211,238,0.1)]' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5']" title="Sensus Vault / Explorador">
+          <router-link to="/vault" @click="isSidebarOpen = true" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path.startsWith('/vault') ? 'text-primary-400 bg-surface-800 shadow-[inset_3px_0_0_0_currentColor]' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/50']" title="Sensus Vault / Explorador">
             <Folder class="w-6 h-6 shrink-0" />
           </router-link>
           
-          <router-link to="/projects" @click="isSidebarOpen = true" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path.startsWith('/projects') ? 'text-blue-400 bg-[#151517] shadow-[inset_3px_0_0_0_#3b82f6,inset_0_0_15px_0_rgba(59,130,246,0.1)]' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5']" title="Sensus Projects / Hub">
+          <router-link to="/projects" @click="isSidebarOpen = true" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path.startsWith('/projects') ? 'text-primary-400 bg-surface-800 shadow-[inset_3px_0_0_0_currentColor]' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/50']" title="Sensus Projects / Hub">
             <LayoutGrid class="w-6 h-6 shrink-0" />
           </router-link>
         </div>
 
-        <div class="mt-auto p-3 flex flex-col gap-2 items-center border-t border-[#222222]">
-          <button @click="toggleRemoteIntegration" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[clusterState.status === 'optimal' ? 'text-sky-400 bg-[#151517] shadow-[inset_3px_0_0_0_#38bdf8,inset_0_0_15px_0_rgba(56,189,248,0.1)]' : 'text-zinc-500 hover:text-amber-400 hover:bg-white/5']" :title="clusterState.status === 'optimal' ? 'Cibrid Cloud: On (Desativar)' : 'Local-First: Off (Ativar Cloud)'">
+        <div class="mt-auto p-3 flex flex-col gap-2 items-center border-t border-surface-700">
+          <button @click="toggleRemoteIntegration" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[clusterState.status === 'optimal' ? 'text-primary-400 bg-surface-800 shadow-[inset_3px_0_0_0_currentColor]' : 'text-surface-400 hover:text-amber-400 hover:bg-surface-800/50']" :title="clusterState.status === 'optimal' ? 'Cibrid Cloud: On (Desativar)' : 'Local-First: Off (Ativar Cloud)'">
             <Cloud v-if="clusterState.status === 'optimal'" class="w-6 h-6 shrink-0" />
             <CloudOff v-else class="w-6 h-6 shrink-0" />
           </button>
           
-          <router-link to="/settings" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path.startsWith('/settings') ? 'text-slate-300 bg-[#151517] shadow-[inset_3px_0_0_0_#cbd5e1,inset_0_0_15px_0_rgba(203,213,225,0.1)]' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5']" title="Configurações e Identidade">
+          <router-link to="/settings" class="flex items-center justify-center w-[42px] h-[42px] rounded-[14px] transition-all overflow-hidden" :class="[$route.path.startsWith('/settings') ? 'text-primary-400 bg-surface-800 shadow-[inset_3px_0_0_0_currentColor]' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/50']" title="Configurações e Identidade">
             <Settings class="w-6 h-6 shrink-0" />
           </router-link>
         </div>
@@ -56,14 +56,14 @@
 
       <!-- 2. Sliding Context Panel (Trees, Chat History, Settings) -->
       <aside 
-        class="bg-[#121214] flex flex-col h-full transition-all duration-300 relative z-20 shrink-0 overflow-x-hidden overflow-y-auto border-r border-[#222222]"
+        class="bg-surface-800 flex flex-col h-full transition-all duration-300 relative z-20 shrink-0 overflow-x-hidden overflow-y-auto border-r border-surface-700"
         :class="isSidebarOpen ? 'w-[260px]' : 'w-0 border-r-0 pointer-events-none opacity-0'"
       >
         <div class="min-w-[260px] w-[260px] flex flex-col h-full shrink-0">
           
           <!-- Context Header -->
-          <div class="h-14 px-4 flex items-center border-b border-[#222222] shrink-0">
-            <span class="font-semibold text-zinc-300 tracking-wide text-sm truncate">
+          <div class="h-14 px-4 flex items-center border-b border-surface-700 shrink-0">
+            <span class="font-semibold text-surface-300 tracking-wide text-sm truncate">
               <!-- Dynamic Title based on Route -->
               {{ $route.path === '/dashboard' ? 'Overview' : 
                  $route.path.startsWith('/chat') ? 'Conversas Recentes' : 
@@ -77,7 +77,6 @@
           <!-- Dynamic Context Area -->
           <div id="sidebar-context-area" class="flex-1 w-full overflow-hidden flex flex-col relative min-h-0">
              <!-- Inject Vault Tree if in Vault -->
-             <SidebarTree v-show="$route.path.startsWith('/vault')" class="w-full h-full" />
              
              <!-- Teleport target for Chat History -->
              <!-- Teleport target for Settings Layout -->
@@ -92,7 +91,7 @@
       </aside>
       
       <!-- Main Area -->
-      <main class="flex-1 flex flex-col overflow-hidden relative min-w-0 focus:outline-none bg-[#0E0E10] shadow-[inset_10px_0_30px_rgba(0,0,0,0.5)]">
+      <main class="flex-1 flex flex-col overflow-hidden relative min-w-0 focus:outline-none bg-surface-900 shadow-[inset_10px_0_30px_rgba(0,0,0,0.5)]">
         
         <!-- Local-First Restricted Mode Banner -->
         <div v-if="clusterState.status === 'degraded' && showRestrictedBanner" class="flex-shrink-0 bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 flex items-center justify-center text-amber-500 text-xs gap-2 select-none z-40 relative">
@@ -112,9 +111,8 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, CloudOff } from 'lucide-vue-next'
 import Setup from './views/Setup.vue'
 import Login from './views/Login.vue'
-import SidebarTree from './components/Vault/SidebarTree.vue'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000`
 const authPhase = ref('loading')
 const isSidebarOpen = ref(true)
 
@@ -192,6 +190,13 @@ const checkAuthStatus = async () => {
       } else {
         authPhase.value = 'authenticated'
         checkClusterHealth();
+        // Sincroniza Tema Visual O.S em Nível Mais Alto no Boot:
+        const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`;
+        fetch(`${RUST_CORE_URL}/v1/settings`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        }).then(r => r.json()).then(d => {
+            if (d.theme) document.documentElement.setAttribute('data-theme', d.theme);
+        }).catch(e => console.warn(e));
       }
     }
   } catch(e) {

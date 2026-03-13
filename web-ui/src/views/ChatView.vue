@@ -6,19 +6,33 @@ import DOMPurify from 'dompurify'
 // Custom directive to securely render HTML, bypassing the need for unsafe `v-html`
 const vSafeHtml = {
   mounted(el: HTMLElement, binding: import('vue').DirectiveBinding) {
-    el.innerHTML = DOMPurify.sanitize(binding.value, { ADD_TAGS: ['svg', 'path', 'circle', 'line', 'g', 'rect'] })
+    el.innerHTML = DOMPurify.sanitize(binding.value, { ADD_TAGS: ['svg', 'path', 'circle', 'line', 'g', 'rect', 'span', 'div'] })
   },
   updated(el: HTMLElement, binding: import('vue').DirectiveBinding) {
-    el.innerHTML = DOMPurify.sanitize(binding.value, { ADD_TAGS: ['svg', 'path', 'circle', 'line', 'g', 'rect'] })
+    el.innerHTML = DOMPurify.sanitize(binding.value, { ADD_TAGS: ['svg', 'path', 'circle', 'line', 'g', 'rect', 'span', 'div'] })
   }
 }
 
 const formatMessageIcons = (content: string) => {
-  return content;
+  // Converte blocos Markdown de "thinking" para tags HTML elegantes (Details/Summary)
+  // Expressão Regular captura o bloco inteiro: ```thinking\n ... \n```
+  let formatted = content.replace(/```thinking\n([\s\S]*?)\n```/g, (_, innerText) => {
+     return `<details class="cognitive-details group my-4 rounded-xl border border-primary-500/20 bg-surface-800/50 shadow-lg overflow-hidden transition-all duration-300">
+        <summary class="flex justify-between items-center cursor-pointer p-3 bg-surface-800 hover:bg-surface-700/80 transition-colors select-none list-none text-xs font-semibold tracking-wider uppercase text-primary-400">
+           <div class="flex items-center gap-2">
+               <svg class="w-4 h-4 animate-pulse text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+               <span>Processo Cognitivo do Engine</span>
+           </div>
+           <svg class="w-4 h-4 text-surface-400 group-open:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </summary>
+        <div class="p-4 pt-3 border-t border-surface-700/50 text-[13px] leading-relaxed text-surface-300 font-mono opacity-80 whitespace-pre-wrap">${innerText}</div>
+     </details>`;
+  });
+  return formatted;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || 'http://localhost:8001'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000`
+const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
 
 const getAuthHeaders = (): Record<string, string> => {
    const token = localStorage.getItem('sovereign_token')
@@ -265,12 +279,12 @@ const sendMessage = async (invokeSource: boolean | Event = false) => {
 
   try {
     // 🚀 BYPASS CÍBRIDO: Redirecionar Inferência para o Core Rust (Fase 25)
-    // Deixamos a 8000 para histórico, mas o tráfego RAG quente flui pela 8001
-    const RUST_CORE_URL = 'http://127.0.0.1:8001/v1/chat/completions'
+    // Deixamos a 8000 para histórico (Python), mas o tráfego RAG quente flui pela 8001 (Rust)
+    const HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
     
     // Convertemos o Histórico Atual da UI para a estrutura estrita OpenAI Role/Content/ToolCalls
     const rustMessages = messages.value
-        .filter(m => (m.content || m.tool_calls || m.role === 'tool') && !m.isStreaming)
+        .filter(m => (m.content || m.tool_calls || m.role === 'tool') && !m.isStreaming && !(m as any).isError)
         .map(m => {
            let msg: any = { role: m.role }
            if (m.content) msg.content = m.content
@@ -282,13 +296,21 @@ const sendMessage = async (invokeSource: boolean | Event = false) => {
            return msg
         })
 
-    const response = await fetch(RUST_CORE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders()
-      },
-      body: JSON.stringify({
+    const lastUserMsgContent = messages.value.filter(m => m.role === 'user').pop()?.content || '';
+    const isSpecialCommand = lastUserMsgContent.trim().startsWith('/web') || lastUserMsgContent.trim().startsWith('/sys');
+    
+    // Se for comando /web ou /sys, bypassamos pro Python. Se não, RAG puro no Rust:
+    const TARGET_URL = isSpecialCommand 
+      ? `http://${HOST}:8000/v1/chat` 
+      : `http://${HOST}:8001/v1/chat/completions`
+
+    const payloadBody = isSpecialCommand 
+      ? JSON.stringify({
+          message: lastUserMsgContent,
+          session_id: currentSessionId.value,
+          stream: true
+      })
+      : JSON.stringify({
         model: 'qwen2.5:3b', // Fallback ou seleção dinâmica
         messages: rustMessages,
         tools: [
@@ -327,7 +349,35 @@ const sendMessage = async (invokeSource: boolean | Event = false) => {
         ],
         stream: true
       })
+
+    const response = await fetch(TARGET_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: payloadBody
     })
+
+    if (!response.ok) {
+        let errText = '';
+        try { errText = await response.text() } catch(e) {}
+        
+        let assistantMsgIndex = messages.value.findIndex(m => m.id === assistantMsgId)
+        if (assistantMsgIndex !== -1) {
+             messages.value.splice(assistantMsgIndex, 1);
+        }
+        
+        messages.value.push({
+           id: Date.now(),
+           role: 'assistant',
+           content: `⚠️ **Falha Crítica Cíbrida (Cognitive Engine Inalcançável)**\nO motor LLM recusou a inferência (HTTP ${response.status}).\n\n\`\`\`text\n${errText}\n\`\`\`\n> *A sua mensagem permaneceu no histórico para que você possa tentar novamente após alinhar os nós!*`,
+           isStreaming: false,
+           isError: true
+        } as any);
+        scrollToBottom();
+        return;
+    }
 
     if (!response.body) throw new Error("Sem resposta do corpo")
 
@@ -580,6 +630,7 @@ const submitFeedback = async (msg: Message, type: 'up' | 'down') => {
       },
       body: JSON.stringify({
         message_id: msg.id,
+        session_id: currentSessionId.value,
         thumbs_up: msg.thumbs_up || false,
         thumbs_down: msg.thumbs_down || false
       })
@@ -704,14 +755,14 @@ const tokenMetrics = ref({
 </script>
 
 <template>
-  <div class="flex flex-col w-full h-full bg-[#0E0E10] text-[#E0E0E0] overflow-hidden font-sans relative">
+  <div class="flex flex-col w-full h-full bg-surface-900 text-surface-200 overflow-hidden font-sans relative">
     
     <!-- Sidebar / Navigation Teleported to App.vue -->
     <Teleport to="#sidebar-context-area" v-if="teleportReady">
       <div class="flex flex-col h-full w-full overflow-hidden shrink-0">
-        <div class="p-4 flex items-center justify-between border-b border-[#222222]">
-          <div class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Histórico de Chat</div>
-          <button @click="() => { currentSessionId = null; messages = [{ id: 1, role: 'assistant', content: 'Nova conversa iniciada. Como posso ajudar?' }]; }" class="p-1.5 text-zinc-400 hover:text-emerald-400 hover:bg-white/5 rounded-md transition-colors" title="Nova Conversa">
+        <div class="p-4 flex items-center justify-between border-b border-surface-700">
+          <div class="text-[10px] uppercase font-bold text-surface-500 tracking-wider">Histórico de Chat</div>
+          <button @click="() => { currentSessionId = null; messages = [{ id: 1, role: 'assistant', content: 'Nova conversa iniciada. Como posso ajudar?' }]; }" class="p-1.5 text-surface-400 hover:text-primary-400 hover:bg-surface-700/50 rounded-md transition-colors" title="Nova Conversa">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
           </button>
         </div>
@@ -722,9 +773,9 @@ const tokenMetrics = ref({
               v-model="searchQuery" 
               type="text" 
               placeholder="Buscar chats ou tags..." 
-              class="w-full bg-[#121214] border border-[#222222] rounded-md py-1.5 pl-8 pr-3 text-xs text-zinc-300 focus:outline-none focus:border-zinc-500 transition-all placeholder-zinc-600"
+              class="w-full bg-surface-800 border border-surface-700 rounded-md py-1.5 pl-8 pr-3 text-xs text-surface-300 focus:outline-none focus:border-surface-500 transition-all placeholder-surface-500"
             />
-            <svg class="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <svg class="w-3.5 h-3.5 text-surface-500 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           </div>
         </div>
 
@@ -732,7 +783,7 @@ const tokenMetrics = ref({
           <!-- Pastas com nome -->
           <div v-for="(sessList, folderName) in groupedSessions" :key="'folder-'+folderName">
              <template v-if="folderName !== '' && sessList.length > 0">
-                 <button @click="toggleFolder(folderName as string)" class="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-bold text-zinc-500 hover:text-zinc-300 transition-colors uppercase tracking-wider mb-1 mt-2">
+                 <button @click="toggleFolder(folderName as string)" class="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-bold text-surface-500 hover:text-surface-300 transition-colors uppercase tracking-wider mb-1 mt-2">
                    <div class="flex items-center gap-1.5">
                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
                      {{ folderName }}
@@ -750,11 +801,11 @@ const tokenMetrics = ref({
                         @click="loadSession(session.id)"
                         :class="['w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors flex items-center justify-between', 
                                  currentSessionId === session.id 
-                                  ? 'bg-purple-500/10 text-purple-400 font-medium' 
-                                  : 'text-zinc-400 hover:bg-white/5']"
+                                  ? 'bg-primary-500/10 text-primary-400 font-medium' 
+                                  : 'text-surface-400 hover:bg-surface-700/50']"
                       >
                         <span class="truncate block flex-1 pr-2">{{ session.title }}</span>
-                        <div @click.stop="sessionToDelete = session.id" class="p-1 text-zinc-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all shrink-0" title="Deletar">
+                        <div @click.stop="sessionToDelete = session.id" class="p-1 text-surface-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all shrink-0" title="Deletar">
                           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </div>
                       </button>
@@ -774,14 +825,14 @@ const tokenMetrics = ref({
                   @click="loadSession(session.id)"
                   :class="['w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors flex items-center justify-between', 
                            currentSessionId === session.id 
-                            ? 'bg-purple-500/10 text-purple-400 font-medium' 
-                            : 'text-zinc-400 hover:bg-white/5']"
+                            ? 'bg-primary-500/10 text-primary-400 font-medium' 
+                            : 'text-surface-400 hover:bg-surface-700/50']"
                 >
                   <div class="flex items-center gap-1.5 min-w-0 pr-1 truncate flex-1">
-                    <svg class="w-3.5 h-3.5 shrink-0" :class="currentSessionId === session.id ? 'text-purple-400' : 'text-zinc-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                    <svg class="w-3.5 h-3.5 shrink-0" :class="currentSessionId === session.id ? 'text-primary-400' : 'text-surface-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
                     <span class="truncate">{{ session.title }}</span>
                   </div>
-                  <div @click.stop="sessionToDelete = session.id" class="p-1 text-zinc-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all shrink-0" title="Deletar">
+                  <div @click.stop="sessionToDelete = session.id" class="p-1 text-surface-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all shrink-0" title="Deletar">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                   </div>
                 </button>
@@ -839,10 +890,10 @@ const tokenMetrics = ref({
       <!-- Top header for mobile / status -->
       <header class="h-14 border-b border-surface-800 flex items-center px-4 justify-between shrink-0 bg-surface-900/80 backdrop-blur-md">
         <div class="flex items-center gap-3">
-          <h2 class="font-medium text-slate-300 truncate max-w-[200px] md:max-w-md">
+          <h2 class="font-medium text-surface-200 truncate max-w-[200px] md:max-w-md">
              {{ activeSession ? activeSession.title : 'Sovereign Pair' }}
           </h2>
-           <button v-if="activeSession" @click="openEditSessionModal(activeSession as any)" class="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-surface-700 rounded-md transition-colors" title="Editar Sessão">
+           <button v-if="activeSession" @click="openEditSessionModal(activeSession as any)" class="p-1.5 text-surface-400 hover:text-primary-400 hover:bg-surface-700 rounded-md transition-colors" title="Editar Sessão">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
           </button>
         </div>
@@ -882,15 +933,15 @@ const tokenMetrics = ref({
           <div class="shrink-0 flex items-start justify-center mt-1">
             <div v-if="msg.role === 'assistant'" class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center relative">
               <!-- Orbit / Border (faint outer ring) -->
-              <div class="absolute inset-0 rounded-full border border-current opacity-20 text-emerald-500"></div>
+              <div class="absolute inset-0 rounded-full border border-current opacity-20 text-primary-500"></div>
               
               <!-- Pulsing animation from center to orbit while streaming (thinking) -->
-              <div v-if="msg.isStreaming" class="absolute inset-0 rounded-full animate-ping opacity-30 bg-emerald-500"></div>
+              <div v-if="msg.isStreaming" class="absolute inset-0 rounded-full animate-ping opacity-30 bg-primary-500"></div>
               
               <!-- Center Dot (100% filled, solid) -->
-              <div class="w-3.5 h-3.5 md:w-4 md:h-4 rounded-full bg-emerald-500"></div>
+              <div class="w-3.5 h-3.5 md:w-4 md:h-4 rounded-full bg-primary-500"></div>
             </div>
-            <div v-else class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-700 flex items-center justify-center p-2 text-slate-300">
+            <div v-else class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-surface-700 flex items-center justify-center p-2 text-surface-300">
               <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
             </div>
           </div>
@@ -902,7 +953,7 @@ const tokenMetrics = ref({
           >
             <div 
               class="px-5 py-4 rounded-2xl shadow-sm text-[15px] leading-relaxed relative"
-              :class="msg.role === 'user' ? 'bg-surface-700 text-slate-100 rounded-tr-sm' : 'bg-transparent prose prose-invert w-full max-w-none'"
+              :class="msg.role === 'user' ? 'bg-surface-700 text-surface-100 rounded-tr-sm' : 'bg-transparent prose w-full max-w-none'"
             >
               <template v-if="msg.role === 'user'">
                 {{ msg.content }}
@@ -929,24 +980,24 @@ const tokenMetrics = ref({
                    </div>
                 </div>
 
-                <div v-if="msg.content" v-safe-html="md.render(formatMessageIcons(msg.content))" class="prose-h1:text-xl prose-h2:text-lg prose-p:my-2 prose-pre:bg-[#000000] prose-pre:border prose-pre:border-zinc-800 prose-pre:rounded-lg prose-pre:shadow-xl prose-a:text-sky-400 prose-a:no-underline hover:prose-a:underline prose-code:text-emerald-300 prose-code:bg-emerald-500/10 prose-code:px-1 prose-code:rounded"></div>
-                <span v-if="msg.isStreaming" class="w-2 h-4 bg-emerald-400 inline-block animate-pulse ml-1 vertical-align-middle mt-1 rounded-sm shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+                <div v-if="msg.content" v-safe-html="md.render(formatMessageIcons(msg.content))" class="prose-h1:text-xl prose-h2:text-text-lg prose-p:my-2 prose-pre:bg-surface-800 prose-pre:border prose-pre:border-surface-700 prose-pre:rounded-lg prose-pre:shadow-xl prose-a:text-primary-400 prose-a:no-underline hover:prose-a:underline prose-code:text-primary-300 prose-code:bg-primary-500/10 prose-code:px-1 prose-code:rounded"></div>
+                <span v-if="msg.isStreaming" class="w-2 h-4 bg-primary-400 inline-block animate-pulse ml-1 vertical-align-middle mt-1 rounded-sm shadow-[0_0_8px_var(--primary)]"></span>
               </template>
             </div>
             
             <!-- Botões para mensagens do usuário -->
-            <div v-if="msg.role === 'user'" class="mt-2 flex items-center justify-end gap-3 px-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div v-if="msg.role === 'user'" class="mt-2 flex items-center justify-end gap-3 px-2 text-surface-500 opacity-0 group-hover:opacity-100 transition-opacity">
               <button @click="editMessage(msg)" title="Recuperar texto para editar" class="hover:text-amber-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
               </button>
-              <button @click="resendMessage(msg)" title="Reenviar exata mensagem" class="hover:text-sky-400">
+              <button @click="resendMessage(msg)" title="Reenviar exata mensagem" class="hover:text-primary-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
               </button>
             </div>
 
             <!-- Botões para mensagens da assistente -->
-            <div v-if="msg.role === 'assistant'" class="mt-2 flex items-center gap-3 px-2 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button @click="copyToClipboard(msg.content)" class="hover:text-sky-400" title="Copiar texto nativamente">
+            <div v-if="msg.role === 'assistant'" class="mt-2 flex items-center gap-3 px-2 text-surface-500 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button @click="copyToClipboard(msg.content)" class="hover:text-primary-400" title="Copiar texto nativamente">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
               </button>
               <button @click="submitFeedback(msg, 'up')" :class="msg.thumbs_up ? 'text-emerald-400' : 'hover:text-emerald-400'"><svg class="w-4 h-4" :fill="msg.thumbs_up ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.514"></path></svg></button>
@@ -960,7 +1011,7 @@ const tokenMetrics = ref({
       <div class="px-4 pb-6 pt-2 shrink-0 max-w-4xl w-full mx-auto">
         <input type="file" ref="fileUploadInput" class="hidden" @change="handleFileSelect" accept=".txt,.md,.pdf,.csv">
         <div class="relative flex items-center bg-surface-800 rounded-2xl border border-surface-700 shadow-xl focus-within:ring-1 focus-within:ring-primary-500/50 focus-within:border-primary-500/50 transition-all">
-          <button @click="triggerFileUpload" class="absolute left-3 p-2 text-slate-400 hover:text-sky-400 transition-colors" title="Anexar Arquivo">
+          <button @click="triggerFileUpload" class="absolute left-3 p-2 text-surface-400 hover:text-primary-400 transition-colors" title="Anexar Arquivo">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
           </button>
           
@@ -968,14 +1019,14 @@ const tokenMetrics = ref({
             v-model="inputMessage"
             @keydown.enter.prevent="sendMessage"
             placeholder="Mensagem para Sovereign Pair..."
-            class="w-full bg-transparent text-slate-200 pl-12 pr-14 py-4 max-h-48 rounded-2xl focus:outline-none resize-none placeholder-slate-500"
+            class="w-full bg-transparent text-surface-200 pl-12 pr-14 py-4 max-h-48 rounded-2xl focus:outline-none resize-none placeholder-surface-500"
             rows="1"
           ></textarea>
           
           <button 
             @click="sendMessage"
             :disabled="!inputMessage.trim() || isThinking"
-            class="absolute right-3 p-2 rounded-xl transition-all flex items-center justify-center bg-sky-500 text-white hover:bg-sky-400 disabled:bg-slate-700 disabled:text-slate-500"
+            class="absolute right-3 p-2 rounded-xl transition-all flex items-center justify-center bg-primary-500 text-white hover:bg-primary-400 disabled:bg-surface-700 disabled:text-surface-500"
           >
             <svg v-if="!isThinking" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
             <svg v-else class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -1008,21 +1059,21 @@ const tokenMetrics = ref({
     
     <!-- Edit Session Modal -->
     <div v-if="isEditSessionModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div class="bg-surface-900 border border-surface-700/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
-        <div class="px-6 py-4 border-b border-surface-700/50 flex justify-between items-center bg-surface-800/50">
-          <h3 class="text-lg font-medium text-slate-200">Editar Sessão</h3>
-          <button @click="isEditSessionModalOpen = false" class="text-slate-400 hover:text-white transition-colors">
+      <div class="bg-surface-100 dark:bg-surface-900 border border-surface-300 dark:border-surface-700/50 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+        <div class="px-6 py-4 border-b border-surface-300 dark:border-surface-700/50 flex justify-between items-center bg-surface-200 dark:bg-surface-800/50">
+          <h3 class="text-lg font-medium text-surface-900 dark:text-surface-100">Editar Sessão</h3>
+          <button @click="isEditSessionModalOpen = false" class="text-surface-500 hover:text-surface-900 dark:hover:text-white transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
         </div>
         <div class="p-6 space-y-4">
           <div class="space-y-2">
-            <label class="block text-sm font-medium text-slate-400">Título</label>
-            <input v-model="editingSession.title" type="text" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
+            <label class="block text-sm font-medium text-surface-600 dark:text-surface-400">Título</label>
+            <input v-model="editingSession.title" type="text" class="w-full bg-surface-50 dark:bg-surface-800 border border-surface-300 dark:border-surface-700 text-surface-900 dark:text-surface-100 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
           </div>
           <div class="space-y-2">
-            <label class="block text-sm font-medium text-slate-400">Pasta (Opcional)</label>
-            <input v-model="editingSession.folder_name" list="session-folders-list" type="text" placeholder="Selecione ou digite o nome da pasta" class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
+            <label class="block text-sm font-medium text-surface-600 dark:text-surface-400">Pasta (Opcional)</label>
+            <input v-model="editingSession.folder_name" list="session-folders-list" type="text" placeholder="Selecione ou digite o nome da pasta" class="w-full bg-surface-50 dark:bg-surface-800 border border-surface-300 dark:border-surface-700 text-surface-900 dark:text-surface-100 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
             <datalist id="session-folders-list">
                <template v-for="(_val, folderName) in expandedFolders" :key="folderName">
                   <option v-if="folderName !== ''" :value="folderName"></option>
@@ -1030,28 +1081,28 @@ const tokenMetrics = ref({
             </datalist>
           </div>
 
-          <div class="space-y-2 pt-2 border-t border-surface-700/50">
-            <label class="block text-sm font-medium text-slate-400">Tags / Categorias (Pressione Enter para adicionar)</label>
+          <div class="space-y-2 pt-2 border-t border-surface-300 dark:border-surface-700/50">
+            <label class="block text-sm font-medium text-surface-600 dark:text-surface-400">Tags / Categorias (Pressione Enter para adicionar)</label>
             <div class="flex flex-wrap gap-2 mb-2">
-              <span v-for="(tag, idx) in editingSession.tags" :key="idx" class="px-2 py-1 bg-surface-700 border border-surface-600 text-xs text-slate-300 rounded-md flex items-center gap-1">
+              <span v-for="(tag, idx) in editingSession.tags" :key="idx" class="px-2 py-1 bg-surface-200 dark:bg-surface-700 border border-surface-300 dark:border-surface-600 text-xs text-surface-800 dark:text-surface-300 rounded-md flex items-center gap-1">
                 #{{ tag }}
-                <button @click="removeTag(idx)" class="hover:text-rose-400 ml-1 transition-colors">
+                <button @click="removeTag(idx)" class="hover:text-rose-500 dark:hover:text-rose-400 ml-1 transition-colors">
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
               </span>
-              <span v-if="editingSession.tags.length === 0" class="text-xs text-slate-500 italic block">Nenhuma tag...</span>
+              <span v-if="editingSession.tags.length === 0" class="text-xs text-surface-400 dark:text-surface-500 italic block">Nenhuma tag...</span>
             </div>
             <input 
               v-model="editingTagsInput"
               @keydown.enter.prevent="addTag"
               type="text" 
               placeholder="Ex: python, pesquisa, ideia... (Aperte Enter)" 
-              class="w-full bg-surface-800 border border-surface-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all"
+              class="w-full bg-surface-50 dark:bg-surface-800 border border-surface-300 dark:border-surface-700 text-surface-900 dark:text-surface-100 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all"
             >
           </div>
         </div>
-        <div class="px-6 py-4 border-t border-surface-700/50 bg-surface-800/30 flex justify-end gap-3">
-          <button @click="isEditSessionModalOpen = false" class="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors">Cancelar</button>
+        <div class="px-6 py-4 border-t border-surface-300 dark:border-surface-700/50 bg-surface-100 dark:bg-surface-800/30 flex justify-end gap-3">
+          <button @click="isEditSessionModalOpen = false" class="px-4 py-2 text-sm text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white transition-colors">Cancelar</button>
           <button @click="saveSessionEdit" class="px-5 py-2 text-sm bg-primary-500 hover:bg-primary-400 text-white rounded-lg font-medium transition-colors shadow-lg shadow-primary-500/30">Salvar</button>
         </div>
       </div>
@@ -1059,5 +1110,15 @@ const tokenMetrics = ref({
 </template>
 
 <style scoped>
+/* Remove default arrow from Details/Summary in Webkit/Firefox */
+.cognitive-details > summary::-webkit-details-marker {
+  display: none;
+}
+.cognitive-details > summary {
+  list-style: none;
+}
+.cognitive-details[open] summary {
+  background-color: rgba(var(--surface-700), 0.5); /* Se houver var custom; se não vai herdar tw fallback */
+}
 </style>
 

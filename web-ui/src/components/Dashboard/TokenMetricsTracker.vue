@@ -1,13 +1,13 @@
 <template>
-  <div class="h-full flex flex-col bg-[#0f1012] border border-[#1a1c21] rounded-xl overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
+  <div class="h-full flex flex-col bg-surface-50 dark:bg-[#0f1012] border border-surface-200 dark:border-[#1a1c21] rounded-xl overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
     <!-- Header -->
-    <div class="flex items-center justify-between px-4 py-3 border-b border-[#1a1c21] bg-[#141518]/80 backdrop-blur-sm">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-surface-200 dark:border-[#1a1c21] bg-surface-100/80 dark:bg-[#141518]/80 backdrop-blur-sm">
       <div class="flex items-center gap-2">
          <div class="w-2 h-2 rounded-full bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.6)]"></div>
          <h3 class="text-[12px] font-bold tracking-widest text-[#6c7585] uppercase">Telemetry Center</h3>
       </div>
       <div class="flex items-center gap-2">
-         <span class="text-[10px] text-zinc-500 font-medium bg-black/30 px-2 py-0.5 rounded-sm border border-white/5 uppercase">Global</span>
+         <span class="text-[10px] text-zinc-500 font-medium bg-surface-200/50 dark:bg-black/30 px-2 py-0.5 rounded-sm border border-black/5 dark:border-white/5 uppercase">Global</span>
       </div>
     </div>
 
@@ -15,18 +15,18 @@
     <div class="flex-1 p-5 grid grid-cols-2 gap-4">
        
        <!-- 1. Tokens Box -->
-       <div class="flex flex-col items-center justify-center p-3 bg-zinc-900/40 border border-zinc-800/60 rounded-xl relative overflow-hidden group">
+       <div class="flex flex-col items-center justify-center p-3 bg-surface-100/40 dark:bg-zinc-900/40 border border-surface-200 dark:border-zinc-800/60 rounded-xl relative overflow-hidden group">
           <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-500/30 to-transparent"></div>
           <svg class="w-5 h-5 text-sky-500/50 mb-1.5 group-hover:text-sky-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
           <div class="text-[9px] uppercase font-bold text-zinc-500 tracking-wider mb-0.5 text-center leading-tight">Total Gerado</div>
           <div class="flex flex-col items-center gap-0">
-             <span class="text-xl sm:text-2xl font-light text-zinc-200 tracking-tight">{{ totalTokens.toLocaleString() }}</span>
+             <span class="text-xl sm:text-2xl font-light text-surface-900 dark:text-zinc-200 tracking-tight">{{ totalTokens.toLocaleString() }}</span>
              <span class="text-[9px] text-zinc-600 font-bold uppercase tracking-widest mt-0.5">Tokens</span>
           </div>
        </div>
 
        <!-- 2. Cost Analysis -->
-       <div class="flex flex-col items-center justify-center p-3 bg-zinc-900/40 border border-emerald-900/30 rounded-xl relative overflow-hidden group">
+       <div class="flex flex-col items-center justify-center p-3 bg-surface-100/40 dark:bg-zinc-900/40 border border-surface-200 dark:border-emerald-900/30 rounded-xl relative overflow-hidden group">
           <div class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent"></div>
           <svg class="w-5 h-5 text-emerald-500/50 mb-1.5 group-hover:text-emerald-400 transition-colors lucide lucide-banknote" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
           <div class="text-[9px] uppercase font-bold text-emerald-600 tracking-wider mb-0.5 text-center leading-tight">Economia Estimada</div>
@@ -37,7 +37,7 @@
        </div>
        
        <!-- 3. Hardware & Network Telemetry -->
-       <div class="col-span-2 flex flex-col gap-3 p-3 bg-zinc-900/30 border border-zinc-800/50 rounded-xl mt-1">
+       <div class="col-span-2 flex flex-col gap-3 p-3 bg-surface-100/30 dark:bg-zinc-900/30 border border-surface-200 dark:border-zinc-800/50 rounded-xl mt-1">
           <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                  <div class="w-6 h-6 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
@@ -58,19 +58,19 @@
           <div class="grid grid-cols-3 gap-2 w-full mt-1">
               <div class="flex flex-col gap-1 items-center">
                   <div class="text-[9px] font-mono"><span class="text-zinc-500 mr-1">CPU</span><span class="text-amber-400/80">{{ hardware.cpu }}%</span></div>
-                  <div class="h-1 bg-black rounded overflow-hidden w-full">
+                  <div class="h-1 bg-surface-200 dark:bg-black rounded overflow-hidden w-full">
                       <div class="h-full bg-amber-500/50 transition-all duration-1000" :style="`width: ${hardware.cpu}%`"></div>
                   </div>
               </div>
               <div class="flex flex-col gap-1 items-center">
                   <div class="text-[9px] font-mono"><span class="text-zinc-500 mr-1">RAM</span><span class="text-purple-400/80">{{ hardware.ram }} GB</span></div>
-                  <div class="h-1 bg-black rounded overflow-hidden w-full">
+                  <div class="h-1 bg-surface-200 dark:bg-black rounded overflow-hidden w-full">
                       <div class="h-full bg-purple-500/50 transition-all duration-1000" :style="`width: ${(hardware.ram / 32) * 100}%`"></div>
                   </div>
               </div>
               <div class="flex flex-col gap-1 items-center">
                   <div class="text-[9px] font-mono"><span class="text-zinc-500 mr-1">I/O</span><span class="text-sky-400/80">{{ hardware.io }} MB/s</span></div>
-                  <div class="h-1 bg-black rounded overflow-hidden w-full">
+                  <div class="h-1 bg-surface-200 dark:bg-black rounded overflow-hidden w-full">
                       <div class="h-full bg-sky-500/50 transition-all duration-1000" :style="`width: ${(hardware.io / 500) * 100}%`"></div>
                   </div>
               </div>
@@ -94,8 +94,7 @@ let hwInterval: any = null
 
 const fetchTelemetry = async () => {
    try {
-      // O Core Cíbrido (Rust) expõe a API de Telemetria na porta 8001
-      const RUST_CORE_URL = 'http://127.0.0.1:8001'
+      const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
       const res = await fetch(`${RUST_CORE_URL}/v1/analytics/telemetry`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` }
       })

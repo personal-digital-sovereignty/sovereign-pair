@@ -79,7 +79,7 @@ const loading = ref(false)
 let pollingInterval: number | null = null
 
 const fetchLogs = async () => {
-  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  const baseURL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000`
   const token = localStorage.getItem('sovereign_token')
   const headers = token ? { Authorization: `Bearer ${token}` } : {}
   

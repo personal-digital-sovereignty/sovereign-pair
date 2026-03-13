@@ -101,7 +101,7 @@ const isLoading = ref(false)
 const searchInput = ref<HTMLInputElement | null>(null)
 let debounceTimeout: ReturnType<typeof setTimeout> | null = null
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000`
 
 const open = () => {
   isOpen.value = true
