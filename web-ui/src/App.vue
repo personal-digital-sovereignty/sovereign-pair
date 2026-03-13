@@ -57,9 +57,10 @@
       <!-- 2. Sliding Context Panel (Trees, Chat History, Settings) -->
       <aside 
         class="bg-surface-800 flex flex-col h-full transition-all duration-300 relative z-20 shrink-0 overflow-x-hidden overflow-y-auto border-r border-surface-700"
-        :class="isSidebarOpen ? 'w-[260px]' : 'w-0 border-r-0 pointer-events-none opacity-0'"
+        :class="isSidebarOpen ? '' : 'border-r-0 pointer-events-none opacity-0'"
+        :style="{ width: isSidebarOpen ? `${sidebarWidth}px` : '0px' }"
       >
-        <div class="min-w-[260px] w-[260px] flex flex-col h-full shrink-0">
+        <div class="flex flex-col h-full shrink-0" :style="{ width: `${sidebarWidth}px`, minWidth: `${sidebarWidth}px` }">
           
           <!-- Context Header -->
           <div class="h-14 px-4 flex items-center border-b border-surface-700 shrink-0">
@@ -90,6 +91,15 @@
         </div>
       </aside>
       
+      <!-- Resizer Edge Handle (Draggable Divider) -->
+      <div 
+        v-show="isSidebarOpen"
+        class="w-[6px] h-full cursor-col-resize hover:bg-primary-500/50 active:bg-primary-500 transition-colors z-40 absolute top-0 bottom-0 flex-shrink-0"
+        title="Redimensionar Painel O.S"
+        :style="{ left: `calc(64px + ${sidebarWidth}px - 3px)` }"
+        @mousedown="startResize"
+      ></div>
+      
       <!-- Main Area -->
       <main class="flex-1 flex flex-col overflow-hidden relative min-w-0 focus:outline-none bg-surface-900 shadow-[inset_10px_0_30px_rgba(0,0,0,0.5)]">
         
@@ -115,6 +125,44 @@ import Login from './views/Login.vue'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000`
 const authPhase = ref('loading')
 const isSidebarOpen = ref(true)
+
+// Sidebar Sliding Panel Resize Engine
+const sidebarWidth = ref(260)
+const minSidebarWidth = 200
+const maxSidebarWidth = 600
+const isResizing = ref(false)
+
+const startResize = (e: MouseEvent) => {
+  e.preventDefault()
+  isResizing.value = true
+  document.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+const handleMouseMove = (e: MouseEvent) => {
+  if (!isResizing.value) return
+  const newWidth = e.clientX - 64 // Remove Activity Bar offset
+  if (newWidth >= minSidebarWidth && newWidth <= maxSidebarWidth) {
+    sidebarWidth.value = newWidth
+  }
+}
+
+const stopResize = () => {
+  isResizing.value = false
+  document.removeEventListener('mousemove', handleMouseMove)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  // Save State
+  localStorage.setItem('sensus-sidebar-width', String(sidebarWidth.value))
+}
+
+onMounted(() => {
+  const savedWidth = localStorage.getItem('sensus-sidebar-width')
+  if (savedWidth) sidebarWidth.value = Number(savedWidth)
+})
 
 const clusterState = ref<{status: string, reason?: string, active_agents?: string[]}>({
   status: 'optimal',
