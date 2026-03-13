@@ -49,10 +49,11 @@ jobs:
           TF_VAR_fingerprint: ${{ secrets.OCI_FINGERPRINT }}
           TF_VAR_private_key: ${{ secrets.OCI_PRIVATE_KEY }}
           TF_VAR_region: ${{ vars.OCI_REGION || 'sa-saopaulo-1' }}
-          TF_VAR_compartment_ocid: ${{ secrets.OCI_COMPARTMENT_OCID || secrets.OCI_TENANCY_OCID }}
+          TF_VAR_compartment_ocid: ${{ secrets.OCI_COMPARTMENT_OCID != '' && secrets.OCI_COMPARTMENT_OCID || secrets.OCI_TENANCY_OCID }}
           TF_VAR_tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
           TF_VAR_ssh_public_key: ${{ secrets.OCI_SSH_PUBLIC_KEY }}
           TF_VAR_pat_ghcr: ${{ secrets.PAT_GHCR }}
+          TF_VAR_boot_volume_size_in_gbs: ${{ vars.OCI_BOOT_VOLUME_SIZE || 200 }}
           ACTION_INPUT: ${{ github.event.inputs.action }}
         run: |
           if [ "$ACTION_INPUT" == "destroy" ]; then
@@ -61,4 +62,11 @@ jobs:
           else
             echo "Running OpenTofu Apply..."
             tofu apply -auto-approve
+            echo "==================================================================="
+            echo "✅ INSTÂNCIA OCI PROVISIONADA COM SUCESSO!"
+            echo "⚠️ AVISO MESTRE: O provisionamento Terraform terminou, mas o O.S"
+            echo "ainda está rodando as automações internas do 'cloud-init'. O"
+            echo "Tailscale, Ollama e o Download dos Modelos (Pull) podem levar de"
+            echo "10 a 20 minutos rodando em background na máquina Oracle."
+            echo "==================================================================="
           fi
