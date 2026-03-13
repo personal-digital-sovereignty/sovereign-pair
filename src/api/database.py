@@ -2,7 +2,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-from src.config import CHROMA_DIR
+from src.config import DATA_DIR
 
 # Verifica se existe uma URL de banco fornecida pelo Docker/OS (.env)
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -14,8 +14,8 @@ if DATABASE_URL:
         
     engine = create_engine(DATABASE_URL)
 else:
-    # Fallback para Desktop Local: SQLite Persistente ao lado do ChromaDB
-    DB_PATH = os.path.join(os.path.dirname(CHROMA_DIR), "sovereign_memory.db")
+    # Fallback para Desktop Local: SQLite Persistente ao lado do antigo ChromaDB
+    DB_PATH = os.path.join(DATA_DIR, "sovereign_memory.db")
     SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
     
     engine = create_engine(
@@ -29,10 +29,47 @@ else:
     
     @event.listens_for(engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
+        is_vec_loaded = False
+        try:
+            dbapi_connection.enable_load_extension(True)
+            import sqlite_vec
+            sqlite_vec.load(dbapi_connection)
+            is_vec_loaded = True
+        except AttributeError:
+             pass # Python do OS compilado sem suporte local a Load Extension (Bypass temporário Fase B)
+        except Exception:
+            pass # Ignora falta da extensão C localmente (No ambiente Docker será instalado via requirements)
+            
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA synchronous=NORMAL")
         cursor.execute("PRAGMA busy_timeout=5000")
+        
+        # Cria Tabela Virtual Vetorial apenas se o módulo C estiver injetado
+        if is_vec_loaded:
+            try:
+                cursor.execute("""
+                    CREATE VIRTUAL TABLE IF NOT EXISTS sovereign_vectors USING vec0(
+                        chunk_id INTEGER PRIMARY KEY,
+                        embedding float[1024]
+                    );
+                """)
+            except Exception as e:
+                import logging
+                logging.warning(f"Erro ao criar Tabela Vetorial vec0: {e}")
+        
+        # Cria a tabela gêmea para segurar os Dados e Metadados brutos (Substituto do Chroma Storage)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sovereign_chunks (
+                chunk_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                uuid_reference TEXT NOT NULL,
+                tenant_id TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                text_content TEXT NOT NULL,
+                metadata_json TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
         cursor.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

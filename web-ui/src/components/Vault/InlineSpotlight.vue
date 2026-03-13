@@ -138,10 +138,15 @@ const selectedTargetRaw = ref<string | null>(null)
 const handleSpotlightInject = (e: Event) => {
     const customEvent = e as CustomEvent
     if (customEvent.detail && customEvent.detail.text) {
-        addContextPill(customEvent.detail.text)
-        inputQuery.value = ''
-        // Auto-focus input
-        setTimeout(() => document.querySelector('textarea')?.focus(), 300)
+        if (customEvent.detail.autoSubmit) {
+            inputQuery.value = customEvent.detail.text
+            sendQuery()
+        } else {
+            addContextPill(customEvent.detail.text)
+            inputQuery.value = ''
+            // Auto-focus input
+            setTimeout(() => document.querySelector('textarea')?.focus(), 300)
+        }
     }
 }
 
@@ -153,7 +158,7 @@ const scrollToBottom = () => {
    }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000`
 const getAuthHeaders = (): Record<string, string> => {
    const token = localStorage.getItem('sovereign_token')
    return token ? { 'Authorization': `Bearer ${token}` } : {}

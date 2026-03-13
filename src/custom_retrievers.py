@@ -96,3 +96,84 @@ class CustomBM25Retriever(BaseRetriever):
         
         logger.debug(f"BM25 Total Hits: {len(nodes_with_scores)}")
         return nodes_with_scores
+
+class CustomSqliteVecRetriever(BaseRetriever):
+    """
+    Retriever Semântico Cíbrido nativo para o Sovereign Pair Agentic Mesh.
+    Calcula Distância K-Nearest Neighbors diretamente na extensão SQLite-Vec,
+    removendo a necessidade do ChromaDB ou faixas lentas na memória.
+    """
+    _similarity_top_k: int = 5
+    _embed_model: Any = None
+    _db_session: Any = None
+    _tenant_id: str = "default"
+
+    def __init__(
+        self,
+        embed_model: Any,
+        db_session: Any,
+        tenant_id: str = "default",
+        similarity_top_k: int = 5,
+        **kwargs: Any
+    ) -> None:
+        super().__init__(**kwargs)
+        self._embed_model = embed_model
+        self._db_session = db_session
+        self._tenant_id = tenant_id
+        self._similarity_top_k = similarity_top_k
+
+    def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
+        from llama_index.core.schema import TextNode
+        from sqlalchemy.sql import text
+        import struct
+        import json
+
+        logger.info(f"🔍 [SQLite-Vec] Executando Busca Vetorial: '{query_bundle.query_str}'")
+
+        try:
+            # 1. Obter o vetor F32 (Embeddings via Nomic Nomic/Ollama)
+            query_embedding = self._embed_model.get_text_embedding(query_bundle.query_str)
+            
+            # 2. Empacotar float[] para bytes brutos que o sqlite-vec em C consegue chupar imediatamente
+            # O sqlite-vec f32 usa little-endian (struct pack 'f')
+            query_f32_blob = struct.pack(f"{len(query_embedding)}f", *query_embedding)
+            
+            # 3. Cruzar VIRTUAL TABLE (Busca Rápida L2/Cosine) com a Tabela Relacional Base
+            # Sintaxe do vec0: WHERE embedding MATCH ? AND k = ?
+            sql = text("""
+                SELECT c.chunk_id, c.text_content, c.metadata_json, v.distance 
+                FROM sovereign_vectors v
+                JOIN sovereign_chunks c ON c.chunk_id = v.chunk_id
+                WHERE v.embedding MATCH :embedding AND v.k = :k AND c.tenant_id = :tenant_id
+                ORDER BY v.distance ASC
+            """)
+            
+            result = self._db_session.execute(sql, {
+                "embedding": query_f32_blob,
+                "k": self._similarity_top_k,
+                "tenant_id": self._tenant_id
+            })
+            
+            nodes_with_scores = []
+            for row in result.fetchall():
+                chunk_id_val, text_content_val, metadata_json_str, distance_val = row
+                
+                metadata = json.loads(metadata_json_str) if metadata_json_str else {}
+                
+                node = TextNode(
+                    id_=str(chunk_id_val),
+                    text=text_content_val,
+                    metadata=metadata
+                )
+                
+                # Para distances L2 ou Cosine, converter logicamente para 0.0 ~ 1.0 Similaridade
+                score = 1.0 / (1.0 + float(distance_val))
+                nodes_with_scores.append(NodeWithScore(node=node, score=score))
+                
+            logger.info(f"   ✓ {len(nodes_with_scores)} matches Cíbridos encontrados com sucesso.")
+            return nodes_with_scores
+            
+        except Exception as e:
+            logger.error(f"🚨 [SQLite-Vec] Erro durante o K-NN Retrieval: {e}")
+            return []
+

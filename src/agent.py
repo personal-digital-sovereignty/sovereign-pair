@@ -20,17 +20,11 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 
-import chromadb
 from typing import Optional
-
 from llama_index.core import VectorStoreIndex, StorageContext
-from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core.tools import QueryEngineTool, ToolMetadata
 
 from config import (
-    CHROMA_DIR,
-    CHROMA_COLLECTION_NAME,
-    CHROMA_SYSTEM_COLLECTION_NAME,
     OWNER_NAME,
     AGENT_VERBOSE,
     get_default_llm,
@@ -82,30 +76,17 @@ def initialize_rag_tool() -> Optional[QueryEngineTool]:
     try:
         logger.info("📂 Inicializando ferramenta de busca local (RAG)...")
         
-        # Verificar se o ChromaDB existe
-        if not CHROMA_DIR.exists():
-            logger.error(f"❌ Diretório ChromaDB não encontrado: {CHROMA_DIR}")
-            logger.error("   Execute primeiro: python ingest.py")
-            return None
-        
-        # Conectar ao ChromaDB
-        db = chromadb.PersistentClient(path=str(CHROMA_DIR))
-        chroma_collection = db.get_or_create_collection(CHROMA_SYSTEM_COLLECTION_NAME)
-        vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
-        
-        storage_context = StorageContext.from_defaults(vector_store=vector_store)
-        index = VectorStoreIndex.from_vector_store(
-            vector_store,
-            embed_model=get_embed_model(),
-            storage_context=storage_context
-        )
-        
+        # [SQLite VEC MIGRATION]: O RAG passou a ser inteiramente gerido via The Nurse / Engine Builder com o Retriever Cíbrido nativo
+        # Não iniciamos mais instâncias atômicas de vector store aqui, deixamos pro builder gerenciar a conector do SQLAlchemy
         from src.config import get_default_llm
         llm = get_default_llm()
         
-        # Criar query engine
-        # Aumentamos similarity_top_k para 10 para garantir mais contexto ao LLM
-        local_query_engine = index.as_query_engine(llm=llm, similarity_top_k=10)
+        # Fake index passage placeholder for CLI tool loop (Desacoplaremos futuramente)
+        index = None
+        
+        class PlaceholderQueryEngine:
+            def query(self, *args, **kwargs): return "Migração para SQLite-Vec em andamento."
+        local_query_engine = PlaceholderQueryEngine()
         
         # Criar ferramenta
         local_tool = QueryEngineTool(

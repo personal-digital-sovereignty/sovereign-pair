@@ -62,7 +62,7 @@ class SensusDocumentModel(Base):
     extracted_links = Column(JSON, default=list)
     
     # Semantic Data (The Dad)
-    vector_id = Column(String(100), nullable=True) # ID no Chroma
+    vector_id = Column(String(100), nullable=True) # ID na tabela virtual sqlite-vec
     semantic_summary = Column(Text, nullable=True)
     
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -221,3 +221,22 @@ class ActivityLogModel(Base):
     details = Column(JSON, nullable=True) # Diff detalhado ou mensagem
     
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+# --- BLUE COLLAR WORKER (AGENTE AUTONÔMO A1 - Fase D) ---
+
+class BlueCollarTask(Base):
+    __tablename__ = "blue_collar_tasks"
+
+    id = Column(String(36), primary_key=True, index=True) # UUID
+    tenant_id = Column(String(50), nullable=False, index=True, default="default")
+    topic = Column(String(500), nullable=False) # Tema que o Scraper deve pesquisar (ex: "Tendências em LangGraph 2024")
+    frequency = Column(String(50), default="manual") # manual, hourly, daily, weekly
+    is_active = Column(Boolean, default=True)
+    
+    last_run_at = Column(DateTime, nullable=True)
+    next_run_at = Column(DateTime, nullable=True)
+    status = Column(String(50), default="idle") # idle, running, error
+    last_log = Column(Text, nullable=True) # Histórico de ingestão resumido
+    
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

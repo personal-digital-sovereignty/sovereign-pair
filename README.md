@@ -55,8 +55,12 @@ Ao contrário de implementações RAG estáticas, o agente lembra quem você é 
 ### Ingestão Incremental Extrema (Zero-Cost Sync)
 Ao alimentar milhares de notas no sistema, a pipeline apenas processa deltas (arquivos novos, alterados ou removidos). Utiliza **Hashing Paralelo SHA256** (cache LRU) para alcançar 95%+ de redução no tempo processual, incluindo "Garbage Collection" automático das matrizes vetoriais obsoletas e suporte vitalício ao Server MCP.
 
-### MAS (Multi-Agent System) LangGraph
-Nossa cadeia intelectiva, com reestruturações até a **Fase 43**, suporta LangGraph Agents com padronização global de nomenclatura: **The Mom**, **The Dad** (Orquestração), **The Nurse** (Triagem Semântica/Roteamento), **The Doctor** (Raciocínio RAG Avançado), **The Coder** (Engenharia Mestre) e **The Accountant** (Motor Matemático). Eles operam de forma isolada e em uníssono encapsulando de ponta-a-ponta a resiliência cognitiva da IA.
+### MAS (Multi-Agent System) LangGraph & Rust Core
+Nossa cadeia intelectiva suporta LangGraph Agents com padronização global de nomenclatura: **The Mom**, **The Dad** (Orquestração), **The Nurse** (Triagem Semântica/Roteamento via LangGraph StateGraphs), **The Doctor** (Raciocínio RAG Avançado), **The Coder** (Engenharia Mestre) e **The Accountant** (Motor Matemático). Eles operam de forma isolada e em uníssono encapsulando de ponta-a-ponta a resiliência cognitiva da IA.
+A partir da **v2.0**, os agentes de infraestrutura pesada (**The Mom** e **The Dad**) foram migrados para um **Sovereign Core nativo em Rust** (com ciber-paralelismo `Rayon` e `notify` de OSKernel), entregando latência quase nula na ingestão multithread e extirpando de vez os gargalos de Python e ChromaDB, agora centralizados em `sqlite-vec` atômico.
+
+### Oracle "Blue Collar" & Mesh Tunneling
+O Sovereign V2 possui uma inteligência descentralizada. Um módulo de Extração Nuvem (O Trabalhador Braçal) varre automaticamente a web por tópicos e mastiga o conhecimento na sua instância OCI A1 (Oracle). No Edge (Sua Máquina/Local), o **MeshSyncWorker** atua como cron-job assíncrono via VPN, clonando incrementalmente os vetores da Nuvem para o seu HD. O nó local absorve passivamente a experiência do seu clone na rede!
 
 ### O Mandato "The Sentinel" & Zero-Trust
 O sistema opera através de controle restritivo militar. Requisições HTTP limitadas por preflights de CORS e Web Application Firewall. O **The Sentinel** intercepta Prompt Injections em T0 (Tempo Zero), quarentena vetores maliciosos e monitora o God Mode Cockpit. Na CI/CD, o sistema FOSS DevSecOps é mandatório.

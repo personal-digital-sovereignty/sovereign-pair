@@ -11,13 +11,13 @@
 
   <div v-else class="h-full bg-surface-900 text-surface-200 relative">
     <!-- Discreet Spellcheck Notification -->
-    <div v-if="showSpellcheckPrompt" class="absolute top-4 right-8 z-50 bg-[#1A1A1D] border border-[#333] rounded-lg shadow-2xl p-4 max-w-xs animate-in slide-in-from-top-4 fade-in duration-300">
+    <div v-if="showSpellcheckPrompt" class="absolute top-4 right-8 z-50 bg-surface-900 dark:bg-surface-800 border border-surface-700/50 rounded-lg shadow-2xl p-4 max-w-xs animate-in slide-in-from-top-4 fade-in duration-300">
       <div class="flex items-start gap-3">
         <div class="mt-0.5 text-emerald-500">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
         </div>
         <div class="flex-1">
-          <h4 class="text-sm font-medium text-white mb-1">Dicionário Ortográfico</h4>
+          <h4 class="text-sm font-medium text-surface-900 dark:text-surface-100 mb-1">Dicionário Ortográfico</h4>
           <p class="text-xs text-surface-400 leading-relaxed mb-3">
             O corretor do navegador está desativado para evitar falsos positivos no Markdown. Deseja reativar o dicionário Pt-BR?
           </p>
@@ -25,12 +25,12 @@
             <button @click="setSpellcheck(true)" class="text-xs bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 px-3 py-1.5 rounded transition-colors font-medium">
               Ativar Corretor
             </button>
-            <button @click="setSpellcheck(false)" class="text-xs text-surface-400 hover:text-white px-3 py-1.5 rounded transition-colors">
+            <button @click="setSpellcheck(false)" class="text-xs text-surface-400 hover:text-surface-900 dark:hover:text-surface-100 px-3 py-1.5 rounded transition-colors">
               Ignorar
             </button>
           </div>
         </div>
-        <button @click="showSpellcheckPrompt = false" class="text-surface-500 hover:text-white">
+        <button @click="showSpellcheckPrompt = false" class="text-surface-500 hover:text-surface-900 dark:hover:text-surface-100">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
       </div>
@@ -113,8 +113,8 @@
           <div class="mb-8 border-b border-surface-700 pb-6 relative group flex-shrink-0">
         <input 
           type="text" 
-          v-model="docData.name"
-          class="bg-transparent text-4xl font-bold tracking-tight text-white w-full outline-none placeholder:text-surface-600 focus:border-b focus:border-emerald-500/30 transition-colors"
+          :value="docData.name || (docData.path ? docData.path.split('/').pop() : docData.autoTitle)"
+          class="bg-transparent text-4xl font-bold tracking-tight text-surface-900 dark:text-surface-100 w-full outline-none placeholder:text-surface-600 focus:border-b focus:border-primary-500/30 transition-colors"
           placeholder="New Document Title"
           disabled
         />
@@ -363,8 +363,8 @@ const props = defineProps({
 
 const emit = defineEmits(['editor-stats', 'update-view-mode', 'editor-saving'])
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || 'http://localhost:8001'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000`
+const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
 const isLoading = ref(true)
 const fetchError = ref<string | null>(null)
 const isSaving = ref(false)
@@ -403,7 +403,7 @@ const injectFileToAI = () => {
     const sysPrompt = `Inicie Análise ou Estruturação Crítica O.S do documento atual: ${docData.value.path}`
 
     window.dispatchEvent(new CustomEvent('sensus-spotlight-inject', { 
-         detail: { text: sysPrompt } 
+         detail: { text: sysPrompt, autoSubmit: true } 
     }))
 }
 
@@ -715,7 +715,7 @@ const computeEditorStats = (markdown: string) => {
     emit('editor-stats', {
         words: words.length,
         links: links,
-        path: docData.value?.path || 'N/A'
+        path: docData.value?.path || props.fileId || 'N/A'
     })
 }
 
