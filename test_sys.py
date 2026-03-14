@@ -1,6 +1,4 @@
 import asyncio
-from src.api.database import SessionLocal
-from src.api.routes import get_current_user
 
 # Simular a carga do Meta-RAG localmente
 from src.engine_builder import build_system_chat_engine
@@ -13,7 +11,7 @@ try:
         async for t in res.async_response_gen():
             print(t, end="")
     asyncio.run(run())
-except Exception as e:
+except Exception:
     import traceback
     traceback.print_exc()
 

@@ -1,7 +1,5 @@
 import sqlite3
 import json
-import os
-import argparse
 from pathlib import Path
 
 # Paths
@@ -84,10 +82,10 @@ def export_to_sharegpt():
         for entry in dataset_entries:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
             
-    print(f"✅ [Distilação O.S] Safra Mestra Concluída!")
+    print("✅ [Distilação O.S] Safra Mestra Concluída!")
     print(f"📊 Foram envasadas {len(dataset_entries)} Sessões Perfeitas Ricas em <thinking>.")
     print(f"📦 Destino: {OUTPUT_PATH}")
-    print(f"🚀 O SafeTensor Unsloth (Fase 5.5) já pode Engolir este Dataset.")
+    print("🚀 O SafeTensor Unsloth (Fase 5.5) já pode Engolir este Dataset.")
 
 if __name__ == "__main__":
     export_to_sharegpt()

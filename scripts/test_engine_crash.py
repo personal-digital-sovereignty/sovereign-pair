@@ -6,7 +6,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 print("Iniciando depuração de inicialização...")
 try:
-    from src.api.dependencies import get_chat_engine
     print("Módulos importados. Tentando construir a Factory RAG localmente.")
     
     from src.agent import initialize_rag_tool
@@ -16,6 +15,6 @@ try:
     from src.engine_builder import build_chat_engine
     engine = build_chat_engine(_index, history=[])
     print("Chat Engine montado e respondendo. Não há erro de sintaxe ou conexão DB.")
-except Exception as e:
+except Exception:
     print("\nXXX ERRO FATAL XXX")
     traceback.print_exc()
