@@ -1,6 +1,6 @@
 # Manifesto 07: Otimização Preditiva Local (Unsloth Fine-Tuning)
 
-Esta documentação descreve os métodos operacionais vinculados ao treinamento focado (Fine-Tuning) do Sovereign Pair. Substitui-se o emprego oneroso do grafo processual abstrato de LangGraph em *Runtime* pela adequação local sintática em arquiteturas compactas (Llama-3.2 1B / 3B). 
+Esta documentação descreve os métodos operacionais vinculados ao treinamento focado (Fine-Tuning) do Sovereign Pair. Substitui-se o emprego oneroso do grafo processual abstrato de LangGraph em *Runtime* (arquitetura Python base descontinuada) pela adequação local sintática em arquiteturas compactas (Llama-3.2 1B / 3B) ligadas ao motor Rust O.S. 
 
 O processo fundamenta-se sob infraestrutura provisionada nas matrizes Cloud OCI A1 Base (Volume > 200GB).
 
@@ -57,4 +57,4 @@ No código Python primário, a variável base exportacional `push_to_hub_gguf` r
 model.push_to_hub_gguf("Sovereign-Llama-3.2-3B-Thinking", tokenizer, quantization_method = "q4_k_m")
 ```
 
-Baixe os pacotes integrativos finalizantes formatados (`.gguf`). Atualize os roteamentos de Model Selection local do projeto (O.S Local FastAPI) garantindo a inicialização direta de chamadas LLM e atenuadores analógicos padronizando e suprimindo custos operacionais externos à rede privativa Desktop.
+Baixe os pacotes integrativos finalizantes formatados (`.gguf`). Atualize os roteamentos de Model Selection local do projeto (O.S Local Rust Axum) garantindo a inicialização direta de chamadas LLM e atenuadores analógicos padronizando e suprimindo custos operacionais externos à rede privativa Desktop.

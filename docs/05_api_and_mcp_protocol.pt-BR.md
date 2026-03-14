@@ -2,9 +2,9 @@
 
 O Sovereign Pair foi projetado para expor seu motor de inferência central através de protocolos integrados. O sistema provê suporte unificado contemplando tanto a automação focada em Webhooks (via orquestradores como N8N), quanto desenvolvedores adotando extensões em ambientes locais baseados no padrão MCP.
 
-## 1. A Interface REST (Integração HTTP via FastAPI)
+## 1. A Interface REST (Integração HTTP via Axum O.S)
 
-A aplicação FastAPI principal (`src/api/routes.py`) expõe uma interface padrão para serviços. A implantação central pode ocorrer na nuvem (como a OCI) ou instanciada locamente.
+A infraestrutura compilatória principal em Rust Axum (`src-rust/main.rs`) expõe uma interface padrão para serviços. A implantação central pode ocorrer na nuvem (como a OCI) ou instanciada localmente de forma nativa.
 
 Este modelo arquitetural permite que construtores visuais de fluxo e aplicações Web em `Vue.js` interajam nativamente com os endpoints síncronos da infraestrutura.
 
@@ -20,22 +20,23 @@ Este modelo arquitetural permite que construtores visuais de fluxo e aplicaçõe
 
 ## 2. Padrão Integrativo MCP (Model Context Protocol)
 
-Buscando padronizar integrações locais voltadas a desenvolvimento de software em VS Code (Cline, Cursor, etc), as rotinas da API de Chat Python contam com um servidor compatível ao formato interativo do sistema **Model Context Protocol (MCP)**, apoiado pelo framework nativo open-source da Anthropic. Esse servidor extrai os processos regulares e os mapeia tecnicamente convertendo o Back-end em dependências passivas de "Tools" (Ferramentas) ou "Resources" (Conteúdo estático), operados via extensões do sistema operacional.
+Buscando padronizar integrações locais voltadas a desenvolvimento de software em VS Code (Cline, Cursor, etc), as rotinas da API nativa em **Rust** contam com um servidor compatível ao formato interativo do sistema **Model Context Protocol (MCP)**, apoiado pelo framework nativo open-source da Anthropic. Esse servidor extrai os processos regulares e os mapeia tecnicamente convertendo o Back-end em dependências passivas de "Tools" (Ferramentas) ou "Resources" (Conteúdo estático), operados via extensões do sistema operacional.
 
 ### 2.1 Rede via Stdio IPC (Comunicação Sem Portas TCP)
-A implementação do MCP elimina a dependência de conexões abertas convencionais via TCP/HTTP no Desktop. Toda interação transacional adota o modo padrão *Stdio* (Standard Input/Output) efetuando leitura restrita mediante à via de comunicação inter-processos segura no sistema operacional nativo (IPC Node Kernel Routing). A abordagem elimina riscos associados ao monitoramento passivo LAN/WiFi O.S (Network Panning). **A declaração da via isolada encontra-se definida integralmente no arquivo Python originário do gateway local `src/mcp_stdio.py`]**.
+A implementação do MCP elimina a dependência de conexões abertas convencionais via TCP/HTTP no Desktop. Toda interação transacional adota o modo padrão *Stdio* (Standard Input/Output) efetuando leitura restrita mediante à via de comunicação inter-processos segura no sistema operacional nativo (IPC Node Kernel Routing). A abordagem elimina riscos associados ao monitoramento passivo LAN/WiFi O.S (Network Panning). **A declaração da via isolada encontra-se definida integralmente no binário local originário do gateway `src-rust/mcp_stdio.rs`]**.
 
 ### 2.2 Requisitos de Instanciação do Kernel no Client (Acoplamento a IDE VS Code)
-O método de registro nas extensões assistentes impinge atrelamento puramente configuracional ativando chamadas no Python local sem invocar sub-roteiros ou processos Docker externos à máquina do usuário:
+O método de registro nas extensões assistentes impinge atrelamento puramente configuracional ativando chamadas no Rust local sem invocar sub-roteiros Python ou processos Docker externos à máquina do usuário:
 
 Configuração e Registro:
 ```json
 "mcpServers": {
   "sovereign-pair": {
-    "command": "python",
-    "args": ["-m", "src.mcp_stdio"],
+    "command": "cargo",
+    "args": ["run", "--release", "--bin", "sovereign-mcp-server"],
     "env": {
-      "PYTHONPATH": "/caminho/absoluto/da/raiz/do/projeto/sovereign-pair/"
+      "RUST_LOG": "info",
+      "CARGO_MANIFEST_DIR": "/caminho/absoluto/da/raiz/do/projeto/sovereign-pair/"
     }
   }
 }
@@ -88,4 +89,4 @@ Configurações de infraestrutura Linux em que repousará as definições de Com
    }
    ```
 3. **Invocação no Ambiente:**
-   Após rodar e indexar servidores com UVicorn Local `8000`, engatilhará chamadas O.S em subterminal nativo (atalho customizado *e.g., Ctrl+Esc*). Estabelece processamento de codificações restritas exclusivas provindas do motor físico sob comando puramente local sem interagir a Nuvem WAN API externa comercial O.S.
+   Após rodar e indexar servidores com Cargo Build / Axum Local `8000`, engatilhará chamadas O.S em subterminal nativo (atalho customizado *e.g., Ctrl+Esc*). Estabelece processamento de codificações restritas exclusivas provindas do motor físico O.S Axum sob comando puramente local sem interagir a Nuvem WAN API externa comercial O.S.

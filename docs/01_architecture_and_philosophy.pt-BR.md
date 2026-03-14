@@ -42,17 +42,18 @@ O sistema implementa subsistemas ou agentes modulares para dividir tarefas e red
 3.  **The Nurse (Triagem e Roteamento):** Classificador semântico que categoriza a intenção da requisição da API HTTP, direcionando-a para análise de código, manipulação da interface web ou fluxo RAG convencional.
 4.  **The Doctor (Inferência RAG via LangGraph):** Analisador lógico que processa interações da base de conhecimento a partir dos resultados da busca vetorial em memória.
 5.  **The Coder (Validador Sintático):** Interface focada unicamente na avaliação de sintaxe e frameworks de programação, operando de forma independente do contexto puramente conversacional.
-6.  **The Accountant (Auditoria Estrutural de Dados):** Validador isolado focado no refinamento e cruzamento de dados numéricos para correção lógica de saídas fornecidas pelos LLMs primários antes do envio da resposta HTTP final.
+6.  **The Accountant (Auditoria Estrutural de Dados):** Validador isolado focado no refinamento e cruzamento de dados numéricos para correção lógica de saídas fornecidas> ▫️ **Gateway Cíbrido (Rust Axum):** `src-rust/main.rs`
+> ▫️ **Serviço de Arquivos Locais O.S (Rust Notify Protocol):** `src-rust/core/watcher.rs`
+> ▫️ **Motor Analógico Vetorial O.S:** Integração direta via C/C++ `sqlite-vec` (Extensão nativa no SQLite RAG OS).
+> ▫️ **Agentes da Pipeline O.S:** `src-rust/core/the_*.rs`
 
-> [!NOTE] 
-> ▫️ **Agente Principal:** `src/agent.py`
-> ▫️ **Módulos da Pipeline:** `src/core/the_*.py`
+---
 
 ## 4. Isolamento Multi-Tenant
 
-A API backend (FastAPI) possui suporte para operações escaláveis e corporativas em estrutura multi-inquilino (Multi-Tenant).
+A API backend executada pelo Framework base estrutural C/C++/Rust (Axum + Tokio) provê o manuseamento corporativo de alto desempenho estruturado via recursos multi-inquilinos lógicos parametrizados.
 
-As buscas e alocações de vetores são divididas lógicas no SQLite através de chaves únicas (UUIDs) de metadados durante a criação dos chunks. Esse processo impede o cruzamento indevido de pesquisas entre usuários ou sessões clientes distintas.
+As buscas e alocações transdicionais lógicas processuais ocorrem sob SQLite (usando a sub-arquitetura nativa C/C++ vinculada, `sqlite-vec`), nas quais chaves limitantes alocadas durante a indexação inicial restringem instâncias originativas garantindo que transições entre sessões ou inquilinos não transponham a isolação nativa processual local de leitura vetorial.
 
 > [!WARNING]
-> Em implantações novas, bancos de dados vazios podem gerar falhas na recuperação de contexto (retornando o status "Empty Response" para os frameworks como o LlamaIndex). Para evitar interrupções sistêmicas nesses cenários, o sistema possui um fallback integrado (**Sovereign Bypass**), que intercepta essas respostas vazias e redireciona a requisição automaticamente para um fluxo de chat convencional sem validação de RAG preliminar.
+> Histórico Evolutivo Arquitetural: Durante os primeiros estágios da aplicação (quando rodava ancorada em Python e LlamaIndex/FastAPI), bases vazias causavam crashes devolvendo strings de falha "Empty Response". Tais retornos demandavam fluxos paralelos via código (Sovereign Bypass Python). Após a reengenharia O.S e desenvolvimento de todo o RAG Mestre em **Rust/C++**, referidas defasagens processuais externas aos containers falharam perante isolações corporativas de rede (Data Leaks a terceiros da API LLM). A nova arquitetura RAG Cíbrida lidando iterativamente aos bytes brutos do O.S resolveu nativamente o direcionamento analítico LLM, eliminando do projeto as bibliotecas originárias e obsoletas.
