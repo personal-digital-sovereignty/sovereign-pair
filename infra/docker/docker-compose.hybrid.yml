@@ -30,8 +30,8 @@ services:
   # 3. Backend Mestre da Inteligência (FastAPI) - Lendo cofres locais!
   api:
     build:
-      context: .
-      dockerfile: Dockerfile.api
+      context: ../../
+      dockerfile: infra/docker/Dockerfile.api
     container_name: sovereign-api-local
     user: "1000:1000"
     restart: always
@@ -45,10 +45,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./data:/app/data
-      - ./.env:/app/.env
-      - ./src:/app/src
-      - ${VAULT_PATH:-./data/vault}:/app/data/vault
+      - ../../data:/app/data
+      - ../../.env:/app/.env
+      - ../../src:/app/src
+      - ${VAULT_PATH:-../../data/vault}:/app/data/vault
       - ${HOME}:${HOME}
     networks:
       sovereign-net-local:
@@ -58,8 +58,8 @@ services:
   # 4. Frontend Web App (Vue 3 UI)
   web:
     build:
-      context: .
-      dockerfile: Dockerfile.web
+      context: ../../
+      dockerfile: infra/docker/Dockerfile.web
     container_name: sovereign-web-local
     restart: always
     depends_on:

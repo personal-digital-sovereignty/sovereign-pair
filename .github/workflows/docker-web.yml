@@ -5,8 +5,8 @@ on:
     branches: [ "main" ]
     paths:
       - 'web-ui/**'
-      - 'Dockerfile.web'
-      - 'nginx.conf'
+      - 'infra/docker/Dockerfile.web'
+      - 'infra/docker/nginx.conf'
   pull_request:
     branches: [ "main" ]
     paths:
@@ -44,7 +44,7 @@ jobs:
         if: github.event_name == 'push'
         with:
           context: .
-          file: ./Dockerfile.web
+          file: ./infra/docker/Dockerfile.web
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           labels: |
