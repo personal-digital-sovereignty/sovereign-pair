@@ -28,6 +28,9 @@ Esta versão marca a maior transição arquitetural do Sovereign Pair, expurgand
 - **Intercepção Definitiva de Leak**: Eliminação do RAG Python original blindou o vazamento acidental (via LlamaIndex) garantindo que tokens da infra corporativa não pinguem na web civil americana.
 - **Hardening OCI Docker Unix Socket**: Adição de fix de permissionamento de soquetes daemon (`chmod/gpasswd`) aos compêndios corporativos (`10_guide_byoc_oracle_cloud.pt-BR.md`), blindando falhas nas pipelines não-privilegiadas.
 
+### Corrigido
+- **Ollama DNS Resolution na Oracle (A1)**: Corrigido o erro de timeout onde a API não listava os modelos instalados em Bare Metal na nuvem Oracle. Alterada a variável `OLLAMA_BASE_URL` para `http://host.docker.internal:11434` e injetado `extra_hosts` no `docker-compose.yml`, permitindo que o container alcance o daemon systemd nativo do servidor hospedeiro.
+
 ---
 
 ## [3.1.2] - 2026-03-08
