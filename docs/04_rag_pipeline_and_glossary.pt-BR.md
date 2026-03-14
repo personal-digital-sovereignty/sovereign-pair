@@ -1,50 +1,50 @@
-# Pipeline RAG e Modelo de Mapeamento Cognitivo
+# Pipeline RAG e Estrutura de Indexação
 
-A arquitetura do Sovereign Pair apoia a provisão de dependência condicional em tempo real, baseando as aplicações no framework unificado híbrido de Busca e Geração Aumentada por Recuperação (RAG).
+A arquitetura do Sovereign Pair utiliza um framework padronizado para coordenar a recuperação precisa de informações baseadas no processamento de Geração Aumentada por Recuperação (RAG). 
 
-## 1. Processos Sequenciais para Ingestão e Processamento Documental
+## 1. Processos de Ingestão e Preparação de Dados
 
-A vinculação progressiva de artefatos estáticos (`.md`, `.pdf`) instanciados nas áreas locais dedicadas de arquivos no Host do File System, está condicionada a regras sintáticas imutáveis de pipeline baseados em processabilidades estruturais sucessivas:
+A extração das pastas nativas e arquivos em texto (como os formatos `.md` e `.pdf`) alocados dentro do Sensus Vault obedece às seguintes rotinas encadeadas:
 
-1.  **Parsing Extrativo e Isolamento (Text Layer):** Etapa pré-estabelecida nas funções encarregadas pelo roteamento extrativo nativo. Módulos varrem formatos ricos isolando especificações textuais semânticas, removendo meta linguagens sintéticas supérfluas de interface HTML/CSS das exibições dos logs para atestar um *Array* serial de bytes crús uniformizado. O artefato formativo central nativo é mantido ativamente preservado em conformidade total TXT/Markdown para as interfaces limpas.
-2.  **Particionamento Limítrofe (Chunking Dimension Algorithm):** Metodologia mitigatória forçada baseando restrição aos consumos e *token bounds* arquiteturais do Buffer Inferencial em LLMs restritivos locais, visando barrar latências e *Network Protocol Oversize Limit*. Todo texto íntegro submete-se ao sistema de fatiamento sequencial base estaticamente em delimitações `CHUNK_SIZE` padronizados (Tipicamente definidos fixados restritos na variável 512 ou 1024 Tokens processuais unitários). Para erradicar disfunções lógicas criadas pelo quebramento cirúrgico acionando a frase central no limítrofe físico exato textual (Que gerariam perda temporal do escopo analítico no algoritmo principal de Extração Lógica Pura da Inteligência), atribuiu-se o delimitador sistêmico passivador de Overlapping forçado `CHUNK_OVERLAP` garantindo uma retro alimentação na ordem fixa exata de cópias de 200 Tokens prévios para atestar continuidade sistêmica exata sem rupturas sintáticas de intenção textual entre fragmentos adjuntas.
-3.  **Processamento Multi-Dimensional Matemático (Embeddings):** Translação condicional paramétrica nas strings brutas convertendo fragmentos particionados ao array determinístico alfanumérico geométrico matemático nas tabelas dimensionais relacionais (Aprox ~1024 Planos Hiper-Dimensionais). Ao basearmos a Engine primária da arquitetura no gerador indexador NLP da base de inferentes *bge-m3*, a estrutura submisso extirpa o limite restritivo de Idiomas Naturais literais (Português/Inglês). Atua na formulação pura base geométrica atada às intenções dos objetos, permitindo *cross-languages searching queries* perfeitamente.
-4.  **Integração Persistente Preditiva Vetorial:** Registro final base relacional indexada validada. Salva as indexações métricas da localização geradas na Ingestão atrelados nativamente ao repósitorio DB *Offline Database Support* com a tabela Vector Support SQL (SQlite / Chroma legados). 
+1.  **Parsing de Documentos:** Etapa inicial para uniformizar e consolidar o conteúdo bruto a ser formatado. A função responsável extrai formatações HTML extras e artefatos de marcação, normalizando os parágrafos convertendo-os em bytes e cadeias textuais semânticas puras com integridade Markdown (UTF-8).
+2.  **Fragmentação (Chunking):** A inserção direta de artigos nativos gigantes nos contextos do backend LLM causa saturação, estourando limites do modelo na verificação local. Todo documento ingerido será fragmentado de acordo com uma janela limite estabelecida estaticamente pela plataforma na sintaxe (`CHUNK_SIZE`), delimitada usualmente aos níveis normativos em 512 a 1024 tokens por partição base. A política de sobreposição residual (`CHUNK_OVERLAP`) atua paralelamente copiando um número fixo das ultimas instâncias (ex: 200 tokens do término anterior) preservando ligações temáticas semânticas coesas e reduzindo interrupções disjuntas dos fragmentos criados.
+3.  **Matriz Vetorial Numérica (Embeddings):** Transforma o componente estruturado (Chunks) numa identificação posicional com plano hiperdimensional gerido por uma malha vetorial contínua (~1024 pontos). Processado de preferência através da rede nativa de suporte a processamento natural (NLP Engine / `bge-m3`), torna possível a inferência multi-idioma desprendendo sua correlação matemática ao texto em múltiplos idiomas. 
+4.  **Gravação no Banco Relacional O.S:** Registro nativamente estruturado acoplando atributos no banco contínuo SQL. Utiliza a biblioteca modular SQLite provida na aplicação física (tabela unificada de persistência Vector Support) consolidando instâncias do conhecimento no drive.
 
 > [!NOTE] 
-> ▫️ **Processador Lógico Analítico Base Python:** `src/ingest.py`
-> ▫️ **Gerenciador de Acessos I/O Kernal (OS Watcher Control):** `src/core/watcher.py`
+> ▫️ **Serviço de Processamento de Ingestão (Python):** `src/ingest.py`
+> ▫️ **Serviço Monitor de Sistema de Arquivos (OS Watcher):** `src/core/watcher.py`
 
 ---
 
-## 2. Padrões Avançados de Fusão Semântica Associativa (Lexical + Vector Math)
+## 2. Padrões de Busca Híbrida 
 
-Nas predições e transações lógicas em execuções requisicionadas (Via *Endpoint APIs* HTTP ou GUI Clients PWA Web), instaura-se processamento híbrido associativo não-linear provindo a união dos Recuperadores da Engine (Retrievers), consolidando rigor em instâncias de intenção versus premissas literais clássicas explicitas nas documentações.
+Durante os acessos externos (API e PWA Web UI), realiza-se o pareamento simultâneo com motores paralelos operando avaliações independentes em recuperadores (Retrievers) variados. 
 
-### 2.1 Análise Semântica Espacial Pura
-Operante algorítmica executora calculada por verificação métrica entre o Array base indexado provindo da "Search Query" transacional e demais clusters de similaridade cossenoidal adjacente processados presentes na Base Matemática O.S dos BD Vetoriais originados no Embedding *bge-m3*. Operações isentas que desprezem vocábulos nominais específicos (Consultas de contexto não correlacionadas as palavras originárias inseridas na infra Base Documental). Base do preceito associativo natural atreladas ao RAG de intenções (Semantic Search Logic Retrieval Context).
-
-> [!NOTE] 
-> ▫️ **Matriz Integrativa Central (Base Class Router Builder):** Instancia explícita `src/engine_builder.py`
-
-### 2.2 Controle de Especificidades Lexicais Fixas (Engenharia BM25 Strict)
-Abarca lacunas geradas ocasionalmente através das expansividades naturais algorítmicas imprecisas criadas na busca Deep Vector profunda pura frente as sintáxes literais necessárias aos escopos literais. Condiciona restritamente filtragens transnacionais diretas através da validação indexada e exata da palavra alfanumérica procurada. Consultas críticas contendo exatidão em referências limitadoras pontualmente como os escopos numéricos `"Erro Status Response de Transações IPv4 code 429 Unprocessable"` encontram maior peso acionadas sob validação Léxica BM25 (Restrita unicamente nos arrays fixos Lexical Tokens). Com as saídas processadas primárias isoladas, compõem a fundação em malha sobrepostas via reclassificação mista das avaliações lógicas do Retreiver uniciado em Rank (RRF *Reciprocal Rank Fusion* Engine System).
+### 2.1 Busca Vetorial Semântica (Aproximação Espacial)
+Calcula métricas e distância cossenoidal do prompt inserido com correspondências já existentes na malha do banco de dados (SQLite Vector). Esse parâmetro extrai documentos que compartilhem relação de ideias contextuais com a requisição, ignorando palavras-chave exatas semânticas não mapeadas que divergem literamente de sinônimos idênticos.
 
 > [!NOTE] 
-> ▫️ **Retriever Unificado de Busca Lexical Paralelo (BM25 Engine Router):** Instância classificada via biblioteca utilitária `CustomBM25Retriever` unificando processos originados nativos documentados na diretividade Python em `src/custom_retrievers.py`.
-> ▫️ **Sistema Base Interligado RRF Fusional:** Operador Roteado em Injeção lógica construtora ativável em instâncias de `src/engine_builder.py`.
+> ▫️ **Construtor de Roteamento RAG:** Referenciado metodicamente pelo arquivo `src/engine_builder.py`
+
+### 2.2 Controle de Especificidades Lexicais (Busca por Termos BM25)
+Equilibra imprecisões e amplificações provocadas exclusivamente pelas matrizes relacionais abstratas do motor Vetorial. Foca especificamente pelo sistema de frequência do algoritmo nativo para referenciar os caracteres literais providos sem alteração ao prompt (Busca clássica Keyword ex: Pesquisa unicamente do status "Erro IPv4 429"). Combinadas na saída logada inicial, ambas métricas sofrem atribuições baseadas em ranqueamento combinando score das metodologias pela infraestrutura integrativa via RRF (Reciprocal Rank Fusion).
+
+> [!NOTE] 
+> ▫️ **Retriever Lexical Auxiliar (Implementação CustomBM25):** Classe utilitária registrada referencialmente baseada no arquivo `src/custom_retrievers.py`.
+> ▫️ **Processador RRF Combinado:** Integrador nativo construcionado internamente dentro de instâncias associativas do motor de compilação `src/engine_builder.py`.
 
 ---
 
-## 3. Glossário Topológico Documental Base 
+## 3. Glossário Topológico 
 
-Estrutura formal sistêmica atrelada unicamente nas aplicações do repositório físico atadas aos manuais orquestrais Rest FastAPI originais referidos nos arquivos do desenvolvedor O.S base.
+Definições sistêmicas e terminologias de uso recorrente para alinhar as rotinas de back-end ao domínio de regras organizacionais da solução.
 
-| Definição Operacional RAG/Rede | Finalidade Base do Domínio Físico/Lógico |
+| Terminologia Técnica | Escopo Operacional e Descrição |
 |---|---|
-| **Host Virtual / Vault Repository** | Unidade diretiva primária do file system O.S que contê as alocações cruciais nativas estáticas invioláveis não restritas em banco SQL que provem dados aos arquivos TXT Origens / MD. Isenta nativamente o *File Override* via as APIs de IA puras ou agentes do SO geridos pelo backend processual. |
-| **Node Element / Indexed Document Chunk** | Fatias atreladas fisicamente pela estrutura computacional do Context Builder originada pelas instâncias de quebras sequenciais programadas base. Fragmento Mínimo Lógico de Informação mapeado ou devolvidos pelas classes indexadoras estritas de referenciamento (Engine *llama_index* classes base abstract nodes framework context vectorization process base process support data elements classes). |
-| **Workstation Local (Core Inference Physical Node System Hardware)** | Computacional base hardware bare-metal atrelado primicialmente perante ao desenvolvedor operacional físico e responsável unicamente a integridade estrutural e proteção a instâncias sensíveis, encapsulando puramente a matriz unificada (Storage local via SQLite), processos da UI Cliente Framework Render Native (VueJS) integradas PWA e Servidor Isolado API Python RAG Master Edge. Retira do Escopo o atrelamento direto na rotina intensiva originada de Cálculos Modelos AIs pesados restritivos de VRAM CUDA limitados. |
-| **Computação Remota Auxiliar O.S (ARM Virtual Server OCI System)** | Segmento operacional processional isolado estaticamente terceirizado externamente em instâncias bare-metal virtuais de processadores flex ARM (Nuvers Privadas / Oracle Oracle Infrastructure A1 Ampere Cloud Core). Suprimento integral destinado a cálculos executivos do motor daemon System D via Ollama O.S processando modelagem de alto contexto (`qwen` e frameworks). Encapsulada restritamente às VPNs Seguras Zero Trust Tuneladas Mesh sem IP Externo In-Out TCP valid and forward network mapping bypass. |
-| **System Rules Definition Model Prompt Context Formatting** | Pré-definições de parâmetros literais fixadas lidas e impostas estaticamente nas validações transacionais via o módulo formator que intercala estressamento nativo nas regras interpretativas perante o Large Language Base Model, impondo escopos fixos contextuais do tipo da resposta formativa json desejada antes do bypass na liberação ao Chat interface nativo de respostas via usuário requisitante na web (Define formatações de Role Base de Eng. Computação). |
-| **Topologia Cíbrida Abstrata P2P Tunneling Mesh Engine** | Regimento de implementação arquitetural orquestrando isolamento base relacional nativo originária de nós locais (Host de Mesa Local/Notebook/Bunker de Memória Segura Físicas não replicadas cloud base data backup protection layer level physical local database access security measures architecture local edge design base support design architecture system model hardware limitations model local hardware capabilities restrictions processing limitations offloading task cloud execution process tunneling secure mesh routing communication base tunnel architecture Tailscale system mTLS base wireguard interface tunneling). Erradica processamento em portas web convencionais em malhas base IPv4 Global public IPs WAN O.S |
+| **Host ou Vault Directory** | Trata-se do diretório matriz de hospedagem isolada atrelada aos manifestos literários primários da aplicação (Arquivos Origem TXT/MD). A gestão nativa confina esses insumos preservando estabilidade em edições de arquivos sem substituição O.S acidental. |
+| **Node / Chunk** | Definição sistêmica que agrupa o fragmento sequencial lógico individual, segmentado pelo motor estrutural referenciado nas integrações base da framework do "llama_index". |
+| **Workstation Local (Nó Central Híbrido)** | Hardware primário do desenvolvedor local executando e persistindo instâncias de bases do PWA nativa, Roteador HTTP Integrador Relacional RAG SQLite Matrix O.S e File Watchers.  |
+| **Servidor em Nuvem (Assistente ARM OCI Node)** | VPS gerenciada provendo isolamento parcial nas execuções nativas da Engine inferencial Ollama em serviços cloud Oracle baseados na topologia Ampere O.S. Auxilia restritamente no I/O O.S pesado atinente ao carregamento via Kernel Model Models Complexos limitativos ("qwen" etc), limitados e restritos ao tunelamento peer base (mTLS). |
+| **System Prompt Config Settings** | Condiciona o comportamento de formatação O.S das respostas primárias que controlam a estrutura da predição através da variável O.S declarada nas APIs originadoras. (Gera formatações limitadas a contextos profissionais ou Json puro). |
+| **Overlay VPN Peer-to-Peer Tunneling** | Infraestrutura abstrata e arquitetônica provedora de isolamento relacional encapsulada no sistema (Tailscale Overlay Model). Remove tráfego HTTP TCP passível base de porta conectada em mapeamento local web padrão O.S em Nuvem Public WAN Internet Addresses Routing. |

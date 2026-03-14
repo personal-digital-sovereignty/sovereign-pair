@@ -1,40 +1,34 @@
 # Protocolo de Interoperabilidade (API REST & MCP)
 
-O projeto Sovereign Pair foi concebido para exportar o motor de inferência central através de protocolos integrativos. O sistema atende tanto ambientes orientados a Webhooks (Edge Networks / N8N) quanto desenvolvedores buscando extensibilidade nativa de IDEs.
+O Sovereign Pair foi projetado para expor seu motor de inferência central através de protocolos integrados. O sistema provê suporte unificado contemplando tanto a automação focada em Webhooks (via orquestradores como N8N), quanto desenvolvedores adotando extensões em ambientes locais baseados no padrão MCP.
 
-## 1. A Interface RESTful Clássica (Integração N8N & HTTP)
+## 1. A Interface REST (Integração HTTP via FastAPI)
 
-A interface de entrada contínua baseia-se na aplicação FastAPI (`src/api/routes.py`), provisionada preferencialmente no Nó Orquestrador ou Computacional Cloud (Ex: Oracle OCI). 
+A aplicação FastAPI principal (`src/api/routes.py`) expõe uma interface padrão para serviços. A implantação central pode ocorrer na nuvem (como a OCI) ou instanciada locamente.
 
-Ela fornece endpoints síncronos HTTP desenvolvidos para atender ao roteamento estático. Este é o método padrão arquitetural para instanciar as requisições RAG e de inferência a construtores de Fluxo Visual como `N8N`, `Make` ou aplicações construídas sobre PWA/SPA em `Vue.js`.
+Este modelo arquitetural permite que construtores visuais de fluxo e aplicações Web em `Vue.js` interajam nativamente com os endpoints síncronos da infraestrutura.
 
-### 1.1 As Rotas Primárias de Acesso
-- `POST /v1/chat/completions`: EndPoint motor central da aplicação. Estruturado para aceitar os mesmos Schemas de Payload (`messages: []`) contidos na API da OpenAI. Esta rota dispara o pipeline de **RAG Matemático Híbrido** e invoca o Bypass de Prevenção a Retornos Vazios, mitigando interrupções sistêmicas quando o banco histórico ou índice vetorial (`SQLite`) encontrar-se desprovido de metadados durante as inicializações iniciais (Day-0).
-- `GET /v1/projects`: Função encarregada do escaneamento unidirecional do sistema de diretórios físicos baseados na pasta (`Sensus Vault`). Retorna o objeto JSON *Array* provendo a segregação passiva por Projetos, atuando como marcadores lógicos e isolantes para o sistema de suporte a *Tenants* Multi-Clientes.
-- `POST /v1/sys/stats`: Endpoint reservado para retorno passivo em tempo real extraindo o diagnóstico cru sistêmico do Kernel OS (Telemetria do uso base em memória VRAM/RAM associada e diagnósticos das instâncias de inferência), parametrizando medições de viabilidade e Uptime nativo das instâncias da infraestrutura.
+### 1.1 Roteamento e Endpoints Disponíveis
+- `POST /v1/chat/completions`: EndPoint principal, padronizado com os Schemas JSON de Payload (como a matriz `messages: []`) estipulados na sintaxe de integrações padrão OpenAI. A rota engatilha o pipeline RAG (Retrieval-Augmented Generation) acionando consultas locais e prevendo retornos conversacionais. Possui lógica mitigatória acoplada para contornar instabilidades de pesquisa em bancos recém criados através do *Fallback Sistemático* que prioriza um fluxo unicamente voltado para Chat regular (ignorando pesquisa documental forçada).
+- `GET /v1/projects`: Função responsável por listar e delimitar os diretórios físicos lidos no cofre do sistema (Sensus Vault). Retorna *Array* indexado de forma lógica facilitando segregação estrutural de projetos e a hierarquia base de clientes.
+- `POST /v1/sys/stats`: Rota auxiliar passiva. Permite monitorar em *Real-Time* as condições brutas sistêmicas, exibindo telemetria da taxa de requisição, uso de memória (RAM e VRAM) e atividade geral do sistema operacional.
 
 > [!WARNING]
-> Ao instanciar e escalar *requests* de inferência pesadas (contextos locais massivos que exijam validação matemática em processadores desprovidos de NPU/CUDA operando via tunelamentos P2P Node), a latência do TTFB (Time To First Byte) não operará no baixo espectro contínuo obtido em arquiteturas Cloud OpenAI. Webhooks acionados sob processos síncronos N8N podem gerar restrições por Timeout HTTP prematuro perante ciclos processuais extrapolando 60 a 120 segundos. Impõe-se configuração forçada dilatando o limite de tempo estrito da transação HTTP no nó de request integrador para prevenir falsos registros de *Drop HTTP/Timeout*. 
-
-> [!NOTE] 
-> ▫️ **Roteamento REST (Routes Core Base):** `src/api/routes.py`
-> ▫️ **Entrada Operacional Padrão:** `src/api/main.py`
-> ▫️ **Consumo Web Frontend:** Direcionado às requisições do escopo da camada `src/ui/` no framework nativo.
+> Consultas complexas em instâncias de CPU pura (desprovidas de NPU/Placa Gráfica dedicada) demandam uma margem extensa de resposta por vias HTTP. A latência inicial TTFB (Time To First Byte) apresentará comportamentos longos operando em nuvens gratuitas ARM64 (Node Cloud OCI). Deve-se configurar manualmente os parâmetros de latência no cliente orquestrador (e.g N8N / Frontend AXIOS), extendendo as restrições padrão de conexão (Timeouts HTTP) para janelas amplas entre 60 a 120 segundos. 
 
 ---
 
-## 2. Padrão Integrativo Base Contexto Nativo (MCP Protocol)
+## 2. Padrão Integrativo MCP (Model Context Protocol)
 
-Em otimização técnica perante as abstrações implementadas originalmente baseadas em nós estáticos complexos, refatorou-se as transações em Python habilitando a arquitetura inter-agentes a operar suportando nativamente as especificações de comunicação provindas do padrão industrial aberto **Model Context Protocol (MCP)** chanceladas nativamente na biblioteca da Anthropic. Esta funcionalidade converte a API nativa da aplicação (Base de Toolkits Contextuais e Componentes de busca) transmutando o *Back-End RAG* em instâncias parametrizadas de um Servidor de Dependência passivo atrelável nativamente (Plugins) interagindo diretamente em IDEs modernas do ambiente Desktop corporativo (Vs Code suportado à extensores Cline/OpenCode, Cursor). 
+Buscando padronizar integrações locais voltadas a desenvolvimento de software em VS Code (Cline, Cursor, etc), as rotinas da API de Chat Python contam com um servidor compatível ao formato interativo do sistema **Model Context Protocol (MCP)**, apoiado pelo framework nativo open-source da Anthropic. Esse servidor extrai os processos regulares e os mapeia tecnicamente convertendo o Back-end em dependências passivas de "Tools" (Ferramentas) ou "Resources" (Conteúdo estático), operados via extensões do sistema operacional.
 
-### 2.1 Isolamento Direto Computacional (IPC Stdio) Segurado Ponto a Ponto
-Em contraste analítico e mitigatório de vulnerabilidades relativas a APIs convencionais em transferências públicas internet orientadas via WAN/TCP, e suas exposições intrínsecas correlatas à interceptações passivas por portas livres HTTP via sniffing O.S System. A abstração construtiva MCP Protocol roda no fluxo físico instanciando tráfego lógico através da infraestrutura **Stdio** (Standard Input/Output) operando as requisições puras via Comunicação Interprocessos nativas no Kernel OS Base (IPC Process). Desta forma o cliente construtor cria sockets lógicos isolando tráfego de memória de software entre as interfaces restritivas do Editor de Texto VS e as bases Python da Engine Vectorial sob isolamentos computacionais totais *Zero Trust environment*, extirpando rastro processual transacionável roteável atestado nativo sob o escopo rede O.S Linux/Windows. **[Diretriz Isolamento Baseado Stdio OS IPC Kernel Routing Mapeado no Backend nativo através de instâncias lógicas operativas declaradas sob arquivo `src/mcp_stdio.py`]**
+### 2.1 Rede via Stdio IPC (Comunicação Sem Portas TCP)
+A implementação do MCP elimina a dependência de conexões abertas convencionais via TCP/HTTP no Desktop. Toda interação transacional adota o modo padrão *Stdio* (Standard Input/Output) efetuando leitura restrita mediante à via de comunicação inter-processos segura no sistema operacional nativo (IPC Node Kernel Routing). A abordagem elimina riscos associados ao monitoramento passivo LAN/WiFi O.S (Network Panning). **A declaração da via isolada encontra-se definida integralmente no arquivo Python originário do gateway local `src/mcp_stdio.py`]**.
 
-### 2.2 Procedimento Padrão para Injeção Client IDE Extensibilities (Acoplamento Vs Code Process Engine)
-O carregamento lógico processual em instâncias base de dependências do RAG Framework (Sovereign Pair Toolkit System Extension Tool Base Search Engine Functions e System Resources Integrations) encapsulados integrando base Workflows analíticos dentro de um VS Code configurado pela Base Cline Fork/Models Requirements:
+### 2.2 Requisitos de Instanciação do Kernel no Client (Acoplamento a IDE VS Code)
+O método de registro nas extensões assistentes impinge atrelamento puramente configuracional ativando chamadas no Python local sem invocar sub-roteiros ou processos Docker externos à máquina do usuário:
 
-Em parametrização via O.S JSON instancie os construtores O.S Puros da linha de processamento terminal originados do O.S Host nativo:
-
+Configuração e Registro:
 ```json
 "mcpServers": {
   "sovereign-pair": {
@@ -47,33 +41,28 @@ Em parametrização via O.S JSON instancie os construtores O.S Puros da linha de
 }
 ```
 
-### 2.3 Estruturação Exportada Nativo MCP Specification Model Interface Protocol Base (Ferramentas/Resource Node Types)
-As transações validadas em Stdio daemon O.S Kernel engatilharão acessos de integração nativas exportadas puramente acoplando extensibilidade passiva direta na capacidade lógica de LLM Assistants vinculados em ambiente de edição código Desktop:
-- **Exposições Funcionais Processuais Dinâmicas Abstract Types System (Tools):** Liberação instanciada restrita providencia acesso executivo chamando as engines de base isolada restrita. Delegando permissões do tipo invocação rotineira nativas para uso das extensivas de Client AIs sob VS Code extensões efetuarem *Vector DB Query Index Search Executions* restritivas buscando referencial O.S físico de negócios isoladas e restritas formatada provindo bases textuais Vault de validação RAG anterior predição em código. (Atestado mapeado nativamente através System Decorators Mappings Object Data `@mcp.tool()`)
-- **Provimento Passivo Recurso Integrativo Dados Crús Fixados OS Path Hierarchy Base Models (Resources):** Extratificações englobadas recursivas puras de validações e leituras atreladas do escopo de pasta física root dir System /Vault Docs providenciando indexação do contexto sem intervenção e limitadas de isolamento a dados origens puros de base e semântica Markdown corporativo anterior à base O.S compilatória IDE Local. (Atestado nativamente através Model Declarative Node Mappings via Resource Types Object Data Decorator Base `@mcp.resource()`).
-
-> [!NOTE] 
-> ▫️ **Host IPC Python System Kernel Gateway File Config:** Rotinas englobadas processuais localizadas intrinsecamente formativa O.S nativa `src/mcp_stdio.py`
-> ▫️ **Reference Environment Base Params Configuration Models JSON Objects List Mappings:** Mapeamentos instanciados similares aos requisitos base estruturais Cline Engine Core Model de interfaces UI extensions Visual Studio settings requirements JSON O.S definitions bases files (e.g. `cline_mcp_settings.json`).
+### 2.3 Especificações Mapeadas via MCP (Módulos Tools e Resources)
+Comunicação suportada providencia a liberação de chamadas para o assistente da IDE:
+- **Tools (Comandos Preditivos Expostos):** Submódulos que habilitam o acionamento direto via requisições operacionais LLM base. Expõe funções restritas permitindo solicitações externas (`Search Query Executions`) às variáveis do Vector DB buscando extrações formatadas de regras do negócio e trechos cruciais originários dos manuais locais. (Habilitado nativamente marcadores estáticos de rotas como o decorator `@mcp.tool()`).
+- **Resources (Mapeamentos do File System Systemático):** Disponibilizará ao cliente arquivos fundamentais isolados na estrutura física local sem exigir pesquisa interpretativa, oferecendo acesso passional constante de referências literárias ou logs sistêmicos (Via anotação limitador `@mcp.resource()`).
 
 ---
 
-## 3. Topologia TUI Operativa do Projeto OpenCode Local (Proxy O.S)
+## 3. Topologia TUI do OpenCode Local (Proxy)
 
-Adaptação paramétrica O.S que implementou nativamente suporte e vinculidade abstrata orientada proxy ao cliente externo terminal OpenCode TUI provendo roteamento passivo da IDE base direto a consumptibilidade O.S nativa REST Local Gateway OpenAI-Compatible O.S de interface de rede privada Cíbrida/Edge. Extirpanção restrita do processamento Cloud External AI Vendors nativamente limitando todo data-pipe sob Model Nodes instanciados no Ollama Local Runtime O.S.
+A implantação prevê rotinas e padrões restritivos baseados em Proxy local que convertem requisições originárias formatadas aos limites de nuvens públicas orientadoras de CLI Extensions (Apliacações TUI baseadas em Coder como OpenCode) redirecionando seus prompts diretamente ao modelo provido de forma local pela interface `Ollama` ou API base. 
 
-### 3.1 Provisionamento Estático Binário e Instanciações
-Instalação configuracional em OS Hosts do Command Unit de Roteamento Extensivo Proxy HTTP O.S Isolado Terminal OpenCode API Component Base.
+### 3.1 Instanciação Operacional do Binário OpenCode
+Configurações de infraestrutura Linux em que repousará as definições de Command Line local isoladas OpenCode API Component.
 
-1. **Host Client Binary Tool Installation Steps:**
-   Instalabilidade paramétrica nativa linux de repositórios base O.S oficiais da base Arch / Similares do arquivo estático compilado nativamente.
+1. **Instalação Paramétrica Linux:**
+   Obtenção através dos reposicionadores gerenciais da via `pacman` (para distros baseadas em Arch), fornecendo acesso rápido e simplificado à ferramenta.
    ```bash
    sudo pacman -S opencode
    ```
-2. **Registro OS Client Package IDE Extensões VS Code UI Models:**
-   Baixar módulo e integrar instâncias nativas extension O.S Market VS Code (Identificado pacote nativamente base de provider SST - OpenCode Package API). 
-3. **Mapeamento Root Dir Isolate Provider Definitions JSON OS Mapping Proxy HTTP Gateway Configuration (`opencode.json`):**
-   Mapear isolando a Workstation em subdiretórios restritivamente as workspaces instanciando os direcionamentos proxies puros nativos:
+
+2. **Mapeamento Restrital de Integrações Locais Gateway (`opencode.json`):**
+   Os espaços de trabalho (Workspaces) operantes serão submetidos às especificações exclusivas re-roteando o HTTP via URL Base nativa O.S Gateway:
    
    ```json
    {
@@ -81,22 +70,22 @@ Instalação configuracional em OS Hosts do Command Unit de Roteamento Extensivo
        "provider": {
            "sovereign-local": {
                "npm": "@ai-sdk/openai",
-               "name": "Sovereign Root System Node Proxy Local System Edge Endpoint Gateway Base Model",
+               "name": "Sovereign Root Interface Endpoint",
                "options": {
                    "baseURL": "http://localhost:8000/v1/opencode",
                    "apiKey": "sovereign-local"
                },
                "models": {
                    "qwen2.5-coder:7b": {
-                       "name": "Workstation Limit Execution Models Nodes Compute Inference Model Object Setup Configuration Parameters"
+                       "name": "Local Fallback Fast Execution Execution Model Node Setup"
                    },
                    "coder": {
-                       "name": "Host Oracle OS Oracle Base Processor Node Remote Cloud Oracle Instance Base Compute Cloud Edge Compute Model"
+                       "name": "Remote Oracle Tunnels Computation OCI Engine Network Configuration"
                    }
                }
            }
        }
    }
    ```
-4. **Acionamento O.S TUI Shortcuts:**
-   Possuindo instâncias validadoras em rotas FastAPI restritiva ouvindo conexões (Port O.S Nativa 8000 via System UVicorn Process HTTP/1.1), utiliza subterminal OS Shortcut acionando gatilho: `Ctrl+Esc`. Providencia interface sub-terminal integrativa, permitindo despejos unitários restritos OS Base isolados puramente nativos OS Interface Model.
+3. **Invocação no Ambiente:**
+   Após rodar e indexar servidores com UVicorn Local `8000`, engatilhará chamadas O.S em subterminal nativo (atalho customizado *e.g., Ctrl+Esc*). Estabelece processamento de codificações restritas exclusivas provindas do motor físico sob comando puramente local sem interagir a Nuvem WAN API externa comercial O.S.
