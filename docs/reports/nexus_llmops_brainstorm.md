@@ -1,98 +1,47 @@
-# Nexus AI Command Center: LLMOps & Brainstorming 🌌
+# Nexus AI Command Center: LLMOps Architecture
 
-Este documento consolida as diretrizes de arquitetura UI/UX avançada para a evolução do **Sovereign Pair Command Hub (Overview)**. O objetivo foca-se em transmutar o painel passivo em um autêntico **Nexus de LLMOps**, provendo total transparência, controle e auditoria profunda do ecossistema Cíbrido.
+Este documento consolida as diretrizes de arquitetura UI/UX e de sistemas para a evolução do **Sovereign Pair Command Hub (Overview)**. O objetivo é estabelecer a visão estrutural para o monitoramento corporativo integrado (LLMOps) focando em transparência paramétrica e controle operacional dos agentes.
 
-A estética-alvo é **Brutalista e Orientada a Dados**: fontes monoespaçadas, contrastes densos, informações empilhadas sem excesso de ícones/emojis ou perfumarias.
-
----
-
-## 1. Observabilidade e Performance (O "Raio-X")
-
-A caixa-preta da IA deve ser destruída. O Hub deve apresentar a topografia e a vida de cada prompt:
-
-- **Métricas de Latência Cíbrida:** Acompanhamento estrito em tempo real do **TTFT** (Tempo até o Primeiro Token - quando The Doctor na Oracle ou The Nurse no Ryzen começam a digitar) e do **TPS** (Tokens por Segundo absolutos).
-- **Rastreabilidade (Live Tracing):** O rastreio em árvore da cadeia de pensamento. Do input até o Output, a interface do Hub deve permitir o "drill-down" de:
-  - `Pergunta Original ➔ Validação Guardrail ➔ Engine de RAG (Nodes/PDFs) ➔ Prompt Builder ➔ Saída Final`.
-- **Replay de Sessão:** A capacidade cirúrgica de rebobinar e "re-rodar" a árvore exata de uma interação que sofreu fallback/alucinação anterior, testando correções iterativas das engines do sistema de forma idempotente.
-
-## 2. FinOps & Semantic Cache Saving
-
-O custo real do sistema perpassa requisições redundantes. 
-- **Hit Rate do Semantic Cache:** O Command Hub rastreará ativamente a repetição de intenções. Se inputs heterogêneos carregarem a mesma carga vetorial (ex: "Qual a senha?" e "Como logo no ERP?"), o sistema bypassará o LLM. 
-- **Economia Estimada (Dynamic):** Uma dashboard reportando a economia gerada *exclusiva* da taxa de acerto do Cache Semântico, convertendo bypass de APIs (em USD) pro display.
-
-## 3. Qualidade e RAG Analytics (O "Cérebro")
-
-O Centro de Comando atuará como vigilante contínuo do Conhecimento da Nação (Projetos).
-
-- **Knowledge Gaps (Mapa de Buracos Negros):** Monitoramento e clusterização contínua das requisições em que a IA realizou fallback por falta de dados contextuais locais (RAG Vazio). Isso listará as pendências de curadoria para a inserção de novos Manuais/Arquivos no "Sovereign Vault".
-- **LLM-as-a-Judge (Radar de Alucinação):** Em background, a enfermeira (Ryzen local via Llama) pontuará silenciosamente (0 a 100) o grau de acurácia da RAG Response vinda do Cloud (GPT-4o/Opencode), sinalizando desvios com Alertas Vermelhos no Stream.
-- **Clusterização de Intenções (Heatmap):** Mapas cronológicos contínuos dos polos de interesse ou dúvidas críticas do sistema em tempo real ("Pico de interações de Refatoração Web nas últimas 2 horas").
+O estilo de referência é o Minimalista Sistemático (UI baseada em texto, contrastes altos, ausência de ícones decorativos ou exageros visuais) em prol de métricas objetivas.
 
 ---
 
-## 4. Integrações do Híbrido Cíbrido e Operações Ativas (Command Base)
+## 1. Observabilidade e Telemetria
 
-Para garantir não apenas observabilidade passiva, mas também **Interatividade Resiliente**, o Command Center deve herdar as premissas originais do projeto:
+A arquitetura do log de interface deve exibir os rastros integrais das transações:
 
-- **Sync Status Monitor & Oracle Link Gauge:** Painel restrito demonstrando a integridade da Ponte *Host-to-Cloud*. Status do Uptime da API Cloud para The Doctor e tracking de KB/MBs sincronizados ativamente com o Storage local (SQLite / Markdown) em tempo real via The Sync Engine.
-- **The Hacker's CLI (Terminal Prompt do Coder):** Um input rígido formatado em bloco (`>_`) subjacente aos Logs. Transforma o passivo Command Hub numa linha de comando de manutenção vital para operar a frota sem a burocracia do ChatBot. (Ex: `/flush-cache`, `/reindex /docs --force`, `/wake The Doctor`).
-- **RAG Ingestion Queue Tracker:** A vetorização real-time exige monitoramento. O Front-end deve abrigar uma mini-quadro "Job List" acusando ativamente as etapas de leitura contínua ( `Parsing JSON ➔ Chunking ➔ Embedding ➔ Storing` ) toda vez que um lote de documentos for drag-and-dropado no *Vault*.
-- **Cronos Time-Map (Agregador Restrito):** Visor que mastiga cronogramas, focando no essencial diário em substituição aos grids complexos. Exibe sinteticamente: `"1 Deadline crítico | 3 Docs Bloqueados em Quarentena"` entrelaçando dados sistêmicos, bugs de código referenciados e projetos em atraso.
+- **Métricas Cíbridas:** Acompanhamento técnico em tempo real do **TTFT** (Tempo até o Primeiro Token — latência relacional para início de streams RAG) e do **TPS** (Tokens por Segundo absolutos gerados pelo Ollama/OCI).
+- **Rastreabilidade Estrutural (Live Tracing):** Exposição transparente da via de processamento:
+  - `Input Local ➔ Validação via Sentinel ➔ Consulta ao Vector DB (Local SQLite) ➔ Formulação de Prompt Sistêmico ➔ Avaliação Output Rest/API`.
+- **Reprodução Ociosa de Operações (Repetibilidade):** Implementação de funcionalidades refatoráveis visando recuperar logs RAG onde falhas de LLMs foram constatadas, avaliando correções e testando otimizações determinísticas na rede OCI.
 
----
+## 2. FinOps e Camada de Cache Local (Semantic Caching)
 
-## 5. O.S Layout Abstraction (The Nexus Matrix)
+Métricas gerenciais são focadas em atestar a redução substancial de submissões custosas a LLMs baseados em tarifação (Ex: GPT-4o, Sonnet).
+- **Índice de Mitigação Restritiva (Cache Hit Rate):** O Nexus avalia constantemente a eficácia analítica da integração por cache nas requisições parecidas. Avaliações vetoriais e consultas que apontem compatibilidade semântica (embeddings iguais) utilizarão o histórico local bypassando o framework LLM. 
+- **Estimativa Passiva Restritiva (Dashboard USD):** Uma tela secundária para ilustrar a mitigação de submissões na infraestrutura privada local, evidenciando economia frente a serviços tarifados.
 
-*Representação do Grid Brutalista em CLI / Block-UI. Layout limpo, sem emojis, guiado a indicadores em cores de terminal (Red, Yellow, Green, Cyan).*
+## 3. Monitoramento da Base de Conhecimento e Auditoria RAG
 
-```text
-=============================================================================================================
-NEXUS AI COMMAND CENTER  |  Status: [ONLINE]  |  Uptime: 99.99%  |  Env: PRODUÇÃO
-=============================================================================================================
-MENU PRINCIPAL       | SINAIS VITAIS GLOBAIS (24h)
-------------------   | --------------------------------------------------------------------------------------
-> Dashboard          |  [ CUSTO TOTAL ]        [ LATÊNCIA (TTFT) ]      [ VELOCIDADE ]       [ ALERTAS ]
-> Observabilidade    |   US$ 342.50 (UP 5%)     450 ms (FAST/OK)        68 Tokens/s (OK)     12 (CRIT/WARN)
-> FinOps & Custos    | --------------------------------------------------------------------------------------
-> SecOps/Guardrail   | TRÁFEGO E ROTEAMENTO POR MODELO (Live)                 CUSTOS E ECONOMIA
-> RAG & Docs         |  9k |    [GPT-4o]          [Claude 3.5]            [||||||||||] GPT-4o   (60%) - $205
-> Roteamento         |  6k |       /\                 /|                  [|||||-----] Claude   (30%) - $120
-> Prompt Lab         |  3k |  /\  /  \    /\         / |                  [|---------] Llama-3  (10%) - $17
-> Configurações      |  0k |_/  \/____\__/  \_______/__|_____         
-                     |       08h   10h   12h   14h   16h   18h            Semantic Cache Hit Rate: 34%
-ALERTAS RECENTES     |                                                    Economia Gerada Hoje: US$ 42.00
-[CRIT] 2 Leaks PII   |---------------------------------------------------------------------------------------
-[WARN] 1 Fallbacks   | FIREWALL & GUARDRAILS (Eventos Recentes)       | RADAR DE CONHECIMENTO (RAG)
-[INFO] 4 Feedbacks   |                                                |
-                     | > 10:45 [SEC] Tentativa de Prompt Injection    | [GAPS] Pending Knowledge Bases:
-                     |   [BLOQUEADO] - Sessão ID: 894                 |   1. "Nova política corporativa"
-                     |   Input: "Ignore core prompt rules..."         |   2. "Reset de senha M. ERP"
-                     |                                                |
-[ SYSTEM OVERRIDE ]  | > 10:42 [SEC] PII Detectado (CPF/Keys)         | [TRENDS] Tópicos Atuais:
-[ Kill Switch ]      |   [MASCARADO] - Filtro de Saída Cloud          |   - "Engenharia de Refatoração" 
-=============================================================================================================
-```
+A central provê a verificação estruturada em relatórios operacionais.
 
-## Próximos Passos Consolidados
-Este diagrama será o "Target State" para a UI do **Command Hub (VueJS)**. Nos próximos marcos da arquitetura, implementaremos os Endpoints de FastAPI / Rust (Core) para cuspir os Analytics mapeados (`/v1/analytics/tracing`, `/v1/analytics/cache_hits`), que serão consumidos passivamente por estes componentes *brutalistas*.
+- **Defasagens Verificadas (Knowledge Gaps):** Clusterização analítica monitorando logs RAG "Vazios". O Nexus apontará o registro transacional das solicitações com escassez de contexto, auxiliando a gerência do desenvolvedor perante que documentações nativas em formato MD estão omissas no *Vault Local*.
+- **Score Analítico de Qualidade Relacionais (LLM Judge Validations):** Subrotinas paralelas avaliam (Pontuação de Acurácia) da inferência RAG na Oracle. Desvios e perdas estruturais nas avaliações RAG (alucinações paramétricas) acusam registro no grid administrativo.
+- **Topologia Semântica de Solicitações Local (Heatmaps):** Registros gráficos informando concentradores semânticos abordados ao longo de curtos ciclos transacionais pelos usuários internos ou clientes.
 
 ---
 
-## 📋 Epic: The Sovereign Command Hub (Roadmap Tasks)
-As metas deste Brainstorm descritas acima foram quebradas no seguinte Pipeline Sistêmico para iniciarmos o Hardcoding Imediato.
+## 4. Integrações Resilientes e Roteamento Local (Command Base)
 
-### 🏗️ Stage 1: The Hacker's CLI & Interface Ativa
-- [ ] Construir componente `HackerCommandLine.vue` para fixação central no Command Hub.
-- [ ] Implementar Parsing de prefixo `>` e `/<comando>` na CLI Box isolando do Input comum de Chat.
-- [ ] Plugar Dispatcher Frontend para atuar sobre Endpoints Cíbridos (ex: `/flush`, `/sync`).
+As opções integrativas incluem métodos puros baseados no projeto inicial Cíbrido:
 
-### ⚙️ Stage 2: RAG Pipeline Tracker
-- [ ] Criar Componente Sidebar `RagIngestionTracker.vue` substituindo espaço oscilante do Dashboard.
-- [ ] Linkar Visualizador de Status às Filas Globais (Workers emitindo SSE das fases: Parser, Chunking, Embedding).
-- [ ] Integrar Alertas Visuais (Piscar/Cores ANSI) para Ingestões Travadas ou Finalizadas com sucesso no Vault Local.
+- **Monitor de Link Oracle Cíbrido:** Monitoração gráfica indicando limites transacionais atrelados. Avalia a taxa síncrona/transmissão `Mesh VPN` de submissões locais SQLite na sincronia com os Node Builders OCI (Backups paramétricos OCI/Desktop).
+- **Interface Terminal Dedicada de Automação (Hacker's CLI Box):** Método imperativo e restrito de execução (CLI via Frontend Rest API). Exemplo de invocação isolativa O.S: `/flush-cache`, `/reindex /docs --force`.
+- **Sincronizador Vetorial RAG Queue O.S:** Monitor em lista apresentando visualmente os *Jobs Node Threads* que regem a importação literária: `Leitura Markdown O.S ➔ Fragmentações Local ➔ Matrizes Local ➔ SQLite Transaction`.
+- **View Sistêmica Compacta de Tarefas (Agendamentos Compactados O.S):** Mapeamento minimalista estrutural aglomerando ocorrências como bloqueios SecOps via *Sentinel*, falhas de testes pytest pendentes, mitigando navegação demorada através de alertas diretos em layout único (UI Grid Data Views).
 
-### ⏳ Stage 3: Cronos Time-Map & RAG Gaps
-- [ ] Condensar Agendamentos VUE num Widget compacto ("3 Tasks Hoje, 1 Quarentena pendente").
-- [ ] Adicionar View Lateral de "Buracos Negros do Conhecimento" escutando LLM Fallbacks do Rust/Python.
-- [ ] Refinar a leitura passiva da Interface Mestre O.S ("NEXUS AI COMMAND CENTER" ASCII Layout).
+---
+
+## 5. Implementações Analíticas Futuras (Endpoints)
+
+Na fase atual arquitetural da aplicação unificada (Frontend Vue e Backend Python/FastAPI), integrar-se-ão os endpoints dedicados (`/v1/analytics/tracing` e `/v1/analytics/cache_hits`), permitindo prover dados reais que nutrirão passivamente a Topologia Operacional proposta neste esquema. As próximas versões focarão o Frontend para adaptar-se perante esses envios em telemetria limpa e direta.

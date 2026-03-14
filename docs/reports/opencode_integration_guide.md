@@ -1,18 +1,19 @@
-# Guia de Integração: OpenCode Plugin & Sovereign Pair Proxy
+# Integração de Extensões via Sovereign Pair Proxy
 
-Este documento serve como o passo a passo oficial para integrar extensões de IA de Código (ex: **OpenCode**, Cursor, Cline ou Continue.dev) que não possuem painéis de configuração na UI do VS Code, conectando-as diretamente ao Backend do **Sovereign Pair** (`Local-First` e `Oracle OCI Proxy`).
+Este manual abrange métodos para integração padronizada de ecossistemas auxiliares e clientes programáveis de IA de código no Visual Studio Code (ex: OpenCode, Cursor, Cline) frente ao URL base local do sistema (Sovereign Pair Local / OCI Proxy).
 
-## 1. Por que "Injetar no Coração" da Configuração?
-Extensões recém-lançadas ou construídas visando apenas a OpenAI, muitas vezes não expõem campos como "Custom Base URL" amigavelmente na interface do VS Code (`Ctrl + ,`).
-Quando isso acontece, precisamos forçar a sobreposição dessas chaves diretamente nos arquivos de escopo do Workspace (a pasta atual onde trabalhamos).
+## 1. Sobresposição de Configuração
+Certos middlewares de extensões adotam endpoints "hardcoded" ligados a infraestruturas de processamento comerciais restritas ou carecem de métodos gráficos de alteração sob a interface. 
+Nestas ocorrências, aplica-se a sobrescrita injetando configurações base puras diretamente no arquivo raiz do projeto (Workspace).
 
-## 2. Passo a Passo: O que foi feito?
-Criamos dois arquivos de rastreio de Configuração no diretório atual do projeto (Workspace).
-1. `.vscode/settings.json`
-2. `.opencode.json` (usado nativamente pelo OpenCode V1)
+## 2. Padrões Declarativos do Workspace
+Implementou-se a alteração paramétrica sob os manifestos de identificação e parâmetros contidos no diretório raiz do desenvolvedor:
+- `.vscode/settings.json`
+- `.opencode.json` (Especificador declarativo do OpenCode)
 
-### O Payload Injetado
-Ambos os arquivos levam a mesma matriz de autoridade. Se a extensão lê as configurações do próprio VSC, ela o fará pela pasta `.vscode`. Se lê de configuração customizada, fará pelo `.opencode.json`:
+### Metadados Injetados para O.S Proxy
+De acordo com os protocolos integrativos do VS Code, qualquer chamada de extensão buscará priorizar escopos referenciados nestes arquivos locais.
+Aplica-se sob ambos os arquivos a seguinte estruturação:
 ```json
 {
   "apiProvider": "openai",
@@ -22,14 +23,13 @@ Ambos os arquivos levam a mesma matriz de autoridade. Se a extensão lê as conf
 }
 ```
 
-## 3. Dinâmica de Funcionamento (The Coder)
-Assim que o Desenvolvedor disparar um Prompt via atalho na janela lateral do VS Code:
-1. **O Plugin** acha que está se comunicando com o servidor Cloud da `OpenAI` (`api.openai.com/v1/chat/completions`).
-2. **Localização**: Como reescrevemos o `apiBaseUrl`, a request viaja via HTTP (localhost) e bate diretamente no nosso Endpoint `routes_opencode.py`.
-3. **Conversão Silenciosa**: Nossos Modelos Pydantic recebem o JSON rigoroso, convertem para `LlamaIndex Messages` e analisam a Tag do modelo.
-4. **Veredicto / Fallback**: Se o Desenvolvedor solicitou um modelo proprietário pesado (ex: `gpt-4o` ou `claude-3-5-sonnet`), o Sovereign Backend encaminhará este pacote via conexão **mTLS criptografada** para o Cluster na Oracle. Caso contrário, resolverá tudo puramente local (Ryzen/Local Llama).
-5. **Automação Escrita (SSE)**: O resultado voltará via Streaming Assíncrono para o Editor escrevendo o código em tempo real.
+## 3. Direcionamento e Proxy HTTP
+O fluxo restritivo que estabelece as intermediações desenvolve-se processualmente em:
+1. **Transmissão Inicial**: A solicitação da Extensão (IDE) envia payload compatível com APIs comerciais.
+2. **Interceptação Nativa**: O parâmetro `apiBaseUrl` contendo loopback `localhost` repassa o envio transacional HTTPS/HTTP ao Endpoint O.S Framework do FastAPI Python.
+3. **Conversão Relacional**: A API do RAG local lê, intercepta a requisição Pydantic e a converte em objetos nativos RAG Standard LlamaIndex para inferência.
+4. **Avaliação Direcionada**: Se o modelo solicitado exigir processamento extenso, a orquestração direcionará via conexão mTLS encapsulada à Oracle Cloud OCI. Requisições leves ou de baixa latência são atendidas localmente com `Ollama Local`.
+5. **SSE Stream Delivery**: Respostas retornam estruturadas dinamicamente em protocolo Server-Sent Events do FastAPI diretamente para a aba do cliente no VS Code.
 
-## 4. O que testar no End-to-End?
-Com estes arquivos agora adicionados ao rastreio GIT, qualquer pessoa que abrir essa Workspace e possuir o VS Code ou Cursor, já virá configurado por padrão a se reportar ao Sovereign.
-Abra o painel "Chat" da sua extensão, solicite a extração de uma classe em Python e observe o log na janela do `Uvicorn` do Backend reagindo à sua escrita.
+## 4. Confirmações E2E Locais
+Uma vez os diretórios indexados sob controle de repositório GIT, inicializações em novas instâncias do VS Code acatarão como servidor de inferência primária o roteador local do FastAPI. Verifique os retornos através do Terminal Monitor Uvicorn durante a rotina do desenvolvedor.
