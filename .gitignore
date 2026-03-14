@@ -179,7 +179,9 @@ logs/
 debug/
 debug_output.txt
 
-# Segredos Industriais e Planejamento de Mercado
+# Security/SAST Ignores
+.trivyignore
+.semgrepignoretriais e Planejamento de Mercado
 _strategy/
 docs/reports/roadmap_opencode.md
 
