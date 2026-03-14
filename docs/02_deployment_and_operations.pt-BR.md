@@ -8,8 +8,10 @@ Para poupar o uso contínuo de recursos no hardware do desenvolvedor (ambiente l
 
 Todo o fluxo operacional do back-end é containerizado através do Docker. O uso de instâncias escaláveis e isoladas evita conflitos com as dependências nativas e bibliotecas de sistema operacional locais.
 
-1.  **Backend FastAPI (`sovereign-api`):** API principal da aplicação. Responsável pelo tráfego HTTP, instanciação dos workers em background e manipulação do processo RAG em Python.
-2.  **Motor de Workflows (`n8n`):** Aplicação de integração. Fornece uma interface de webhooks com sistemas externos, possibilitando a criação de fluxos de automação independentes da interface web primária (Sensus Vault).
+#### Serviços Isolados Core O.S (Container/Node Level)
+
+1.  **Backend Nativo O.S OCI Gateway (`sovereign-api`):** API mestre e matriz funcional compilatória do projeto O.S construída em **Rust (Axum + Tokio)**. Provê rotinas estruturais de processamento e leitura RAG operados iterativamente via sistema de matriz interna nativa C/C++ `sqlite-vec` ao invés de depender de instanciadores python.
+2.  **Sensus Vault UI Frontend (`sovereign-web`):** Módulo Vue 3.x empacotado puramente focado provendo Client-Side-Rendering UI estática sem expor servidores externos integrativos. Requisita interface diretamente direcionada à API restritiva Gateway e opera a PWA.
 3.  **Fila de Processos (`redis`):** Sistema para armazenamento transitório em memória. Atua como barramento de mensagens e controlador primário para as listas de execução dos fluxos assíncronos gerados pelo N8N.
 4.  **Banco de Dados PostgreSQL (`postgres`):** Banco relacional dedicado ao cache de longo prazo e ao registro de eventos para as execuções dos workflows do nó N8N.
 

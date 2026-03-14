@@ -10,11 +10,14 @@ You can orchestrate your entire digital brain on an **Oracle Cloud Infrastructur
 
 The entire stack is containerized. No host dependencies are required beyond Docker and a mesh VPN.
 
-1.  **FastAPI Backend (`sovereign-api`):** The beating heart. It receives NLP queries, parses RAG tokens in Python 3.12, and orchestrates the Multi-Tenant context.
-2.  **ChromaDB Vector Store (`chroma`):** The isolated spatial memory. It stores embeddings in immutable flat files mapped directly to the local disk.
-3.  **N8N Automations (`n8n`):** The limbs. Connects to the real world (webhooks, email parsing, calendar syncing), triggering the Sovereign API when automation requires reasoning.
-4.  **Redis (`redis`):** High-speed ephemeral cache used exclusively to mediate the Queue Mode for N8N horizontal scaling.
-5.  **PostgreSQL (`postgres`):** The persistence layer for session chats, system prompts, and configuration data.
+#### Containerized Components
+
+1.  **Rust Axum Core Gateway (`sovereign-api`):** The beating heart. Constructed completely natively compiling C/C++ elements linked via **Rust (Axum + Tokio)**. It orchestrates NLP structural queries over standard vectors natively via an internal `sqlite-vec` index mechanism avoiding obsolete Python processing bottlenecks.
+2.  **Sensus Vault Client Engine UI (`sovereign-web`):** Static native component frontend mapped under Vue 3 logic frameworks preventing external API bindings processing outputs entirely client-side.
+3.  **Embedded SQLite Vectors (`sqlite-vec`):** The isolated spatial memory compiled alongside the logic structure. It stores embeddings in immutable flat tables preventing third-party endpoints communication structures natively.
+4.  **N8N Automations (`n8n`):** The limbs. Connects to the real world (webhooks, email parsing, calendar syncing), triggering the Sovereign network logic when automation requires reasoning.
+5.  **Redis (`redis`):** High-speed ephemeral cache used exclusively to mediate the Queue Mode for N8N horizontal scaling.
+6.  **PostgreSQL (`postgres`):** The persistence layer for session chats, system prompts, and configuration data.
 
 > [!TIP]
 > **Junior Hacker Fast-Track:**

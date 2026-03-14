@@ -12,8 +12,8 @@ A extração das pastas nativas e arquivos em texto (como os formatos `.md` e `.
 4.  **Gravação no Banco Relacional O.S:** Registro nativamente estruturado acoplando atributos no banco contínuo SQL. Utiliza a biblioteca modular SQLite provida na aplicação física (tabela unificada de persistência Vector Support) consolidando instâncias do conhecimento no drive.
 
 > [!NOTE] 
-> ▫️ **Serviço de Processamento de Ingestão (Python):** `src/ingest.py`
-> ▫️ **Serviço Monitor de Sistema de Arquivos (OS Watcher):** `src/core/watcher.py`
+> ▫️ **Serviço de Compilação Vetorial Nativo (Rust):** `src-rust/core/ingest.rs`
+> ▫️ **Serviço Monitor de Sistema de Arquivos (OS Watcher):** `src-rust/core/watcher.rs`
 
 ---
 
@@ -25,14 +25,14 @@ Durante os acessos externos (API e PWA Web UI), realiza-se o pareamento simultâ
 Calcula métricas e distância cossenoidal do prompt inserido com correspondências já existentes na malha do banco de dados (SQLite Vector). Esse parâmetro extrai documentos que compartilhem relação de ideias contextuais com a requisição, ignorando palavras-chave exatas semânticas não mapeadas que divergem literamente de sinônimos idênticos.
 
 > [!NOTE] 
-> ▫️ **Construtor de Roteamento RAG:** Referenciado metodicamente pelo arquivo `src/engine_builder.py`
+> ▫️ **Construtor de Roteamento RAG (Axum/Tokio):** Referenciado metodicamente pelo arquivo `src-rust/core/engine_builder.rs`
 
 ### 2.2 Controle de Especificidades Lexicais (Busca por Termos BM25)
 Equilibra imprecisões e amplificações provocadas exclusivamente pelas matrizes relacionais abstratas do motor Vetorial. Foca especificamente pelo sistema de frequência do algoritmo nativo para referenciar os caracteres literais providos sem alteração ao prompt (Busca clássica Keyword ex: Pesquisa unicamente do status "Erro IPv4 429"). Combinadas na saída logada inicial, ambas métricas sofrem atribuições baseadas em ranqueamento combinando score das metodologias pela infraestrutura integrativa via RRF (Reciprocal Rank Fusion).
 
 > [!NOTE] 
-> ▫️ **Retriever Lexical Auxiliar (Implementação CustomBM25):** Classe utilitária registrada referencialmente baseada no arquivo `src/custom_retrievers.py`.
-> ▫️ **Processador RRF Combinado:** Integrador nativo construcionado internamente dentro de instâncias associativas do motor de compilação `src/engine_builder.py`.
+> ▫️ **Retriever Lexical Auxiliar (Implementação CustomBM25):** Classe utilitária registrada referencialmente baseada no arquivo `src-rust/core/custom_retrievers.rs`.
+> ▫️ **Processador RRF Combinado:** Integrador nativo construcionado internamente dentro de instâncias associativas do motor de compilação `src-rust/core/engine_builder.rs`.
 
 ---
 
@@ -43,7 +43,7 @@ Definições sistêmicas e terminologias de uso recorrente para alinhar as rotin
 | Terminologia Técnica | Escopo Operacional e Descrição |
 |---|---|
 | **Host ou Vault Directory** | Trata-se do diretório matriz de hospedagem isolada atrelada aos manifestos literários primários da aplicação (Arquivos Origem TXT/MD). A gestão nativa confina esses insumos preservando estabilidade em edições de arquivos sem substituição O.S acidental. |
-| **Node / Chunk** | Definição sistêmica que agrupa o fragmento sequencial lógico individual, segmentado pelo motor estrutural referenciado nas integrações base da framework do "llama_index". |
+| **Node / Chunk** | Definição sistêmica que agrupa o fragmento sequencial lógico individual, segmentado pelo motor estrutural nativo referenciado em instâncias C++ acopladas ao Kernel Rust OS. |
 | **Workstation Local (Nó Central Híbrido)** | Hardware primário do desenvolvedor local executando e persistindo instâncias de bases do PWA nativa, Roteador HTTP Integrador Relacional RAG SQLite Matrix O.S e File Watchers.  |
 | **Servidor em Nuvem (Assistente ARM OCI Node)** | VPS gerenciada provendo isolamento parcial nas execuções nativas da Engine inferencial Ollama em serviços cloud Oracle baseados na topologia Ampere O.S. Auxilia restritamente no I/O O.S pesado atinente ao carregamento via Kernel Model Models Complexos limitativos ("qwen" etc), limitados e restritos ao tunelamento peer base (mTLS). |
 | **System Prompt Config Settings** | Condiciona o comportamento de formatação O.S das respostas primárias que controlam a estrutura da predição através da variável O.S declarada nas APIs originadoras. (Gera formatações limitadas a contextos profissionais ou Json puro). |
