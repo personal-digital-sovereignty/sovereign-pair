@@ -72,4 +72,4 @@ runcmd:
   - sleep 10
   
   # 10. Inicializar a Malha de Containers (OCI Edge) apontando para os sub-paths corretos
-  - sudo sh -c "cd /opt/sovereign-pair && docker compose -f infra/oci/docker-compose.yml -f docker-compose.n8n.yml up -d"
+  - sudo sh -c "cd /opt/sovereign-pair && docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.n8n.yml up -d"
