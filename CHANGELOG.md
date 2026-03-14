@@ -7,6 +7,29 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [4.0.0] - 2026-03-14
+
+### 🦀 Major Release - The Rust Paradigm Shift & OCI Cibrid Architecture
+
+Esta versão marca a maior transição arquitetural do Sovereign Pair, expurgando as limitações do framework original em Python e abraçando a extrema soberania e performance da linguagem Rust. A mudança não se escora apenas em performance, mas na nossa descoberta de vazamentos silenciosos de telemetria ("Data Leaks") e fallback para conectores OpenAI presentes nas profundezas do código do LlamaIndex, contrariando filosoficamente nosso manifesto "Sovereignty First".
+
+### Adicionado
+- **Native Rust Engine (Axum)**: Desenvolvemos do zero o nosso próprio motor preditivo e indexador vetorial em Rust. Abandonamos o LlamaIndex (Python) para reconquistar controle absoluto sobre a malha de dados, mitigando dependências inseguras e black-boxes que feriam o rigor da privacidade.
+- **Oracle BYOC (Bring Your Own Compute)**: Nova documentação e script (`manual_cloud_init.sh`) homologando totalmente a arquitetura de nó remoto na Oracle Cloud. O Hub Lógico distribui inferências complexas (Qwen/Llama 3.2) para instâncias ARM remotas (A1 OCI) via malha VPN Mesh Tailscale.
+- **Global Workspace Architecture**: O novo motor Cíbrido agora varre diretórios arbitrários (multi-tenant) no nível de Sistema Operacional em vez de apenas um "Vault" singular, orquestrando dezenas de pastas com concorrência limpa em Rust.
+- **Standalone Containerized AI**: Refatoramos o modelo de proxy da UI para internalizar integralmente o daemon do Ollama dentro de clusters fechados estruturais no Docker Compose (`infra/docker`), sepultando o acoplamento do sistema hospedeiro.
+
+### Modificado
+- **Clean Root & Docker Isolation**: Remoção massiva de poluição do ambiente na raiz. Os arquivos de orquestração `.yml`, `Nginx` e `Caddy` ganharam sub-espaços na pasta `/infra/docker/`. 
+- **Modernização Absoluta da Web-UI**: Refatoração brutal dos painéis frontais geométricos (Vue 3 + Vite). Centralização end-to-end do layout Kanban e estabilização gráfica das dependências assíncronas SVG dos ícones (Phosphor bugs resolvidos).
+- **Telemetry Mesh Hub**: Adição nativa do painel de telemetria em tempo real para escutar assincronamente o streaming P2P RPC e as requisições ativas.
+
+### Segurança (Security)
+- **Intercepção Definitiva de Leak**: Eliminação do RAG Python original blindou o vazamento acidental (via LlamaIndex) garantindo que tokens da infra corporativa não pinguem na web civil americana.
+- **Hardening OCI Docker Unix Socket**: Adição de fix de permissionamento de soquetes daemon (`chmod/gpasswd`) aos compêndios corporativos (`10_guide_byoc_oracle_cloud.pt-BR.md`), blindando falhas nas pipelines não-privilegiadas.
+
+---
+
 ## [3.1.2] - 2026-03-08
 
 ### 🤖 The Coder & OpenCode Integration (Pair Programming)
@@ -240,6 +263,6 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ---
 
 **Autor**: Jeferson Lopes
-**Assistência**: Google Gemini 3 e Claude Sonnet 4.5 (Anthropic)
-**Data**: 2026-02-17
-**Versão**: 2.1.0
+**Assistência**: Antigravity (Advanced Agentic Coding) & Deepmind Systems
+**Data**: 2026-03-14
+**Versão**: 4.0.0
