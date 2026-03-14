@@ -23,7 +23,7 @@ def test_build_tree(root_dir):
                         "has_vector": False
                     }
                     node["children"].append(file_node)
-        except OSError as e:
+        except OSError:
             # print(f"Permission denied for {current_path}: {e}")
             pass
             
@@ -33,5 +33,5 @@ def test_build_tree(root_dir):
 # Testar a pasta do Workspace do user 
 path = "/home/jefersonlopes/Developer/local-repositories/sovereign-pair"
 tree = test_build_tree(path)
-import json
+import json  # noqa: E402
 print(json.dumps(tree, indent=2)[:1000]) # Imprime só o top level pra ver se ta vindo algo

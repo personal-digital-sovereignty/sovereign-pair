@@ -1,5 +1,4 @@
 import requests
-import json
 
 url = "http://localhost:8000/v1/chat"
 headers = {"Content-Type": "application/json"}

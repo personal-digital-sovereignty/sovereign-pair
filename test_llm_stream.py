@@ -14,7 +14,7 @@ async def run():
         async for t in gen:
             print(t.delta, end="")
         print("\nPronto.")
-    except Exception as e:
+    except Exception:
         import traceback
         traceback.print_exc()
 
