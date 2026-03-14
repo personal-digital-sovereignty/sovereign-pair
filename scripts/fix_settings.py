@@ -1,7 +1,4 @@
-import os
-import sys
 from sqlalchemy import create_engine, select, update
-import json
 
 from src.api.models import SystemSettings, Base
 from src.config import DATABASE_URI

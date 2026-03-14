@@ -23,7 +23,7 @@ async def run():
             print(t.delta, end="", flush=True)
             count += 1
         print(f"\n[Fim] Tokens gerados: {count}")
-    except Exception as e:
+    except Exception:
         print("\n!!! ERROR !!!")
         import traceback
         traceback.print_exc()

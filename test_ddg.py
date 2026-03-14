@@ -6,7 +6,7 @@ def run():
     try:
         r = search_web("Previsao tempo amanha Jandira", None)
         print("Tamanho:", len(r))
-    except Exception as e:
+    except Exception:
         traceback.print_exc()
 
 if __name__ == "__main__":
