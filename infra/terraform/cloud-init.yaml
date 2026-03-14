@@ -25,6 +25,9 @@ write_files:
     permissions: '0644'
 
 runcmd:
+  # Aquece o network stack (DHCP/DNS) do Oracle OCI antes do gatilho principal
+  - sleep 20
+
   # 0. Fix Oracle's broken regional APT mirrors strictly before any apt command
   - sudo sed -E -i 's/[a-z0-9-]+\.clouds\.ports\.ubuntu\.com/ports.ubuntu.com/g' /etc/apt/sources.list
   
