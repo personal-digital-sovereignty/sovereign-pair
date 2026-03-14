@@ -1,74 +1,52 @@
-# Tratado II: Implantação e Operações de Infraestrutura
+# Implantação e Operações de Infraestrutura
 
-## 1. Arquitetura Onipresente Zero-Cost (Oracle Cloud OCI)
+## 1. Arquitetura Orientada a Alta Eficiência e Baixo Custo (Oracle Cloud OCI)
 
-O Sovereign Pair foi forjado para ser financeiramente invisível. Enquanto o seu motor central (o raciocínio da IA) exige processamento brutal e intensivo, o orquestrador (API, Roteador RAG, Autenticação e Gateway de Webhooks do N8N) foi estruturado para rodar sobre **arquiteturas ARM64 com recursos severamente limitados**.
+Na finalidade de estender o ciclo de vida e a capacidade operacional em instâncias físicas pessoais de desenvolvedores (Hardware do Edge Local), delegam-se aplicações de infraestrutura que não processam contexto persistente local diretamente para *compute nodes* na grade de Cloud Servers. A otimização adotada foi implementada para garantir resiliência aos nós virtualizados estritamente dentro da arquitetura **ARM64**. O uso do *target deployment* oficial e testado em homologação para isso é na instância gratuita tipo *Ampere A1 Compute* da Oracle Cloud Infrastructure (OCI).
 
-Você pode orquestrar o seu cérebro digital inteiro em uma **Instância Ampere A1 Compute da Oracle Cloud Infrastructure (OCI)**, que fornece 4 núcleos OCPUs ARM e 24GB de RAM perpetuamente por R$0,00/mês.
+### 1.1 Orquestração em Contêineres (Docker)
 
-### 1.1 A Sinfonia do Docker-Compose
+O fluxo operacional do código foi completamente alocado na topologia robusta e portável baseada em engine Linux *Docker*. Foram sumariamente refutados implementos que corrompam as bibliotecas locais originais do Host SO com instaladores de linguagem padrão, com as instâncias contidas em manifestos isolados escaláveis.
 
-Toda a pilha tecnológica (Stack) é containerizada. Não existe dependência física (Node, Python, Linux) instalada na máquina matriz além de `Docker` e uma VPN Mesh.
+1.  **Backend FastAPI (`sovereign-api`):** API servidora processual atrelada ativamente. Roteia tráfego multi-tenant concorrente, encapsula instâncias LLM em Workers Background e efetua as abstrações dos tokens na camada Python do RAG.
+2.  **Motor RAG e Workflow Automático (`n8n`):** O módulo autônomo. Implementa APIs restritas legadas e realiza interface via Webhook Request System com sistemas externos validados para acionar fluxos orquestrados no servidor RAG localmente sem poluição visual no PWA Padrão.
+3.  **Engine de Fila Redis (`redis`):** Provisão transitória em contêiner alocado sob memória nativa *In-Memory*, cuja atribuição restrita é funcionar de Event-Bus primorial e Lock Controller nas rotinas processuais horizontalizadas de filas (Queues) do fluxo `n8n`.
+4.  **Banco de Retenção Estrutural PostgreSQL (`postgres`):** Processo dependente relacional dedicado restritamente como cache nativo a long-termo persistindo estruturas não vetorializadas e Logs inerentes unicamente às funções vitais das rotinas executadas pelo framework Webhook interno do nó orquestrador N8N.
 
-1.  **Backend FastAPI (`sovereign-api`):** O coração da besta. Recebe consultas em Linguagem Natural, faz a mágica matemática dos *Tokens RAG* no Python 3.12, e orquestra usuários Múltiplos separados.
-2.  **Banco de Dados ChromaDB (`chroma`):** A memória fotográfica e espacial. Armazena as fatias do seu cérebro em arquivos lisos imutáveis mapeados direto no HD/SSD.
-3.  **Automações N8N (`n8n`):** Os braços e pernas. Conecta-se com o mundo real (Lê seus e-mails, acessa bancos do sistema legado web, trigga calendários automáticos), e avisa a API Soberana quando algo requer cérebro.
-4.  **Redis (`redis`):** O cache efêmero ultra-rápido usado exclusivamente para mediar a Escala Horizontal do modo Queue (Fila) do N8N.
-5.  **PostgreSQL (`postgres`):** A camada de persistência chata do dia a dia. Guarda logs, senhas sistêmicas e configuração nativa do framework de webhooks.
-
-> [!TIP]
-> **Acelerador Juniores (Glossário Rápido):**
-> *Docker* é apenas uma "caixa mágica". Em vez de baixar Node.JS, Python, Postgres e dezenas de bibliotecas no seu Windows/Linux (e inevitavelmente enfrentar dores de cabeça com versões conflitantes em um update no futuro), o Docker roda um mini-PC para cada serviço de forma isolada e segura. Para o seu PC, eles não existem. Para rodar a arquitetura inteira corporativa abaixo, você só precisa digitar `docker-compose up -d`. O terminal fará a magia.
-
-> [!NOTE] 🧬 **Código Vivo: A Orquestração de Contêineres (SHA: `94bfb2f`)**
-> ▫️ **Topologia de Nuvem N8N:** `docker-compose.n8n.yml`
-> ▫️ **Topologia de Backend Local:** `docker-compose.yml`
-> ▫️ **Containers (Dockerfile):** `Dockerfile.api` & `Dockerfile.web`
+> [!NOTE] 
+> O padrão imposto a rodutologia de Deploy de Integração Contínua acopla todas essas definições nos sub-processos orquestrais de malha `docker compose up -d` isolados atreláveis aos fluxos específicos. 
+> ▫️ **Topologia Padrão Backend Server:** `docker-compose.yml`
+> ▫️ **Topologia Workflow N8N Server Nuvem:** `docker-compose.n8n.yml`
 
 ---
 
-## 2. Redes de Confiança Zero (Zero-Trust) e Gatekeepers
+## 2. Abstração de Contorno e Camada Zero-Trust Networking
 
-Ao implantar a aplicação na Internet selvagem (como num Servidor Oracle Cloud padrão), **nunca** abra ou exponha as portas `8000` (API), `5678` (N8N) ou `8000` (Banco Chroma) para a rede pública (IGW / WAN). Relatórios de telemetria de Honeypots cibernéticos (como os dados da SANS Internet Storm Center e da Palo Alto Networks) demonstram consistentemente que scanners automatizados descobrem IPs expostos e portas padrão em questão de minutos após o primeiro Boot, podendo sequestrar o seu banco de dados com Ransomware.
+Por determinação global à operação DevSecOps aplicada ao *Endpoint*, as implementações das APIs (tanto processual física RAG via Porta `8000`, ou Worker Orchestrators N8N porta `5678`) localizadas em VPS/Bare-Metals ou expostos localmente com *IP Pessoal Reverso*, **nunca** serão anexadas no firewall sistêmico com preenchimento global Bind a Interfaces abertas (ex. rotear via `0.0.0.0` para Gateways Public IPv4). Processos *Stateful* ou banco de dados sensíveis escanchados são expostos a injúrias técnicas massivas de automações *Bot Net / Scraping / Ransomware DB Drop* assim que indexados na *public internet*.
 
-O Sovereign Pair descansa sobre uma VPN Mesh (Hardware Peer-to-Peer, como **Tailscale** ou ZeroTier) que age como *Gatekeeper* criptográfico invisível.
+Adotou-se então a blindagem por encapsulamento *Overlay Network* configurada primicialmente à nível do Tunnel Peer-to-Peer nativo (Ferramenta `Tailscale` / base Wireguard Engine) atuando via criptografia intrínseca para os nodes. As transferências e Requisições API atestadas processar-se-ão estritamente no meio fechado.
 
-### 2.1 A Conexão Cíbrida (Da Nuvem para Casa)
-1. Instale o Tailscale no seu Servidor Nuvem Oracle (O Nó de Computação Preditiva ARM).
-2. Instale o Tailscale no seu Desktop/Laptop em Casa/Escritório (O Cofre Orquestrador com seus arquivos nativos).
-3. Após fazer login com o mesmo e-mail, ambas receberão um IP Privado da rede profunda P2P iniciado com `100.x.x.x`.
-4. No arquivo `docker-compose.yml` da sua Nuvem, amarre (faça o Bind) das portas **estritamente** naquele IP seguro.
-   * *Exemplo:* `ports: ["100.x.x.x:11434:11434"]`
-5. Como todo o motor central do projeto (FastAPI, N8N, ChromaDB, Sensus Vault) reside de forma hiper-segura trancafiado **dentro da sua Máquina Física Local**, para evitar drenar sua bateria com AI pesada, você irá terceirizar a computação. Altere o arquivo `.env` do seu PC Local setando a variável `OLLAMA_BASE_URL` para apontar cravado pro IP do Tailscale da Nuvem Oracle (`http://100.y.y.y:11434`).
+### 2.1 Conectividade P2P Cíbrida (Vínculo Tunelado Node / Cloud Host)
+1. Certificação e ingresso atreladas à API Mesh Layer tanto na Hospedagem (Nó Computacional OCI Nuvem) perante Cliente Desktop de Processamento Backend Node (Hardware Local).
+2. O servidor virtual Tailscale delegará DHCP abstrato e designará de forma estática blocos não roteáveis classificados na subnet segura via Carrier-Grade NAT. (ex: escopo IP de túneis `100.X.X.X`).
+3. O `docker-compose.yml` e arquivos infra afins, designam ativamente a contenção e mapeio Exclusivo na interface nativa mTLS atestando *Bind Isolation*, ex. `ports: ["100.x.x.x:5678:5678"]`.
+4. Todas invocações remocionais (como o Gateway FastApi demandar que Nuvem execute Predições no Modelo Qwen-2.5 do Ollama Cloud) seguem explicitamente a sintaxe HTTPS atada àquela VPN Virtual (`http://100.y.y.y:11434`), mantendo tráfego invisível e impossível a espelhametos do Gateway Operadora / IPS locais da rede local pública comum.
 
 > [!WARNING]
-> Hackers Corporativos atencão: Por segurança brutal de fábrica, o daemon/aplicativo do `ollama` instalado em computadores normais atende apenas a porta "Localhost 127.0.0.1". Se a sua Nuvem bater na porta de casa, o PC rejeita. Você é OBRIGADO a configurar o Ollama de casa para ser acessível globalmente inserindo a variável extra `OLLAMA_HOST=0.0.0.0 ollama serve`. E, você **só fará isso** se o roteador do seu quarto não tiver essa porta configurada para Forwarding no seu Roteador, ou seu modem da provedora ISP tiver firewalls rígidos. Senão a vizinhança na rua conversará com sua IA. O Tailscale já resolverá o roteamento de NAT.
-
-> [!NOTE] 🧬 **Código Vivo: O Motor e o Gatekeeper (SHA: `94bfb2f`)**
-> ▫️ **Vínculo Cíbrido de Raciocínio LLM:** `OLLAMA_BASE_URL` (no seu arquivo `.env` físico)
+> O Engine de Inferência `Ollama` assume nativamente a restrição Bind Padrão de Listen TCP cravado na variável Loop-Back Address (`127.0.0.1`), refutando acesso cruzado de pacotes externos na mesma porta física do processador. Para que os Workers N8N e as topologias Cloud OCI alcancem as instâncias de placa Llama físicas no interior das dependências privadas (Seu Workstation físico contendo SQLite e Motor RAG GPU CUDA), impõe-se a exigência no ambiente `.env` O.S injetar e delegar o serviço do processo OLLAMA no escopo de acesso restrito pela VPN, atestando como valor extra de reinicialização no SystemD: `OLLAMA_HOST=0.0.0.0 ollama serve`. (O que será contido logo em seguida mediante aos filtros UFW / Firewall restritivo aos túneis Tailscale do O.S base). 
 
 ---
 
-## 3. Limites Físicos de Inferência de Hardware (Trade-offs Corporativos)
+## 3. Gestão Preditiva de Hardware e Trocas Computacionais Agressivas
 
-### O Nó de Computação (Oracle OCI ARM A1 Flex OCPU)
-- **O Papel:** Trabalhador remoto puramente terceirizado para executar o pesado fardo cognitivo neural (`Ollama` isolado). É a mente preditiva de agentes de alto-nível arquitetural ("The Doctor / The Coder"). 
-- **O Limite:** Por ser uma arquitetura ARM de 4 OCPUs e não possuir placas gráficas NPU/CUDA, depende violentamente da alocação via manipulação de kernel `ZRAM` (Swap de alta compressão no Linux) para engolir 24GB+ de Modelos de Pesos Quantizados sem fundir a memória RAM.
-- **A Operação:** Consegue tracionar métricas de engenharia validadas de ~6.3 Tokens por Segundo rodando modelos ágeis de código pesado (Ex: `qwen2.5-coder:7b`).
+### O Parâmetro do Nó de Nuvem Remota (Oracle A1 OCPU ARM)
+- **Escopo Técnico:** Módulo autônomo transferencial configurado massivamente na implantação base infra-as-code. Desempenha a resolução lógica do pipeline, focando massivamente na rotina Ollama Virtual nativa desonerada de GPUs. Em prol da sua restrição técnica proveniente à arquitetura de chipset ARM processional (sem Unidades Neuromorficas) aliadas ao disco lógico Block Storage padrão da rede OCI, requer hacks agressivos na manipulação e buffer Kernels atenuando restrição crítica I/O Disk de grandes vetores.
+- **Engenhosidade Aplicada e Alocação O.S ZRAM:** Dispara no momento *Init-Cloud Provisioning Script* instâncias paramétricas no Root do Server instalando controladores utilitários (`zram-tools` forçando alocação de Swap Memory em formato de algoritmo de super-compressão). Resguardando o tamanho final dinamicamente, possibilita extração pesada via CPU Arm pura do conteúdo dos modelos sem estourar e congestionar transações assíncronas no HD SSD sub-par.
+- **Taxas Empíricas Praticadas:** Processos e inferências com OCI nativo conseguem estabilidade de vazão computacional na métrica de ~6 tokens extraídos na secundagem sobre modelo de codificação pura *qwen2.5-coder*.
 
-> [!NOTE] 🧬 **Código Vivo: Setup Cloud e Otimização Local (SHA: `94bfb2f`)**
-> ▫️ **Scripts OCI Terraform:** `infra/terraform/`
-> ▫️ **Scripts de Ajuste (Linux Hardware):** `scripts/optimize_ollama_ryzen.sh`
-
-### O Nó Cofre/Orquestrador (PC Físico / Laptop Ryzen em Casa)
-- **O Papel:** A Fortaleza Zero-Trust. Guarda com unhas e dentes seus PDFs ("Sensus Vault"), seu banco vetorial ChromaDB e executa as malhas de Lógicas base em HTTP (N8N e FastAPI). 
-- **O Limite:** O objetivo final é manter a performance intocada sem estrangulamento. Rodar Agentes de Inteligência Artificial em background (Deamon Local de Ollama) mata a massa de memória RAM útil para a sua IDE/Browser e drena cruelmente baterias de Workstations Mobile.
-- **A Operação:** Racionaliza as buscas nativas locais de Banco RAG e de arquivos com rapidez impecável, puxando da Malha da Nuvem OCI ARM APENAS durante a resolução real de algoritmicidade de linguagem para poupar vida útil do computador físico.
-
-> [!NOTE] 🧬 **Código Vivo: A Alma do Orquestrador (SHA: `94bfb2f`)**
-> ▫️ **Espinha Dorsal HTTP:** `src/api/main.py` (FastAPI)
-> ▫️ **Memória Espacial:** Diretórios `data/chroma_db/` e `data/vault/`
-> ▫️ **Motores de Estado N8N:** Containers nativos `redis` e `postgres`
+### O Host Persistente (Workstation Pessoal Base Edge Node)
+- **Escopo Técnico:** Encapsulador de Arquivos físicos confidenciais operantes MD e repassos orquestrados no SQlite RAG via *File-Watcher System*.
+- **Estratégia Computacional de Preservação:** A carga nativa LLM na interface e nos testes isolados asfixia RAM ociosa local do Desktop O.S quando solicitada paralelamente. A finalidade desta arquitetura base Cíbrida/Híbrida baseia-se exatamente em transferir este workload para orquestradores OCI, delegando e repassando à interface PWA do Frontend ou FastAPI estritamente as instâncias lógicas de Indexação Matemática. A GPU/CPU do usuário permanece nativamente leve ao dia a dia de Software e Compilação operante.
 
 > [!NOTE]
-> Regra de ouro: Arquiteturas de Orquestração costumam derrubar chamadas de webhooks que demoram após 2 minutos de forma genérica para evitar sobrecarga de memória do Windows (o famoso Axios Timeout). Assim... se o Servidor da Nuvem chamar seu PC Gamer velhinho, e ele demorar 4 minutos matutando pra cuspir o Parágrafo do OLLAMA e enviar, a Nuvem já mandou seu PC pastar. Para contornar e resolver esta limitação arquitetural, nós injetamos um limite superior elástico passivo no back-end (Variável `REQUEST_TIMEOUT="300.0"`). Isso impõe e obriga o servidor Nuvem do N8N a aguardar pacientemente pelo processamento do LLM Local por até 5 minutos, sem travar e sem retornar falhas assíncronas de `500 Internal Server Error`. Abrace o tempo de inferência do Local-First.
+> Rotinas transacionais orquestrais originadas em clientes dependentes assíncronos HTTP (via Request Axios N8N, ex.) são inerentes a restrições programacionais severas atinentes à métrica *Connection-Timeout*. Disparos em modelagens em "estado frio" que não usufruam de render stream (`SSE`), atestarão respostas tardias e desencadearão rompimentos padrão com saídas 504 no orquestrador (Excedentes de 120seg). A contramedida foi adicionada intrinsecamente na base do FastApi declarada na variável de ambiente local estrita e rígida (`REQUEST_TIMEOUT="300.0"`). O tempo máximo dilui limites de interrupção subjacente a rede, acomodando e alinhando adequadamente I/O demorados originados da inferência OCI ou Local-First sem forçar cancelamento forciato da chamada.

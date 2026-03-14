@@ -1,82 +1,77 @@
-# Sovereign Pair - Sistema Avançado de RAG e Inteligência Artificial Soberana
+# Sovereign Pair
 
-**Sovereign Pair** é um sistema completo de Retrieval-Augmented Generation (RAG) em arquitetura desacoplada, focado em **alta performance, privacidade absoluta e segurança Zero-Trust**. Projetado para unificar inteligência local via modelos locais (Ollama) ou provedores em nuvem, o sistema se integra nativamente ao seu fluxo de trabalho através de uma API robusta e de um plugin nativo para Sensus Vault.
+Sovereign Pair é um sistema de Retrieval-Augmented Generation (RAG) com arquitetura desacoplada, projetado com foco em alta performance, privacidade de dados e segurança Zero-Trust. O sistema suporta a execução de modelos de linguagem (LLMs) localmente (via Ollama) ou por meio de provedores em nuvem, integrando-se via API e plugin nativo para Sensus Vault.
 
-> [!TIP]
-> **Quer ver o motor funcionando e ter aquele "brilho nos olhos"? 👀✨**
-> Confira a nossa página de [Demonstração Visual e Showcase](docs/SHOWCASE.md) para ver a IA operando na prática com nossa Web UI!
+> **Demonstração Visual**
+> Consulte a página de [Demonstração Visual e Showcase](docs/SHOWCASE.md) para exemplos de interface e operação do sistema.
 
 ---
 
 ## Visão Geral da Arquitetura
 
-O sistema superou as iterações base e opera hoje como um **Córtex Mestre Tri-Core O.S**, sustentado nos seguintes pilares:
+O sistema opera com base nos seguintes componentes principais:
 
-1. **Inteligência Local e Reflexiva (LLM)**
-   - Execução 100% offline via **Ollama** gerenciado de forma implacável pela O.S., travando contextos na VRAM em tempo de compilação sem "Cold Boots".
-   - Inferência RAG assisturada por **LangGraph** (StateGraphs) permitindo o sistema agir instintivamente com tags `<thinking>` e autocriticar antes de responder (Loop Agentic).
+1. **Inferência Local e Reflexiva (LLM)**
+   - Execução local offline utilizando **Ollama** para gerenciamento de contexto alocado em VRAM.
+   - Pipeline RAG implementada com **LangGraph** (StateGraphs), permitindo iterações reflexivas (tags `<thinking>`) e autocorreção durante a inferência.
 
-2. **Memória Atômica Cíbrida (SQLite Native)**
-   - O absoleto banco ChromaDB e ineficiências transacionais do O.S. foram **extirpados**.
-   - **sovereign_memory.db**: Única fonte da verdade O(1). O banco Sqlite O.S (`journal_mode=WAL`) gerencia histórico de chat, quadros Kanban e a infraestrutura Vetorial, alcançando escrita atômica instantânea dos textos no SSD local.
+2. **Persistência de Dados (SQLite)**
+   - O banco de dados vetorial legado (ChromaDB) foi substituído de forma a priorizar velocidade transacional.
+   - **sovereign_memory.db**: Banco SQLite configurado com `journal_mode=WAL`, responsável por gerenciar o histórico de conversas, quadros Kanban e embeddings vetoriais, proporcionando gravações atômicas e redução de latência no armazenamento local e indexação.
 
-3. **Backend RAG (Sovereign Core - Rust & Python)**
-   - O.S Tri-Core Engine construído em **Rust (Axum + Tokio)** entregando milissegundos de latência em leitura de diretórios O.S, gestão Kanban e roteamento LLM.
-   - Suporte nativo ao **Server-Sent Events (SSE)** em tempo asíncrono e extração de telemetria precisa cravando o uso de CPU e Custos Ocultos por Token.
+3. **Backend RAG (Rust & Python)**
+   - Motor principal construído em **Rust (Axum + Tokio)** e **Python (FastAPI)**, otimizado para operações de baixa latência em leitura de sistemas de arquivos, gestão de estado (Kanban) e roteamento de requisições ao LLM.
+   - Suporte a **Server-Sent Events (SSE)** para respostas assíncronas e telemetria estrita de uso de recursos (CPU, contagem de tokens).
 
-4. **Omni-Dashboard O.S (God Mode Cockpit Vue JS)**
-   - A Interface Web PWA evoluiu para uma central de Guerra Panorâmica de Múltiplos Painéis (Tri-Core Tracker O.S), substituindo de forma integral quaisquer antigos "plugins de terceiros". Aqui, os logs de Kernel, Monitoria de Recursos (VRAM/RAM) e gerenciamento dos drives virtuais se fundem numa obra de design Wide-screen O.S extrema.
+4. **Dashboard Web (Vue.js)**
+   - Interface Web (PWA) de painel único que centraliza logs do sistema, monitoramento de recursos (RAM/VRAM) e navegação interativa e controlada do repositório físico de documentos.
 
-5. **A Ciber-Malha de Interligação Mesh (Oracle OCI)**
-   - Servidor Local atua também de forma assimétrica acoplado ao servidor autônomo na infraestrutura Cloud. O **MeshSyncWorker** e o "The Blue Collar" mineram PDFs internet afora de forma autônoma 24/7 na Oracle e os disparam para o RAG DOMESTICO assíncronamente.
+5. **Arquitetura Distribuída (Oracle OCI)**
+   - O nó local sincroniza dados com instâncias em nuvem, quando acionado. O processo **MeshSyncWorker** realiza extração de dados de forma assíncrona em servidores na Oracle Cloud e atualiza os embeddings no repositório local de forma incremental, integrando a pesquisa web ao Vector Database sem prejudicar a CPU local.
 
 ---
 
 ## Funcionalidades Principais
 
 ### Busca Híbrida Avançada (Hybrid Search v2.1.0)
-A precisão mestre do motor: combina **Busca Vetorial Densa** (sentido semântico) com **BM25 Retrieval** (palavras-chave exatas e datas) através de uma fusão algorítmica (_Reciprocal Rank Fusion_), elevando a fidelidade da Recuperação de Documentos.
+Combina **Busca Vetorial Densa** (aproximação semântica) com **Busca BM25** (correspondência exata de palavras-chave) utilizando o algoritmo *Reciprocal Rank Fusion*, otimizando a assertividade da filtragem antes da injeção de contexto.
 
 ### Memória Conversacional Persistente
-Ao contrário de implementações RAG estáticas, o agente lembra quem você é e sobre o que debateram na mesma sessão. O histórico do chat flui automaticamente de e para o banco de dados SQL e realimenta o buffer de contexto da Inteligência Artificial.
+A arquitetura RAG mantém o fluxo do estado conversacional salvando o histórico estruturado de interações no banco de dados e realimentando restritamente o "context memory buffer" do LLM em solicitações dinâmicas de conversas sequenciais.
 
-### Ingestão Incremental Extrema (Zero-Cost Sync)
-Ao alimentar milhares de notas no sistema, a pipeline apenas processa deltas (arquivos novos, alterados ou removidos). Utiliza **Hashing Paralelo SHA256** (cache LRU) para alcançar 95%+ de redução no tempo processual, incluindo "Garbage Collection" automático das matrizes vetoriais obsoletas e suporte vitalício ao Server MCP.
+### Sincronização Incremental 
+A rotina de ingestão de arquivos processa unicamente os deltas diferenciais (arquivos criados, alterados ou sistematicamente deletados). Através de validação por **Hash SHA256** (cache LRU em memória), a recontagem estrita atinge drástica redução no custo computacional.
 
-### MAS (Multi-Agent System) LangGraph & Rust Core
-Nossa cadeia intelectiva suporta LangGraph Agents com padronização global de nomenclatura: **The Mom**, **The Dad** (Orquestração), **The Nurse** (Triagem Semântica/Roteamento via LangGraph StateGraphs), **The Doctor** (Raciocínio RAG Avançado), **The Coder** (Engenharia Mestre) e **The Accountant** (Motor Matemático). Eles operam de forma isolada e em uníssono encapsulando de ponta-a-ponta a resiliência cognitiva da IA.
-A partir da **v2.0**, os agentes de infraestrutura pesada (**The Mom** e **The Dad**) foram migrados para um **Sovereign Core nativo em Rust** (com ciber-paralelismo `Rayon` e `notify` de OSKernel), entregando latência quase nula na ingestão multithread e extirpando de vez os gargalos de Python e ChromaDB, agora centralizados em `sqlite-vec` atômico.
+### Sistema Multi-Agente (LangGraph & Rust)
+A orquestração cognitiva é delimitada através do encapsulamento de agentes modulares em workflows direcionados: **The Mom**, **The Dad** (Orquestração de Dados e I/O), **The Nurse** (Roteamento Semântico e Classificação de Requisições), **The Doctor** (Análise RAG, Prompt Engineering), **The Coder** (Validação e Geração de Lógica de Software) e **The Accountant** (Auditoria de Casos Extremos Multivariáveis). 
+A alta escala de mapeamento físico e de paralelismo em embeddings foi nativamente reescrita em **Rust**, valendo-se das dependências computacionais `Rayon` (Multi-Threading de Kernel) e `notify` (File-Watcher OS).
 
-### Oracle "Blue Collar" & Mesh Tunneling
-O Sovereign V2 possui uma inteligência descentralizada. Um módulo de Extração Nuvem (O Trabalhador Braçal) varre automaticamente a web por tópicos e mastiga o conhecimento na sua instância OCI A1 (Oracle). No Edge (Sua Máquina/Local), o **MeshSyncWorker** atua como cron-job assíncrono via VPN, clonando incrementalmente os vetores da Nuvem para o seu HD. O nó local absorve passivamente a experiência do seu clone na rede!
-
-### O Mandato "The Sentinel" & Zero-Trust
-O sistema opera através de controle restritivo militar. Requisições HTTP limitadas por preflights de CORS e Web Application Firewall. O **The Sentinel** intercepta Prompt Injections em T0 (Tempo Zero), quarentena vetores maliciosos e monitora o God Mode Cockpit. Na CI/CD, o sistema FOSS DevSecOps é mandatório.
+### Segurança da Arquitetura (Zero-Trust)
+O ambiente restringe severamente endpoints não autenticados via bloqueio originário de preflights (CORS) e Application-Level Middleware Control. Validações contra *Prompt Injections* mitigam que vetores de pesquisa retornem payloads executáveis na Dashboard do Sistema. O projeto garante verificações de CI/CD (SAST/DAST) nos merges e branches de infraestrutura.
 
 ---
 
 ## Instalação e Requisitos
 
-### Pré-Requisitos
+### Pré-Requisitos Computacionais
+- Sistema Linux / WSL2
 - Python 3.10+
-- Node.js 18+ (Para compilar o Plugin do Sensus Vault / Interface Web)
-- Ollama instalado e em execução (se desejar inferência 100% local)
+- Node.js 18+ (Para compilação dos Módulos Web e Plugin)
+- Ollama runtime system (se for configurar como endpoint estritamente local)
 
-### Setup Básico
+### Procedimentos Básicos de Deploy
 
-1. **Clonar e Preparar o Ambiente**
+> **Aviso de Compatibilidade de Infra (Cloud-Init):**  
+> Os metadados Terraform e as rotinas automatizadas de Continuous Deployment preveem explicitamente que a raiz da hospedagem esteja no diretório `/opt/sovereign-pair/`.
 
-> **Aviso de Implantação Cloud (Oracle OCI / Servidores Linux):**  
-> Para ambientes de produção ou servidores remotos virtuais, a arquitetura padronizada (usada pelos scripts de CI/CD e Cloud-Init) exige que o sistema seja clonado e implantado estritamente no diretório **`/opt/sovereign-pair/`**.
-
-**Para Servidores Linux (Produção):**
+**Infraestrutura Linux (Nós de Produção):**
 ```bash
 cd /opt
 sudo git clone https://github.com/Personal-Digital-Sovereignty/sovereign-pair.git
-cd /opt/sovereign-pair
+cd sovereign-pair
 ```
 
-**Para Desktops Locais (Desenvolvimento):**
+**Workstations Isoladas (Desenvolvimento e Uso Pessoal):**
 ```bash
 git clone https://github.com/Personal-Digital-Sovereignty/sovereign-pair.git
 cd sovereign-pair
@@ -85,87 +80,74 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-2. **Configuração Variáveis de Ambiente (.env)**
-Crie a estrutura de variáveis clonando o template fornecido:
+**2. Injeção de Variáveis .env**
+Crie a estrutura declarativa copiando o arquivo fornecido pelo repositório:
 ```bash
 cp .env.template .env
 ```
-_Note: Ajuste o seu `EMBED_MODEL`, `LLM_MODEL` e portas de CORS conforme necessário._
+*(As propriedades técnicas `EMBED_MODEL`, `LLM_MODEL` e `CORS_ORIGINS` necessitam estar alinhadas à arquitetura planejada.)*
 
-3. **Geração de Credenciais de Segurança**
-Como a API tem arquitetura fechada por padrão, gere os tokens JWT do proprietário do sistema:
+**3. Rotação de Credenciais de Segurança**
+Estabeleça tokens JWT estáticos rodando o utilitário nativo via Python:
 ```bash
 python scripts/setup_security.py
 ```
-Esse script preencherá sua chave de administração JWT direto no `.env`.
 
 ---
 
-## Uso Diário
+## Estratégias Operacionais de Deploy
 
-### Agente Terminal (CLI)
-Para testes ultrarrápidos e debug, invoque a CLI oficial do sistema. Ela herda suas configurações globais (Nome, Ocupação, Localização) e não depende do API estar de pé:
+### Cliente e Agente CLI Isolado
+Para debugar rapidamente inferências assíncronas no seu Vector DB interno, o diretório disponibiliza uma abstração direta via shell O.S, dispensando instâncias REST ativas.
 ```bash
 python src/cli.py chat
 ```
-> O agente lerá os dados no seu vector db local, interagirá com o Ollama nativamente, e fará pesquisas web (através do comando /web).
 
-### Topologias de Implantação (Cenários Cíbridos)
-O Sovereign Pair evoluiu para uma infraestrutura Multi-Topológica, dividindo-se baseando-se no que roda Localmente *versus* Nuvem:
+### Topologias de Implantação e Contêiner
 
-**Cenário 1: The Cloud Citadel (100% Servidor OCI)**  
-Tudo centralizado no Oracle (Tailscale, Ollama, SQLite, Mesh Tunneling).
+**Cenário de Deploy Integral Web-Only (Cloud OCI)**  
+Ambiente executado exclusivamente na Nuvem (API, Workers DAST, Ollama em rede isolada mTLS e SQLite persistido em Volumes Lógicos Cloud).
 ```bash
 docker compose up -d --build
 ```
 
-**Cenário 2: The Offline Bunker (100% Local / Desktop)**  
-Roda absolutamente **tudo** localmente na sua máquina física, englobando a carga de processamento das GPUs e CPUS via motor Rust.
+**Cenário Edge Computing Bare Metal (Nó Local)**  
+Recurso voltado a Desktops potentes, transferindo 100% da carga operacional (Rust, RAG, Web GUI e GPUs físicas da máquina base) sob isolamento local.
 ```bash
 docker compose -f docker-compose.local.yml up -d --build
 ```
 
 ---
 
-## Mapeamento de Diretórios Principais
+## Mapas Arquiteturais dos Repositórios
 
-- `src/` - Núcleo Funcional (Engine RAG, Retriever, Processadores, Utilities em Python).
-- `src/api/` - Controladores, Rotas FastAPI, Middlewares, Tokens e Modelos de Banco de Dados SQLite.
-- `docs/` - Acondiciona os **6 Tratados/Manifestos Mestres** explicando minuciosamente o ecossistema, todos fornecidos em versões nativas unificadas (`.en-US.md` e `.pt-BR.md`).
-- `data/` - Repositório da Inteligência (Vault Cru, Banco de Dados Chroma DB Vetorial e Banco Relacional memory.db).
-- `sensusvault-plugin/` - Código fonte TypeScript da Interface Nativa do Sensus Vault.
+- `src/` - Contratos técnicos de processamento modular, Retriever Vetorial e fluxos orquestrados em Python.
+- `src/api/` - Entregas de Rota via FastAPI, Schemas do Pydantic, Integração de Sessões e Autenticação JWT.
+- `docs/` - Acondiciona manifestos técnicos da construção da aplicação, incluindo design system e logs de refatoramento.
+- `infra/` - Assets Terraform, dockerfiles otimizantes, shell-scripts e cloud-inits.
+- `data/` - Volume compartilhado contendo dados primários e banco relacional masterizado (`sqlite-vec`).
+- `web-ui/` - Camada VUE PWA para visualizações gerenciais.
 
-Para um detalhamento microscópico de como cada classe, banco ou servidor operam, dedique a leitura ao manifesto inaugural de arquitetura: **[01_architecture_and_philosophy](docs/01_architecture_and_philosophy.pt-BR.md)**.
+Para detalhes arquiteturais microscópicos de serviços internos, indexe-se ao manual [Architecture Overview](docs/01_architecture_and_philosophy.pt-BR.md).
 
 ---
 
-## Testes Automatizados
+## Ciclos de Vida (Testes)
 
-O repositório abriga suítes completas de testes unitários e de estado End-to-End para garantir estabilidade da memória iterativa e persistência.
+Integram o repositório nativamente testes sistêmicos e rotinas independentes via PyTest cobrindo Edge e End-to-End no roteador de RAG.
 
 ```bash
-# Rodar testes incrementais em lote
+# Validar toda a bateria de Unit/Integration tests
 python -m pytest tests/
-
-# Validar sincronia de estado da Ingestão
-python tests/validate_state.py
 ```
 
 ---
 
-## Autoria
+## Licenciamento de Software
 
-Sistema arquitetado, projetado e documentado por:
-- **Jeferson Lopes**
+O código fonte restritivo encontra-se sob regimento validado da [**PolyForm Noncommercial License 1.0.0**](https://polyformproject.org/licenses/noncommercial/1.0.0).
 
----
+- **Limites de Aplicação Não Comercial**: De uso garantidamente liberado sem pagamento para finalidades particulares, estudo algorítmico acadêmico, sem fins lucrativos ou topologia de laboratórios domésticos (HomeLabs isolados). O código e os seus dados processados localmente mantêm-se protegidos de invasão corporativa corporativa.
+- **Implementação Comercial Restrita**: Nulamente permitido derivar o core vetorial e seu back-end, criar wrappers sob o fluxo, ou encapsular e alienar soluções pagas originárias ou parciais desta base para clientes B2C/B2B sem que obtenha-se documentada e assinada a vertente comercial de uma Autorização Proprietária do titular.
 
-## Licença
-
-Este software e seu código-fonte subjacente são governados pela licença [**PolyForm Noncommercial License 1.0.0**](https://polyformproject.org/licenses/noncommercial/1.0.0).
-
-**O que significa na prática?**
-- **Soberano para a Comunidade Local**: Uso estritamente ilimitado para finalidades pessoais, acadêmicas, sem fins lucrativos ou implantação em seu próprio HomeLab privado. O controle do seu ambiente deve continuar pertencendo a você.
-- **Vedado o Uso Comercial sem Pacto Prévio**: Fica estritamente proibido extrair capital, engatar esse módulo ativamente em pipelines de empresas (fintechs, e-commerces, soluções Saas) ou revender partes desmembradas deste repositório na forma de produtos B2B ou B2C sem aquisição de uma **Licença Proprietária Comercial**.
-
-Para implantações co-corporativas ou se procura viabilidade de integração comercial e arquitetural do **Sovereign Pair**, envie correspondência comercial (jefersonlopes@proton.me). Todo o intelecto de orquestração vetorial, backend nativo e inteligência continuam sendo primazia legal do Autor.
+Para alinhamentos voltados a implantações empresariais de software robusto, acione corporativamente via: jefersonlopes@proton.me.
