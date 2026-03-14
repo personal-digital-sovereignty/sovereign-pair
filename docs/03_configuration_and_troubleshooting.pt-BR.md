@@ -1,68 +1,62 @@
-# Tratado III: Configurações, Tuning SRE e Troubleshooting
+# Configurações, Operações SRE e Troubleshooting
 
 ## 1. Topologia de Variáveis de Ambiente (`.env`)
 
-O projeto ignora os arquivos `.env` passivamente no controle de versão (Git) para garantir a segurança implacável *Zero-Trust*. Todos os parâmetros de alinhamento criptográfico militar e endereçamentos de infraestrutura devem ser declarados via um arquivo `.env` estrito localizado na raiz do projeto.
+A arquitetura do projeto aplica isolamento seguro versionando os arquivos `.env` exclusivamente através do repositório ignorado (`.gitignore`), garantindo proteção modular a configurações críticas de infraestrutura. Todos os parâmetros relacionados à autenticação sistêmica e endereçamento de rede devem ser alocados no arquivo passivo `.env` na raiz do host executivo.
 
-### 1.1 Configuração de Modelos e Inteligência (Core)
-| Variável | Escopo | Valor Padrão (Sugestão) | Observações para Engenheiros SRE |
-|---|---|---|---|
-| `OLLAMA_BASE_URL` | Rede | `http://localhost:11434` | Se operado remotamente em um *Nó Local Físico* através da malha VPN Tailscale, use o IPv4 privado interno (Ex: `http://100.x.x.x:11434`). Lembre-se de configurar e permitir conexões globais via `OLLAMA_HOST="0.0.0.0"` no PC que possui a placa de vídeo. |
-| `LLM_MODEL` | Inferência | `qwen2.5:0.5b` | Define o peso computacional de raciocínio lógico base. O modelo escolhido **deve** ser importado previamente (via cache Docker ou Linux interno) rodando o comando `ollama pull [nome]`. |
-| `EMBED_MODEL` | Vetorização Matemática | `bge-m3` | O motor puramente responsável por transmutar texto em um hiper-espaço de 1024 dimensões focado em suporte Multilingual de altíssima fidelidade. **Trade-off Físico de Velocidade:** Se a sua operação demandar ingestão agressivamente rápida em hardware local (Ex: Laptops robustos com Ryzen 7 5800H + 32GB RAM empurrada por ZRAM em ArchLinux), você pode deliberadamente fazer downgrade para a engine `nomic-embed-text` (768 dimensões). Ela é comprovadamente ~3x mais rápida inserindo PDFs no banco, contudo sofre um forte viés para o Idioma Inglês, perdendo o "mapa cognitivo real" em textos nativos em Português. Atenção SRE: O modelo de *Embedding* **nunca** deve ser substituído rodando após a criação inicial do ChromaDB, pois a malha colapsará. |
-| `REQUEST_TIMEOUT` | Rede do Servidor | `120.0` | Suba este limite incondicionalmente para generosos `300.0` (5 Minutos) para hardwares que rodam Placas de Vídeo (RTXs/Ryzen) sofrendo em triturações de limite, ou se seu API Orquestrador for uma instância fraca Oracle A1 ARM. |
+### 1.1 Configuração de Modelos e Endpoints Primários (Core)
+| Variável | Escopo de Configuração | Definição Requerida |
+|---|---|---|
+| `OLLAMA_BASE_URL` | Roteamento HTTPS / Rede | Endereço do Servidor Inferencial Ollama. Em implantações isoladas na nuvem conectadas à malha VPN Tailscale, o roteamento deverá utilizar o IP da interface segura privada (Ex: `http://100.x.x.x:11434`). Na máquina que hospeda as GPUs, o serviço deve obrigatoriamente operar com Listener `0.0.0.0` para aceitar a conexão P2P (`OLLAMA_HOST="0.0.0.0"`). |
+| `LLM_MODEL` | Processamento / Inferência | Define a tag de modelo neural base do raciocínio local (Ex: `qwen2.5:0.5b`). O binário deve ser baixado previamente executando as rotinas `ollama pull [nome-do-modelo]`. |
+| `EMBED_MODEL` | Transformação Matemática | Determina a dependência nativa do motor de *Embeddings*, responsável por projetar vetores textuais no plano dimensional do Vector DB. O modelo padrão focado em semântica multilíngue de alta carga é o `bge-m3` (1024 dimensões). Aplicações com limitações severas de hardware (I/O Lógico) ou com finalidade exclusiva em idioma Inglês podem sofrer downgrade funcional definindo `nomic-embed-text` (768 dimensões) para otimizar velocidade no File-System local. É expressamente impedida a alteração dessa variável após a primeira inicialização vetorial (Requer Drop Completo do Banco de Dados para efetivar troca). |
+| `REQUEST_TIMEOUT` | Escala de Tráfego HTTP | Padrão default `120.0`. Em arranjos de provisionamento que processam contexto massivo (128K em requisições N8N iteradas via Cloud Oracle ARM ou host CPUs fracamente unificadas), estabelece-se elevar este referencial de timeout global a `300.0` (segundos), dilatando o limite de persistência das chamadas para evitar retornos precoces de 504 Gateway Timeout e/ou 500 Internals. |
 
-> [!NOTE] 🧬 **Código Vivo: Variáveis de Ambiente e Engine Builder (SHA: `94bfb2f`)**
-> ▫️ **Parametrização Passiva Pydantic:** `src/api/config.py`
-> ▫️ **Loaders Físicos (Llama/BGE-M3):** `src/engine_builder.py`
+> [!NOTE] 
+> ▫️ **Loader Paramétrico Pydantic:** `src/api/config.py`
+> ▫️ **Bootstrap Físico dos Modelos:** `src/engine_builder.py`
 
-### 1.2 Customização Parametrizada de Identidade
-O Sovereign Pair adapta nativamente o seu *System Prompt* (A Personalidade Atuante Sub-consciente) com base nas configurações da conta. 
-| Variável | Injeção no Prompt de Sistema |
+### 1.2 Customização Parametrizada da Identidade do Sistema
+O sistema preenche as definições de escopo abstrato do LLM base (System Prompt) automaticamente através de variáveis de comportamento restritivas carregadas na Engine.
+| Variável | Propósito Sistêmico no Fluxo Inferencial LLM |
 |---|---|
-| `OWNER_NICKNAME` | Apelido. A Mestre / O Cérebro fará menções e cumprimentos honrosos a você. |
-| `SOVEREIGN_NAME` | Nome de batismo da Entidade (Ex: *Sovereign*, *Jarvis*, *Ghost*). Regula a biografia de acordo com o nome que ela acredita possuir. |
-| `LANGUAGE` | Regula estritamente a gramática e semântica de saída. Force `Português do Brasil` ou `US English` na marreta aqui para impedir a volatilidade linguística natural de LLMs que às vezes sofrem para "entender" e "responder" no mesmo idioma da requisição técnica N8N ou Front-End. |
-| `OCCUPATION` | Formata o jargão profissional. Ex: se você preencher com `Senior SRE DevOps Engineer`, obriga e força psicologicamente o LLM a tratar os assuntos de Docker, Tailscale e Linux com um tom ríspido, técnico e elevado, podando explicações excessivamente "leigas". |
+| `OWNER_NICKNAME` | Termo referencial embutido que condiciona a nominalidade das validações durante sessões diretas do sistema. |
+| `SOVEREIGN_NAME` | Parametriza nativamente a identificação estrutural assumida da inteligência instanciada pela biografia mestre. |
+| `LANGUAGE` | Regra restritiva acoplada ao System Prompt que estabiliza o padrão gramatical e de saída, evitando degradação ocasional para idiomas concorrentes nos processos generativos base do LLM, fixando as resoluções da resposta JSON e fluxos N8N. |
+| `OCCUPATION` | Formata restritamente o jargão técnico esperado em chamadas generalizadas RAG (Ex: Assumir um escopo voltado como `SRE Engineer DevOps` garante respostas pautadas sumariamente na área exata da sintaxe requisitada, coibindo prolixidade informal do LLM). |
 
-> [!NOTE] 🧬 **Código Vivo: A Forja da Identidade Dinâmica (SHA: `94bfb2f`)**
-> ▫️ **Fábrica do System Prompt:** Função `build_chat_engine()` dentro de `src/engine_builder.py`. Ela puxa esses parâmetros e os mescla em tempo de execução junto do Histórico SQLite antes de despachar a Inferência.
+> [!NOTE] 
+> ▫️ **Construtor Condicional e Inicialização do Prompt Local:** Bloco da função `build_chat_engine()` referenciada estritamente no `src/engine_builder.py`. 
 
 ---
 
-## 2. Runbook (Guia de Sobrevivência SRE) para Colapsos do ChromaDB
+## 2. Procedimentos Operacionais Básicos para Integridade Vetorial
 
-Quedas de rede bruta entre as placas de rede do Tailscale e a Nuvem Oracle ou Colapsos na densidade do Arquivo de Vetor são corriqueiros. **Jamais** apague os diretórios de Bancos de Dados local manualmente da raiz sem isolar e ler pesadamente os Logs JSON antes para entender.
-
-### 2.1 Corrupção do Estado Incremental (Hashes Divergentes)
-*O scan/terminal diz que o arquivo não existe, mas visualizador de Markdown UI Dashboard na tela Web prova que ele está lá.*
-- **Incidente:** Ocorre um abalo sísmico entre o Banco Histórico Serializado em Json (`.ingestion_history.json`) e o Indexador relacional Nativo Sqlite do `ChromaDB`. Geralmente causado por *Hard Resets*, Ctrl+C brutais durante processamento massivo, Kernel Panics ou luz piscando durante a mastigação intensa vetorial das pastas locais de 30 Mil arquivos em PDF (`Sensus Vault`).
-- **Resolução de Engenharia:** Aniquile e detone o banco *Vector Brain* recriando o nada. Nenhum dado do mundo físico é perdido pelo Sovereign, pois os arquivos cruciais de vida (.md / .pdf) repousam quietos no seu valioso repositório passivo do Vault. O Sistema em Pânico meramente irá reconstruir a Matemática toda para recuperar seus pedaços perdidos e resincronizar os hashes em `< 7s`.
+### 2.1 Resolução de Estado Assíncrono (Inconsistência Analítica entre Hashes)
+- **Cenário de Fuga Estrita de Hashes:** Alertas ativados de *NotFoundException* atestados em arquivos persistentes pelo Dashboard Web Frontend, explicitando descasamento explícito da indexação atestando em metadados (`.ingestion_history.json`) contrastando com estado efetivo SQL local.
+- **Root Cause Indexação/Gravação Rápida:** Roturas severas no framework indexacional serial de I/O em banco SQLite (modos de commit WAL interrompidos) gerados por Desligamentos Intempestivos O.S (SIGKILL/Kernel Panics), paradas por timeouts em shells estritos na Ingestão, ou falhas latentes processando volumes massivos de sub-pastas (Batch process at Night via CLI).
+- **Procedimento Limpo de Restauro da Malha SQLite:** Atendendo que o padrão persistido raiz permanece blindado isoladamente nas notas literais *Markdown* ou *Arquivos Brutos (Vault)*, opera-se o saneamento da falha realizando *Drop Databases* integrais de todas instâncias vetoriais ou relacionais vinculantes. Devido pauta do VectorDB, na posterior ascensão executiva do *File Watcher* OS o repositório é completamente percorrido validado recriando as matrizes coerentes de alta fidelidade sem corrompimentos.
 
 ```bash
-# SRE Runbook: Expurgação Absoluta do Vector DB.
+# SRE Local Runbook: Exclusão Segura Completa da Indexação de Vectors e LogHistória
 rm -rf data/chroma_db
+rm -rf data/sovereign_memory.db 
 rm data/.ingestion_history.json
 
-# Reinicie o container para ele auto-detectar ou detone via script nativo python manual:
+# Processo disparado via Python puramente serializado reconstruindo I/O.
 python src/ingest.py 
 ```
 
-> [!NOTE] 🧬 **Código Vivo: Reconstrução Matemática (SHA: `94bfb2f`)**
-> ▫️ **Script de Cura Vetorial:** Motor principal no arquivo `src/ingest.py` (Lida com a limpeza das pastas limpas e recarrega os IDs faltantes).
+> [!NOTE] 
+> ▫️ **Script Processual Recuperativo:** Utilitário contido estritamente em `src/ingest.py`.
 
 ---
 
-## 3. O Silenciamento Assassino do LlamaIndex ("Empty Response" Bug)
+## 3. Tratamento Sistêmico de Retornos Vazios RAG ("Empty Response")
 
-*A API retorna a famosa String assustadora "Empty Response" em menos de 1.5s na N8N quando tentamos conversar, APESAR de o modelo e a placa de vídeo apontarem online, responsivos e saudáveis.*
+- **Sintomas da Requisição:** Clientes lógicos, como Webhooks de integrações externas (N8N) e API endpoints (FastAPI Rest), são respondidos sob status regular (Code HTTP Success) encapsulando estritamente formato devoluto fixo `Empty Response`, providenciando execução rápida mascarando paralização silenciosa RAG.
+- **Root Cause Exata Identificada:** Paradigma sistêmico intencional provocado pela modelagem base LlamaIndex `CondensePlusContextChatEngine`. A ferramenta emite interrupções arbitrárias nos processos das Threads base LLM se a contagem do índice validador de correspondência na query perante às alocações vetoriais do Vector DB instanciar valores precisos exatos contendo $0$ nós ou `nodes` disponíveis no cálculo logístico. Manifesta-se geralmente originado entre Requisições textuais cujo escopo alvo desrespeite acuracidade métrica dos metadados atrelados, ou, essencialmente durante *Onboarding Users* nos sistemas RAG Corporativos que demandem o primeiríssimo acesso desprovidos de bases históricas populadas (Tenants Empty Initial State), finalizando execução sem enviar consulta limpa do prompt diretamente ao chat natural base LLM.
+- **Tática Mitigadora Interna (Conversão RAG para Non-RAG API Bypass):** Rescindindo as deficiências de bibliotecas engessadas open-source lidas no formato original (Empty Flow), integrou-se à raiz nativa o sub-sistema validacional ativo **Sovereign Bypass** na lógica nativa. Rotina de controle (alocada estritamente na árvore `routes.py`) capta retornos restritos com a String morta pré-formatada do LlamaIndex e defere instantaneamente fallback de execução via injeção sintética nos construtores padrões LLM puros (`_llm.astream_chat(messages)`), preenchedo-o via acúmulo de memórias temporais associando ao System Prompt. Expurga o motor Vetorial isolado limitativo na etapa específica, salvaguardando uso contínuo da Interface da Inteligência Computacional livre, prevenindo interrupção sistêmica (Blank Pages) provindas do frontend N8N ou falhas lógicas perante tenants neófitos em infra.
 
-- **O Incidente:** Por "Design da Comunidade" enrustido do Repositório Original (e disfarçado como Feature Econômica), os construtores de classe como o `CondensePlusContextChatEngine` (da biblioteca oficial `llama-index` OpenSource Python) simplesmente **abortam e matam a geração pura do LLM** no meio caminho caso o recuperador matemático de vetores retorne exatos `0` *Nodes* e falhe grotescamente em achar correspondências de contexto na pasta para sua busca. Pode ocorrer de duas formas:
-   1) O Arquivo e sua Pergunta nada tem em comum para a IA ler o PDF atrelado e ele desiste.
-   2) É o Primeiríssimo dia (Day 1 User) de um novo "Inquilino/Tenant" conectando na Engine corporativa RAG N8N Sovereign e seu Banco de Cérebro/Vector, e obviamente, está Limpo e Zerado.
-   Para tentar economizar de forma cega no tráfego dos servidores Open-AI de tokens de texto (Custos Cloud), a lib do Llama original trava a Roda (Wheel) e chuta de volta um retorno forjado grotesco escrito String Puro: `"Empty Response"`, ao invés de prosseguir o fluxo encaminhando a pergunta natural ao LLM junto do System Prompt/Engine isolados para te responder cordialmente e conversar como gente fina.
-- **A Resolução Corporativa Final (Bypass Soberano):** O Projeto Sovereign Pair é mais brutal. Criou-se um Overrider oficial, explícito como **Sovereign Bypass** ancorado pesadamente na rota Principal (`routes.py`). Se a poderosa e robusta Engine esmurrar um falso `"Empty Response"` gerado artificialmente pela Llama-Index, Nossa API agarra pelo colarinho na hora antes do Stream falhar. Instancia e Intercepta o formato custom do Histórico de Memória Chat antigo da API juntamente do System Prompt completo da Personagem. Ao juntar essas "Duas Bolas Mágicas", despacha diretamente a consulta *Conversacional Local Unificada* por trás do retreiver pesado de vetores, metralhando o *construtor Base-Foundation Bare Metal (`_llm`)* de Categoria Crua em um *Fallback* Gracioso, restaurando e revigorando totalmente o sistema ao retornar IA com vida Pura à tela N8N para Inquilinos Novatos ("Dia 1"). Você jamais lerá um `Empty Output`.
-
-> [!NOTE] 🧬 **Código Vivo: O Sovereign Bypass (Dia Zero) (SHA: `94bfb2f`)**
-> ▫️ **Válvula de Escape RAG:** Bloco condicional estrutural `if full_ai_response.strip() == "Empty Response":` dentro de `src/api/routes.py`.
-> ▫️ **Causa Raiz e Link de Referência Aberta:** Comportamento conhecido (By Design) em classes nativas da biblioteca `LlamaIndex` para estancar gastos Cloud em Vectors vazios. O Nosso "Bypass" religa a Mente do LLM diretamente pelo fundo `engine._llm.astream_chat(messages_to_send)`.
+> [!NOTE] 
+> ▫️ **Implementação Estrita Bypass (FastAPI HTTP Routing):** Invocação restritiva validativa orientada pelo bloco comparativo da variável string avaliando falhas de retorno instanciadas na rotina de base `src/api/routes.py`.
