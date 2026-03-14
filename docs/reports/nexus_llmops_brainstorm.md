@@ -42,6 +42,4 @@ As opções integrativas incluem métodos puros baseados no projeto inicial Cíb
 
 ---
 
-## 5. Implementações Analíticas Futuras (Endpoints)
-
-Na fase atual arquitetural da aplicação unificada (Frontend Vue e Backend Python/FastAPI), integrar-se-ão os endpoints dedicados (`/v1/analytics/tracing` e `/v1/analytics/cache_hits`), permitindo prover dados reais que nutrirão passivamente a Topologia Operacional proposta neste esquema. As próximas versões focarão o Frontend para adaptar-se perante esses envios em telemetria limpa e direta.
+Na fase atual arquitetural da aplicação unificada (Frontend Vue e Backend Rust/Axum), integrar-se-ão os endpoints dedicados (`/v1/analytics/tracing` e `/v1/analytics/cache_hits`), permitindo prover dados reais que nutrirão passivamente a Topologia Operacional proposta neste esquema. As próximas versões focarão o Frontend para adaptar-se perante esses envios em telemetria limpa e direta.

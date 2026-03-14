@@ -17,16 +17,16 @@ A lógica que organiza e designa responsabilidades dentro dos nós do ambiente m
 | Modulos (Worker) | Responsabilidades Arquiteturais | Implantação Ideal Mínima |
 | :--- | :--- | :--- |
 | **The Mom / FileWatcher** | Indexação da modificação em pastas estáticas (Linux `notify`). | Máquina Desktop Local |
-| **The Dad / Embedded** | Transformação em Chunks vetoriais (`bge-m3` via Python Local). | Máquina Desktop Local |
+| **The Dad / Embedded** | Transformação em Chunks vetoriais (`bge-m3` via Rust Local). | Máquina Desktop Local |
 | **The Nurse / Router** | Avaliação paramétrica categorizando *intents* HTTPS originais. | Máquina Desktop Local |
 | **The Doctor / Engine** | Modelação formatada contextual iterando sob o modelo de RAG. | Oracle OCI (VPS externa ou Hardware High-End Local) |
-| **The Coder / Logic** | Analisador estrito de documentações refatorais sob o Python OpenCode. | Oracle OCI |
+| **The Coder / Logic** | Analisador estrito de documentações refatorais sob o Rust Axum OpenCode. | Oracle OCI |
 
 ---
 
 ## 3. Segurança Estrutural VPN (Tunnel Peer-to-Peer mTLS)
 
-Em caráter definitivo, endpoints da API LLM O.S providenciados pelo *Docker `11434`* ou sub-dependente FastAPI *8000* estarão completamente fechados a instâncias da banda global (Sem *Bind TCP 0.0.0.0* e desprovidos de portas expostas em WAN).
+Em caráter definitivo, endpoints da API LLM O.S providenciados pelo *Docker `11434`* ou sub-dependente Rust API Axum *8000* estarão completamente fechados a instâncias da banda global (Sem *Bind TCP 0.0.0.0* e desprovidos de portas expostas em WAN).
 
 *   **Validação Criptográfica Operativa (WireGuard via Tailscale):** Tráfegos originárias das chamadas na Nuvem perante arquivos vetoriais locais são conduzidos sob conexão criptografada via peer-to-peer atuando diretamente através das interfaces (`100.x.x.x`). A estrutura facilita acesso remoto seguro independente dos roteadores bloqueantes O.S corporativos das companhias locais do usuário.
 *   **Mitigação Contraste Passivo:** Varreduras em escaneamento O.S massivo O.S Port Scan externas recairão sob falhas já que os aplicativos isolantes confinam explicitamente na sub-rede VPN, invisibilizando aberturas em portas lógicas do SO da máquina ou Servidor VPS.
@@ -40,7 +40,7 @@ Em infraestrutura Cloud de Baixo Custo (Free Tiers), o provisionamento O.S em am
 A parametrização técnica `Cloud Init` implementou re-estruturações focadas estritamente na preservação desse tempo de resposta (Timeout Limit Restrictions):
 
 1. **Memória Compacta `zram-tools`:** O SO Linux inicializa um sistema em swap virtual instanciando particionamento alocado sob algoritmo de Super-Compressão `LZ4` na memória livre base do SO. Mitiga o engasgo computacional do disco originário na plataforma sem encarecer servidores e alivia limitações pesantes dos nós da rede.
-2. **Execução de LLMs Estendida `OLLAMA_FLASH_ATTENTION=1`:** Inserida expressamente via arquivo de config `SystemD`, esta formatação técnica estática gerencia perante a leitura rápida nativa de modelagem LLM os tokens associados aos "contextos gigantes" (Modelos >32K Tokens/128K Text Strings), melhorando tempos assíncronos das repostas providas a Engine FastAPI nativa de roteamentos paralelos.
+2. **Execução de LLMs Estendida `OLLAMA_FLASH_ATTENTION=1`:** Inserida expressamente via arquivo de config `SystemD`, esta formatação técnica estática gerencia perante a leitura rápida nativa de modelagem LLM os tokens associados aos "contextos gigantes" (Modelos >32K Tokens/128K Text Strings), melhorando tempos assíncronos das repostas providas a Engine Axum nativa de roteamentos paralelos.
 
 ---
 
@@ -58,4 +58,4 @@ O GitHub Operations centraliza e autoriza roteamentos do código orquestrado via
 O desenho base em contêiner obedece à engenharia restrita da recomendação base de sistemas imutáveis (Ex: *12-Factor App*). Diante de oscilações estruturais provindas do OS (Kernel Reboots acidentais, atualizações em massa que reiniciam instâncias VPS primárias base), não requerem inicializações interativas SSH dos usuários corporativos O.S ou engenheiro base local da máquina:
 
 - Suas ferramentas e volumes internos recomeçarão isoladamente, parametrizados sob as configurações restart nativas Docker Engine (`restart: always`).
-- Apenas submetem a Engine de RAG final à verificação da NuvemMesh VPN (Interface interna) e realizam o acoplamento autônomo do O.S sob interfaces relativas API FastAPI (Rest Local) atestados assim que O.S Server retoma estabilidade elétrica computacional básica.
+- Apenas submetem a Engine de RAG final à verificação da NuvemMesh VPN (Interface interna) e realizam o acoplamento autônomo do O.S sob interfaces relativas API compilada em Rust (Rest Local) atestados assim que O.S Server retoma estabilidade elétrica computacional básica.

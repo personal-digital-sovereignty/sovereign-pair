@@ -54,21 +54,24 @@ Sovereign Pair is not just a single chatbot. It is a hierarchical hospital of sp
 5.  **The Accountant:** A rigid math-engine parser that double-checks numeric outputs to prevent classic LLM calculation hallucinations.
 6.  **The Mom / The Dad:** System watchers. Background routines that organize your files, ingest newly dropped markdown documents into the Vector DB automatically, and keep the system alive.
 
-> [!NOTE] 🧬 **Living Code: Cognitive Hierarchy Classes (SHA: `94bfb2f`)**
-> ▫️ **Agent Base Schema:** `src/agent.py`
-> ▫️ **The Sentinel (Zero-Trust Security):** `src/core/the_sentinel.py`
-> ▫️ **The Mom & The Dad (Vector Ingestion Engine):** `src/core/the_mom.py` & `src/core/the_dad.py`
-> ▫️ **The Nurse (Semantic Fast-Router):** `src/core/the_nurse.py`
-> ▫️ **The Doctor (CoT Deep Reasoning):** `src/core/the_doctor.py`
-> ▫️ **The Accountant (Numeric Auditor):** `src/core/the_accountant.py`
+> [!NOTE]
+> ▫️ **Rust Axum Gateway:** `src-rust/main.rs`
+> ▫️ **Local Watchdog (Rust Notify):** `src-rust/core/watcher.rs`
+> ▫️ **Vector Database Extension O.S:** C/C++ `sqlite-vec` attached natively to SQLite
+> ▫️ **Agent Base Schema:** `src-rust/core/the_*.rs`
+> ▫️ **The Sentinel (Zero-Trust Security):** Natively compiled validator O.S System Code Core
+> ▫️ **The Mom & The Dad (Vector Ingestion Engine/Rayon):** `src-rust/core/the_mom.rs` & `src-rust/core/the_dad.rs`
+> ▫️ **The Nurse (Semantic Fast-Router):** `src-rust/core/the_nurse.rs`
+> ▫️ **The Doctor (CoT Deep Reasoning):** `src-rust/core/the_doctor.rs`
+> ▫️ **The Accountant (Numeric Auditor):** `src-rust/core/the_accountant.rs`
 
-## 4. Multi-Tenant Architecture
+---
 
-For enterprise and corporate SaaS scalability, a single Sovereign Pair instance can safely serve multiple users (Tenants). 
-The architecture enforces strict **Tenant IDs** at the Vector Database level (`ChromaDB Metadata Filtering`). When querying the API, if User A asks a question, the Hybrid Retriever explicitly limits its mathematical search to documents ingested with User A's ID. 
+## 4. Multi-Tenant Air-Gapped Isolation
+
+The backend architectural API (compiled entirely in Rust via Axum and Tokio runtimes) leverages multi-tenant isolations via internal routing components without restricting memory scalability.
+
+Searches and allocations operate dynamically under SQLite arrays through unique Metadata UUID constraints. This process restricts chunk creation logic forcing system access loops to deny queries without correct session hashes.
 
 > [!WARNING]
-> If a developer connects to the Multi-Tenant RAG but hasn't uploaded any documents yet (0 Nodes), the LlamaIndex core library naturally aborts the stream and returns a traumatic `"Empty Response"` hardcoded string. To prevent this framework crash, Sovereign Pair natively intercepts the stream using the **Sovereign Bypass**. It captures the raw prompt and gracefully degrades into a pure Conversational flow sending it directly to the Bare-Metal LLM. Your SaaS will gracefully serve new Day-1 Users instead of returning blank errors.
-
-> [!NOTE] 🧬 **Living Code: Failure Containment Engineering (SHA: `94bfb2f`)**
-> ▫️ **Sovereign Bypass (LlamaIndex Core Bug Killer):** `src/api/routes.py`
+> Historical Dependency Bug: In legacy Python configurations relying heavily on LlamaIndex modules, blank SaaS setups (0 Nodes metadata indexed) caused unrecoverable loop breakdowns and `Empty Response` fallback issues. The complete internal migration scaling up and re-coding RAG vectors internally into Rust Core Base C/C++ Logic (via embedded `sqlite-vec`) fixed those operational dependencies, ending occurrences related to commercial vendor data leaks. Sovereign Architectures no longer rely on external Python pipelines for core file abstractions.
