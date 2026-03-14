@@ -1,62 +1,62 @@
-# Configurações, Operações SRE e Troubleshooting
+# Configuração, Operações e Troubleshooting
 
 ## 1. Topologia de Variáveis de Ambiente (`.env`)
 
-A arquitetura do projeto aplica isolamento seguro versionando os arquivos `.env` exclusivamente através do repositório ignorado (`.gitignore`), garantindo proteção modular a configurações críticas de infraestrutura. Todos os parâmetros relacionados à autenticação sistêmica e endereçamento de rede devem ser alocados no arquivo passivo `.env` na raiz do host executivo.
+A arquitetura do projeto isola informações e chaves restritas mantendo-as estritamente no arquivo `.env`. Por se tratar de configuração crítica, o arquivo `.env` não é controlado pelo versionamento Git (regra disposta no `.gitignore`). Todos os parâmetros que coordenam o comportamento e a identidade da instância devem ser definidos no diretório base a partir de um *.env.template*.
 
-### 1.1 Configuração de Modelos e Endpoints Primários (Core)
-| Variável | Escopo de Configuração | Definição Requerida |
+### 1.1 Configuração de Endpoints Primários e Modelos
+| Variável | Escopo de Configuração | Uso e Definição |
 |---|---|---|
-| `OLLAMA_BASE_URL` | Roteamento HTTPS / Rede | Endereço do Servidor Inferencial Ollama. Em implantações isoladas na nuvem conectadas à malha VPN Tailscale, o roteamento deverá utilizar o IP da interface segura privada (Ex: `http://100.x.x.x:11434`). Na máquina que hospeda as GPUs, o serviço deve obrigatoriamente operar com Listener `0.0.0.0` para aceitar a conexão P2P (`OLLAMA_HOST="0.0.0.0"`). |
-| `LLM_MODEL` | Processamento / Inferência | Define a tag de modelo neural base do raciocínio local (Ex: `qwen2.5:0.5b`). O binário deve ser baixado previamente executando as rotinas `ollama pull [nome-do-modelo]`. |
-| `EMBED_MODEL` | Transformação Matemática | Determina a dependência nativa do motor de *Embeddings*, responsável por projetar vetores textuais no plano dimensional do Vector DB. O modelo padrão focado em semântica multilíngue de alta carga é o `bge-m3` (1024 dimensões). Aplicações com limitações severas de hardware (I/O Lógico) ou com finalidade exclusiva em idioma Inglês podem sofrer downgrade funcional definindo `nomic-embed-text` (768 dimensões) para otimizar velocidade no File-System local. É expressamente impedida a alteração dessa variável após a primeira inicialização vetorial (Requer Drop Completo do Banco de Dados para efetivar troca). |
-| `REQUEST_TIMEOUT` | Escala de Tráfego HTTP | Padrão default `120.0`. Em arranjos de provisionamento que processam contexto massivo (128K em requisições N8N iteradas via Cloud Oracle ARM ou host CPUs fracamente unificadas), estabelece-se elevar este referencial de timeout global a `300.0` (segundos), dilatando o limite de persistência das chamadas para evitar retornos precoces de 504 Gateway Timeout e/ou 500 Internals. |
+| `OLLAMA_BASE_URL` | Roteamento HTTPS / Rede | Define o endereço do serviço de inferência Ollama. Em nuvens sob a VPN Tailscale, informar o correspondente IP seguro (Ex: `http://100.x.x.x:11434`). A máquina host necessita autorizar escuta em `0.0.0.0` para prover a comunicação de rede P2P de forma adequada. |
+| `LLM_MODEL` | Processamento / Inferência | Identifica o modelo carregado no raciocínio conversacional (Ex: `qwen2.5:0.5b`). O modelo precisa ser instanciado via CLI através de: `ollama pull [nome-do-modelo]`. |
+| `EMBED_MODEL` | Transformação Matemática | Trilha o nome do pacote de processamento de *Embeddings*, responsável por converter arquivos literários em vetores do banco de dados relacional. O padrão semântico multi-idioma recomendado é o `bge-m3` (1024 dimensões). Caso o projeto restrinja-se ao idioma inglês e possua limitações de disco O.S, a troca referencial voltada para `nomic-embed-text` (768 dimensões) é permitida antes da indexação primária. |
+| `REQUEST_TIMEOUT` | Escala de Tráfego HTTP | Tempo (em segundos) limite de espera assíncrona tolerado pela API nas chamadas externas. Em hosts com tempo de latência não usual nas interações de embeddings ou instâncias de Ollama hospedadas sem auxílios CUDA, é coerente calibrar a variável padrão entre `120.0` até `300.0` para estabilizar consultas com falhas prematuras 504. |
 
 > [!NOTE] 
 > ▫️ **Loader Paramétrico Pydantic:** `src/api/config.py`
-> ▫️ **Bootstrap Físico dos Modelos:** `src/engine_builder.py`
+> ▫️ **Gerenciador de Módulos (Builder):** `src/engine_builder.py`
 
-### 1.2 Customização Parametrizada da Identidade do Sistema
-O sistema preenche as definições de escopo abstrato do LLM base (System Prompt) automaticamente através de variáveis de comportamento restritivas carregadas na Engine.
-| Variável | Propósito Sistêmico no Fluxo Inferencial LLM |
+### 1.2 Customização Parametrizada de Sistema (System Prompt)
+Os artefatos abstratos submetidos ao Agente Base na primeira solicitação contêm atributos comportamentais descritivos baseados nos parâmetros lidos via Sistema Operacional.
+| Variável | Efeito Sistêmico no Fluxo LLM |
 |---|---|
-| `OWNER_NICKNAME` | Termo referencial embutido que condiciona a nominalidade das validações durante sessões diretas do sistema. |
-| `SOVEREIGN_NAME` | Parametriza nativamente a identificação estrutural assumida da inteligência instanciada pela biografia mestre. |
-| `LANGUAGE` | Regra restritiva acoplada ao System Prompt que estabiliza o padrão gramatical e de saída, evitando degradação ocasional para idiomas concorrentes nos processos generativos base do LLM, fixando as resoluções da resposta JSON e fluxos N8N. |
-| `OCCUPATION` | Formata restritamente o jargão técnico esperado em chamadas generalizadas RAG (Ex: Assumir um escopo voltado como `SRE Engineer DevOps` garante respostas pautadas sumariamente na área exata da sintaxe requisitada, coibindo prolixidade informal do LLM). |
+| `OWNER_NICKNAME` | Nome utilizado pela inferência para designar o locutor padrão nas operações. |
+| `SOVEREIGN_NAME` | Parametriza de forma técnica como a API irá formalizar respostas diretas sobre a própria identidade. |
+| `LANGUAGE` | Impõe controle explícito limitando os desvios de gramática do bot (mantendo sempre em PT-BR ou EN), estabilizando iterações subsequentes e processos determinísticos com requisições JSON. |
+| `OCCUPATION` | Formata o formato das respostas priorizando campos específicos de atuação (Ex: Assumir `Engenharia DevOps SRE` adequará respostas longas contendo formatação Shell Script/YAML ao invés de propostas genéricas e não aplicáveis). |
 
 > [!NOTE] 
-> ▫️ **Construtor Condicional e Inicialização do Prompt Local:** Bloco da função `build_chat_engine()` referenciada estritamente no `src/engine_builder.py`. 
+> ▫️ **Inicialização de Prompt Base Contextual:** Controlado pela função `build_chat_engine()` dentro de `src/engine_builder.py`. 
 
 ---
 
-## 2. Procedimentos Operacionais Básicos para Integridade Vetorial
+## 2. Manutenção Operacional Vetorial
 
-### 2.1 Resolução de Estado Assíncrono (Inconsistência Analítica entre Hashes)
-- **Cenário de Fuga Estrita de Hashes:** Alertas ativados de *NotFoundException* atestados em arquivos persistentes pelo Dashboard Web Frontend, explicitando descasamento explícito da indexação atestando em metadados (`.ingestion_history.json`) contrastando com estado efetivo SQL local.
-- **Root Cause Indexação/Gravação Rápida:** Roturas severas no framework indexacional serial de I/O em banco SQLite (modos de commit WAL interrompidos) gerados por Desligamentos Intempestivos O.S (SIGKILL/Kernel Panics), paradas por timeouts em shells estritos na Ingestão, ou falhas latentes processando volumes massivos de sub-pastas (Batch process at Night via CLI).
-- **Procedimento Limpo de Restauro da Malha SQLite:** Atendendo que o padrão persistido raiz permanece blindado isoladamente nas notas literais *Markdown* ou *Arquivos Brutos (Vault)*, opera-se o saneamento da falha realizando *Drop Databases* integrais de todas instâncias vetoriais ou relacionais vinculantes. Devido pauta do VectorDB, na posterior ascensão executiva do *File Watcher* OS o repositório é completamente percorrido validado recriando as matrizes coerentes de alta fidelidade sem corrompimentos.
+### 2.1 Resolução de Inconsistência Analítica entre Hashes
+- **Natureza do Problema:** Alertas categorizados apontando exceções como *NotFoundException* ao longo da rotina RAG no Web Frontend demonstram perda ou conflito entre o histórico cacheado na interface O.S (`.ingestion_history.json`) e os IDs reais indexados nas partições SQLite.
+- **Causa Potencial:** Este desvio da fidelidade métrica do arquivo perante banco é resultado usual de scripts em rotinas seriais que foram abortados ou corrompidos durante operações sistêmicas na máquina host. (Ex: Perda abrupta de energia ou paradas via `Ctrl+C` no CLI de inserção sem o sync apropriado de log).
+- **Procedimento Limpo de Restauração:** Pela integridade base preservada e lastreada nos originais do sistema de arquivos O.S físico (Suas notas Markdown não são afetadas), a exclusão total do esquema vetorial SQLite contido no subdiretório local garante imediata re-sincronia coerente sem risco de dados perdidos. Ao reiniciar a instância do Worker (File Watcher), todos os diretórios voltam a ser percorridos e salvos em tabelas estáveis.
 
 ```bash
-# SRE Local Runbook: Exclusão Segura Completa da Indexação de Vectors e LogHistória
+# Workflow de Manutenção: Remoção de DB e Index Logs Corrompidos
 rm -rf data/chroma_db
 rm -rf data/sovereign_memory.db 
 rm data/.ingestion_history.json
 
-# Processo disparado via Python puramente serializado reconstruindo I/O.
+# Remapeamento Completo Limpo de Rotinas I/O Locais
 python src/ingest.py 
 ```
 
 > [!NOTE] 
-> ▫️ **Script Processual Recuperativo:** Utilitário contido estritamente em `src/ingest.py`.
+> ▫️ **Script de Tratamento de Dados:** Centralizado através da interface `src/ingest.py`.
 
 ---
 
-## 3. Tratamento Sistêmico de Retornos Vazios RAG ("Empty Response")
+## 3. Tratamento de Retornos RAG Sem Resultados
 
-- **Sintomas da Requisição:** Clientes lógicos, como Webhooks de integrações externas (N8N) e API endpoints (FastAPI Rest), são respondidos sob status regular (Code HTTP Success) encapsulando estritamente formato devoluto fixo `Empty Response`, providenciando execução rápida mascarando paralização silenciosa RAG.
-- **Root Cause Exata Identificada:** Paradigma sistêmico intencional provocado pela modelagem base LlamaIndex `CondensePlusContextChatEngine`. A ferramenta emite interrupções arbitrárias nos processos das Threads base LLM se a contagem do índice validador de correspondência na query perante às alocações vetoriais do Vector DB instanciar valores precisos exatos contendo $0$ nós ou `nodes` disponíveis no cálculo logístico. Manifesta-se geralmente originado entre Requisições textuais cujo escopo alvo desrespeite acuracidade métrica dos metadados atrelados, ou, essencialmente durante *Onboarding Users* nos sistemas RAG Corporativos que demandem o primeiríssimo acesso desprovidos de bases históricas populadas (Tenants Empty Initial State), finalizando execução sem enviar consulta limpa do prompt diretamente ao chat natural base LLM.
-- **Tática Mitigadora Interna (Conversão RAG para Non-RAG API Bypass):** Rescindindo as deficiências de bibliotecas engessadas open-source lidas no formato original (Empty Flow), integrou-se à raiz nativa o sub-sistema validacional ativo **Sovereign Bypass** na lógica nativa. Rotina de controle (alocada estritamente na árvore `routes.py`) capta retornos restritos com a String morta pré-formatada do LlamaIndex e defere instantaneamente fallback de execução via injeção sintética nos construtores padrões LLM puros (`_llm.astream_chat(messages)`), preenchedo-o via acúmulo de memórias temporais associando ao System Prompt. Expurga o motor Vetorial isolado limitativo na etapa específica, salvaguardando uso contínuo da Interface da Inteligência Computacional livre, prevenindo interrupção sistêmica (Blank Pages) provindas do frontend N8N ou falhas lógicas perante tenants neófitos em infra.
+- **Sintomas da Requisição:** Clientes integrados comunicando-se via N8N ou na API Direta recebem resposta regular via Payload com conteúdo sintático de predefinição nula (`Empty Response`), que oculta e encerra o fluxo conversacional inesperadamente.
+- **Motivo Arquitetural RAG:** Tal ocorrência faz menção técnica aos design nativos submetidos a ferramentas referenciadas do provedor principal `LlamaIndex` perante classes contextuais de chat engine. Se a semelhança dos logs submetida no input em direção aos bancos SQlite constatar relevância correspondente a zero ("0 nodes"), a Engine declinará envios da consulta para poupar recursos, devolvendo respostas nulas imediatas sem envolver a conversação final com o processador LLM base. Frequentemente documentado no estágio Zero (início do usuário no fluxo) por falta de histórico nas tabelas.
+- **Fallbacks Restritivos e Roteamento Bypass:** Visando prover comunicação em todas as consultas da rede independentemente de erros RAG (especialmente para consultas abertas e generativas de uso padrão LLM Livre), criou-se a implementação interceptativa logada como **Sovereign Bypass**. Identificada a diretiva limitante e vazia associada ao LlamaIndex no ciclo da FastAPI route handler (`routes.py`), ela re-roteará pontualmente seu log transacional num Request Alternativo Puro isento de validação no SQlite e que invoca respostas interativas padrão do bot diretamente. Essa intervenção garante fluidez irrestrita das interações a partir de serviços N8N e previne telas silenciosas no Frontend decorrentes do ambiente vetorial limitado O.S em startups iniciais.
 
 > [!NOTE] 
-> ▫️ **Implementação Estrita Bypass (FastAPI HTTP Routing):** Invocação restritiva validativa orientada pelo bloco comparativo da variável string avaliando falhas de retorno instanciadas na rotina de base `src/api/routes.py`.
+> ▫️ **Bypass HTTP Operativo API:** Direcionamento e verificação localizados estruturalmente na raiz do Handler Rest: `src/api/routes.py`.

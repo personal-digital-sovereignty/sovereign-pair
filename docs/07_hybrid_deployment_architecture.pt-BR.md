@@ -1,79 +1,61 @@
-# Tratado VII: Arquitetura de Implantação Híbrida (Cíbrida)
+# Tratado VII: Arquitetura Híbrida de Implantação
 
 ## 1. Visão Geral da Topologia de Rede
-A arquitetura principal do projeto prioriza o processamento local para garantir a estabilidade e privacidade dos dados manipulados (Soberania Prática). Contudo, na finalidade da otimização de recursos sob o hardware base do desenvolvedor, cargas computacionais de inferência não relacionadas sensivelmente a fragmentos críticos de código podem ser transferidas ou distribuídas a nós auxiliares em provedores públicos, caracterizando a implementação em Malha.
 
-O escopo segmenta-se computacionalmente em dois módulos:
-1. **Host Executivo (Nó Local)**: Ambiente isolado onde residem estritamente o cofre (Vault) de arquivos em Markdown, o banco de persistência relacional unificado e indexadores de Vetores Lógicos (SQLite). O tratamento de LLM nativo e operações confidenciais acontecem in-loco (Offline Inference).
-2. **Nó de Computação Distribuída (Oracle Cloud OCI)**: Uma instância separada instalada no ecossistema IaaS da Oracle Cloud, cuja atribuição foca no processamento complementar em Nuvem (como alocar e iterar queries longas no modelo `Qwen2.5-Coder` via VS Code IDE na integração OpenCode).
+A infraestrutura busca descentralizar as demandas preservando no host primário o papel de gerir documentos privados. Para compensar limitações físicas sobre o Desktop do desenvolvedor, transações demoradas de inferência de código livre ou geração externa são distribuídas aos provedores da nuvem pública. 
+
+Esse ambiente corporativo se divide na seguinte malha O.S:
+1. **Nó Local Central:** Ambientes O.S gerenciados no Hardware Físico Pessoal retendo sob proteção restrita os logs e cofres Markdown (Sensus Vault) e as formatações vectorias do SQLite local.
+2. **Nó Auxiliar OCI (Cloud Node):** Utiliza instancição secundária sob Virtual Private Servers (VPS) Oracle OCI atestados via máquinas gratuitas ARM 64-bits (Ampere A1).
 
 ---
 
-## 2. Orquestração e Deploy de Componentes
+## 2. Padrões de Roteamento (Distribuição do Motor)
 
-O sistema de processamento abstrato define o roteamento baseado no papel processual de cada engine na infraestrutura. A disposição de processabilidade pode ocorrer na seguinte matriz recomendada:
+A lógica que organiza e designa responsabilidades dentro dos nós do ambiente multi-agente está dividida conforme o suporte nativo exigido:
 
-| Engine | Atribuição Principal | Local Operacional (Recomendado) |
+| Modulos (Worker) | Responsabilidades Arquiteturais | Implantação Ideal Mínima |
 | :--- | :--- | :--- |
-| **The Mom** | Indexação monitorada assíncrona do file system do O.S. (Via Rust Notify). | Ambiente Local |
-| **The Dad** | Serializador de chunks textuais e processamento intensivo de matrizes Embedded vetoriais (ex: `bge-m3`). | Ambiente Local |
-| **The Nurse** | Roteador e classificador analítico de prioridade/requisição inicial (Low Latency Models). | Ambiente Local |
-| **The Doctor** | Modelo mestre focado nas reestruturações das matrizes finais baseadas no RAG Engine (Reflexão Complexa). | Servidor Virtual OCI (ou Local via instâncias de alto rendimento) |
-| **The Coder** | Análise e inferência interativa focada estritamente na emissão de abstração sintática e refatoração de projetos de código puro. | Servidor Virtual OCI |
+| **The Mom / FileWatcher** | Indexação da modificação em pastas estáticas (Linux `notify`). | Máquina Desktop Local |
+| **The Dad / Embedded** | Transformação em Chunks vetoriais (`bge-m3` via Python Local). | Máquina Desktop Local |
+| **The Nurse / Router** | Avaliação paramétrica categorizando *intents* HTTPS originais. | Máquina Desktop Local |
+| **The Doctor / Engine** | Modelação formatada contextual iterando sob o modelo de RAG. | Oracle OCI (VPS externa ou Hardware High-End Local) |
+| **The Coder / Logic** | Analisador estrito de documentações refatorais sob o Python OpenCode. | Oracle OCI |
 
 ---
 
-## 3. Topologia de Conectividade Extrema (VPN mTLS Peer-to-Peer)
+## 3. Segurança Estrutural VPN (Tunnel Peer-to-Peer mTLS)
 
-As sessões em instâncias de Nuvem não ativam permissões de portas diretas a web pública IPv4/IPv6, especialmente restritivas às portas inerentes de escuta da LLM API (`11434`), minimizando a superfície exposta para injeções automatizadas ou ameaças massivas do tipo *Scanning* (por ex., via buscadores de roteadores).
+Em caráter definitivo, endpoints da API LLM O.S providenciados pelo *Docker `11434`* ou sub-dependente FastAPI *8000* estarão completamente fechados a instâncias da banda global (Sem *Bind TCP 0.0.0.0* e desprovidos de portas expostas em WAN).
 
-*   **Autenticação Via WireGuard (Tailscale)**: A arquitetura prevê que Instâncias na Cloud permaneçam circunscritas localmente dentro do túnel privado da máquina base (Mesh Desktop). Operando através de chaves ativas do WireGuard, a transação entre as tabelas vetoriais locais e o endpoint inferencial da Nuvem flui estritamente sob criptografia forte ponta a ponta na sua subrede invisível roteada pela operadora `100.x.x.x`.
-*   **Contenção de Vulnerabilidades Passivas**: O Bind TCP das instâncias vitais na Nuvem, como os contêineres Docker e Ollama, estão condicionados intrinsecamente à interface de rede isolada gerenciada pelo cliente Tailscale nativo. Port-scans independentes encontrarão recusas forçadas de conexão.
-
----
-
-## 4. Otimização Analítica (Performance Paged em Processadores ARM)
-
-As especificidades do provimento nas topologias ARM de Cloud gratuitas (ou de entrada empresarial) frequentemente inviabilizam alocações completas baseadas em I/O Swap Disk tradicional (Devido à severa penalização em IOPS da estrutura Block Volume que travam processos intensivos de GPU/CPU Unificada dos grandes modelos).
-
-As contra-medidas parametrizadas ao Cloud-Init do Host garantem que as predições sigam um curso responsivo nos cenários de stress local:
-
-1. **Memória Virtual Comprimida (zram-tools)**: Antes do deploy das massas Docker, implementa-se no sistema operacional uma configuração persistente particionando as margens seguras (ex: 33% da RAM Base ou max. 8GB) configurada na compressão algoritmo LZ4. Sem tocar no disco virtual do serviço de OCI, modelos operantes liberam buffer massivamente reduzindo timeouts do banco neural nos gargalos pesados.
-2. **Flash Attention na Engine (Directives SystemD)**: Injeções controladas nativamente no unit file da Daemon (Ollama) validam concorrência nativa de fila em LLMs de janela extensiva (ex: `128K context`). Variáveis parametrizáveis de ambiente como `OLLAMA_FLASH_ATTENTION=1` reduzem restritamente alocamentos ociosos no trânsito O.S / App Layer e previnem asfixia RAM no Qwen.
+*   **Validação Criptográfica Operativa (WireGuard via Tailscale):** Tráfegos originárias das chamadas na Nuvem perante arquivos vetoriais locais são conduzidos sob conexão criptografada via peer-to-peer atuando diretamente através das interfaces (`100.x.x.x`). A estrutura facilita acesso remoto seguro independente dos roteadores bloqueantes O.S corporativos das companhias locais do usuário.
+*   **Mitigação Contraste Passivo:** Varreduras em escaneamento O.S massivo O.S Port Scan externas recairão sob falhas já que os aplicativos isolantes confinam explicitamente na sub-rede VPN, invisibilizando aberturas em portas lógicas do SO da máquina ou Servidor VPS.
 
 ---
 
-## 5. Práticas de Infraestrutura como Código Automática (IaC)
+## 4. Eficiência de Servidor ARM64 e Otimizações de SO
 
-A implantação virtual em Servidores Terceirizados é desonerada do desenvolvedor através do fluxo de provisionamento Infrastructure as Code baseada primariamente via ferramentas HashiCorp/OpenTofu.
+Em infraestrutura Cloud de Baixo Custo (Free Tiers), o provisionamento O.S em ambientes providenciadores de Storage Limitado podem apresentar dificuldades quando atados a arquivos contextuais amplos. Processamentos forçados sob Volumes via Block Storage acarretam perda no *IOPS* e travamentos sob exaustão nas variáveis de memória livre nativa O.S (Ex: Inferencial Llama local no Servidor).
 
-### CI/CD Automotivo via Actions
-Um manifesto GitHub YAML parametrizado via `.github/workflows/deploy-oci.yml` provê a auditoria de estado e alocação.
-1. O gatilho operacional submete pushes validados ao caminho do diretório `infra/terraform/`.
-2. Acessos são decodificados via ambiente encriptado no próprio GitHub (Envs/Secrets), alimentando os pre-requisitos de Token OCI (`OCI_PRIVATE_KEY` e ID) e `TAILSCALE_AUTH_KEY`.
-3. Aplicações modulares em infra executam `tofu apply -auto-approve` garantindo paralelidade e integridade final entre Nuvem/Repositório de Terraform State.
+A parametrização técnica `Cloud Init` implementou re-estruturações focadas estritamente na preservação desse tempo de resposta (Timeout Limit Restrictions):
 
-### Operação Cloud-Init
-Arquivos físicos descritivos acionados pela VM provedora durante milissegundos críticos após boot processam de maneira sequencial (Garantido em non-interactive shells):
-*   Restauração e padronização total da biblioteca gerencial APT Base (Removendo mirrors instáveis).
-*   Download nativo do Mesh Layer (Tailscale Tunneling Client) com ativação deferida.
-*   Instalação da Docker Engine local O.S e restabelecimento das rotinas LLM base Systemctl.
-*   Processos dissociados (`nohup background jobs`) rodam execuções que persistem o pull serializado gigabital para popular os nós dos modelos Llama/Qwen durante os primeiros minutos de uptime isolado da VPS, preservando conectividade ssh.
+1. **Memória Compacta `zram-tools`:** O SO Linux inicializa um sistema em swap virtual instanciando particionamento alocado sob algoritmo de Super-Compressão `LZ4` na memória livre base do SO. Mitiga o engasgo computacional do disco originário na plataforma sem encarecer servidores e alivia limitações pesantes dos nós da rede.
+2. **Execução de LLMs Estendida `OLLAMA_FLASH_ATTENTION=1`:** Inserida expressamente via arquivo de config `SystemD`, esta formatação técnica estática gerencia perante a leitura rápida nativa de modelagem LLM os tokens associados aos "contextos gigantes" (Modelos >32K Tokens/128K Text Strings), melhorando tempos assíncronos das repostas providas a Engine FastAPI nativa de roteamentos paralelos.
 
 ---
 
-## 6. Integridade de Container e Self-Healing Operacional 
+## 5. Implementação Dinâmica Infrastructure As Code (IaC System/OpenTofu)
 
-Projetado em conformidade estrutural à metodologias 12-Factor App, eventuais reinícios não interativos de servidor (exs: Upgrades críticos Ubuntu OCI, Kernel patches do SO ou paralisações de hardware em Power-Cuts no host Edge Development) requerem nula atuação do Developer ou usuário administrador para a restauração lógica final da malha.
+Processos dependentes da criação do nó físico em Oracle Nuvem foram completamente automatizados através dos gerenciadores manifestados *Infrastructure as Code* (OpenTofu).
 
-### Orquestração em Nível Processual (Docker)
-Os módulos base contam com restrições arquiteturais aplicadas à diretiva robusta do Docker (`restart: always`), abrigando em invólucros estanques independentes as premissas de re-run automático de seus núcleos e processos filho:
-- O balanceador e gateway reverso (`caddy`).
-- Sincronização e transações de rede RESTful e Async (`api` e `n8n`).
-- Interwebs GUI renderizado com Ngnix (`web`) e bancos legados se aplicáveis (`postgres`).
+### Pipeline Contínua via Github Actions
+O GitHub Operations centraliza e autoriza roteamentos do código orquestrado via workflow `deploy-oci.yml`.
+1. A base reativa exige *Merges* atualizados nos manifestos localizados em `./infra/terraform/`.
+2. Restritivos secretos sob GitHub Actions Cloud contêm os UUIDs das Tenants Oracle, assim como sua API Authentication (*OCI_PRIVATE_KEY*) limitantes na base secreta do arquivo O.S.
+3. Submetidos a instâncias operativas `tofu apply -auto-approve`, os contêineres e configurações base Ubuntu inicializam sob nuvem, reportando nativamente todo seu "Estado Seguro" sob a branch.
 
-### Relê de Retomada a Frio do State Local
-1. Subida da daemon base Docker no Host FileSystem.
-2. Comutação sistêmica interligando sub-nets com contêineres às chaves de Tunelamento nativas.
-3. Volumes da malha efetuam o Bind Mount in-loco (Restauro temporal dos Sqlite Vectors de forma stateful).
-4. Libera-se os *Health Checks* garantindo que a conexão HTTP e SSL operem antes de injetar requests nas instâncias dos Agentes. Sem scripts de *bootstrap* auxiliares ou chaves SSH pendentes.
+## 6. Procedimentos Resilientes (Self-Healing Application Containers)
+O desenho base em contêiner obedece à engenharia restrita da recomendação base de sistemas imutáveis (Ex: *12-Factor App*). Diante de oscilações estruturais provindas do OS (Kernel Reboots acidentais, atualizações em massa que reiniciam instâncias VPS primárias base), não requerem inicializações interativas SSH dos usuários corporativos O.S ou engenheiro base local da máquina:
+
+- Suas ferramentas e volumes internos recomeçarão isoladamente, parametrizados sob as configurações restart nativas Docker Engine (`restart: always`).
+- Apenas submetem a Engine de RAG final à verificação da NuvemMesh VPN (Interface interna) e realizam o acoplamento autônomo do O.S sob interfaces relativas API FastAPI (Rest Local) atestados assim que O.S Server retoma estabilidade elétrica computacional básica.
