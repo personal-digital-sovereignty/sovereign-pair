@@ -1,8 +1,0 @@
-[allowlist]
-description = "Ignore mock files, tests, and local dev environments"
-paths = [
-    '''web-ui/e2e/.*''',
-    '''infra/terraform/test_oci\.py''',
-    '''infra/terraform/terraform\.tfvars''',
-    '''obsidian-plugin/data\.json'''
-]

@@ -181,7 +181,11 @@ debug_output.txt
 
 # Security/SAST Ignores
 .trivyignore
-.semgrepignoretriais e Planejamento de Mercado
+.semgrepignore
+.gitleaks.toml
+.gitleaks.key
+
+# Segredos Industriais e Planejamento de Mercado
 _strategy/
 docs/reports/roadmap_opencode.md
 
