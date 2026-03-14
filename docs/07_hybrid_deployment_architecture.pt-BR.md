@@ -1,4 +1,4 @@
-# Arquitetura de Implantação Híbrida (Local e Nuvem)
+# Tratado VII: Arquitetura de Implantação Híbrida (Cíbrida)
 
 ## 1. Visão Geral da Topologia de Rede
 A arquitetura principal do projeto prioriza o processamento local para garantir a estabilidade e privacidade dos dados manipulados (Soberania Prática). Contudo, na finalidade da otimização de recursos sob o hardware base do desenvolvedor, cargas computacionais de inferência não relacionadas sensivelmente a fragmentos críticos de código podem ser transferidas ou distribuídas a nós auxiliares em provedores públicos, caracterizando a implementação em Malha.
