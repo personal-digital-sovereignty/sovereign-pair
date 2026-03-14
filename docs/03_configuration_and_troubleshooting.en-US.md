@@ -30,25 +30,36 @@ Sovereign Pair natively adapts its *System Prompt* based on your configuration.
 
 ---
 
-## 2. SRE Runbook for ChromaDB Collapses
+## 2. SRE Runbook for Vector DB Collapses
 
-Network drops and Vector collapses are completely mitigatable by following strict tracking matrices. **Never** delete databases without prior isolation of logs.
+Network drops, abrupt power outages, and Host O.S hard resets can rarely desync the `sqlite-vec` index and its write-ahead logs (`.wal` and `.shm`). Vector collapse is completely mitigatable by purging the math and letting Rust re-index. **Never** delete databases without prior isolation of logs.
 
-### 2.1 Incremental State Corruption (Divergent Hashes)
+### 2.1 Rebuilding the Rust `sqlite-vec` Core
 *The scan says the file does not exist, but the Markdown viewer on the UI proves otherwise.*
-- **Incident:** Detachment between the Historical `.json` hashing database and the native `ChromaDB` sqlite indexing. Usually caused by accidental *Hard Resets* or power outages during bulk vectorization.
-- **Engineering Resolution:** Nuke and reset the vector brain. No data is lost because the true files remain safe in your `Sensus Vault` directory. Sovereign pair will simply rebuild the math.
+- **Incident:** Unfinished asynchronous ingestions by the Rust File Watcher (The Mom & The Dad) due to system abortion. This leads to a mismatch between stored vector dimensions and SQLite real rows.
+- **Engineering Resolution:** Nuke and reset the `sovereign_memory.db` file alongside its logs. No data is lost because the true files remain safe in your `Sensus Vault` directory. Sovereign Pair will simply rebuild the math natively.
 
 ```bash
-# SRE Runbook: Absolute Vector DB Purge.
+# SRE Runbook: Absolute SQLite-Vec DB Purge (Modern Rust Arch).
+rm -rf data/sovereign_memory.db*
+
+# Remapping Vectors: The '--rebuild' arg orders Axum cache discards
+cargo run --bin sovereign-axum -- --rebuild
+```
+
+### 2.2 SRE Runbook for ChromaDB (Legacy Architecture)
+In early Python implementations, indexing ran over local `ChromaDB` instances referencing a JSON hash map `.ingestion_history.json` for validation.
+
+```bash
+# [WARNING: Only for Legacy History - Deprecated Python Arc]
 rm -rf data/chroma_db
 rm data/.ingestion_history.json
 # Restart the container or run the manual ingest script
 python src/ingest.py 
 ```
 
-> [!NOTE] 🧬 **Living Code: Math Reconstruction Engine (SHA: `94bfb2f`)**
-> ▫️ **Vector Healing Script:** The core logic inside `src/ingest.py` (Handles parsing and deduplication across Chroma).
+> [!NOTE] 🧬 **Living Code: Math Reconstruction Engine**
+> ▫️ **Vector Healing Script:** Legacy Python `src/ingest.py` has been fully dismantled in favor of parallelized Rust `Rayon` and `notify` watch routines.
 
 ---
 
