@@ -88,5 +88,15 @@ Configurações de infraestrutura Linux em que repousará as definições de Com
        }
    }
    ```
-3. **Invocação no Ambiente:**
-   Após rodar e indexar servidores com Cargo Build / Axum Local `8000`, engatilhará chamadas O.S em subterminal nativo (atalho customizado *e.g., Ctrl+Esc*). Estabelece processamento de codificações restritas exclusivas provindas do motor físico O.S Axum sob comando puramente local sem interagir a Nuvem WAN API externa comercial O.S.
+
+### 3.2 Bypass Expresso via Linha de Comando O.S (CLI Variables)
+Alternativamente, caso o desenvolvedor não deseje versionar arquivos estáticos `opencode.json` em repositórios corporativos visando *Zero-Trust* estrito, é perfeitamente viável "enganar" a engine TUI do OpenCode injetando o host Sovereign através de Variáveis de Ambiente O.S (Padrão OpenAI) diretamente no momento da chamada no terminal:
+
+```bash
+# Injeção Estrita de Proxy Base Native Local (OpenAI Bypass)
+OPENAI_BASE_URL="http://localhost:8000/v1/opencode" OPENAI_API_KEY="sovereign-local" opencode
+```
+Essa invocação terminal suprime imediatamente as rotas da web nativas da extensão/CLI, encapsulando 100% da telemetria e fluxos Coder nas validações do Rust Axum Local.
+
+### 3.3 Invocação Sistêmica no Ambiente (IDE Terminal)
+Após rodar e indexar os servidores backend com Cargo Build / Axum Local na porta `8000`, engatilhará chamadas O.S em subterminal nativo (usando atalhos customizados *e.g., Ctrl+Esc* dentro da IDE ou Terminal). Isso estabelece um processamento de codificações restritas e exclusivas provindas do motor físico O.S Axum sob comando puramente local sem interagir arquiteturalmente com a Nuvem WAN API externa comercial O.S.

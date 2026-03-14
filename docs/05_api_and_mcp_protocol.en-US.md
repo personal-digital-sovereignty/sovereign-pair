@@ -101,7 +101,17 @@ To install and mirror Sovereign Pair's power into your Visual Studio Code using 
        }
    }
    ```
-4. **The Blood Test (Divine Shortcut):**
-   With the API compiled and running smoothly as an OS process (compiled local node, port 8000), open any file in your IDE. Instead of using generic market-native Chat boxes, you must **Trigger the Native OpenCode TUI**.
-   * Hit the strict shortcut: `Ctrl+Esc`
-   * Instantly, a dynamic OpenCode sub-terminal will spawn. This module intercepts your entire Workspace and dumps the code blocks straight to your machine's compiled endpoint natively. Tested with 20,000 tokens at **Zero Cost**.
+   }
+   ```
+
+### 3.2 CLI Command Line Express Bypass (OS Variables)
+Alternatively, if the developer strictly prohibits coupling static `opencode.json` files within corporate repositories aiming for absolute *Zero-Trust*, it is perfectly logical to "trick" the OpenCode engine. This trick is done by injecting the Sovereign host through O.S Environment Variables (OpenAI Native Pattern) directly upon terminal invocation:
+
+```bash
+# Strict Proxy Base Native Injection (OpenAI Bypass)
+OPENAI_BASE_URL="http://localhost:8000/v1/opencode" OPENAI_API_KEY="sovereign-local" opencode
+```
+This terminal execution immediately suppresses the web routes natively coded into the extension/CLI, forcing 100% of the Coder's telemetry and payload flows against the local Rust Axum validations.
+
+### 3.3 Systemic Invocation within the Environment (IDE Terminal)
+Once the backend servers are compiled and roaring natively via Cargo Build / Axum Local on port `8000`, you can trigger the OS calls straight into the native sub-terminal (using customized shortcuts *e.g., Ctrl+Esc* inside your IDE). This roots pure local physical constraints natively bypassing external endpoints—allowing the generation of hyper-private code iterations free from WAN commercial API constraints.
