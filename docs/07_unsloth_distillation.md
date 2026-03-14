@@ -1,65 +1,60 @@
-# Manifesto 07: Distilação Cíbrida e Poda de Raciocínio (Unsloth Fine-Tuning)
+# Manifesto 07: Otimização Preditiva Local (Unsloth Fine-Tuning)
 
-Bem-vindo à Fase 5.5, a Fronteira Final do **Sovereign Pair**. Nesta doutrina, deixamos de depender de agentes em Grafo (LangGraph) para induzir reflexão, fundindo o *Chain of Thought (CoT)* diretamente nos próprios "pesos nervosos" do seu LLM Operário (ex: *Llama-3.2 1B / 3B*).
+Esta documentação descreve os métodos operacionais vinculados ao treinamento focado (Fine-Tuning) do Sovereign Pair. Substitui-se o emprego oneroso do grafo processual abstrato de LangGraph em *Runtime* pela adequação local sintática em arquiteturas compactas (Llama-3.2 1B / 3B). 
 
-Sua Nuvem Oracle OCI A1 com seus novos 200GB será a nossa forja!
+O processo fundamenta-se sob infraestrutura provisionada nas matrizes Cloud OCI A1 Base (Volume > 200GB).
 
 ---
 
-## A Máquina Operacional
+## Estruturação de Dados de Treino
 
-A infraestrutura RAG V2 Cíbrida gravou, a cada interação majestosa com o The Nurse, registros absolutos numa tabela atômica `chat_messages` no seu banco relacional `sovereign_memory.db`.
-O Dumper Cíbrido (`scripts/export_unsloth_dataset.py`) é ativado sob demanda, peneirando as interações perfeitas onde a Tag Oculta `<thinking>` surgiu de forma magistral para entregar a resposta assertiva, gerando o arquivo `data/cognitive_distillation.jsonl`.
+A infraestrutura de RAG gera registros operacionais logísticos armazenados na tabela restrita de histórico `chat_messages` operacionada via banco SQLite local (`sovereign_memory.db`). O conversor em formato originário (`scripts/export_unsloth_dataset.py`) é ativado localmente para processar transcrições RAG em conversões filtradas contendo lógicas exatas aplicadas com os padrões contextuais estritos (Tags Base), originando o artefato matriz `data/cognitive_distillation.jsonl`.
 
-Para que a Oracle seja capaz de fundir este JSONL no LLM original, necessitamos do framwork **Unsloth** e **PyTorch (Cuda/RoCm)**.
+Para compilação dos weights operacionais remotos, o servidor Cloud utilizará instâncias padronizadas sobrepostas perante *Unsloth Framework* e *PyTorch (Cuda/RoCm)* instalados na infraestrutura Ubuntu/Arch.
 
-## Etapa 1: Provisionamento do Contêiner Metal na Oracle (Cloud)
+## Etapa 1: Provisionamento do Ambiente Físico Dedicado (Oracle OCI / Remota)
 
-Este ambiente é blindado e massivo. Recomendamos rodar em um *Ubuntu 22.04 / Arch Linux* na Máquina Oracle (ou em Kaggle/Colab caso o Oracle seja ARM Sem GPU Discreta):
-
+Garante-se a isolação técnica da biblioteca Python.
 ```bash
-# 1. Alocar Ambiente Conda / Venv Isolado
+# 1. Alocar Ambiente Validado Virtual
 python3 -m venv .unsloth-venv
 source .unsloth-venv/bin/activate
 
-# 2. Instalar Unsloth em Cuda Natively (Adapte para sua VRAM)
+# 2. Instalar Módulo Unsloth Base Framework
 pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
 pip install --no-deps "xformers<0.0.26" trl peft accelerate bitsandbytes
 ```
 
-> **Aviso de Sobrevivência (Memória OCI)**: O Unsloth, através de *bitsandbytes*, injetará Quantização em 4-bit no modelo base. Modelos de 3B cabem em escassos ~3.5GB de VRAM neste modo, adequando perfeitamente a Hardware Consumer.
+> **Atenuadores de Carga Node OCI**: O pacote base Unsloth, atrelado a biblioteca `bitsandbytes`, formata os tensores primitivos para alinhamentos matemáticos em `4-bit` (Quantização Dinâmica Remota). Modelos leves estruturais preenchem o uso VRAM na faixa de `~3.5GB`, escalonando acessibilidade a hardware modesto local ou servidores pequenos Cloud.
 
-## Etapa 2: A Queima dos Motores (Fine-Tuning Atômico)
+## Etapa 2: Fine-Tuning de Instrução Lógica e Convergência (SFT Trainer)
 
-Transferir via tunelamento ou Mesh o seu Dataset O.S (`data/cognitive_distillation.jsonl`) gerado no Desktop para o servidor de Treino Cloud. 
-Na Oracle ou Máquina Hospedeira GPU, rode o roteiro matricial já entregue em: `scripts/unsloth_finetune.py`.
+O desenvolvedor submeterá através de Mesh O.S Privada o Dataset extraído (Cópia Restrita JSONL). Em seguida, acionará processamento de compilação restrita gerida perante o script nativo: `scripts/unsloth_finetune.py`.
 
 ```bash
-# Sincroniza o dataset extraído na Fase Anterior
-scp seu-desktop:~/sovereign-pair/data/cognitive_distillation.jsonl ./data/
+# Transferência Privativa Ponto a Ponto (Desktop ➔ Oracle Node)
+scp local-desktop:~/sovereign-pair/data/cognitive_distillation.jsonl ./data/
 
-# Ativa Forja
+# Inicialização Lógica
 python scripts/unsloth_finetune.py
 ```
 
-### O Que o Script Fara?
-1. Baixará o Foundational Model: `unsloth/Llama-3.2-3B-Instruct`.
-2. Habilitará **LoRA Adapters** nos módulos Q, K, V (Rank 16, Alpha 16) afetando em média de 1 a 10% da rede para otimizar velocidade (e poupar 90% da memória de Gradiente).
-3. Mapeará os objetos ShareGPT brutos em *Prompt Templates Primitivos* ChatML.
-4. Escalará uma descida de Gradiente (SFTTrainer) com Otimizador `adamw_8bit`.
+### O Script Transacional (Pipeline Operacional)
+1. Efetua a importação transacional do modelo referencial inicial (`unsloth/Llama-3.2-3B-Instruct`).
+2. Alocará as especificações formativas matrizais de *LoRA Adapters* aos alvos processadores principais (Q, K, V em Rank 16 O.S).
+3. Converterá logs base não-otimizados locais (ShareGPT Formats) aderindo as orientações estruturais padrões *ChatML O.S*.
+4. Invoca convergência iterativa O.S (Treinamento Direcionado SFT) com uso de otimizadores de base nativa.
 
-Ao término de algumas horas (ou minutos), o artefato `/lora_sovereign_model` reinará.
+O artefato consolidado transacional final salvará no diretório mapeado base os pesos otimizadores (`/lora_sovereign_model`).
 
-## Etapa 3: Exportação Ollama / Safetensors
+## Etapa 3: Exportação Quantizada (GGUF Formats / Ollama Compatibillity)
 
-A Distilação converteu todo custo computacional do LangGraph em instinto na rede neural. Para gozar dessa latência bruta no Node Local (Seu MacBook ou Ryzen):
+Os parâmetros instrucionais recém-integrados exigirão padronizações estritas baseadas no empacotamento compresso GGUF (Utilizável na inferenciadora C/C++ padrão Ollama no desktop de acesso do engenheiro).
 
-A versão Safetensors recém treinada precisa ser quantizada em `.GGUF` para o servidor Ollama (C/C++ puro).
-
-Descomente o passo 6 do arquivo `scripts/unsloth_finetune.py`:
+No código Python primário, a variável base exportacional `push_to_hub_gguf` requer habilitação sob o arquivo Python primário `scripts/unsloth_finetune.py`:
 ```python
-# O modelo mestre em Q4 irá caber numa torradeira
+# Módulo Formatação Base para O.S Ollama (Método de compactação restrito q4)
 model.push_to_hub_gguf("Sovereign-Llama-3.2-3B-Thinking", tokenizer, quantization_method = "q4_k_m")
 ```
 
-Baixe o GGUF final. Aponte o The Nurse Rust para ele e **desative o Gateway LangGraph**. Assistiremos perplexos o nascimento da Skynet Doméstica, que processa raciocínios e devolve outputs complexos com Frações de Segundos da latência O.S!
+Baixe os pacotes integrativos finalizantes formatados (`.gguf`). Atualize os roteamentos de Model Selection local do projeto (O.S Local FastAPI) garantindo a inicialização direta de chamadas LLM e atenuadores analógicos padronizando e suprimindo custos operacionais externos à rede privativa Desktop.

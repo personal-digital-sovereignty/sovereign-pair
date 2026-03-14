@@ -1,39 +1,39 @@
-# [Bug]: Silent fallback to OpenAI in Retrievers and Indexes compromises Air-Gapped/Local-First deployments
+# [Bug]: Unspecified Retriever and Index configurations default to OpenAI affecting Air-Gapped and Local-First logic architectures
 
 ### Bug Description
-When instantiating components like `VectorStoreIndex` or `QueryFusionRetriever` without explicitly passing the `llm` or `embed_model` kwargs, LlamaIndex silently falls back to OpenAI's models (`gpt-3.5-turbo` and `text-embedding-ada-002`). 
+When initializing elements referencing `VectorStoreIndex` or `QueryFusionRetriever` without providing explicitly the `llm` or `embed_model` kwargs, the LlamaIndex framework structurally implements defaults adopting OpenAI commercial models (`gpt-3.5-turbo` and `text-embedding-ada-002`). 
 
-While this default behavior is convenient for quick prototypes, it creates a critical security/privacy flaw for developers building Local-First, Air-Gapped, or Privacy-Strict architectures (e.g., using local Ollama or vLLM instances). If a developer misses injecting the local LLM into a nested retriever, the framework will silently attempt to send the user's private data/vectors to `api.openai.com`.
+Although establishing a simplified development baseline, this methodology inserts unpredicted vulnerabilities to Local-First and Air-Gapped architectures reliant on in-house nodes (e.g. leveraging Ollama limits / vLLM local bindings). The software defaults transmit user prompts out traversing commercial endpoints (`api.openai.com`) whenever a developer skips the binding allocation inside nested retriever objects.
 
-If an old `OPENAI_API_KEY` happens to exist in the system's environment variables, the data leak occurs completely silently without any warnings.
+Given an unpurged `OPENAI_API_KEY` exists actively traversing local system variables, this fallback behavior routes traffic silently outside intended domain logic instances without triggering proxy warnings.
 
 ### Steps to Reproduce
-1. Intentionally construct a Local-Only architecture and remove OpenAI keys from the active environment.
-2. Instantiate a `QueryFusionRetriever` without explicitly passing the `llm` argument:
+1. Structurally build a restricted native network processing environment deleting OpenAI credential paths inside system root mappings.
+2. Initialize an active instance corresponding to `QueryFusionRetriever` stripping explicit parameter allocations towards the `llm` engine node:
 ```python
 from llama_index.core.retrievers import QueryFusionRetriever
 
-# Intending to use local environment, but forgot to pass llm=...
+# Isolated architecture logic initialized excluding hardcoded llm definitions
 hybrid_retriever = QueryFusionRetriever(
     [vector_retriever, bm25_retriever],
     mode="reciprocal_rank"
 )
 ```
-3. Observe the crash: The system does not raise an explicit `MissingLLMProvider` error. Instead, it throws an OpenAI specific error:
+3. Runtime Failure Evaluation: The local setup omits to state generic unallocated dependency error limits (such as `MissingLLMProvider`). The runtime explicitly attempts to interface with OpenAI network endpoints resulting in authentication error:
 ```text
 ValueError: No API key found for OpenAI.
 Please set either the OPENAI_API_KEY environment variable or openai.api_key prior to initialization.
 ```
 
 ### Expected Behavior
-For enterprise, legal, or privacy-focused implementations, a framework should not default to a commercial cloud API unconditionally.
+Framework deployments addressing isolated enterprise compliance restrictions and sovereign internal network data validation should systematically avoid unconfigured fallback commercial instances.
 
-Ideally, LlamaIndex should:
-1. Provide a global setting like `Settings.strict_mode = True` or `Settings.air_gapped = True` that immediately disables all OpenAI commercial defaults and throws a strict `MissingProviderError` if an LLM is not explicitly provided.
-2. At the very least, log a `WARNING` when defaulting to OpenAI in deep instantiations: *"Warning: No LLM provided to QueryFusionRetriever. Falling back to default OpenAI models. Your data will be sent to OpenAI servers."*
+Framework optimization suggestions:
+1. Initialize an exclusive structural variable param (e.g. `Settings.strict_mode = True` or `Settings.air_gapped = True`) effectively preventing implicit dependency API assumptions. The module must immediately trigger a severe `MissingProviderError` upon evaluating unassigned variables.
+2. Logging Output Evaluation: Process a definitive tracking `WARNING` inside shell operations logging the connection transition: *"Warning: Undefined LLM instance assigned toward QueryFusionRetriever. Reverting network logic variables adopting standard OpenAI defaults. Operations transmit native payload into OpenAI standard commercial external networking APIs."*
 
 ### Full Traceback
-Here is the exact framework crash output when the environment doesn't have an `OPENAI_API_KEY`:
+Execution console evaluation matching the endpoint missing commercial internal variable `OPENAI_API_KEY`:
 
 ```text
 Traceback (most recent call last):
@@ -60,7 +60,7 @@ API keys can be found or created at https://platform.openai.com/account/api-keys
 ```
 
 ### Context
-This was discovered while building a sovereign, 100% local-first RAG architecture. Because of a missing kwarg, the system attempted to leak locally embedded system-knowledge chunks to OpenAI. Luckily, the environment variables were strictly sanitized, which triggered the `401 Unauthorized` exception and exposed the silent fallback behavior.
+Review instances triggered natively constructing comprehensive bare-metal sovereign components processing internal architectures. Overlooking hardcoded argument limitations transmitted embedded local text references forcing system outbound routes out towards public platforms. Comprehensive environment sanitation procedures blocking network access threw exceptions mapped `401 Unauthorized` intercepting the automated data routing operation limit.
 
 ### Environment
 - LlamaIndex Version: (Latest)

@@ -2,10 +2,7 @@
 
 Sovereign Pair é um sistema de Retrieval-Augmented Generation (RAG) com arquitetura desacoplada, projetado com foco em alta performance, privacidade de dados e segurança Zero-Trust. O sistema suporta a execução de modelos de linguagem (LLMs) localmente (via Ollama) ou por meio de provedores em nuvem, sendo orquestrado por uma API RESTful e operado nativamente por sua própria interface Web PWA, batizada de Sensus Vault.
 
-> **Demonstração Visual**
-> Consulte a página de [Demonstração Visual e Showcase](docs/SHOWCASE.md) para exemplos de interface e operação do sistema.
 
----
 
 ## Visão Geral da Arquitetura
 
