@@ -68,7 +68,6 @@ jobs:
           # CRITICAL OR HIGH breaks the pipeline instantly (exit 1)
           exit-code: 1
           severity: 'CRITICAL,HIGH'
-          trivyignores: '.trivyignore'
 
   # ==========================================
   # Gate 4: Code Quality & Complexity
