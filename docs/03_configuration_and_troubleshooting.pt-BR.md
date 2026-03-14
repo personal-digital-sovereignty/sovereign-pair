@@ -32,23 +32,34 @@ Os artefatos abstratos submetidos ao Agente Base na primeira solicitação cont�
 
 ## 2. Manutenção Operacional Vetorial
 
-### 2.1 Resolução de Inconsistência Analítica entre Hashes
-- **Natureza do Problema:** Alertas categorizados apontando exceções como *NotFoundException* ao longo da rotina RAG no Web Frontend demonstram perda ou conflito entre o histórico cacheado na interface O.S (`.ingestion_history.json`) e os IDs reais indexados nas partições SQLite.
-- **Causa Potencial:** Este desvio da fidelidade métrica do arquivo perante banco é resultado usual de scripts em rotinas seriais que foram abortados ou corrompidos durante operações sistêmicas na máquina host. (Ex: Perda abrupta de energia ou paradas via `Ctrl+C` no CLI de inserção sem o sync apropriado de log).
-- **Procedimento Limpo de Restauração:** Pela integridade base preservada e lastreada nos originais do sistema de arquivos O.S físico (Suas notas Markdown não são afetadas), a exclusão total do esquema vetorial SQLite contido no subdiretório local garante imediata re-sincronia coerente sem risco de dados perdidos. Ao reiniciar a instância do Worker (File Watcher), todos os diretórios voltam a ser percorridos e salvos em tabelas estáveis.
+### 2.1 Resolução de Banco Corrompido SQLite-Vec (Padrão Atual Rust)
+- **Natureza do Problema:** Alertas categorizados apontando exceções ao longo da rotina RAG onde o banco `sovereign_memory.db` (em modo WAL), que hospeda os vetores nativos (`sqlite-vec`), pode raramente sofrer corrupção de write-ahead logging (Arquivos `.wal` e `.shm`) decorrente de quedas abruptas de energia na máquina host.
+- **Causa Potencial:** Desvios atômicos entre transações de inserção vetorial assíncronas do Rust deixadas inacabadas (Ex: Paradas via `Ctrl+C` no CLI ou reboots físicos repentinos no Node OCI/Desktop).
+- **Procedimento Limpo de Restauração:** Pela integridade base preservada e lastreada nos originais do sistema de arquivos O.S físico (Suas notas Markdown não são afetadas), a exclusão total do esquema vetorial contido no subdiretório local garante imediata re-sincronia coerente sem risco de dados perdidos.
 
 ```bash
-# Workflow de Manutenção: Remoção de DB e Index Logs Corrompidos
+# Workflow de Manutenção (O.S nativo Rust)
+rm -rf data/sovereign_memory.db*
+
+# Remapeamento Vetorial Limpo: A flag '--rebuild' instrui o motor Rust a descartar caches 
+cargo run --bin sovereign-axum -- --rebuild
+```
+
+### 2.2 Workflow Legado (Python/ChromaDB descontinuado)
+Nas implementações primárias Python, o indexamento RAG operava sob coleções locais do banco `ChromaDB` em sinergia ao rastreador de modificações `.ingestion_history.json`.
+
+```bash
+# [AVISO: Apenas Arquitetura Histórica Legada Python]
 rm -rf data/chroma_db
 rm -rf data/sovereign_memory.db 
 rm data/.ingestion_history.json
 
-# Remapeamento Completo Limpo de Rotinas I/O Locais
+# Remapeamento de Rotinas I/O Locais Original
 python src/ingest.py 
 ```
 
 > [!NOTE] 
-> ▫️ **Script de Tratamento de Dados:** Centralizado através da interface `src/ingest.py`.
+> ▫️ O script `src/ingest.py` foi integralmente substituído pelas bibliotecas multithreading `Rayon` e indexadores `notify` contidas no binário Core em Rust.
 
 ---
 
