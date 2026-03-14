@@ -22,7 +22,7 @@ services:
     # 2. Automation Engine (N8N)
   n8n:
     # nosemgrep: yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service
-    image: n8nio/n8n:1.122.0
+    image: docker.n8n.io/n8nio/n8n:2.11.4
     container_name: sovereign-n8n
     restart: unless-stopped
     security_opt:
