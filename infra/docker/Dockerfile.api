@@ -17,7 +17,7 @@ RUN groupadd -r soveruser && useradd -r -g soveruser soveruser
 WORKDIR /app
 
 # Copia apenas os requirements primeiro para aproveitar o cache de camada do Docker
-COPY requirements.txt .
+COPY src/requirements.txt .
 
 # Atualiza pip e instala as dependências Python
 RUN pip install --no-cache-dir --upgrade pip \

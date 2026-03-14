@@ -103,13 +103,13 @@ cargo run --bin sovereign-cli chat
 **Cenário de Deploy Integral Web-Only (Cloud OCI)**  
 Ambiente executado exclusivamente na Nuvem (API, Workers DAST, Ollama em rede isolada mTLS e SQLite persistido em Volumes Lógicos Cloud).
 ```bash
-docker compose up -d --build
+docker compose -f infra/docker/docker-compose.yml up -d --build
 ```
 
 **Cenário Edge Computing Bare Metal (Nó Local)**  
 Recurso voltado a Desktops potentes, transferindo 100% da carga operacional (Rust, RAG, Web GUI e GPUs físicas da máquina base) sob isolamento local.
 ```bash
-docker compose -f docker-compose.local.yml up -d --build
+docker compose -f infra/docker/docker-compose.local.yml up -d --build
 ```
 
 ---

@@ -19,8 +19,8 @@ services:
   # 4. Backend Mestre da Inteligência (FastAPI)
   api:
     build:
-      context: .
-      dockerfile: Dockerfile.api
+      context: ../../
+      dockerfile: infra/docker/Dockerfile.api
     container_name: sovereign-api-offline
     user: "1000:1000"
     restart: always
@@ -34,10 +34,10 @@ services:
       - SOVEREIGN_CONF=/app/data/sovereign.conf
       - VAULT_PATH=/app/data/vault
     volumes:
-      - ./data:/app/data
-      - ./.env:/app/.env
-      - ./src:/app/src
-      - ${VAULT_PATH:-./data/vault}:/app/data/vault
+      - ../../data:/app/data
+      - ../../.env:/app/.env
+      - ../../src:/app/src
+      - ${VAULT_PATH:-../../data/vault}:/app/data/vault
       - ${HOME}:${HOME}
     networks:
       - sovereign-net-offline
@@ -47,8 +47,8 @@ services:
   # 5. Frontend Web App (Vue 3 UI)
   web:
     build:
-      context: .
-      dockerfile: Dockerfile.web
+      context: ../../
+      dockerfile: infra/docker/Dockerfile.web
     container_name: sovereign-web-offline
     restart: always
     depends_on:

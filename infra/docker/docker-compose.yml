@@ -40,12 +40,11 @@ services:
     networks:
       - sovereign-net
 
-
   # 3. Backend Mestre da Inteligência (Python/FastAPI)
   api:
     build:
-      context: .
-      dockerfile: Dockerfile.api
+      context: ../../
+      dockerfile: infra/docker/Dockerfile.api
     container_name: sovereign-api
     user: "1000:1000"
     restart: always
@@ -65,10 +64,10 @@ services:
     # Montagem Bind para espelhar a pasta data local caso o SQLite precise sobreviver por qualquer motivo legal,
     # e para leitura rápida de arquivos em lote.
     volumes:
-      - ./data:/app/data
-      - ./.env:/app/.env
-      - ./src:/app/src
-      - ${VAULT_PATH:-./data/vault}:/app/data/vault
+      - ../../data:/app/data
+      - ../../.env:/app/.env
+      - ../../src:/app/src
+      - ${VAULT_PATH:-../../data/vault}:/app/data/vault
       - ${HOME}:${HOME}
     networks:
       - sovereign-net
@@ -79,8 +78,8 @@ services:
     # 4. Frontend Web App (Vue 3 + Vite -> Nginx)
   web:
     build:
-      context: .
-      dockerfile: Dockerfile.web
+      context: ../../
+      dockerfile: infra/docker/Dockerfile.web
     container_name: sovereign-web
     restart: always
     depends_on:
