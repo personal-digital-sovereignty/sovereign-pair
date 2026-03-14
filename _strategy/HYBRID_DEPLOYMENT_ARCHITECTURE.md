@@ -1,87 +1,79 @@
-# Sovereign Pair: Hybrid Deployment Architecture (Cibrid Network)
+# Arquitetura de Implantação Híbrida (Local e Nuvem)
 
-## 1. O Paradigma de Infraestrutura "Cloud-Assistida"
-A premissa fundamental do *Sovereign Pair* é a Soberania dos Dados. No entanto, para maximizar o desempenho local (ex: no notebook Ryzen 7 com 32GB RAM), os Modelos de Raciocínio Profundo que não dependem do banco de dados confidencial cru são transferidos para uma malha de nuvem (Cloud Mesh).
+## 1. Visão Geral da Topologia de Rede
+A arquitetura principal do projeto prioriza o processamento local para garantir a estabilidade e privacidade dos dados manipulados (Soberania Prática). Contudo, na finalidade da otimização de recursos sob o hardware base do desenvolvedor, cargas computacionais de inferência não relacionadas sensivelmente a fragmentos críticos de código podem ser transferidas ou distribuídas a nós auxiliares em provedores públicos, caracterizando a implementação em Malha.
 
-Isso nos leva à **Divisão de Cérebros**:
-1. **Host Local (Sovereign Node)**: Onde reside o Cofre (Vault do Sovereign Pair), o banco Vetorial SQLite/Chroma, e o Agente Roteador. Nenhuma nota de texto deixa essa máquina em formato aberto.
-2. **Oracle Cloud Node (Computing Node)**: Instância A1 (ARM Ampere Altra) gratuita da Oracle atuando estritamente como a "cabeça de inferência" para o VSCode e abstrações complexas.
-
----
-
-## 2. Posição dos Agentes na Topologia
-
-| Agente | Modelo (Recomendado) | Papel | Hospedagem Fungal |
-| :--- | :--- | :--- | :--- |
-| **1. The Mom** | Regex / AST Scanner | Indexadora em Fundo `O(1)` | **Local** (Ryzen) |
-| **2. The Dad** | `bge-m3` (1024-D) | O Gerador de Vetores Semânticos | **Local** (Ryzen) |
-| **3. The Nurse** | Algoritmo Python / `0.5b` | O Roteador de Tráfego Rápido | **Local** (Ryzen) |
-| **4. The Doctor** | `llama3.2:3b` | O Clínico Geral & Historiador | **Cloud** (Oracle A1) |
-| **5. The Coder** | `qwen2.5-coder:7b` | O Engenheiro (via OpenCode) | **Cloud** (Oracle A1) |
+O escopo segmenta-se computacionalmente em dois módulos:
+1. **Host Executivo (Nó Local)**: Ambiente isolado onde residem estritamente o cofre (Vault) de arquivos em Markdown, o banco de persistência relacional unificado e indexadores de Vetores Lógicos (SQLite). O tratamento de LLM nativo e operações confidenciais acontecem in-loco (Offline Inference).
+2. **Nó de Computação Distribuída (Oracle Cloud OCI)**: Uma instância separada instalada no ecossistema IaaS da Oracle Cloud, cuja atribuição foca no processamento complementar em Nuvem (como alocar e iterar queries longas no modelo `Qwen2.5-Coder` via VS Code IDE na integração OpenCode).
 
 ---
 
-## 3. Segurança e Conectividade (Zero-Trust mTLS)
+## 2. Orquestração e Deploy de Componentes
 
-A instância Oracle **NÃO TERÁ IP PÚBLICO ABERTO**. Expor a porta `11434` do Ollama na nuvem é um convite para criptomineradores.
-Toda a arquitetura é baseada no **Tailscale (WireGuard)**:
+O sistema de processamento abstrato define o roteamento baseado no papel processual de cada engine na infraestrutura. A disposição de processabilidade pode ocorrer na seguinte matriz recomendada:
 
-*   **Rede Mesh Privada**: A Instância A1 pertence à mesma VPN P2P (Peer-to-Peer) do Host Local. O tráfego não passa pela internet aberta; ele viaja num túnel mTLS criptografado fim a fim (`100.x.x.x`).
-*   **Invisibilidade Externa**: Quem scanear o IP público da Oracle A1 pelo Shodan ou Nmap só encontrará um muro de tijolos (Drop passivo de pacotes). O Ollama fará bind estrito na interface `--host 100.x.y.z`.
-
----
-
-## 4. Otimização de Performance (O Script "ZRAM de Ouro")
-
-Os processadores ARM da Oracle não têm Swap de alto desempenho nativamente, e a latência de I/O em discos de rede (Block Storage) pode asfixiar a VRAM na transição de tokens do Ollama.
-Para fazer a máquina Oracle A1 "render como um A4":
-
-1. **ZRAM (Compressed RAM Swap)**: No *Cloud-Init* do Terraform, instalaremos o `zram-generator`. Ele pegará 8GB dos 24GB de RAM nativa da Oracle e usará como Swap super-comprimido. O Ollama despeja os pesos nativos ali e descompacta agressivamente usando a CPU ARM, ganhando uma sobrevida massiva na alocação de LLMs em alta concorrência sem depender de leitura/escrita no disco lento SSD.
-2. **Ollama Tunning**: Modificações no `.service` do SystemD forçarão o `OLLAMA_FLASH_ATTENTION=1` (para contexto massivo rápido no Qwen2.5) e `OLLAMA_NUM_PARALLEL=4`.
+| Engine | Atribuição Principal | Local Operacional (Recomendado) |
+| :--- | :--- | :--- |
+| **The Mom** | Indexação monitorada assíncrona do file system do O.S. (Via Rust Notify). | Ambiente Local |
+| **The Dad** | Serializador de chunks textuais e processamento intensivo de matrizes Embedded vetoriais (ex: `bge-m3`). | Ambiente Local |
+| **The Nurse** | Roteador e classificador analítico de prioridade/requisição inicial (Low Latency Models). | Ambiente Local |
+| **The Doctor** | Modelo mestre focado nas reestruturações das matrizes finais baseadas no RAG Engine (Reflexão Complexa). | Servidor Virtual OCI (ou Local via instâncias de alto rendimento) |
+| **The Coder** | Análise e inferência interativa focada estritamente na emissão de abstração sintática e refatoração de projetos de código puro. | Servidor Virtual OCI |
 
 ---
 
-## 5. Implementação IaC (GitHub Actions + OpenTofu)
+## 3. Topologia de Conectividade Extrema (VPN mTLS Peer-to-Peer)
 
-O ciclo de vida da Instância Oracle será totalmente automatizado por Infrastructure as Code (OpenTofu) nas esteiras de Continuous Deployment (CD).
+As sessões em instâncias de Nuvem não ativam permissões de portas diretas a web pública IPv4/IPv6, especialmente restritivas às portas inerentes de escuta da LLM API (`11434`), minimizando a superfície exposta para injeções automatizadas ou ameaças massivas do tipo *Scanning* (por ex., via buscadores de roteadores).
 
-### A Esteira de Deploy
-Um arquivo `.github/workflows/deploy-oci.yml` fará o orquestramento:
-1. O desenvolvedor dá push na branch `main` com alguma alteração na pasta `infra/terraform/`.
-2. A Action ativa o runner em um **GitHub Environment chamado `Oracle_Cloud`**.
-3. Ela captura os Secrets: `OCI_PRIVATE_KEY`, `OCI_TENANCY_OCID` e `TAILSCALE_AUTH_KEY`.
-4. Dispara o `tofu apply -auto-approve`.
-
-### O Bootstrap Físico (Cloud-Init YAML)
-Durante a criação da VM (segundo 0), a Oracle recebe o arquivo `cloud-config.yaml` que:
-*   Instala o Tailscale e loga invisivelmente na rede local do usuário via Auth Key: `tailscale up --authkey=$TAILSCALE_KEY --ssh`.
-*   Aplica o ZRAM Swap (Otimização).
-*   Baixa o Docker via GPG.
-*   Puxa as imagens oficiais e roda os comandos `ollama pull llama3.2` e `ollama pull qwen2.5-coder:7b`.
-*   O host local fica só assistindo; quando o Ollama terminar (aproximadamente 15 minutos do boot autônomo), a API Mestre no Ryzen redireciona o tráfego pesado automaticamente para o IP na subnet `100.x.x.x`.
+*   **Autenticação Via WireGuard (Tailscale)**: A arquitetura prevê que Instâncias na Cloud permaneçam circunscritas localmente dentro do túnel privado da máquina base (Mesh Desktop). Operando através de chaves ativas do WireGuard, a transação entre as tabelas vetoriais locais e o endpoint inferencial da Nuvem flui estritamente sob criptografia forte ponta a ponta na sua subrede invisível roteada pela operadora `100.x.x.x`.
+*   **Contenção de Vulnerabilidades Passivas**: O Bind TCP das instâncias vitais na Nuvem, como os contêineres Docker e Ollama, estão condicionados intrinsecamente à interface de rede isolada gerenciada pelo cliente Tailscale nativo. Port-scans independentes encontrarão recusas forçadas de conexão.
 
 ---
 
-## 6. System Resilience & Auto-Recovery (Appliance Mode)
+## 4. Otimização Analítica (Performance Paged em Processadores ARM)
 
-Para garantir que o Sovereign Pair opere como um _appliance_ indestrutível e "à prova de usuários", a infraestrutura dockerizada foi projetada para recuperação autônoma completa em 100% dos cenários de reboot local ou falha de força.
+As especificidades do provimento nas topologias ARM de Cloud gratuitas (ou de entrada empresarial) frequentemente inviabilizam alocações completas baseadas em I/O Swap Disk tradicional (Devido à severa penalização em IOPS da estrutura Block Volume que travam processos intensivos de GPU/CPU Unificada dos grandes modelos).
 
-### A Política *Restart: Always*
-O orquestrador `docker-compose.yml` impõe a diretiva `restart: always` em absolutamente todos os contêineres da tríade e periféricos cognitivos:
-- `caddy` (Proxy Reverso e SSL)
-- `postgres` (Banco Relacional)
-- `chroma` (Banco Vetorial)
-- `api` (Backend Python/FastAPI)
-- `web` (Frontend Estático VueJS / Nginx)
-- `tailscale` (VPN Zero-Trust)
-- `ollama` (Motor Local de LLM)
+As contra-medidas parametrizadas ao Cloud-Init do Host garantem que as predições sigam um curso responsivo nos cenários de stress local:
 
-### Fluxo de Boot Autônomo
-Sempre que a máquina do host (ex: Ryzen 7) reinicia, o Daemon do Docker inicializa junto ao SystemD. A partir desse momento:
-1. A rede isolada (`sovereign-net`) é restabelecida.
-2. O Tailscale sobe e autentica as chaves da malha (Mesh), permitindo acesso à Oracle (Cloud Node) imediatamente.
-3. Bancos de dados (`postgres` e `chroma`) montam seus volumes físicos montados no host.
-4. O contêiner da `api` inicia (que agora usa mapeamento limpo virtual `/app/data` blindado contra `PermissionError` do host) preenchendo o contexto no grafo (AST).
-5. O contêiner `web` expõe a UI pré-compilada, e o `caddy` expõe o tráfego seguro para o navegador.
+1. **Memória Virtual Comprimida (zram-tools)**: Antes do deploy das massas Docker, implementa-se no sistema operacional uma configuração persistente particionando as margens seguras (ex: 33% da RAM Base ou max. 8GB) configurada na compressão algoritmo LZ4. Sem tocar no disco virtual do serviço de OCI, modelos operantes liberam buffer massivamente reduzindo timeouts do banco neural nos gargalos pesados.
+2. **Flash Attention na Engine (Directives SystemD)**: Injeções controladas nativamente no unit file da Daemon (Ollama) validam concorrência nativa de fila em LLMs de janela extensiva (ex: `128K context`). Variáveis parametrizáveis de ambiente como `OLLAMA_FLASH_ATTENTION=1` reduzem restritamente alocamentos ociosos no trânsito O.S / App Layer e previnem asfixia RAM no Qwen.
 
-**Garantia:** O usuário não precisa abrir o terminal para digitar nenhum comando de subida. O sistema volta "sozinho" com o mesmo estado exato do último milissegundo antes do desligamento (Stateful).
+---
+
+## 5. Práticas de Infraestrutura como Código Automática (IaC)
+
+A implantação virtual em Servidores Terceirizados é desonerada do desenvolvedor através do fluxo de provisionamento Infrastructure as Code baseada primariamente via ferramentas HashiCorp/OpenTofu.
+
+### CI/CD Automotivo via Actions
+Um manifesto GitHub YAML parametrizado via `.github/workflows/deploy-oci.yml` provê a auditoria de estado e alocação.
+1. O gatilho operacional submete pushes validados ao caminho do diretório `infra/terraform/`.
+2. Acessos são decodificados via ambiente encriptado no próprio GitHub (Envs/Secrets), alimentando os pre-requisitos de Token OCI (`OCI_PRIVATE_KEY` e ID) e `TAILSCALE_AUTH_KEY`.
+3. Aplicações modulares em infra executam `tofu apply -auto-approve` garantindo paralelidade e integridade final entre Nuvem/Repositório de Terraform State.
+
+### Operação Cloud-Init
+Arquivos físicos descritivos acionados pela VM provedora durante milissegundos críticos após boot processam de maneira sequencial (Garantido em non-interactive shells):
+*   Restauração e padronização total da biblioteca gerencial APT Base (Removendo mirrors instáveis).
+*   Download nativo do Mesh Layer (Tailscale Tunneling Client) com ativação deferida.
+*   Instalação da Docker Engine local O.S e restabelecimento das rotinas LLM base Systemctl.
+*   Processos dissociados (`nohup background jobs`) rodam execuções que persistem o pull serializado gigabital para popular os nós dos modelos Llama/Qwen durante os primeiros minutos de uptime isolado da VPS, preservando conectividade ssh.
+
+---
+
+## 6. Integridade de Container e Self-Healing Operacional 
+
+Projetado em conformidade estrutural à metodologias 12-Factor App, eventuais reinícios não interativos de servidor (exs: Upgrades críticos Ubuntu OCI, Kernel patches do SO ou paralisações de hardware em Power-Cuts no host Edge Development) requerem nula atuação do Developer ou usuário administrador para a restauração lógica final da malha.
+
+### Orquestração em Nível Processual (Docker)
+Os módulos base contam com restrições arquiteturais aplicadas à diretiva robusta do Docker (`restart: always`), abrigando em invólucros estanques independentes as premissas de re-run automático de seus núcleos e processos filho:
+- O balanceador e gateway reverso (`caddy`).
+- Sincronização e transações de rede RESTful e Async (`api` e `n8n`).
+- Interwebs GUI renderizado com Ngnix (`web`) e bancos legados se aplicáveis (`postgres`).
+
+### Relê de Retomada a Frio do State Local
+1. Subida da daemon base Docker no Host FileSystem.
+2. Comutação sistêmica interligando sub-nets com contêineres às chaves de Tunelamento nativas.
+3. Volumes da malha efetuam o Bind Mount in-loco (Restauro temporal dos Sqlite Vectors de forma stateful).
+4. Libera-se os *Health Checks* garantindo que a conexão HTTP e SSL operem antes de injetar requests nas instâncias dos Agentes. Sem scripts de *bootstrap* auxiliares ou chaves SSH pendentes.

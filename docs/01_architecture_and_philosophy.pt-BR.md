@@ -1,75 +1,58 @@
-# Tratado I: Arquitetura e Filosofia Soberana
+# Arquitetura e Filosofia do Sistema
 
-## 1. O Manifesto Local-First: Retomando a Soberania Digital
+## 1. Princípios de Arquitetura Local-First e Soberania de Dados
 
-O cenário tecnológico moderno funciona como uma oligarquia digital. Corporações monolíticas centralizam nossos dados pessoais, códigos e pensamentos em sêneros massivos na nuvem, cobrando-nos aluguel pelo simples acesso e processamento. 
+A arquitetura do **Sovereign Pair** foi projetada para mitigar a dependência de infraestruturas em nuvem de terceiros, garantindo o controle absoluto sobre o ciclo de vida dos dados gerenciados. Os princípios fundamentais do sistema são:
 
-O **Sovereign Pair** nasceu como uma contramedida *hacktivista*. É uma declaração de independência. Nós acreditamos que:
-1. **O Seu Código é Soberano:** Ele nunca deve ser escaneado, raspado, ou usado para treinar modelos proprietários de terceiros sem o seu consentimento explícito.
-2. **Processamento é um Direito Pessoal:** A estação de trabalho de um desenvolvedor possui latência e potência suficiente (GPUs, NPUs, RAM) para executar Inteligência Artificial Geral (AGI) localmente. Nós devemos explorar isso.
-3. **Zero-Trust por Padrão:** Se os seus dados precisarem deixar a sua máquina física, eles só devem trafegar por túneis P2P encriptados (como o Tailscale) sob o seu controle absoluto corporativo.
+1. **Privacidade de Código e Dados:** O processamento ocorre primariamente em ambientes isolados, evitando o uso não intencional de dados de negócio para o treinamento de modelos fundacionais públicos.
+2. **Processamento no Edge Computacional:** A infraestrutura é dimensionada para explorar a aceleração nativa de hardware local (GPU/CPU/NPU), habilitando a execução de Modelos de Linguagem Grande (LLMs) localmente.
+3. **Padrão Zero-Trust:** As transferências de dados operacionais obrigatórias entre os nós de serviço trafegam exclusivamente via túneis criptografados em malha P2P (mTLS via Tailscale ou WireGuard), restringindo exposição à internet WAN.
 
-O Sovereign Pair é um **Sistema Multi-Agentes pronto para Produção** que conecta o seu sistema de arquivos, o seu pensamento, e a sua IDE de desenvolvimento diretamente a modelos abertos em estado-da-arte (como Llama 3 e Qwen), rodando interamente no seu hardware.
+O sistema é modular, orientado ao processamento multi-agente e integra-se diretamente ao File System local do Host, ambientes integrados de desenvolvimento (IDEs) e frameworks Open-Weight (como ecossistemas Llama 3 e Qwen).
 
-> [!TIP]
-> **Acelerador Juniores (Glossário Rápido):**
-> Leia toda a documentação não apenas como um manual, mas como uma *Masterclass* de Arquitetura. Se algo parecer complexo, confira as caixas de glossário! Nós construímos este projeto para escalar para dentro de empresas Enterprise (Mundo Corporativo), sem jamais perder a "alma de garagem" hacker.
-
-> [!NOTE] 🧬 **Código Vivo: A Porta de Entrada (SHA: `94bfb2f`)**
-> ▫️ **Front-End Espacial (Sensus Vault):** `web-ui/src/views/VaultView.vue`
+> [!NOTE] 
+> O código-fonte referente à topologia inicial de borda encontra-se mapeado pelas seguintes âncoras sistêmicas:
+> ▫️ **Front-End PWA (Sensus Vault):** `web-ui/src/views/VaultView.vue`
 > ▫️ **API Gateway (FastAPI):** `src/api/routes.py`
 
 ---
 
-## 2. A Topologia Cíbrida (*Cybrid*)
+## 2. Topologia de Distribuição Híbrida
 
-O Sovereign Pair opera sob um paradigma que cunhamos como **Cíbrido (Cybrid)**. 
-Ao invés de obrigar um desenvolvedor (ou uma empresa) a comprar um servidor GGU de R$50.000 *ou* alugar uma instância pesadíssima na Nuvem, nós hibridizamos ambos os mundos utilizando Redes *Zero-Trust*.
+O framework adota um modelo de implantação de Rede Híbrida (ou *Cíbrida*), pulverizando e distribuindo a carga de tráfego computacional restritivamente.
 
-*   **O Cérebro (Nó de Inferência):** Uma máquina local (Ex: seu desktop Ryzen/RTX em casa). Ele executa os processos pesados de Neuro-Linguagem via `Ollama` e armazena os seus "Cérebros Vetoriais" (`ChromaDB`).
-*   **O Orquestrador (Nó em Nuvem Zero-Cost):** Uma instância leve na Nuvem Oracle A1 (Free Tier) hospedando o gateway de API, os fluxos do N8N e a Interface do Usuário (Sensus Vault). Consumo cravado em $0.00/mês.
-*   **O Sistema Nervoso (Tailscale):** Uma VPN Mesh em base Wireguard que conecta o Orquestrador na nuvem direto ao seu desktop de casa, atravessando NATs e Firewalls CGL restritivos com decriptação ponta-a-ponta (E2E). Nenhuma porta aberta para a Internet selvagem (`0.0.0.0`).
+*   **Nó de Borda (Host Edge / Workstation):** Estação de processamento restrito gerenciando as rotinas intensivas preditivas (via Daemon do `Ollama`) e assegurando os repositórios vetoriais. Detém toda responsabilidade nativa em cima de proteção, CRUD de diretórios e persistência de sessões vitais de segurança.
+*   **Nó Auxiliar em Nuvem (Instância OCI):** Serviço instanciado na Oracle Cloud (Compute Node ARM64 Ampere) com o fim estrito de roteamento das interfaces auxiliares estáticas, workers desacoplados assíncronos e processamentos que fogem à jurisdição das camadas de persistência sensíveis do host físico, amortecendo picos de uso da infraestrutura central a custo zero atrelado.
+*   **Camada de Rede Abstrata (VPN Mesh):** Transferência restrita via IPs Classe 100 reservadas (`100.x.x.x`) do ambiente cliente Tailscale, erradicando *Port Bindings* perigosos e firewalls externos desavisados.
 
-> [!NOTE]
-> **Glossário: O Básico para Iniciantes**
-> *   **LLM (Large Language Model):** É o "Cérebro". Softwares como o `Ollama` rodam essas redes neurais offline no seu PC, como um arquivo `.exe` qualquer.
-> *   **RAG (Retrieval-Augmented Generation):** Um termo chique para "Dar à IA um livro aberto". Ao invés de forçar a máquina a lembrar de algo que estudou no treinamento há 2 anos, o RAG abre as pastas do seu PC, acha o arquivo correto, extrai o parágrafo da resposta e anexa na sua pergunta para a IA *ler ao vivo* antes de te responder.
-> *   **Banco de Dados Vetorial (Vector DB):** Um motor incrível que transforma textos em posições matemáticas em um espaço 3D (embeddings). O `ChromaDB` não caça palavras-chave como um `Ctrl+F` normal da sua IDE; ele caça maticamente intenções próximas na coordenada de um plano cartesiano hiper-dimensional. 
-
-> [!NOTE] 🧬 **Código Vivo: Topologia Cíbrida (SHA: `94bfb2f`)**
-> ▫️ **Ponte em Nuvem Oracle (Zero Cost):** `docker-compose.n8n.yml`
-> ▫️ **Rede Local Multi-Container:** `docker-compose.yml`
-> ▫️ **Malha Tailscale Mesh (Bind LLM):** `.env.example` (Configuração `OLLAMA_BASE_URL`)
+> [!NOTE] 
+> **Definições Arquiteturais Base:**
+> *   **LLM (Large Language Model):** Aplicação e binário inferencial hospedados tipicamente na ferramenta `Ollama`.
+> *   **RAG (Retrieval-Augmented Generation):** Técnica de extração lógica que alimenta prompts do Agente provendo uma formatação de contexto previamente apurada a partir dos Embeddings Físicos alocados antes da compilação e despacho real ao LLM em segundo plano.
+> *   **Banco de Dados (Vector DB):** Abstração relacional otimizada na biblioteca `SQLite` local, substituindo lógicas não atracadas anteriormente aplicadas via ChromaDB, com total persistência do modo WAL (Write-Ahead Logging) na recuperação hiperdimensional paralela.
 
 ---
 
-## 3. A Hierarquia Cognitiva Multi-Agente
+## 3. Orquestração de Micro-Agentes (MAS)
 
-O Sovereign Pair não é apenas um chatbot estúpido em loop infinito. É um hospital inteligente hierárquico composto de especialistas (Prompts base e rotinas) reagindo a estímulos externos:
+O código implementa de forma distribuída subsistemas ou "Micro-Agentes" modulares para evitar gargalos causados pela alucinação técnica dos modelos fundamentais globais (`Hallucinations` em janelas massivas de raciocínio).
 
-1.  **The Mom / The Dad:** Watchers de sistema. Ficam escondidos esperando você salvar um arquivo de Markdown ou PDF novo na pasta e os digere vetorialmente num processo de Ingestão Silenciosa de Conhecimento.
-2.  **The Sentinel:** A segurança bruta. Escaneia atrozmente arquivos injetados (`docs`, `pdf`, `md`) contra "Prompt Injections" ou malwares visuais antes de permitir que eles contaminem os cérebros do Sovereign.
-3.  **The Nurse (Roteadora Semântica):** A triagem rápida de pronto-socorro. Analisa a sua dor (Ex: *"Me ajuda com código"* vs. *"O que diz o RH do PDF?"*) e repassa o roteamento pro melhor especialista. Isso reduz drasticamente alucinações (devido ao Foco limitante imposto).
-4.  **The Doctor (Motor de Raciocínio LangGraph/MCP):** O gênio estrutural. Quebra a lógica multi-step, pesquisa na web, puxa seus arquivos locais nativos num protocolo unificado de contexto e raciocina antes de balbuciar bobagem textual preditiva.
-5.  **The Coder:** O Executor Cíbrido isolado e especializado estritamente na gramática de sintaxe e limpeza de refatoração para competir em altíssimo nível de produtividade dev nativa com as principais IAs de codificação de mercado.
-6.  **The Accountant:** Um motor determinístico e inflexível que revisa todas as saídas brutas aritméticas de LLMs (A IA costuma ser péssima em matemática por ser apenas completadora de texto baseada em porcentagens gramaticais). O Contador refaz e corrige para uso Enterprise Corporativo. 
+1.  **The Mom / The Dad (Indexação e I/O):** Rotinas assíncronas em monitoramento ininterrupto sob o File System da máquina (`FileWatcher` acionados pelo SO Kernels via Rust). Processam a serialização de Chunks baseados em Markdown, extraem o Metadata respectivo, e injetam via Embedding no Sqlite Vectors com baixo I/O Cost.
+2.  **The Sentinel (Filtro de Segurança Frontal):** Módulo restritivo responsável pelo escaneamento cru e rigoroso dos vetores ou requests em formato raw injetados nas pastas. Submete o prompt aos detectores focados em "Prompt Injections", inibindo contaminações executáveis antes da gravação indexada.
+3.  **The Nurse (Triagem e Roteamento O.S):** Instância classificador semântica com finalidade exata de roteamento técnico. Categoriza a *intent* da *Request API*, descolando execuções focais entre código abstrato puro, manipulação de UI PWA isoladas ou buscas baseadas em documentações (RAG Search).
+4.  **The Doctor (Inferência RAG Core via LangGraph):** Raciocínio profundo que efetua sub-steps lógicos processando interações da Knowledge Base provida matematicamente pela injeção vetorial RAG nas suas *memories local buffers*.
+5.  **The Coder (Executor Sintático Programável):** Interface de resposta atrelada a predefinições unicamente puras a programação em frameworks específicos que devolvem avaliações sistêmicas puras (Bypass do contexto livre abstrato e RAG natural).
+6.  **The Accountant (Auditoria Estrutural de Logs/Números):** Auditor lógico isolado focado no refinamento exato da precisão escalar que ataca defeitos genéricos presentes nos outputs primários de matemática não validados e de referencial cruzado providos por LLMs, gerando correções contábeis determinísticas aplicáveis antes do Payload HTTP Response.
 
-> [!NOTE] 🧬 **Código Vivo: A Hierarquia Cognitiva Pura (SHA: `94bfb2f`)**
-> ▫️ **Classe Base de Agente:** `src/agent.py`
-> ▫️ **The Sentinel (Zero-Trust/Segurança):** `src/core/the_sentinel.py`
-> ▫️ **The Mom & The Dad (Motor de Ingestão Vetorial):** `src/core/the_mom.py` & `src/core/the_dad.py`
-> ▫️ **The Nurse (Roteamento Semântico):** `src/core/the_nurse.py`
-> ▫️ **The Doctor (Raciocínio LangGraph/MCP Profundo):** `src/core/the_doctor.py`
-> ▫️ **The Accountant (Auditoria Numérica):** `src/core/the_accountant.py`
+> [!NOTE] 
+> ▫️ **Espinha Dorsal dos Agentes:** `src/agent.py`
+> ▫️ **Submódulos da Pipeline de Tarefas:** `src/core/the_*.py`
 
-## 4. Multi-Tenant Avançado (Empresas)
+## 4. Particionamento Isolado Multi-Tenant O.S
 
-Para ambientes corporativos de alto desempenho e escalabilidade de Software como Serviço (SaaS), uma cópia viva singular da API Sovereign Pair pode processar as consultas de Múltiplos Inquecilinos (`Tenants`) de forma hermética e intransponível.
+O servidor backend FastApi detém provisões e arquiteturas preparadas que englobam a fragmentação segura perante cenários Múltiplos ou Corporativos escaláveis (Multi-Tenant RAG SaaS).
 
-A arquitetura impõe um cinto de segurança no Banco de Dados Vetorial limitando por Chave. Quando a Request de Chat HTTP avança e processa o vetor, se o "O Desenvolvedor A" perguntar *"Qual foi mesmo o projeto que desenvolvemos segunda feira?"*, a busca restringirá o Contexto Histórico Matemático de forma brutal exclusivamente nos MetaDados assinados em vetor pelo CPF ou UUID do Desenvolvedor C, ignorando arquivos de terceiros.
+A engenharia contida no Retreiver impõe isolamento ao Vector Database por camada de UUID Metadata Keys atreladas na injeção da criação dos vetores textuais no SQlite, coíbindo vazamento de matriz em queries realizadas entre Contas/Client-Ids distintos processados simetricamente e simultaneamente nas bases de log. 
 
 > [!WARNING]
-> Se um Desenvolvedor recém instanciado na rede (Usuário do 1º Dia) se conectar na plataforma corporativa de RAG, naturalmente a busca pelo Vector Match falhará por falta de arquivos (`0 Nodes`). Para não quebrar o motor com a famigerada e traumatizante String `"Empty Response"` gerada artificialmente no âmago da biblioteca LlamaIndex, o back-end Sovereign desvia nativamente toda a request para um Overrider oficial, o **`Sovereign Bypass`**. A interceptação cai gentilmente do Retreiver do RAG e purifica a sua solicitação aterrizando-a em forma Conversacional Pura no Cérebro Nativo (OLLAMA direto!), mantendo o Contexto formatado. Sua Empresa nunca vai retornar telas brancas para Iniciantes do Software SaaS.
-
-> [!NOTE] 🧬 **Código Vivo: Engenharia de Contenção de Falhas (SHA: `94bfb2f`)**
-> ▫️ **O Bypass Soberano (Matador do LlamaIndex Bug):** `src/api/routes.py`
+> No estado trivial do sistema backend RAG, repositórios nativamente vazios dispararão quebras logísticas ou matrizes não passíveis de cálculo (ex: Status `"Empty Response"` do Retreiver do Node Engine submetido aos Nodes LlamaIndex). A fim de neutralizar travamentos para novos usuários implementa-se de forma sistemática nas sub-redes uma estrutura de *Fallback* apelidada de **Sovereign Bypass**, o qual intercepta Exceções de Listas Vazias e comuta a API RAG instantaneamente para uma API de Chat Genérica e Livre à Base Conversacional Base model.
