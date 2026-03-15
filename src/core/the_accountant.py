@@ -93,6 +93,8 @@ class TheAccountant:
         ast.Sub: operator.sub,
         ast.Mult: operator.mul,
         ast.Div: operator.truediv,
+        ast.USub: operator.neg,
+        ast.UAdd: operator.pos,
     }
     
     ALLOWED_FUNCTIONS = {
@@ -216,7 +218,8 @@ class TheAccountant:
                 try:
                     cell.value = float(cell.raw_content)
                 except ValueError:
-                    cell.value = 0.0
+                    # Excel-like: raw text cells evaluate as "#VALUE!" if used in formulas
+                    cell.value = "#VALUE!"
                 updates[coord] = str(cell.value)
                 return cell.value
                 
@@ -235,7 +238,9 @@ class TheAccountant:
                 val = resolve_value(ref_coord, visited)
                 if isinstance(val, str) and val in ["#REF!", "#CIRCULAR_REF!", "#ERROR!"]:
                     raise ValueError(val) # Aborta a Regex imediatamente c/ o código do erro
-                return str(val) if not isinstance(val, str) else val
+                # Dica de Mestre do Jeferson: Encapsular com Parênteses garante isolamento 
+                # e previne bugs de RegEx e Precedência Matemática com números negativos
+                return f"({val})" if not isinstance(val, str) else val
 
             try:
                 # Resolve ranges before normal references
@@ -269,8 +274,10 @@ class TheAccountant:
                         return float(_eval(node.body))
                     except ZeroDivisionError:
                         raise ZeroDivisionError()
-                    except Exception:
-                        return "#ERROR!"
+                    except Exception as e:
+                        import traceback
+                        traceback.print_exc()
+                        return f"#ERROR! {str(e)} -> {expr}"
                 
                 # Resolvendo ranges de funções especiais de antemão (Soma, Max, etc)
                 # Funções como SUM(...) não são nativas do AST manual, precisamos abstraí-las antes

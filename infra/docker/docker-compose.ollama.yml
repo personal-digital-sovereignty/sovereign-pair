@@ -1,0 +1,23 @@
+# Sovereign Pair - Local Ollama Service (Standalone)
+# Este arquivo roda o Motor de Inteligência Artificial (Ollama) isoladamente.
+# Inicie este serviço separadamente do seu Web-UI se quiser mantê-lo containerizado.
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: sovereign-ollama-standalone
+    restart: always
+    volumes:
+      - ollama-data-standalone:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - sovereign-net-ollama
+
+volumes:
+  ollama-data-standalone:
+
+
+networks:
+  sovereign-net-ollama:
+    driver: bridge

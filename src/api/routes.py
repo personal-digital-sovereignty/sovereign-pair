@@ -96,7 +96,7 @@ async def chat_endpoint(request: Request, body_request: ChatRequest, engine=Depe
                     if web_query:
                         time_labels = {'d': 'últimas 24h', 'w': 'última semana', 'm': 'último mês', 'y': 'último ano'}
                         time_info = f" ({time_labels.get(timelimit, '')})" if timelimit else ""
-                        yield f"data: {json.dumps({'content': f'🌐 *Buscando na web...{time_info}*\n\n'})}\n\n"
+                        yield f"data: {json.dumps({'content': f'*Buscando na web...{time_info}*\n\n'})}\n\n"
                         
                         # run search_web in thread so async loop isn't blocked
                         web_result = await asyncio.to_thread(search_web, web_query, timelimit)
@@ -134,15 +134,20 @@ EXTREMA IMPORTÂNCIA:
                         
                         active_llm = resolve_dynamic_llm(target_provider, target_model, get_default_llm(), api_keys)
                         
-                        response_gen = await active_llm.astream_chat(messages_to_send)
-                        
-                        full_ai_response = f"🌐 *Buscando na web...{time_info}*\n\n"
-                        async for token in response_gen:
-                            if token.delta:
-                                full_ai_response += token.delta
-                                yield f"data: {json.dumps({'content': token.delta})}\n\n"
+                        try:
+                            response_gen = await active_llm.astream_chat(messages_to_send)
+                            
+                            full_ai_response = f"*Buscando na web...{time_info}*\n\n"
+                            async for token in response_gen:
+                                if token.delta:
+                                    full_ai_response += token.delta
+                                    yield f"data: {json.dumps({'content': token.delta})}\n\n"
+                        except Exception as e:
+                            logger_routes.error(f"Failed to infer from LLM (Web Search): {e}")
+                            err_msg = f"\n\n**Falha Crítica Cíbrida (Web Search):**\nO motor LLM ({target_provider}) recusou a inferência ou está offline.\nDetalhe Técnico: `{str(e)}`"
+                            yield f"data: {json.dumps({'content': err_msg})}\n\n"
                     else:
-                        full_ai_response = "⚠️  **Uso:** `/web <query>`\n\n**Filtros:** `/web -d` (dia), `/web -w` (semana), `/web -m` (mês), `/web -y` (ano)"
+                        full_ai_response = "**Uso:** `/web <query>`\n\n**Filtros:** `/web -d` (dia), `/web -w` (semana), `/web -m` (mês), `/web -y` (ano)"
                         yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
 
                 elif body_request.message.strip().startswith('/sys'):
@@ -152,10 +157,10 @@ EXTREMA IMPORTÂNCIA:
                     sys_query = body_request.message.strip()[4:].strip()
                     
                     if not sys_query:
-                        full_ai_response = "⚠️  **Uso:** `/sys <pergunta sobre a arquitetura do backend>`"
+                        full_ai_response = "**Uso:** `/sys <pergunta sobre a arquitetura do backend>`"
                         yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
                     else:
-                        yield f"data: {json.dumps({'content': '🧠 *Consultando Sistema Meta-RAG...*\n\n'})}\n\n"
+                        yield f"data: {json.dumps({'content': '*Consultando Sistema RAG...*\n\n'})}\n\n"
                         try:
                             db_provider = _get_setting_value(db, "llm_provider", "openai", tenant_id)
                             db_model = _get_setting_value(db, "llm_model", "gpt-4o-mini", tenant_id)
@@ -172,11 +177,11 @@ EXTREMA IMPORTÂNCIA:
                             
                             sys_engine = build_system_chat_engine(target_provider, target_model, api_keys)
                             if not sys_engine:
-                                full_ai_response = "❌ Erro: O Motor de Sistema não pôde ser iniciado. O banco vetorial foi criado?"
+                                full_ai_response = "Erro: O Motor de Sistema não pôde ser iniciado. O banco vetorial foi criado?"
                                 yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
                             else:
                                 response = await sys_engine.astream_chat(sys_query)
-                                full_ai_response = "🧠 *Consultando Sistema Meta-RAG...*\n\n"
+                                full_ai_response = "*Consultando Sistema RAG...*\n\n"
                                 
                                 async_gen = response.async_response_gen()
                                 async for token in async_gen:
@@ -191,7 +196,7 @@ EXTREMA IMPORTÂNCIA:
                                     if metadata and metadata.get("file_path"):
                                         import os
                                         filename = os.path.basename(metadata.get('file_path'))
-                                        sources.add(f"🛠️ {filename}")
+                                        sources.add(f"{filename}")
                                         
                                 if sources:
                                     sources_str = "\n".join(sources)
@@ -199,8 +204,9 @@ EXTREMA IMPORTÂNCIA:
                                     full_ai_response += final_msg
                                     yield f"data: {json.dumps({'content': final_msg})}\n\n"
                         except Exception as e:
-                            logger_routes.error(f"Meta-RAG Error: {e}")
-                            full_ai_response = f'❌ Erro interno no Meta-RAG: {e}'
+                            import traceback
+                            logger_routes.error(f"RAG Error: {e}\n{traceback.format_exc()}")
+                            full_ai_response = f'Erro interno no RAG: {e}'
                             yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
 
                 else:
@@ -232,7 +238,7 @@ EXTREMA IMPORTÂNCIA:
                         # Execução Tática Ultra-Rápida pela "Enfermeira"
                         response_gen = await nurse.execute_tactical_task(body_request.message, context_str, intent_data)
                         
-                        full_ai_response = f"*(✨ Tarefa Tática Executada pela The Nurse ({intent_data.get('task_type', 'extraction')}))*\n\n"
+                        full_ai_response = f"*(Tarefa Tática Executada pela The Nurse ({intent_data.get('task_type', 'extraction')}))*\n\n"
                         yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
                         
                         async for token in response_gen:
@@ -243,7 +249,7 @@ EXTREMA IMPORTÂNCIA:
                         # --- EXECUÇÃO TIER 4: O Médico (Heavy LLM & Deep Synthesis) ---
                         from src.core.the_doctor import TheDoctor
                         doctor = TheDoctor(body_request.provider, body_request.model, engine, api_keys)
-                        yield f"data: {json.dumps({'content': '*(🧠 Raciocínio Profundo do The Doctor ativado...)*\n\n'})}\n\n"
+                        yield f"data: {json.dumps({'content': '*(Raciocínio Profundo do The Doctor ativado...)*\n\n'})}\n\n"
                         
                         print(f"[DEBUG RAG] Executando The Doctor (Tier 4) via {getattr(doctor.llm, 'model', 'N/A')}...", flush=True)
                         try:
@@ -254,7 +260,7 @@ EXTREMA IMPORTÂNCIA:
 
                             response_gen = await doctor.execute_deep_reasoning(body_request.message, context_str, intent_data)
                             
-                            full_ai_response = "*(🧠 Raciocínio Profundo do The Doctor ativado...)*\n\n"
+                            full_ai_response = "*(Raciocínio Profundo do The Doctor ativado...)*\n\n"
                             async for token in response_gen:
                                 if token:
                                     full_ai_response += token
@@ -263,7 +269,7 @@ EXTREMA IMPORTÂNCIA:
                         except (TimeoutError, httpx.TimeoutException, Exception) as e:
                             # Fallback Gracioso de Rede
                             print(f"[FALLBACK RAG] Erro ao alcançar o Cloud Node ({str(e)}). Redirecionando para The Nurse SLM Local...")
-                            fallback_msg = "*(⚠️ Raciocínio Profundo Indisponível (Nó Remoto Offline). Redirecionando para The Nurse Local...)*\n\n"
+                            fallback_msg = "*(Raciocínio Profundo Indisponível (Nó Remoto Offline). Redirecionando para The Nurse Local...)*\n\n"
                             yield f"data: {json.dumps({'content': fallback_msg})}\n\n"
                             full_ai_response = fallback_msg
                             
@@ -314,7 +320,7 @@ EXTREMA IMPORTÂNCIA:
                 import traceback
                 import logging
                 logger = logging.getLogger(__name__)
-                err_msg = f"\n\n❌ **Erro Inesperado no RAG/Web:**\n```\n{str(e)}\n\n{traceback.format_exc()}\n```"
+                err_msg = f"\n\n**Erro Inesperado no RAG/Web:**\n```\n{str(e)}\n\n{traceback.format_exc()}\n```"
                 logger.error(f"Erro no event_generator FastAPI: {e}\n{traceback.format_exc()}")
                 full_ai_response += err_msg
                 yield f"data: {json.dumps({'content': err_msg})}\n\n"
@@ -391,9 +397,9 @@ EXTREMA IMPORTÂNCIA:
                 active_llm = resolve_dynamic_llm(body_request.provider, body_request.model, get_default_llm())
                 response = await active_llm.achat(messages_to_send)
                 
-                full_ai_response = f"🌐 *Buscando na web...{time_info}*\n\n{str(response)}"
+                full_ai_response = f"*Buscando na web...{time_info}*\n\n{str(response)}"
             else:
-                full_ai_response = "⚠️  **Uso:** `/web <query>`\n\n**Filtros:** `/web -d` (dia), `/web -w` (semana), `/web -m` (mês), `/web -y` (ano)"
+                full_ai_response = "**Uso:** `/web <query>`\n\n**Filtros:** `/web -d` (dia), `/web -w` (semana), `/web -m` (mês), `/web -y` (ano)"
                 
             # Gravar a mensagem da IA sincrona no SQLite
             ai_msg_db = ChatMessage(session_id=session_obj.id, role="assistant", content=full_ai_response, tenant_id=tenant_id)
@@ -409,17 +415,17 @@ EXTREMA IMPORTÂNCIA:
             sys_query = body_request.message.strip()[4:].strip()
             
             if not sys_query:
-                full_ai_response = "⚠️  **Uso:** `/sys <pergunta sobre a arquitetura do backend>`"
+                full_ai_response = "**Uso:** `/sys <pergunta sobre a arquitetura do backend>`"
                 sources = []
             else:
                 try:
                     sys_engine = build_system_chat_engine(body_request.provider, body_request.model)
                     if not sys_engine:
-                        full_ai_response = "❌ Erro: O Motor de Sistema não pôde ser iniciado."
+                        full_ai_response = "Erro: O Motor de Sistema não pôde ser iniciado."
                         sources = []
                     else:
                         response = await sys_engine.achat(sys_query)
-                        full_ai_response = f"🧠 *Consultando Sistema Meta-RAG...*\n\n{str(response)}"
+                        full_ai_response = f"*Consultando Sistema RAG...*\n\n{str(response)}"
                         
                         source_nodes = getattr(response, "source_nodes", [])
                         sources = []
@@ -429,11 +435,12 @@ EXTREMA IMPORTÂNCIA:
                                 if metadata and metadata.get("file_path"):
                                     import os
                                     filename = os.path.basename(metadata.get('file_path'))
-                                    sources.append(Citation(source=f"🛠️ {filename}"))
+                                    sources.append(Citation(source=f"{filename}"))
                                     
                 except Exception as e:
-                    logger_routes.error(f"Meta-RAG Error: {e}")
-                    full_ai_response = f"❌ Erro interno no Meta-RAG: {e}"
+                    import traceback
+                    logger_routes.error(f"RAG Error: {e}\n{traceback.format_exc()}")
+                    full_ai_response = f"Erro interno no RAG: {e}"
                     sources = []
                     
             ai_msg_db = ChatMessage(session_id=session_obj.id, role="assistant", content=full_ai_response)
@@ -483,7 +490,7 @@ EXTREMA IMPORTÂNCIA:
                 
                 # Se AINDA SIM vier vazio, então era um erro real de tag/Ollama (404/500).
                 if not full_ai_response.strip():
-                     full_ai_response = f"❌ Erro Crítico Motor LLM: O modelo '{body_request.model}' não foi encontrado ou abortou a geração no Backend (Verifique a Tag do provedor, ex: 'qwen2.5:0.5b')."
+                     full_ai_response = f"Erro Crítico Motor LLM: O modelo '{body_request.model}' não foi encontrado ou abortou a geração no Backend (Verifique a Tag do provedor, ex: 'qwen2.5:0.5b')."
                 else:
                      source_nodes = [] # Limpa citações já que foi direto pro LLM
 
@@ -504,10 +511,10 @@ EXTREMA IMPORTÂNCIA:
             
         except (TimeoutError, httpx.TimeoutException):
             # Captura exception generica se nao engolida e ja estavamos no Fallback mode, manda um friendly error
-            err_msg = "*(⚠️ Conexão Remota Inalcançável. The Mom e The Nurse falharam ao processar Localmente)*"
+            err_msg = "*(Conexão Remota Inalcançável. The Mom e The Nurse falharam ao processar Localmente)*"
             return ChatResponse(response=err_msg, sources=[])
         except Exception as e:
-            err_msg = f"❌ Exceção Crítica no Motor LLM ({body_request.provider}/{body_request.model}): {str(e)}"
+            err_msg = f"Exceção Crítica no Motor LLM ({body_request.provider}/{body_request.model}): {str(e)}"
             return ChatResponse(response=err_msg, sources=[])
         finally:
             if getattr(body_request, 'active_document', None) and temp_sys_msg:
@@ -691,6 +698,37 @@ async def save_feedback(req: FeedbackRequest, db: Session = Depends(get_db), ten
     return {"status": "ok"}
 
 
+class SyncMessageRequest(BaseModel):
+    message_id: int
+    session_id: int
+    content: str
+
+@router.post("/chat/sync_message")
+async def sync_message(req: SyncMessageRequest, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
+    """Receives the final streaming answer generated by the Rust Core and upserts it to SQLite so feedback can target an exact ID."""
+    msg = None
+    if req.message_id > 0 and req.message_id < 2147483647: # Only try to query if it's a valid integer (not a JS timestamp placeholder)
+        msg = db.query(ChatMessage).filter(ChatMessage.id == req.message_id, ChatMessage.tenant_id == tenant_id).first()
+    
+    if msg:
+        msg.content = req.content
+        db.commit()
+        db.refresh(msg)
+        return {"status": "synced", "message_id": msg.id}
+    else:
+        new_msg = ChatMessage(
+            session_id=req.session_id,
+            role="assistant",
+            content=req.content,
+            tenant_id=tenant_id
+        )
+        db.add(new_msg)
+        db.commit()
+        db.refresh(new_msg)
+        return {"status": "created", "message_id": new_msg.id}
+
+
+
 @router.post("/upload", response_model=UploadResponse)
 @limiter.limit("20/minute")
 async def upload_document(
@@ -779,7 +817,7 @@ async def upload_document(
 
 def _get_setting_value(db: Session, key: str, default: str, tenant_id: str) -> str:
     setting = db.query(SystemSettings).filter(SystemSettings.setting_key == key, SystemSettings.tenant_id == tenant_id).first()
-    return setting.setting_value if setting and setting.setting_value else default
+    return setting.setting_value if setting is not None else default
 
 def _set_setting_value(db: Session, key: str, value: str, tenant_id: str):
     setting = db.query(SystemSettings).filter(SystemSettings.setting_key == key, SystemSettings.tenant_id == tenant_id).first()
@@ -932,24 +970,37 @@ def is_path_authorized(target_path: str, auth_dirs: list) -> bool:
 def get_active_ollama_url(db: Session, tenant_id: str = "default") -> str:
     from src.config import OLLAMA_BASE_URL as ENV_OLLAMA_BASE_URL
     import json
-    from sqlalchemy import text
+    import sqlite3
+    import os
+    
+    url_to_use = ENV_OLLAMA_BASE_URL
     
     try:
-        # A interface Cíbrida (via Rust) escreve a seleção de clusters na tabela `global_settings`
-        query = text("SELECT value_json FROM global_settings WHERE id = 'ollama_clusters'")
-        clusters_json_str = db.execute(query).scalar()
-        if clusters_json_str:
-            data = json.loads(clusters_json_str)
-            active_id = data.get("active_cluster_id", "")
-            for c in data.get("clusters", []):
-                if c.get("id") == active_id:
-                    url = c.get("url", ENV_OLLAMA_BASE_URL)
-                    return url.rstrip('/')
+        # A interface Cíbrida (via Rust) escreve a seleção de clusters na tabela `global_settings` no SQLite Local
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        db_path = os.getenv("SOVEREIGN_MEMORY_DB", os.path.join(base_dir, "data", "sovereign_memory.db"))
+        
+        if os.path.exists(db_path):
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT value_json FROM global_settings WHERE id = 'ollama_clusters'")
+                row = cursor.fetchone()
+                if row:
+                    data = json.loads(row[0])
+                    active_id = data.get("active_cluster_id", "")
+                    for c in data.get("clusters", []):
+                        if c.get("id") == active_id:
+                            url_to_use = c.get("url", ENV_OLLAMA_BASE_URL)
+                            break
     except Exception as e:
-        print(f"Error resolving active Ollama URL from global_settings: {e}")
+        print(f"Error resolving active Ollama URL from SQLite global_settings: {e}")
         pass
         
-    return ENV_OLLAMA_BASE_URL.rstrip('/')
+    # Translate localhost to host.docker.internal dynamically ONLY if running inside Docker
+    if os.path.exists('/.dockerenv'):
+        url_to_use = url_to_use.replace("localhost", "host.docker.internal").replace("127.0.0.1", "host.docker.internal")
+        
+    return url_to_use.rstrip('/')
 
 @router.get("/ollama/models")
 @limiter.limit("60/minute")
@@ -1319,6 +1370,7 @@ async def evaluate_table(request: Request, body: TableCalcRequest, tenant_id: st
     engine = TheAccountant()
     
     # Registra todas as células na RAM (Constrói a Grafo de Dependências)
+    print(f"PAYLOAD DO VUE: {body.cells}")
     for coord, content in body.cells.items():
         engine.register_cell(coord, content)
         
@@ -1778,9 +1830,30 @@ class ClusterUpdatePayload(BaseModel):
 def save_ollama_clusters(request: Request, payload: ClusterUpdatePayload, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_user)):
     """Overrides the active cluster routing logic for RAG connections."""
     import json
-    _set_setting_value(db, "ollama_clusters", json.dumps(payload.clusters), tenant_id)
+    import os
+    import sqlite3
+    
+    # Salva no DB Postgres (Legado/UI State isolado)
+    clusters_json = json.dumps([c if isinstance(c, dict) else c.dict() for c in payload.clusters])
+    _set_setting_value(db, "ollama_clusters", clusters_json, tenant_id)
     _set_setting_value(db, "active_ollama_cluster_id", payload.active_cluster_id, tenant_id)
     db.commit()
+    
+    # Salva fisicamente no SQLite (Rust Cíbrido Local API Sync)
+    try:
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        db_path = os.getenv("SOVEREIGN_MEMORY_DB", os.path.join(base_dir, "data", "sovereign_memory.db"))
+        
+        if os.path.exists(db_path):
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("CREATE TABLE IF NOT EXISTS global_settings (id TEXT PRIMARY KEY, value_json TEXT NOT NULL)")
+                payload_json = json.dumps({"clusters": [c if isinstance(c, dict) else c.dict() for c in payload.clusters], "active_cluster_id": payload.active_cluster_id})
+                cursor.execute("INSERT OR REPLACE INTO global_settings (id, value_json) VALUES ('ollama_clusters', ?)", (payload_json,))
+                conn.commit()
+    except Exception as e:
+        print(f"Failed to sync SQLite settings: {e}")
+        
     return {"status": "success"}
 
 # ---------------------------------------------------------

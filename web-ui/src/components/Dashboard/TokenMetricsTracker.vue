@@ -48,7 +48,7 @@
                     <div class="flex gap-2 text-[10px] text-surface-400 font-mono mt-0.5">
                         <span class="text-indigo-400/80">{{ averageTPS }} t/s</span>
                         <span class="text-surface-600">|</span>
-                        <span>Ryzen Runtime</span>
+                        <span>{{ clusterName }}</span>
                     </div>
                  </div>
               </div>
@@ -82,19 +82,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const totalTokens = ref(0)
 const estimatedSavings = ref(0.0)
 const averageTPS = ref(0)
-const hardware = ref({ cpu: 12, ram: 14.5, io: 45.2 })
-let hwInterval: any = null
+const hardware = ref({ cpu: 0, ram: 0, io: 0 })
+const clusterName = ref('Desconhecido')
 
 // O custo é calculado dinamicamente no Backend Node (Rust) baseado no Provider/Model
 
 const fetchTelemetry = async () => {
    try {
       const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
+      
+      if (RUST_CORE_URL.includes('localhost') || RUST_CORE_URL.includes('127.0.0.1')) {
+          clusterName.value = 'Ryzen Runtime'
+      } else {
+          clusterName.value = 'Oracle Cloud OCI'
+      }
+
       const res = await fetch(`${RUST_CORE_URL}/v1/analytics/telemetry`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` }
       })
@@ -104,6 +111,16 @@ const fetchTelemetry = async () => {
           totalTokens.value = data.total_tokens || 0 
           averageTPS.value = data.avg_tps || 0
           estimatedSavings.value = data.estimated_cost || 0
+
+          if (data.hardware) {
+              hardware.value.cpu = data.hardware.cpu || 0
+              hardware.value.ram = data.hardware.ram || 0
+              hardware.value.io = data.hardware.io || 0
+          }
+
+          if (data.cronos) {
+              window.dispatchEvent(new CustomEvent('cronos-telemetry-update', { detail: data.cronos }))
+          }
       }
    } catch(e) {
       console.warn("⚠️ Servidor Rust (Core) não alcançável. Mantendo último estado de Telemetria.")
@@ -117,21 +134,9 @@ onMounted(() => {
    
    // Polling Agressivo no Rust O.S (Rust resolve JSONs em nanosegundos com zero I/O Bound)
    fetchInterval = setInterval(fetchTelemetry, 2500) 
-   
-   // Randomizer visual para a Barrinha Mock do Hardware (Variando uso pra dar 'vida')
-   hwInterval = setInterval(() => {
-       hardware.value.cpu = Math.max(2, Math.min(98, hardware.value.cpu + (Math.random() * 20 - 10)))
-       hardware.value.ram = Math.max(8, Math.min(30, hardware.value.ram + (Math.random() * 2 - 1)))
-       hardware.value.io = Math.max(5, Math.min(500, hardware.value.io + (Math.random() * 100 - 50)))
-       hardware.value.cpu = Number(hardware.value.cpu.toFixed(1))
-       hardware.value.ram = Number(hardware.value.ram.toFixed(1))
-       hardware.value.io = Number(hardware.value.io.toFixed(1))
-   }, 3000)
 })
 
-import { onUnmounted } from 'vue'
 onUnmounted(() => {
-    if (hwInterval) clearInterval(hwInterval)
     if (fetchInterval) clearInterval(fetchInterval)
 })
 </script>

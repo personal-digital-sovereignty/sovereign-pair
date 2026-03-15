@@ -46,29 +46,38 @@ def _check_url_health(url: str) -> bool:
     return is_up
 
 def _get_active_ollama_url() -> str:
-    """Resolve a URL do cluster ativo em tempo real no banco, aplicando TTL Healthcheck."""
+    """Resolve a URL do cluster ativo em tempo real no banco SQLite (Rust Core), aplicando TTL Healthcheck."""
     from src.config import OLLAMA_BASE_URL
     import json
+    import sqlite3
+    import os
     
-    active_id = _get_setting("active_ollama_cluster_id", "")
-    if not active_id:
-        return OLLAMA_BASE_URL
-        
-    clusters_json = _get_setting("ollama_clusters", "[]")
     try:
-        clusters = json.loads(clusters_json)
-        for c in clusters:
-            if c.get("id") == active_id:
-                url = c.get("url", OLLAMA_BASE_URL)
-                
-                # Se for diferente do nó local padrāo, valida a saúde pra não travar a UI toda
-                if url and url != OLLAMA_BASE_URL and not _check_url_health(url):
-                    return OLLAMA_BASE_URL
-                return url
-    except Exception:
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        db_path = os.getenv("SOVEREIGN_MEMORY_DB", os.path.join(base_dir, "data", "sovereign_memory.db"))
+        
+        if os.path.exists(db_path):
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT value_json FROM global_settings WHERE id = 'ollama_clusters'")
+                row = cursor.fetchone()
+                if row:
+                    data = json.loads(row[0])
+                    active_id = data.get("active_cluster_id", "")
+                    for c in data.get("clusters", []):
+                        if c.get("id") == active_id:
+                            url = c.get("url", OLLAMA_BASE_URL)
+                            if url and os.path.exists('/.dockerenv'):
+                                url = url.replace("localhost", "host.docker.internal").replace("127.0.0.1", "host.docker.internal")
+                            # Se for diferente do nó local padrāo, valida a saúde
+                            if url and url != OLLAMA_BASE_URL and not _check_url_health(url):
+                                return OLLAMA_BASE_URL
+                            return url.rstrip('/')
+    except Exception as e:
+        logger.error(f"Erro ao ler ollama_clusters do SQLite: {e}")
         pass
         
-    return OLLAMA_BASE_URL
+    return OLLAMA_BASE_URL.rstrip('/')
 
 def get_llm(provider: str, model: str, temperature: float = 0.1, request_timeout: float = 900.0, **kwargs) -> Any:
     """
@@ -111,43 +120,8 @@ def get_llm(provider: str, model: str, temperature: float = 0.1, request_timeout
                 }
             },
         )
-    elif provider == "openai":
-        from llama_index.llms.openai import OpenAI
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            logger.warning("OPENAI_API_KEY não configurada no .env")
-        return OpenAI(
-            model=model.replace("openai/", ""), # Permitir nomenclaturas com prefixo opcional
-            temperature=temperature,
-            api_key=api_key,
-            request_timeout=request_timeout,
-        )
-    elif provider == "anthropic":
-        from llama_index.llms.anthropic import Anthropic
-        api_key = os.getenv("ANTHROPIC_API_KEY")
-        if not api_key:
-            logger.warning("ANTHROPIC_API_KEY não configurada no .env")
-        return Anthropic(
-            model=model.replace("anthropic/", ""),
-            temperature=temperature,
-            api_key=api_key,
-            timeout=request_timeout,
-        )
-    elif provider == "groq":
-        from llama_index.llms.groq import Groq
-        api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            logger.warning("GROQ_API_KEY não configurada no .env")
-        return Groq(
-            model=model.replace("groq/", ""),
-            temperature=temperature,
-            api_key=api_key,
-            request_timeout=request_timeout,
-        )
-    elif provider == "gemini":
-        raise ValueError("O provedor Gemini foi temporariamente blindado e removido do Sovereign Pair para permitir a mitigação de Nível Crítico (CVE do pacote Pillow >= 12.1.1).")
     else:
-        raise ValueError(f"Provedor LLM não suportado: {provider}")
+        raise ValueError(f"Provedor LLM não suportado (apenas ollama disponível nesta build soberana): {provider}")
 
 def get_embedding_model(provider: str, model: str, **kwargs) -> Any:
     """
@@ -169,15 +143,6 @@ def get_embedding_model(provider: str, model: str, **kwargs) -> Any:
             model_name=model,
             base_url=base_url,
             ollama_additional_kwargs={"keep_alive": "24h"}
-        )
-    elif provider == "openai":
-        from llama_index.embeddings.openai import OpenAIEmbedding
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            logger.warning("OPENAI_API_KEY não configurada.")
-        return OpenAIEmbedding(
-            model=model.replace("openai/", ""),
-            api_key=api_key,
         )
     else:
         # Padrão ou HuggingFace local

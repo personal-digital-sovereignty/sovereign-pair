@@ -15,7 +15,12 @@ async def raw_astream_chat(
     """
     
     if provider == "ollama":
-        base_url = api_keys.get("custom_ollama_url") or OLLAMA_BASE_URL
+        try:
+            from src.llm_factory import _get_active_ollama_url
+            dynamic_base = _get_active_ollama_url()
+        except ImportError:
+            dynamic_base = OLLAMA_BASE_URL
+        base_url = api_keys.get("custom_ollama_url") or dynamic_base
         endpoint = f"{base_url}/api/chat"
         payload = {
             "model": model,

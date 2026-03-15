@@ -68,22 +68,34 @@
            @mousemove="handleEditorMouseMove" 
            @mouseleave="hoveredCellCoordinate = null">
         
-        <!-- SOURCE PANE -->
-        <div v-show="viewMode === 'source' || viewMode === 'split'" 
-             :class="viewMode === 'split' ? 'w-1/2 border-r border-surface-800' : 'w-full max-w-4xl mx-auto'" 
-             class="h-full flex flex-col p-8 overflow-y-auto">
-            <textarea 
-               v-model="rawMarkdown"
-               @input="handleSourceInput"
-               class="flex-1 w-full bg-transparent text-primary-400 font-mono text-[13px] leading-relaxed resize-none outline-none" 
-               spellcheck="false" 
-               placeholder="Escreva seu Markdown aqui..."></textarea>
+        <!-- CODE FILE PANE Fallback -->
+        <div v-if="isCodeFile" class="w-full max-w-4xl mx-auto h-full flex flex-col p-8 overflow-y-auto custom-scrollbar">
+            <!-- Meta/Header -->
+            <div class="mb-4 text-xs text-surface-500 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-emerald-500" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M10 10.5 8 13l2 2.5"/><path d="m14 10.5 2 2.5-2 2.5"/></svg>
+                <span class="font-mono text-emerald-400 font-bold tracking-wider">{{ docData.path?.split('/').pop() || docData.name }}</span>
+                <span class="ml-auto bg-surface-800/80 px-2 py-1 rounded text-[10px] text-surface-400">Somente Leitura (Protegido)</span>
+            </div>
+            <pre class="bg-[#111] p-6 rounded-xl border border-surface-700/50 text-surface-300 font-mono text-[13px] leading-relaxed overflow-x-auto shadow-inner"><code class="language-any">{{ rawMarkdown }}</code></pre>
         </div>
 
-        <!-- VISUAL PANE (TipTap) -->
-        <div v-show="viewMode === 'visual' || viewMode === 'split'" 
-             :class="viewMode === 'split' ? 'w-1/2' : 'w-full max-w-4xl mx-auto'"
-             class="h-full flex flex-col p-8 overflow-y-auto relative custom-scrollbar">
+        <div v-else class="contents">
+            <!-- SOURCE PANE -->
+            <div v-show="viewMode === 'source' || viewMode === 'split'" 
+                 :class="viewMode === 'split' ? 'w-1/2 border-r border-surface-800' : 'w-full max-w-4xl mx-auto'" 
+                 class="h-full flex flex-col p-8 overflow-y-auto">
+                <textarea 
+                   v-model="rawMarkdown"
+                   @input="handleSourceInput"
+                   class="flex-1 w-full bg-transparent text-primary-400 font-mono text-[13px] leading-relaxed resize-none outline-none" 
+                   spellcheck="false" 
+                   placeholder="Escreva seu Markdown aqui..."></textarea>
+            </div>
+
+            <!-- VISUAL PANE (TipTap) -->
+            <div v-show="viewMode === 'visual' || viewMode === 'split'" 
+                 :class="viewMode === 'split' ? 'w-1/2' : 'w-full max-w-4xl mx-auto'"
+                 class="h-full flex flex-col p-8 overflow-y-auto relative custom-scrollbar">
              
           <!-- Document Properties UI -->
           <div v-if="showProperties" class="mb-6 p-4 rounded-xl bg-surface-800 border border-surface-700 shadow-inner animate-in fade-in slide-in-from-top-2 flex-shrink-0">
@@ -283,6 +295,7 @@
       <editor-content :editor="editor" class="flex-1 w-full prose max-w-none focus:outline-none pb-32" />
 
         </div>
+        </div>
       </div>
     </div>
   </div>
@@ -293,6 +306,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import { BubbleMenu, FloatingMenu } from '@tiptap/vue-3/menus'
 import StarterKit from '@tiptap/starter-kit'
+import Focus from '@tiptap/extension-focus'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import { Table } from '@tiptap/extension-table'
@@ -308,6 +322,14 @@ import yaml from 'js-yaml'
 
 // TipTap Extended Plugins for Data Ingestion
 const SensusTableCell = TableCell.extend({
+  name: 'tableCell',
+  content: 'paragraph',
+  addKeyboardShortcuts() {
+    return {
+      ...this.parent?.(),
+      Enter: () => this.editor.commands.goToNextCell()
+    }
+  },
   addAttributes() {
     return {
       ...this.parent?.(),
@@ -332,6 +354,14 @@ const SensusTableCell = TableCell.extend({
 })
 
 const SensusTableHeader = TableHeader.extend({
+  name: 'tableHeader',
+  content: 'paragraph',
+  addKeyboardShortcuts() {
+    return {
+      ...this.parent?.(),
+      Enter: () => this.editor.commands.goToNextCell()
+    }
+  },
   addAttributes() {
     return {
       ...this.parent?.(),
@@ -386,6 +416,12 @@ const isBinaryFile = computed(() => {
     if (!docData.value?.name) return false
     const ext = docData.value.name.split('.').pop()?.toLowerCase() || ''
     return ['pdf', 'docx', 'odt', 'epub', 'rtf', 'pptx', 'xlsx'].includes(ext)
+})
+
+const isCodeFile = computed(() => {
+    if (!docData.value?.name) return false
+    const ext = docData.value.name.split('.').pop()?.toLowerCase() || ''
+    return ['rs', 'py', 'ts', 'js', 'vue', 'json', 'toml', 'yaml', 'yml', 'sh', 'css', 'html', 'sql', 'cpp', 'c', 'go'].includes(ext)
 })
 
 const injectToSpotlight = () => {
@@ -461,7 +497,14 @@ const buildMarkdownWithFrontmatter = (content: string, propsObj: Record<string, 
 const syncPropertiesToSource = () => {
     if (!editor.value) return;
     // @ts-expect-error
-    const markdownContent = editor.value.storage.markdown.getMarkdown()
+    let markdownContent = editor.value.storage.markdown.getMarkdown()
+    
+    // Sensus Patch: Evita que o TipTap escape os asteriscos de multiplicação em Fórmulas da Tabela
+    markdownContent = markdownContent.split('\n').map((line: string) => {
+        if (line.trim().startsWith('|') && line.includes('=')) return line.replace(/\\\*/g, '*');
+        return line;
+    }).join('\n');
+
     const fullMarkdown = buildMarkdownWithFrontmatter(markdownContent, documentProperties.value)
     rawMarkdown.value = fullMarkdown
     debounceSave(fullMarkdown)
@@ -587,23 +630,25 @@ const debounceTableEvaluate = (editorInstance: any) => {
                         
                         const result = data.results[cellId];
                         const hasError = data.errors[cellId] !== undefined;
+                        const isFocused = state.selection.from >= pos && state.selection.to <= pos + node.nodeSize;
                         
-                        console.log("AST Sync ->", cellId, "raw:", rawContent, "res:", result, "attrs:", node.attrs);
-                        
-                        // O Visor Matemático de cálculo só cobre células cujo conteúdo inicia com '=' ou tem erros
-                        if (rawContent.startsWith('=') || hasError) {
-                            if (node.attrs.sensusValue !== result || !!node.attrs.sensusError !== hasError) {
-                               tr = tr.setNodeMarkup(pos, null, {
-                                   ...node.attrs,
-                                   sensusValue: result,
-                                   sensusError: hasError
-                               });
-                               modified = true;
-                            }
-                        } else {
-                            if (node.attrs.sensusValue !== null || node.attrs.sensusError !== false) {
-                               tr = tr.setNodeMarkup(pos, null, { ...node.attrs, sensusValue: null, sensusError: false });
-                               modified = true;
+                        // Avoid mutating the currently focused cell to prevent ProseMirror from destroying cursor state
+                        if (!isFocused) {
+                            // O Visor Matemático de cálculo só cobre células cujo conteúdo inicia com '=' ou tem erros
+                            if (rawContent.startsWith('=') || hasError) {
+                                if (node.attrs.sensusValue !== result || !!node.attrs.sensusError !== hasError) {
+                                   tr = tr.setNodeMarkup(pos, null, {
+                                       ...node.attrs,
+                                       sensusValue: result,
+                                       sensusError: hasError
+                                   });
+                                   modified = true;
+                                }
+                            } else {
+                                if (node.attrs.sensusValue !== null || node.attrs.sensusError !== false) {
+                                   tr = tr.setNodeMarkup(pos, null, { ...node.attrs, sensusValue: null, sensusError: false });
+                                   modified = true;
+                                }
                             }
                         }
                         
@@ -643,6 +688,7 @@ const handleSourceInput = () => {
             // Sincroniza TipTap com Source sem triggar onUpdate infinito e sem Frontmatter
             editor.value?.commands.setContent(parsed.content, { emitUpdate: false })
             computeEditorStats(rawMarkdown.value)
+            setTimeout(() => debounceTableEvaluate(editor.value), 100)
         }, 500)
     }
 }
@@ -651,6 +697,10 @@ const editor = useEditor({
   content: '', 
   extensions: [
     StarterKit,
+    Focus.configure({
+      className: 'has-focus',
+      mode: 'all',
+    }),
     Markdown.configure({
         // Extract raw markdown instead of HTML
     }),
@@ -689,7 +739,14 @@ const editor = useEditor({
   onUpdate: ({ editor }) => {
     // Convert current TipTap Editor State into pure Markdown
     // @ts-expect-error extension typings inject this dynamically
-    const markdownContent = editor.storage.markdown.getMarkdown() 
+    let markdownContent = editor.storage.markdown.getMarkdown() 
+    
+    // Sensus Patch: Evita que o TipTap escape os asteriscos de multiplicação em Fórmulas da Tabela
+    markdownContent = markdownContent.split('\n').map((line: string) => {
+        if (line.trim().startsWith('|') && line.includes('=')) return line.replace(/\\\*/g, '*');
+        return line;
+    }).join('\n');
+
     const fullMarkdown = buildMarkdownWithFrontmatter(markdownContent, documentProperties.value)
     
     if (props.viewMode === 'visual' || props.viewMode === 'split') {
@@ -698,6 +755,12 @@ const editor = useEditor({
     debounceSave(fullMarkdown)
     computeEditorStats(fullMarkdown)
     
+    if (editor.isActive('table')) {
+        debounceTableEvaluate(editor)
+    }
+  },
+  onSelectionUpdate: ({ editor }) => {
+    // Retriggers AST verification when cursor selection changes to fix the "> 1.5s stationary cursor freezing" bug
     if (editor.isActive('table')) {
         debounceTableEvaluate(editor)
     }
@@ -748,6 +811,7 @@ const fetchDocument = async () => {
            editor.value.commands.setContent(parsed.content, { emitUpdate: false }) 
            editor.value.setEditable(!isBinaryFile.value)
            computeEditorStats(docData.value.content)
+           setTimeout(() => debounceTableEvaluate(editor.value), 500)
         }
         
     } catch(err: any) {
@@ -846,6 +910,12 @@ const saveDocument = async (markdownContent: string) => {
 // Em caso de troca de documento com o mesmo componente Editor montado
 watch(() => props.fileId, (newId) => {
     if (newId) fetchDocument()
+})
+
+watch(() => props.viewMode, (newMode) => {
+    if ((newMode === 'visual' || newMode === 'split') && editor.value) {
+         setTimeout(() => debounceTableEvaluate(editor.value), 500)
+    }
 })
 
 const handleTocNavigate = (e: Event) => {
@@ -956,16 +1026,32 @@ onBeforeUnmount(() => {
 
 /* Tabela Sensus - Visualização Mágica de Fórmulas */
 .tiptap td[data-sensus-value]:not([data-sensus-value=""]),
-.tiptap th[data-sensus-value]:not([data-sensus-value=""]) {
+.tiptap th[data-sensus-value]:not([data-sensus-value=""]),
+.tiptap td[data-sensus-error="true"],
+.tiptap th[data-sensus-error="true"] {
   position: relative;
 }
-.tiptap td[data-sensus-value]:not([data-sensus-value=""]) > p,
-.tiptap th[data-sensus-value]:not([data-sensus-value=""]) > p {
-  opacity: 0 !important; /* Esconde a formula original =A1+B2 mas mantém texto existindo e editavel */
+
+/* Esconde o texto real APENAS quando não tem foco */
+.tiptap td[data-sensus-value]:not([data-sensus-value=""]):not(.has-focus) > p,
+.tiptap th[data-sensus-value]:not([data-sensus-value=""]):not(.has-focus) > p,
+.tiptap td[data-sensus-error="true"]:not(.has-focus) > p,
+.tiptap th[data-sensus-error="true"]:not(.has-focus) > p {
+  color: transparent !important;
+  caret-color: transparent !important;
   min-height: 1.5rem;
 }
-.tiptap td[data-sensus-value]:not([data-sensus-value=""])::before,
-.tiptap th[data-sensus-value]:not([data-sensus-value=""])::before {
+.tiptap td[data-sensus-value]:not([data-sensus-value=""]):not(.has-focus) > p::selection,
+.tiptap th[data-sensus-value]:not([data-sensus-value=""]):not(.has-focus) > p::selection,
+.tiptap td[data-sensus-error="true"]:not(.has-focus) > p::selection,
+.tiptap th[data-sensus-error="true"]:not(.has-focus) > p::selection {
+  background: transparent !important;
+  color: transparent !important;
+}
+
+/* Mostra o resultado calculado APENAS quando não tem foco */
+.tiptap td[data-sensus-value]:not([data-sensus-value=""]):not(.has-focus)::before,
+.tiptap th[data-sensus-value]:not([data-sensus-value=""]):not(.has-focus)::before {
   content: attr(data-sensus-value);
   position: absolute;
   top: 0;
@@ -980,12 +1066,26 @@ onBeforeUnmount(() => {
   background-color: transparent;
   color: #10B981 !important; /* Verde esmeralda para valores matematicos */
   font-weight: bold;
-  pointer-events: none; /* Deixa o clique passar pro parágrafo P escondido */
+  pointer-events: none;
 }
 
-/* Erros de Fórmula */
-.tiptap td[data-sensus-error="true"]::before,
-.tiptap th[data-sensus-error="true"]::before {
+/* Erros de Fórmula Específicos (Sobrescrevem o verde) */
+.tiptap td[data-sensus-error="true"]:not(.has-focus)::before,
+.tiptap th[data-sensus-error="true"]:not(.has-focus)::before {
+  content: "#ERROR!";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: inherit;
+  padding-left: 0.75em;
+  padding-top: 0.57em;
+  background-color: transparent;
   color: #EF4444 !important; /* Vermelho para erro */
+  font-weight: bold;
+  pointer-events: none;
 }
 </style>

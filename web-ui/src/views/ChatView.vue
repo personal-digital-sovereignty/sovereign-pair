@@ -207,8 +207,21 @@ const activeSession = computed(() => {
 const messages = ref<Message[]>([
   { id: 0, role: 'assistant', content: 'Olá! Sou seu Sovereign Pair RAG. Estou conectado ao modelo local protegido em seus diretórios.\n\nComo posso ajudar hoje?' }
 ])
-const isThinking = ref(false)
+import { systemState } from '../stores/system'
+
+const isThinking = computed({
+  get: () => systemState.isThinking,
+  set: (val) => systemState.isThinking = val
+})
 const chatContainer = ref<HTMLElement | null>(null)
+const currentAbortController = ref<AbortController | null>(null)
+
+const cancelGeneration = () => {
+  if (currentAbortController.value) {
+    currentAbortController.value.abort("User Cancelled")
+    currentAbortController.value = null
+  }
+}
 
 // Recuperar Sessões do Backend
 const loadSessions = async () => {
@@ -278,6 +291,8 @@ const sendMessage = async (invokeSource: boolean | Event = false) => {
   }
 
   try {
+    currentAbortController.value = new AbortController()
+
     // 🚀 BYPASS CÍBRIDO: Redirecionar Inferência para o Core Rust (Fase 25)
     // Deixamos a 8000 para histórico (Python), mas o tráfego RAG quente flui pela 8001 (Rust)
     const HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
@@ -311,7 +326,7 @@ const sendMessage = async (invokeSource: boolean | Event = false) => {
           stream: true
       })
       : JSON.stringify({
-        model: 'qwen2.5:3b', // Fallback ou seleção dinâmica
+        model: 'gpt-4o', // Alias proxy para forçar o backend Rust Cíbrido a buscar a configuração em SQLite
         messages: rustMessages,
         tools: [
           {
@@ -356,7 +371,8 @@ const sendMessage = async (invokeSource: boolean | Event = false) => {
         'Content-Type': 'application/json',
         ...getAuthHeaders()
       },
-      body: payloadBody
+      body: payloadBody,
+      signal: currentAbortController.value.signal
     })
 
     if (!response.ok) {
@@ -490,6 +506,32 @@ const sendMessage = async (invokeSource: boolean | Event = false) => {
     if (assistantMsgIndex !== -1 && messages.value[assistantMsgIndex]) {
       messages.value[assistantMsgIndex].isStreaming = false
       const assistantMsg = messages.value[assistantMsgIndex]
+
+      // Sync final generated text with SQLite database via Python API
+      // This is crucial for enabling the Thumbs Up/Down feedback mechanisms on Assistant messages
+      if (assistantMsg.content) {
+          fetch(`${API_BASE_URL}/v1/chat/sync_message`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  ...getAuthHeaders()
+              },
+              body: JSON.stringify({
+                  message_id: assistantMsg.id,
+                  session_id: currentSessionId.value,
+                  content: assistantMsg.content
+              })
+          })
+          .then(res => res.json())
+          .then(data => {
+              if (data && data.message_id) {
+                  // Substitui o ID temporário (Date.now()) pelo ID Real Numérico gerado sequencialmente pelo SGBD.
+                  // Isso religará a capacidade dos componentes de Feedback (Like/Dislike) funcionarem!
+                  assistantMsg.id = data.message_id;
+              }
+          })
+          .catch(e => console.error("Silently failed to sync AI response to database:", e))
+      }
       
       // Execute Pending Agentic Tool Calls
       if (assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
@@ -550,7 +592,17 @@ const sendMessage = async (invokeSource: boolean | Event = false) => {
       }
     }
 
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'AbortError' || error === 'User Cancelled') {
+       console.log("Geração Cancelada pelo Usuário")
+       const assistantMsgIndex = messages.value.findIndex(m => m.id === assistantMsgId)
+       if (assistantMsgIndex !== -1 && messages.value[assistantMsgIndex]) {
+           messages.value[assistantMsgIndex].content += '\n\n*(Geração Interrompida)*'
+           messages.value[assistantMsgIndex].isStreaming = false
+       }
+       return
+    }
+
     console.error("Ocorreu um erro ao buscar:", error)
     if (assistantMsgId !== undefined) {
       const assistantMsgIndex = messages.value.findIndex(m => m.id === assistantMsgId)
@@ -565,6 +617,7 @@ const sendMessage = async (invokeSource: boolean | Event = false) => {
     }
   } finally {
     isThinking.value = false
+    currentAbortController.value = null
     tokenMetrics.value.isActive = false // Congela a métrica visual final
   }
 }
@@ -908,12 +961,12 @@ const tokenMetrics = ref({
              <span class="text-[10px] text-surface-400 font-mono tracking-wider">{{ tokenMetrics.tokenCount }} T</span>
           </div>
           
-          <div class="flex items-center gap-2 px-2 py-1 rounded-md transition-colors group" title="Motor Pronto">
+          <div class="flex items-center gap-2 px-2 py-1 rounded-md transition-colors group" :title="isThinking ? 'Inferência Ativa' : 'Motor Pronto'">
             <span class="flex h-2 w-2 relative">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" :class="isThinking ? 'bg-amber-400' : 'bg-emerald-400'"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2" :class="isThinking ? 'bg-amber-500' : 'bg-emerald-500'"></span>
             </span>
-            <span class="text-xs font-medium text-slate-400">Motor Pronto</span>
+            <span class="text-xs font-medium text-slate-400">{{ isThinking ? 'Processando...' : 'Motor Pronto' }}</span>
           </div>
         </div>
       </header>
@@ -1024,12 +1077,22 @@ const tokenMetrics = ref({
           ></textarea>
           
           <button 
+            v-if="!isThinking"
             @click="sendMessage"
             :disabled="!inputMessage.trim() || isThinking"
             class="absolute right-3 p-2 rounded-xl transition-all flex items-center justify-center bg-primary-500 text-white hover:bg-primary-400 disabled:bg-surface-700 disabled:text-surface-500"
+            title="Enviar"
           >
-            <svg v-if="!isThinking" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-            <svg v-else class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+          </button>
+          
+          <button 
+            v-else
+            @click="cancelGeneration"
+            title="Parar Geração"
+            class="absolute right-3 p-2 rounded-xl transition-all flex items-center justify-center bg-rose-500 text-white hover:bg-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect class="opacity-75" x="6" y="6" width="12" height="12" rx="2" fill="currentColor"></rect></svg>
           </button>
         </div>
         <p class="text-center text-[11px] text-slate-500 mt-3 hidden md:block">
