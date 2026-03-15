@@ -19,6 +19,9 @@ import os
 from pathlib import Path
 
 import httpx
+import logging
+
+logger_routes = logging.getLogger(__name__)
 router = APIRouter()
 
 # Importando o limiter configurado no main.py
@@ -152,8 +155,6 @@ EXTREMA IMPORTÂNCIA:
 
                 elif body_request.message.strip().startswith('/sys'):
                     from src.engine_builder import build_system_chat_engine
-                    import logging
-                    logger_routes = logging.getLogger(__name__)
                     sys_query = body_request.message.strip()[4:].strip()
                     
                     if not sys_query:
@@ -206,7 +207,7 @@ EXTREMA IMPORTÂNCIA:
                         except Exception as e:
                             import traceback
                             logger_routes.error(f"RAG Error: {e}\n{traceback.format_exc()}")
-                            full_ai_response = f'Erro interno no RAG: {e}'
+                            full_ai_response = f'Erro interno no RAG: {type(e).__name__} - {str(e)}'
                             yield f"data: {json.dumps({'content': full_ai_response})}\n\n"
 
                 else:
@@ -410,8 +411,6 @@ EXTREMA IMPORTÂNCIA:
             
         elif is_sys_query:
             from src.engine_builder import build_system_chat_engine
-            import logging
-            logger_routes = logging.getLogger(__name__)
             sys_query = body_request.message.strip()[4:].strip()
             
             if not sys_query:
@@ -440,7 +439,7 @@ EXTREMA IMPORTÂNCIA:
                 except Exception as e:
                     import traceback
                     logger_routes.error(f"RAG Error: {e}\n{traceback.format_exc()}")
-                    full_ai_response = f"Erro interno no RAG: {e}"
+                    full_ai_response = f"Erro interno no RAG: {type(e).__name__} - {str(e)}"
                     sources = []
                     
             ai_msg_db = ChatMessage(session_id=session_obj.id, role="assistant", content=full_ai_response)
