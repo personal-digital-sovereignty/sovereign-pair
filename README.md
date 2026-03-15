@@ -30,7 +30,7 @@ O sistema opera com base nos seguintes componentes principais:
 
 ## Funcionalidades Principais
 
-### Busca Híbrida Avançada (Hybrid Search v2.1.0)
+### Busca Híbrida Avançada (Hybrid Search v0.2.2)
 Combina **Busca Vetorial Densa** (aproximação semântica) com **Busca BM25** (correspondência exata de palavras-chave) utilizando o algoritmo *Reciprocal Rank Fusion*, otimizando a assertividade da filtragem antes da injeção de contexto.
 
 ### Memória Conversacional Persistente
