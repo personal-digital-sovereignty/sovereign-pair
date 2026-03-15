@@ -20,25 +20,7 @@ services:
       - api
       - web
 
-  # 1. Banco de Dados Relacional (PostgreSQL via Alpine - Mais Leve)
-  postgres:
-    image: postgres:15-alpine
-    container_name: sovereign-db
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /var/run/postgresql
-    security_opt:
-      - no-new-privileges:true
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-sovereign}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-master_pwd}
-      POSTGRES_DB: ${POSTGRES_DB:-sovereign_db}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - sovereign-net
+  # 1. Banco de Dados Relacional Migrado para local SQLite (Aguardando implantação nativa Rust/SQLite-Vec)
 
   # 3. Backend Mestre da Inteligência (Python/FastAPI)
   api:
@@ -48,12 +30,10 @@ services:
     container_name: sovereign-api
     user: "1000:1000"
     restart: always
-    depends_on:
-      - postgres
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-sovereign}:${POSTGRES_PASSWORD:-master_pwd}@postgres:5432/${POSTGRES_DB:-sovereign_db}
+      # - DATABASE_URL=postgresql://${POSTGRES_USER:-sovereign}:${POSTGRES_PASSWORD:-master_pwd}@postgres:5432/${POSTGRES_DB:-sovereign_db}
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
       - GEMINI_API_KEY=${GEMINI_API_KEY}

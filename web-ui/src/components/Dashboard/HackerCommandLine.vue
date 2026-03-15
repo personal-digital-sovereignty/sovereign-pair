@@ -22,7 +22,11 @@
       />
       
       <!-- Right Status Flag -->
-      <div v-if="isProcessing" class="shrink-0 flex items-center gap-2 pr-2">
+      <div v-if="systemState.isThinking" class="shrink-0 flex items-center gap-2 pr-2">
+         <span class="i-ph-circle-notch-duotone animate-spin text-amber-500"></span>
+         <span class="text-[10px] uppercase font-mono text-amber-500/70 tracking-widest">INFERRING...</span>
+      </div>
+      <div v-else-if="isProcessing" class="shrink-0 flex items-center gap-2 pr-2">
          <span class="i-ph-circle-notch-duotone animate-spin text-emerald-500"></span>
          <span class="text-[10px] uppercase font-mono text-emerald-500/70 tracking-widest">EXECUTING</span>
       </div>
@@ -43,6 +47,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { systemState } from '../../stores/system'
 
 const commandText = ref('')
 const isProcessing = ref(false)

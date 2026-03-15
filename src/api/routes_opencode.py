@@ -62,9 +62,9 @@ async def opencode_chat_completions(
     # Interceptamos isso e convertemos transparentemente para nosso motor pesado Local!
     if target_model.startswith("gpt-") or target_model.startswith("claude-") or target_model == "openai/gpt-4o":
         import logging
-        logging.info(f"Sovereign Proxy: Interceptado pedido comercial {target_model}, Redirecionando para Ollama Local qwen2.5:3b")
-        target_model = "qwen2.5:3b"
-        target_provider = "ollama"
+        logging.info(f"Sovereign Proxy: Interceptado pedido comercial {target_model}, Redirecionando para a Identidade Local Dinamica")
+        target_model = db_model
+        target_provider = db_provider
     else:
         target_provider = "ollama" if any(k in target_model.lower() for k in ["llama", "qwen", "mistral", "deepseek"]) else db_provider
     

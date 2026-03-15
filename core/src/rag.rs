@@ -21,7 +21,7 @@ pub fn init_vault() -> PathBuf {
     } else {
         info!("📦 [Sovereign RAG] Vault Localizador Ativo em: {:?}", vault_path);
     }
-    
+
     vault_path
 }
 
@@ -40,15 +40,26 @@ pub fn parse_vault_documents(vault_path: &PathBuf) -> String {
                 if ext == "md" || ext == "txt" {
                     if let Ok(content) = fs::read_to_string(&path) {
                         let filename = path.file_name().unwrap_or_default().to_string_lossy();
-                        combined_knowledge.push_str(&format!("\n\n--- Documento: {} ---\n{}\n", filename, content));
-                        doc_count += 1;
+                        
+                        // Limitador de Profiling Crítico: Evitar OOM/Context Bombing no Servidor
+                        // O Vault inteiro (ex: 5MB) jamais deve ir cruçado no System Prompt.
+                        let mut snippet = content.clone();
+                        if content.len() > 2000 {
+                            let safe_trunc: String = content.chars().take(2000).collect();
+                            snippet = format!("{}... (truncado)", safe_trunc);
+                        }
+                        
+                        if combined_knowledge.len() < 16000 {
+                            combined_knowledge.push_str(&format!("\n\n--- Documento: {} ---\n{}\n", filename, snippet));
+                            doc_count += 1;
+                        }
                     }
                 }
             }
         }
     }
-    
-    info!("🧠 [Sovereign RAG] Indexou {} documentos textuais crus na memória em nanosegundos.", doc_count);
+
+    info!("🧠 [Sovereign RAG/Mock] Indexou {} documentos crus (Safe Limit) na memória em nanosegundos.", doc_count);
     combined_knowledge
 }
 
@@ -56,9 +67,9 @@ pub fn parse_vault_documents(vault_path: &PathBuf) -> String {
 pub fn build_rag_context_message(vault_path: &PathBuf) -> Option<Value> {
     let knowledge = parse_vault_documents(vault_path);
     if knowledge.trim().is_empty() {
-         return None;
+        return None;
     }
-    
+
     let sys_prompt = format!(
         "Sovereign Protocol Enforced. You operate on an Air-Gapped Local-First Architecture. \
          Below is the User's Digital Cortex (Physical Vault). Treat it as the absolute source of truth:\n\n{}", 

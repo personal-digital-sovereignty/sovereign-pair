@@ -23,8 +23,8 @@ pub struct ChatMessageRow {
     pub session_id: i64,
     pub role: String,
     pub content: String,
-    pub thumbs_up: Option<bool>,
-    pub thumbs_down: Option<bool>,
+    pub thumbs_up: Option<i32>,
+    pub thumbs_down: Option<i32>,
     pub created_at: Option<chrono::NaiveDateTime>,
 }
 
@@ -133,7 +133,7 @@ pub async fn get_or_create_session(
 
     // Título autogerado baseado no Início do Prompt
     let title = first_msg.chars().take(40).collect::<String>();
-    
+
     let res = sqlx::query("INSERT INTO chat_sessions (title) VALUES (?)")
         .bind(&title)
         .execute(db)
@@ -155,7 +155,9 @@ pub async fn save_message(
     role: &str,
     content: &str,
 ) {
-    if session_id <= 0 { return; }
+    if session_id <= 0 {
+        return;
+    }
 
     let _ = sqlx::query(
         "INSERT INTO chat_messages (session_id, role, content) VALUES (?, ?, ?)"

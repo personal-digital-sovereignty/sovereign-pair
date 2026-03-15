@@ -175,9 +175,25 @@ MAX_WEB_SEARCH_RESULTS = int(os.getenv("MAX_WEB_SEARCH_RESULTS", "3"))
 # Configuração do LLM para chat e geração de respostas
 def get_default_llm():
     from src.llm_factory import _get_active_ollama_url
+    from src.api.database import SessionLocal
+    from src.api.models import SystemSettings
+    from src.api.routes import _get_setting_value
+    
+    # Try fetching the DB value first to ensure centrality
+    try:
+        db = SessionLocal()
+        db_model = _get_setting_value(db, "llm_model", LLM_MODEL, "default")
+    except Exception:
+        db_model = LLM_MODEL
+    finally:
+        try:
+            db.close()
+        except Exception:
+            pass
+
     return get_llm(
         provider=LLM_PROVIDER,
-        model=LLM_MODEL,
+        model=db_model,
         temperature=0.1,
         request_timeout=REQUEST_TIMEOUT,
         base_url=_get_active_ollama_url() or OLLAMA_BASE_URL,

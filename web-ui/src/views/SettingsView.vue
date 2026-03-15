@@ -167,7 +167,7 @@ const systemSettings = ref({
   enterprise_license_key: ''
 })
 
-const activeTab = ref('identity') // 'identity' | 'byok' | 'workspaces'
+const activeTab = ref('identity') // 'identity' | 'workspaces'
 
 const newWorkspacePath = ref('')
 const addWorkspace = async () => {
@@ -217,7 +217,7 @@ const loadConfig = async () => {
 const saveConfig = async () => {
   isLoadingConfig.value = true
   try {
-    await fetch(`${RUST_CORE_URL}/v1/settings`, {
+    await fetch(`${API_BASE_URL}/v1/settings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -378,9 +378,6 @@ watch(() => systemSettings.value.theme, (newTheme) => {
                 <button @click="activeTab = 'identity'" :class="activeTab === 'identity' ? 'bg-surface-700 border-l-2 border-primary-500 text-primary-400' : 'border-l-2 border-transparent text-surface-400 hover:text-surface-200 hover:bg-surface-700/50'" class="px-6 py-3 text-sm font-medium transition-all text-left flex items-center gap-3">
                     <span class="i-ph-user-focus-duotone text-lg"></span> Identidade & Tema
                 </button>
-                <button @click="activeTab = 'byok'" :class="activeTab === 'byok' ? 'bg-surface-700 border-l-2 border-primary-500 text-primary-400' : 'border-l-2 border-transparent text-surface-400 hover:text-surface-200 hover:bg-surface-700/50'" class="px-6 py-3 text-sm font-medium transition-all text-left flex items-center gap-3">
-                    <span class="i-ph-key-duotone text-lg"></span> Multi-LLM (BYOK)
-                </button>
                 <button @click="activeTab = 'workspaces'" :class="activeTab === 'workspaces' ? 'bg-surface-700 border-l-2 border-primary-500 text-primary-400' : 'border-l-2 border-transparent text-surface-400 hover:text-surface-200 hover:bg-surface-700/50'" class="px-6 py-3 text-sm font-medium transition-all text-left flex items-center gap-3">
                     <span class="i-ph-hard-drives-duotone text-lg"></span> Workspaces O.S.
                 </button>
@@ -398,11 +395,7 @@ watch(() => systemSettings.value.theme, (newTheme) => {
           <div class="space-y-2">
             <label class="block text-sm font-medium text-slate-400">Provedor LLM</label>
             <select v-model="systemSettings.llm_provider" @change="onProviderChange" class="w-full bg-surface-900 border border-surface-700 text-surface-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all">
-              <option value="ollama">Ollama (Multi-Cluster)</option>
-              <option value="openai">OpenAI</option>
-              <option value="groq">Groq</option>
-              <option value="anthropic">Anthropic</option>
-              <option value="gemini">Gemini</option>
+              <option value="ollama">Ollama (Multi-Cluster Local)</option>
             </select>
           </div>
           <div class="space-y-2">
@@ -487,21 +480,6 @@ watch(() => systemSettings.value.theme, (newTheme) => {
                  <div v-if="pullTotal > 0" class="text-[10px] text-slate-500 tracking-wider">
                     {{ (pullCompleted / 1e9).toFixed(2) }} GB / {{ (pullTotal / 1e9).toFixed(2) }} GB
                  </div>
-              </div>
-            </template>
-            <template v-else>
-              <input v-model="systemSettings.llm_model" type="text" class="w-full bg-surface-900 border border-surface-700 text-surface-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all" placeholder="ex: llama3, gpt-4o">
-              
-              <!-- UX BYOK: Atalho para API Key Direta -->
-              <div v-if="systemSettings.llm_provider !== 'ollama'" class="mt-4 p-3 bg-rose-500/5 border border-rose-500/20 rounded-lg">
-                 <label class="flex items-center gap-2 text-[11px] font-semibold text-rose-400 mb-2 uppercase tracking-wide">
-                    <span class="i-ph-key-duotone text-sm"></span> Chave de API ({{ systemSettings.llm_provider }})
-                 </label>
-                 <input v-if="systemSettings.llm_provider === 'openai'" v-model="systemSettings.openai_api_key" type="password" placeholder="sk-..." class="w-full bg-surface-950 border border-surface-700 text-surface-200 text-xs rounded px-2.5 py-2 font-mono outline-none focus:border-primary-500 transition-colors">
-                 <input v-else-if="systemSettings.llm_provider === 'anthropic'" v-model="systemSettings.anthropic_api_key" type="password" placeholder="sk-ant-..." class="w-full bg-surface-950 border border-surface-700 text-surface-200 text-xs rounded px-2.5 py-2 font-mono outline-none focus:border-primary-500 transition-colors">
-                 <input v-else-if="systemSettings.llm_provider === 'gemini'" v-model="systemSettings.gemini_api_key" type="password" placeholder="AIza..." class="w-full bg-surface-950 border border-surface-700 text-surface-200 text-xs rounded px-2.5 py-2 font-mono outline-none focus:border-primary-500 transition-colors">
-                 
-                 <p class="text-[9px] text-rose-500/70 mt-2 font-medium">Aviso Risco: Seus embeds serão despachados para fora do seu hardware. Detalhes na aba Multi-LLM BYOK.</p>
               </div>
             </template>
           </div>
@@ -644,47 +622,7 @@ watch(() => systemSettings.value.theme, (newTheme) => {
         </div>
         </div>
         
-        <!-- ================= MULTI-LLM (BYOK) TAB ================= -->
-        <div v-show="activeTab === 'byok'" class="space-y-8">
-           
-           <div class="bg-rose-500/10 border border-rose-500/30 rounded-lg p-5 flex items-start gap-4">
-              <span class="i-ph-warning-octagon-duotone text-3xl text-rose-400 shrink-0"></span>
-              <div>
-                 <h4 class="text-rose-400 font-semibold text-sm mb-1">Paradoxo do BYOK & Privacidade Extrema</h4>
-                 <p class="text-xs text-rose-300/80 leading-relaxed">
-                    Sovereign foi criada para rodar localmente limitando seus dados ao seu hardware. 
-                    Ao inserir chaves do <b>OpenAI, Gemini ou Anthropic</b> os seus Arquivos/Chunks 
-                    serão fisicamente enviados via HTTP para a Nuvem de Big-Techs para que a IA processe a RAG.
-                    <b>Habilite apenas se possuir confiança nestes provedores.</b>
-                 </p>
-              </div>
-           </div>
-
-           <div class="space-y-6 max-w-2xl">
-              <div class="space-y-2">
-                <label class="flex items-center gap-2 text-sm font-medium text-slate-300">
-                   <span class="i-ph-openai-logo text-lg text-primary-500"></span> OpenAI API Key
-                </label>
-                <input v-model="systemSettings.openai_api_key" type="password" placeholder="sk-proj-..." class="w-full bg-surface-900 border border-surface-700 text-surface-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all font-mono">
-              </div>
-
-              <div class="space-y-2">
-                <label class="flex items-center gap-2 text-sm font-medium text-slate-300">
-                   <span class="i-ph-google-logo text-lg text-blue-500"></span> Google Gemini API Key
-                </label>
-                <input v-model="systemSettings.gemini_api_key" type="password" placeholder="AIzaSy..." class="w-full bg-surface-900 border border-surface-700 text-surface-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all font-mono">
-              </div>
-
-              <div class="space-y-2">
-                <label class="flex items-center gap-2 text-sm font-medium text-slate-300">
-                   <span class="i-ph-brain-duotone text-lg text-purple-500"></span> Anthropic API Key
-                </label>
-                <input v-model="systemSettings.anthropic_api_key" type="password" placeholder="sk-ant-api03-..." class="w-full bg-surface-900 border border-surface-700 text-surface-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 outline-none transition-all font-mono">
-              </div>
-           </div>
-        </div>
-
-         <!-- ================= WORKSPACES (O.S. Native) TAB ================= -->
+          <!-- ================= WORKSPACES (O.S. Native) TAB ================= -->
          <div v-show="activeTab === 'workspaces'" class="space-y-8">
             
             <div class="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-5 flex items-start gap-4">

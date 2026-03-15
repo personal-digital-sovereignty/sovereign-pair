@@ -85,7 +85,19 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
         filters = MetadataFilters(filters=[ExactMatchFilter(key="tenant_id", value=tenant_id)])
         logger.info(f"   🔍 Filtro de Inquecilino aplicado: {tenant_id}")
         
-    vector_retriever = index.as_retriever(similarity_top_k=15, filters=filters)
+    if index:
+        vector_retriever = index.as_retriever(similarity_top_k=15, filters=filters)
+    else:
+        # Bypass temporário caso o framework esteja em refatoração para Rust/SQLite Vec
+        from llama_index.core.retrievers import BaseRetriever
+        from llama_index.core.schema import NodeWithScore
+        class EmptyRetriever(BaseRetriever):
+            def _retrieve(self, query_bundle):
+                return []
+            async def _aretrieve(self, query_bundle):
+                return []
+        vector_retriever = EmptyRetriever()
+        logger.warning("   ⚠️ Índice está vazio (None). Inicializando EmptyRetriever (Stand-by).")
     
     # 2. BM25 Retriever (Palavras-chave / Datas exatas)
     # [Fase A] - Temporariamente desligado até migrarmos os tokens fts5 no sqlite-vec
@@ -193,13 +205,18 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
     logger.info(f"   🧠 Engine inicializada via {provider_log.upper()} com modelo {model_log}")
 
     # Inicializar FlashRank Pílula Cross-Encoder
-    from src.custom_reranker import FlashrankReranker
-    cross_encoder = FlashrankReranker(top_n=3)
+    node_postprocessors = []
+    try:
+        from src.custom_reranker import FlashrankReranker
+        cross_encoder = FlashrankReranker(top_n=3)
+        node_postprocessors.append(cross_encoder)
+    except ImportError as e:
+        logger.warning(f"   ⚠️ FlashrankReranker suspenso: {e}. Executando RAG sem validação Cross-Encoder.")
 
     # Criar Chat Engine com Retriever Híbrido, FlashRank e Condensador Explícito
     chat_engine = CondensePlusContextChatEngine.from_defaults(
         retriever=hybrid_retriever,
-        node_postprocessors=[cross_encoder],
+        node_postprocessors=node_postprocessors,
         llm=active_llm,
         memory=memory, # Memória bufferizada re-hidratada
         system_prompt=(
@@ -225,36 +242,64 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
 
 def build_system_chat_engine(provider=None, model_name=None, api_keys=None):
     """
-    Constrói a instância do ChatEngine específica para o Meta-RAG (System Knowledge).
+    Constrói a instância do ChatEngine específica para o RAG (System Knowledge).
     Conecta-se à coleção isolada que contém o próprio código fonte do Sovereign.
     """
-    logger.info("⚙️  Configurando System Chat Engine (Meta-RAG)...")
+    logger.info("Configurando System Chat Engine (RAG)...")
     try:
-        # Implementação Futura: O System Engine será atado a uma Base Vector SQL isolada
-        # Enquanto preparamos a Fase B, ele atua via in-memory basic-rag.
-        index = None
-    except Exception as e:
-        logger.error(f"Erro no Meta-RAG: {e}")
-        
-        # IGNORAR o modelo vindo do Frontend para a aba Sistema (Meta-RAG)
-        # OMeta-RAG deve SEMPRE usar um modelo enxuto e rápido para não dar OOM (Out Of Memory)
+        # IGNORAR o modelo vindo do Frontend para a aba Sistema (RAG)
         if provider == "ollama" or not provider:
             sys_provider = "ollama"
-            sys_model = "llama3.2"
+            # In order to avoid the 404, we must use the actual model configured in the DB 
+            # (which we dynamically fetch) instead of hardcoding "llama3.2" which might not exist or be named differently
+            try:
+                from src.config import get_default_llm
+                dynamic_fallback = get_default_llm().metadata.model_name
+            except Exception:
+                dynamic_fallback = "llama3.2"
+                
+            sys_model = model_name if model_name else dynamic_fallback
         else:
             sys_provider = provider
             sys_model = model_name
             
         active_llm = resolve_dynamic_llm(sys_provider, sys_model, get_default_llm(), api_keys)
         
-        chat_engine = index.as_chat_engine(
+        import logging
+        from llama_index.core.chat_engine import CondensePlusContextChatEngine
+        from src.config import get_embed_model
+        from src.custom_retrievers import CustomSqliteVecRetriever
+        from src.api.database import SessionLocal
+        
+        # Conectar ao banco SQLite onde o código fonte está ingerido no SQLite-Vec (tenant=system)
+        try:
+            db_session = SessionLocal()
+            vector_retriever = CustomSqliteVecRetriever(
+                embed_model=get_embed_model(),
+                db_session=db_session,
+                tenant_id="system",
+                similarity_top_k=15
+            )
+        except Exception as e:
+            logger.error(f"Erro ao instanciar Retriever SQLite-Vec para RAG: {e}")
+            from llama_index.core.retrievers import BaseRetriever
+            class EmptyRetriever(BaseRetriever):
+                def _retrieve(self, query_bundle): return []
+                async def _aretrieve(self, query_bundle): return []
+            vector_retriever = EmptyRetriever()
+        
+        chat_engine = CondensePlusContextChatEngine.from_defaults(
+            retriever=vector_retriever,
             llm=active_llm,
-            chat_mode="condense_plus_context",
             system_prompt=(
-                "Você é o Meta-RAG do Sovereign Pair. Seu objetivo é ajudar o usuário a entender as "
-                "configurações, a arquitetura e o código fonte do sistema. Responda apenas com base no "
-                "conhecimento dos arquivos injetados no seu banco vetorial. Seja direto e escreva em "
-                "Português do Brasil."
+                "Você é o The Architect, o motor de autoconsciência (RAG) do Sovereign Pair. "
+                "Seu objetivo exclusivo é auxiliar o SysAdmin (Jeferson Lopes) com dúvidas sobre a "
+                "arquitetura do próprio código fonte do Sovereign Pair.\n\n"
+                "Você tem acesso aos códigos do back-end em Python e documentação através dos arquivos "
+                "buscados e injetados neste prompt. NUNCA revele que não é o Sovereign, encarne a postura de "
+                "quem codificou este projeto inteiro.\n\n"
+                "Para dúvidas que cobram lógica, faça referências aos nomes dos arquivos Python e Rust.\n"
+                "Responda exclusivamente em Português do Brasil de forma extremamente cordial."
             )
         )
         return chat_engine

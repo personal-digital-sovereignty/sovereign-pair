@@ -10,8 +10,12 @@
       </button>
     </div>
     <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-0.5 custom-scroll" ref="logsContainer">
-      <div v-if="logs.length === 0" class="text-surface-600 italic text-center py-4">
+      <div v-if="logs.length === 0 && !systemState.isThinking" class="text-surface-600 italic text-center py-4">
         Aguardando eventos do Synesis Core...
+      </div>
+      <div v-if="systemState.isThinking" class="flex flex-col items-center justify-center py-6 gap-3 opacity-80 animate-pulse">
+        <span class="i-ph-brain-duotone text-3xl text-amber-500"></span>
+        <span class="text-[10px] uppercase font-bold text-amber-500 tracking-widest text-center">The Nurse está Ingerindo Dados<br/><span class="opacity-70 font-mono font-normal">(Inferência Ativa no LLM)</span></span>
       </div>
       <div v-for="(log, idx) in logs" :key="idx" class="flex items-start gap-1.5 hover:bg-surface-700/30 px-1 py-0.5 rounded transition-colors text-[10px] leading-tight overflow-hidden">
         <span class="text-surface-500 shrink-0 select-none">[{{ formatTime(log.timestamp) }}]</span>
@@ -24,6 +28,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { systemState } from '../../stores/system'
 
 interface LogEntry {
   timestamp: Date
@@ -69,8 +74,9 @@ const clearLogs = () => {
 let eventSource: EventSource | null = null
 
 const connectToSSE = () => {
-    // Endereço físico do Sovereign Core
-    eventSource = new EventSource('http://127.0.0.1:8001/v1/logs')
+    // Endereço físico dinâmico do Sovereign Core
+    const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
+    eventSource = new EventSource(`${RUST_CORE_URL}/v1/logs`)
     
     eventSource.onopen = () => {
         isConnecting.value = false
