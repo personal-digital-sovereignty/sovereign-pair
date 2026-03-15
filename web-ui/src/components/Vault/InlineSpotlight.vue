@@ -158,7 +158,8 @@ const scrollToBottom = () => {
    }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000`
+const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
+
 const getAuthHeaders = (): Record<string, string> => {
    const token = localStorage.getItem('sovereign_token')
    return token ? { 'Authorization': `Bearer ${token}` } : {}
@@ -183,14 +184,28 @@ const sendQuery = async () => {
    nextTick(scrollToBottom)
 
    try {
-       const res = await fetch(`${API_BASE_URL}/v1/chat`, {
+       const payloadMessages = [];
+       
+       if (props.activeDocumentContent) {
+           payloadMessages.push({
+               role: 'system',
+               content: `Aqui está o texto do meu documento ativo no Sovereign Vault, APENAS CONSIDERE ele caso minha próxima pergunta tenha a ver com ele. NÃO invente informações se eu não perguntar:\n${props.activeDocumentContent}`
+           });
+       }
+       
+       // Incluir histórico de chat (ignorando a última mensagem vazia do assistant)
+       for (let i = 0; i < messages.value.length - 1; i++) {
+           const msg = messages.value[i];
+           if (msg) payloadMessages.push({ role: msg.role, content: msg.content });
+       }
+
+       const res = await fetch(`${RUST_CORE_URL}/v1/chat/completions`, {
            method: 'POST',
            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-           // Forced context bypasses normal SLM retrieval and injects active doc directly
            body: JSON.stringify({
-               message: finalQuery,
-               stream: true,
-               active_document: props.activeDocumentContent
+               model: "llama3.2",
+               messages: payloadMessages,
+               stream: true
            })
        })
 
@@ -210,16 +225,18 @@ const sendQuery = async () => {
                
                for (const line of lines) {
                    if (line.startsWith('data: ')) {
-                       const data = line.slice(6)
+                       const data = line.slice(6).trim()
                        if (data === '[DONE]') break
+                       if (!data) continue
                        try {
                            const parsed = JSON.parse(data)
-                           if (parsed && parsed.content && messages.value[assistantIndex]) {
-                               messages.value[assistantIndex].content += parsed.content
+                           const contentToken = parsed.choices?.[0]?.delta?.content || ''
+                           if (contentToken && messages.value[assistantIndex]) {
+                               messages.value[assistantIndex].content += contentToken
                                scrollToBottom()
                            }
                        } catch (e) {
-                           // partial chunk handling if needed
+                           // chunk malformado ou incompleto
                        }
                    }
                }

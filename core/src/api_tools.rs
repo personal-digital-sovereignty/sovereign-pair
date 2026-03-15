@@ -76,11 +76,38 @@ pub async fn create_kanban_task_handler(
     let tenant = "default".to_string();
     let status = "To Do".to_string();
     
+    // 1. Resolve Project ID (UUID ou Name)
+    let mut final_project_id = payload.project_id.clone();
+    
+    // Tenta encontrar o projeto pelo ID ou Nome
+    let existing_project = sqlx::query_as::<_, (String,)>("SELECT id FROM projects WHERE id = ? OR name = ? LIMIT 1")
+        .bind(&final_project_id)
+        .bind(&final_project_id)
+        .fetch_optional(&state.db)
+        .await;
+        
+    match existing_project {
+        Ok(Some((id,))) => {
+            final_project_id = id;
+        },
+        _ => {
+            // Cria um novo projeto com o nome fornecido pelo Agent
+            let new_project_id = Uuid::new_v4().to_string();
+            let _ = sqlx::query("INSERT INTO projects (id, tenant_id, name, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)")
+                .bind(&new_project_id)
+                .bind(&tenant)
+                .bind(&final_project_id)
+                .execute(&state.db)
+                .await;
+            final_project_id = new_project_id;
+        }
+    }
+
     let result = sqlx::query(
         "INSERT INTO tasks (id, project_id, tenant_id, title, description, status, priority, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
     )
     .bind(&task_id)
-    .bind(&payload.project_id)
+    .bind(&final_project_id)
     .bind(&tenant)
     .bind(&payload.title)
     .bind(&payload.description)

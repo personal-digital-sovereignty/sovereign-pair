@@ -162,6 +162,9 @@ const stopResize = () => {
 onMounted(() => {
   const savedWidth = localStorage.getItem('sensus-sidebar-width')
   if (savedWidth) sidebarWidth.value = Number(savedWidth)
+  
+  const savedTheme = localStorage.getItem('sensus-theme')
+  if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme)
 })
 
 const clusterState = ref<{status: string, reason?: string, active_agents?: string[]}>({
@@ -239,11 +242,13 @@ const checkAuthStatus = async () => {
         authPhase.value = 'authenticated'
         checkClusterHealth();
         // Sincroniza Tema Visual O.S em Nível Mais Alto no Boot:
-        const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`;
-        fetch(`${RUST_CORE_URL}/v1/settings`, {
+        fetch(`${API_BASE_URL}/v1/settings`, {
             headers: { 'Authorization': `Bearer ${token}` }
         }).then(r => r.json()).then(d => {
-            if (d.theme) document.documentElement.setAttribute('data-theme', d.theme);
+            if (d.theme) {
+                document.documentElement.setAttribute('data-theme', d.theme);
+                localStorage.setItem('sensus_theme', d.theme);
+            }
         }).catch(e => console.warn(e));
       }
     }

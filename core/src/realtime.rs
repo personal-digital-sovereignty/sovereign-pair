@@ -24,9 +24,19 @@ pub async fn realtime_responses_handler(
     let requested_model = payload.model.clone();
     info!("🔥 [Sovereign Core] Realtime Vercel Hack para o modelo: [{}]", requested_model);
 
-    // 1. Transpilação
+    // 1. Transpilação Dinâmica
+    let mut db_model_fallback = "llama3.2".to_string();
+    if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'system_settings'").fetch_optional(&state.db).await {
+        let val: String = sqlx::Row::get(&row, "value_json");
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&val) {
+            if let Some(m) = parsed.get("llm_model").and_then(|v| v.as_str()) {
+                db_model_fallback = m.to_string();
+            }
+        }
+    }
+
     let ollama_model = if requested_model.to_lowercase().contains("gpt") {
-        "qwen2.5:3b".to_string()
+        db_model_fallback
     } else {
         requested_model.clone()
     };

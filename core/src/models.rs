@@ -71,17 +71,17 @@ pub struct ToolDefinition {
 pub struct OpenAIChatRequest {
     #[serde(default)] // Permite falha silenciosa para modelos puros (se ausente)
     pub model: String,
-    
+
     // O Vercel AI SDK muitas vezes manda o prompt num campo "input" em vez de "messages" (Endpoint /responses)
     #[serde(alias = "input")]
     pub messages: Vec<OpenAIChatMessage>,
-    
+
     // Tools Injection Opcional
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tools: Option<Vec<ToolDefinition>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_choice: Option<Value>,
-    
+
     // Parâmetros de Inferência Opcionais
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f32>,
@@ -91,11 +91,11 @@ pub struct OpenAIChatRequest {
     pub n: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stream: Option<bool>,
-    
+
     // Suporte genérico para Stop (pode ser String ou Vec<String>)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stop: Option<Value>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_tokens: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -104,7 +104,7 @@ pub struct OpenAIChatRequest {
     pub frequency_penalty: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<String>,
-    
+
     // Extensão Cíbrida p/ Persistência Local
     #[serde(skip_serializing_if = "Option::is_none")]
     pub session_id: Option<i64>,

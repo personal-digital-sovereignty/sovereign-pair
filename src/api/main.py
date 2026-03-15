@@ -63,15 +63,14 @@ def auto_pull_ollama_models():
 
 @asynccontextmanager
 async def app_lifespan(app: FastAPI):
-    # Startup: Disparar Ingestão do Meta-RAG (System Knowledge)
-    # [Fase A -> Fase B] Temporariamente Desligado pois utilizava ChromaDB.
-    # A reescrita será feita sobre SQLite-Vec futuramente.
-    # from src.system_ingest import ingest_system_knowledge
+    # Startup: Disparar Ingestão do RAG (System Knowledge)
+    # Reescrito para usar SQLite-Vec localmente, processamento assíncrono em background
+    from src.system_ingest import ingest_system_knowledge
     import threading
     
     # Roda em thread separada para não bloquear o boot da API
-    # ingest_thread = threading.Thread(target=ingest_system_knowledge, daemon=True)
-    # ingest_thread.start()
+    ingest_thread = threading.Thread(target=ingest_system_knowledge, daemon=True)
+    ingest_thread.start()
     
     # Auto-Pull dos Ollama Models (Thread separada para não bloquear e lidar com gigabytes de I/O)
     pull_thread = threading.Thread(target=auto_pull_ollama_models, daemon=True)

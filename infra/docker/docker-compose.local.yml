@@ -4,17 +4,17 @@
 
 services:
 
-  # 1. Inteligência Artificial e Embeddings (OLLAMA LOCAL)
-  ollama:
-    image: ollama/ollama:latest
-    container_name: sovereign-ollama-offline
-    restart: always
-    volumes:
-      - ollama-data-offline:/root/.ollama
-    ports:
-      - "11434:11434"
-    networks:
-      - sovereign-net-offline
+  #  # 1. Inteligência Artificial e Embeddings (OLLAMA LOCAL)
+  #  ollama:
+  #    image: ollama/ollama:latest
+  #    container_name: sovereign-ollama-offline
+  #    restart: always
+  #    volumes:
+  #      - ollama-data-offline:/root/.ollama
+  #    ports:
+  #      - "11434:11434"
+  #    networks:
+  #      - sovereign-net-offline
 
   # 4. Backend Mestre da Inteligência (FastAPI)
   api:
@@ -24,11 +24,13 @@ services:
     container_name: sovereign-api-offline
     user: "1000:1000"
     restart: always
-    depends_on:
-      - ollama
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    #depends_on:
+    #  - ollama
     environment:
       - DATABASE_URL=sqlite:////app/data/sovereign_memory.db
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
       - ALLOWED_ORIGINS=http://localhost:8080,http://localhost:5173,app://sensusvault.local
       - SOVEREIGN_CONF=/app/data/sovereign.conf

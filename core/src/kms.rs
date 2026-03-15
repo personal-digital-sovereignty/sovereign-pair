@@ -21,7 +21,7 @@ fn get_or_generate_master_key() -> [u8; 32] {
         let mut key_bytes = [0u8; 32];
         OsRng.fill_bytes(&mut key_bytes);
         let b64 = BASE64.encode(key_bytes);
-        
+
         // Registra a chave gerada no .env (para persistência do sistema do usuário)
         if let Ok(mut file) = OpenOptions::new().append(true).open(".env") {
             let config_line = format!("\n# Gerado automaticamente pelo Módulo SecOps (KMS) - REQUIRED FOR DECRYPTION\n{}={}\n", KEK_ENV_VAR, b64);
@@ -43,14 +43,14 @@ fn get_or_generate_master_key() -> [u8; 32] {
             warn!("Módulo KMS: A chave SOVEREIGN_MASTER_KEK não possui 32 bytes válidos. Usando derivação/zero.");
         }
     }
-    
+
     key_bytes
 }
 
 /// Encripta uma string em AES-GCM 256
 pub fn encrypt_vault_secret(plaintext: &str) -> Option<String> {
     if plaintext.is_empty() { return None; }
-    
+
     let key = get_or_generate_master_key();
     let cipher = Aes256Gcm::new(&key.into());
 
