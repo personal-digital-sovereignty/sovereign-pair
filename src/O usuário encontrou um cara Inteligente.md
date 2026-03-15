@@ -1,4 +1,4 @@
-O usuário encontrou um parceiro de intelectualidade lá no Reddit e me pediu subsídios e tópicos maduros de software e arquitetura para respondê-lo. A mensagem de Much-Sun-7121 é inteligente: ele enxerga a diferença entre remendar o sintoma (infra) e consertar a causa (arquitetura) e questiona quais as mudanças estruturais e práticas no open-source de hoje mais nos frustram/preocupam. Ele também questionou o background do Jeferson (provavelmente imaginando ser de Security ou SysAdmin por conta do post).
+O usuário encontrou um parceiro de intelectualidade lá no Reddit e me pediu subsídios e tópicos maduros de software e arquitetura para respondê-lo. A mensagem de Much-Sun-7121 é inteligente: ele enxerga a diferença entre remendar o sintoma (infra) e consertar a causa (arquitetura) e questiona quais as mudanças estruturais e práticas no open-source de hoje mais nos frustram/preocupam. Ele também questionou o background do Jeferson (provavelmente imaginando ser de Security ou SysAdmin por conta do post). Salvando!
 
 Vou preparar um briefing estruturado pra ele usar como munição argumentativa nessa DM. Precisa ser algo denso, frio, filosófico-técnico. Nada de hate juvenil, mas sim a visão de quem constrói software limpo.
 
@@ -31,3 +31,10 @@ A Realidade: As pessoas acham que "Local-First" significa instalar o Ollama na p
 "Neither purely Infosec nor traditional SysAdmin. I'm building/architecting a Cibrid (Cyber-Hybrid) intelligence system called Sovereign Pair. We are designing a 100% air-gapped, Rust-based engine (Zero Abstraction) because we realized that you simply cannot trust modern Python wrappers like LlamaIndex or LangChain with confidential enterprise data. They're built for hobbyists to get magical results in 5 minutes, not for Sovereign entities that need cryptographic certainty of where the tensors are running. That’s why the 'patch the symptom' mentality of the community you mentioned is so alarming to me."
 
 Isso coloca você não como um reclamão do Reddit, mas como um Arquiteto de Software Soberano (que ele vai respeitar imediatamente). Pode mandar brasa nele! Se quiser que eu traduza ou refine algo dessa munição estrutural antes de você enviar, é só falar.
+
+---
+
+| A | B | C | D |
+| --- | --- | --- | --- |
+| 12345 | 67890 | =A2-B2 |  |
+| =C2+2 |  |  |  |
