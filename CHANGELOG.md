@@ -5,9 +5,11 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+> **⚠️ AVISO IMPORTANTE (SemVer Pre-Release):** Este produto **não está maduro o suficiente para a versão 1.0.0**. Todas as ramificações arquitetônicas atuais (Hub Cíbrido, SQLite-Vec, Motor Rust) estão na série `0.x.x` e sujeitas a quebras de contrato (Breaking Changes) sem aviso prévio. A estabilização corporativa FOSS não iniciou.
+
 ---
 
-## [4.0.0] - 2026-03-14
+## [0.4.0] - 2026-03-14
 
 ### 🦀 Major Release - The Rust Paradigm Shift & OCI Cibrid Architecture
 
@@ -29,11 +31,20 @@ Esta versão marca a maior transição arquitetural do Sovereign Pair, expurgand
 - **Hardening OCI Docker Unix Socket**: Adição de fix de permissionamento de soquetes daemon (`chmod/gpasswd`) aos compêndios corporativos (`10_guide_byoc_oracle_cloud.pt-BR.md`), blindando falhas nas pipelines não-privilegiadas.
 
 ### Corrigido
-- **Ollama DNS Resolution na Oracle (A1)**: Corrigido o erro de timeout onde a API não listava os modelos instalados em Bare Metal na nuvem Oracle. Alterada a variável `OLLAMA_BASE_URL` para `http://host.docker.internal:11434` e injetado `extra_hosts` no `docker-compose.yml`, permitindo que o container alcance o daemon systemd nativo do servidor hospedeiro.
+- **Ollama DNS Resolution na Oracle (A1)**: Corrigido o erro de timeout onde a API não listava os modelos instalados em Bare Metal na nuvem Oracle via `host.docker.internal:11434` e `extra_hosts`.
+- **UI Local Models Discovery**: Corrigida a listagem "Nenhum modelo encontrado" no front-end por roteamentos assíncronos pendentes.
+- **TipTap Visual Desync & Markdown Scrambling**: Consertado bug massivo onde o Editor Vue renderizava HTML `<table>` cru em vez de Markdown, e quebrava o conteúdo de arquivos fonte (`.rs`, `.py`) interpolando-os erroneamente. Adicionado Visual-Source debounce.
+- **The Doctor (Spotlight) Delays**: Remediado o atraso de mais de 3 minutos no carregamento do Spotlight Modal resolvendo impasses de proxy na interface de Node Isolado.
+- **Database OperationalError (SQLite Locked)**: Corrigido o drop HTTP 500 dos comandos `/sys` causados por race conditions no fechamento da Database Vectorial (`sovereign_memory.db`) durante indexações longas.
+- **Telemetria Mockada**: Finalizada a renderização em tempo pseudo-real. O dashboard `CronosTimeMap.vue`, `RealtimeLogs.vue`, e `TokenMetricsTracker.vue` agora escutam Streams SSE genuínos trafegando metadados dinâmicos e gaps do motor Rust.
+- **Meta-RAG SQLite-Vec Migration**: Rota `/sys` comutada integralmente do pacote depreciado de ChromaDB para as tabelas nativas virtuais do novo compilador SQLite-Vec.
+- **Emojis Poluidores & Timings API**: Limpeza sistemática de strings emotivas (ex: "🧠 Consultando Meta-RAG") em `routes.py` para adequação formal corporativa e supressão de exaustões silenciosas do motor FastAPI.
+- **TheAccountant AST Fallback**: Arrumado bug matemático onde células aninhadas negativas geravam strings letais (ex: `==A2-B2`) no motor de grafos. Regex encapsulado em parênteses.
+- **Postgres ID Overflow**: Impedida a interface gráfica de cuspir um `Date.now()` nos PK Integer do banco durante ações de 'Thumbs Up/Down'.
 
 ---
 
-## [3.1.2] - 2026-03-08
+## [0.3.2] - 2026-03-08
 
 ### 🤖 The Coder & OpenCode Integration (Pair Programming)
 
@@ -51,7 +62,7 @@ Esta versão marca a maior transição arquitetural do Sovereign Pair, expurgand
 
 ---
 
-## [3.1.1] - 2026-03-07
+## [0.3.1] - 2026-03-07
 
 ### 🌐 Resiliência Local-First & Infraestrutura Cibrid Automática
 
@@ -69,7 +80,7 @@ Esta versão marca a maior transição arquitetural do Sovereign Pair, expurgand
   - Abordado falha silenciosa do daemon instalador da Docker (`Failure writing output to destination`) no bootstrap inicial via piping ramificado (`curl | sh`).
 - **Zizmor Audit & Ruff Compliance**: Varredura limpando formatação quebrada obsoleto da codificação py (strings F vazias). Inseridos rótulos seletivos da ferramenta de inspeção Zizmor no release do Sensus Vault.
 
-## [3.1.0] - 2026-02-27
+## [0.3.0] - 2026-02-27
 
 ### 🛡️ DevSecOps & Security Hardening (FOSS Enterprise)
 
@@ -86,7 +97,7 @@ Esta versão marca a maior transição arquitetural do Sovereign Pair, expurgand
   - Conformidade restrita `PEP-8` na engine backend (`Ruff`), ajustando ordem de execução e imports ociosos sem quebrar inicializadores nativos.
   - Eliminação de Token JWT transacional de testes listado nos rastros do `Gitleaks`.
 
-## [3.0.0] - 2026-02-26
+## [0.2.0] - 2026-02-26
 
 ### 🚀 Major Release - UX Revolucionária, Concorrência e Integração Sensus Vault 3.0
 
@@ -109,7 +120,7 @@ Esta versão marca a maior transição arquitetural do Sovereign Pair, expurgand
 
 ---
 
-## [2.2.0] - 2026-02-24
+## [0.2.2] - 2026-02-24
 
 ###  Major Release - Backend API, Citações e Modularidade
 
@@ -123,7 +134,7 @@ Esta versão marca a maior transição arquitetural do Sovereign Pair, expurgand
 
 ---
 
-## [2.1.0] - 2026-02-17
+## [0.2.1] - 2026-02-17
 
 ### Adicionado
 - **Busca Híbrida (Hybrid Search)**: Implementação de recuperação combinada usando `Vector Store` (ChromaDB) e `BM25` (rank-bm25).
@@ -140,7 +151,7 @@ Esta versão marca a maior transição arquitetural do Sovereign Pair, expurgand
 
 ---
 
-## [2.0.0] - 2026-02-16
+## [0.2.0] - 2026-02-16
 
 ###  Major Release - MVP Completo com Otimizações
 
@@ -185,7 +196,7 @@ Esta versão marca a maior transição arquitetural do Sovereign Pair, expurgand
 
 ---
 
-## [1.1.0] - 2026-02-16
+## [0.1.2] - 2026-02-16
 
 ###  Minor Release - Ingestão Incremental (Fases 1 e 2)
 
@@ -215,7 +226,7 @@ Esta versão marca a maior transição arquitetural do Sovereign Pair, expurgand
 
 ---
 
-## [1.0.0] - 2026-02-16
+## [0.1.1] - 2026-02-16
 
 ###  Major Release - Primeira Versão Estável
 
@@ -252,20 +263,3 @@ Esta versão marca a maior transição arquitetural do Sovereign Pair, expurgand
 - `Security` - Correções de vulnerabilidades
 - `Performance` - Melhorias de performance
 - `Documentation` - Mudanças na documentação
-
----
-
-## Links
-
-| Version | URL |
-|---------|-----|
-| [2.0.0](https://github.com/Personal-Digital-Sovereignty/sovereign-pair/commit/2d97e65) | https://github.com/Personal-Digital-Sovereignty/sovereign-pair/releases/tag/v2.0.0 |
-| [1.1.0](https://github.com/Personal-Digital-Sovereignty/sovereign-pair/commit/8a3046d) | https://github.com/Personal-Digital-Sovereignty/sovereign-pair/releases/tag/v1.1.0 |
-| [1.0.0](https://github.com/Personal-Digital-Sovereignty/sovereign-pair/commit/9d64dbf) | https://github.com/Personal-Digital-Sovereignty/sovereign-pair/releases/tag/v1.0.0 |
-
----
-
-**Autor**: Jeferson Lopes
-**Assistência**: Antigravity (Advanced Agentic Coding) & Deepmind Systems
-**Data**: 2026-03-14
-**Versão**: 4.0.0
