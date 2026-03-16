@@ -1,16 +1,6 @@
 name: Frontend Web CI/CD
 
 on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'web-ui/**'
-      - 'infra/docker/Dockerfile.web'
-      - 'infra/docker/nginx.conf'
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - 'web-ui/**'
   workflow_dispatch:
 
 env:
@@ -33,7 +23,6 @@ jobs:
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
-        if: github.event_name == 'push'
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -41,7 +30,6 @@ jobs:
 
       - name: Build and push Vue Web Docker image
         uses: docker/build-push-action@v5
-        if: github.event_name == 'push'
         with:
           context: .
           file: ./infra/docker/Dockerfile.web
