@@ -1,0 +1,49 @@
+:root {
+  --bg-color: rgba(18, 18, 20, 0.65); /* Glassmorphism background */
+  --backdrop-blur: 24px;
+  --text-main: #f0f0f5;
+  --text-muted: #8b8e98;
+  --accent: #6b4cff;
+  --accent-glow: rgba(107, 76, 255, 0.4);
+  --border-light: rgba(255, 255, 255, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: transparent;
+  color: var(--text-main);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 20px; /* Space from top of screen */
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  width: 100%;
+  max-width: 580px;
+  background-color: var(--bg-color);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  border-radius: 16px;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slide-down 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slide-down {
+  0% { opacity: 0; transform: translateY(-30px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}

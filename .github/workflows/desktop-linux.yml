@@ -1,0 +1,67 @@
+name: Desktop Build & Release (Linux)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Choose the build type'
+        required: true
+        default: 'nightly'
+        type: choice
+        options:
+          - nightly
+          - release
+      tag_name:
+        description: 'Set Tag version if Release (e.g. 0.5.0). Ignored for nightly.'
+        required: false
+        type: string
+
+jobs:
+  build-tauri:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Install Linux Dependencies (Webkit & GTK)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Install Vue Dependencies
+        working-directory: ./desktop
+        run: npm ci
+
+      - name: Build Tauri App
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: "./desktop"
+          tagName: ${{ github.event.inputs.build_type == 'nightly' && 'nightly' || github.event.inputs.tag_name }}
+          releaseName: ${{ github.event.inputs.build_type == 'nightly' && 'Sovereign Pair Desktop (Nightly)' || format('Sovereign Pair Desktop {0}', github.event.inputs.tag_name) }}
+          releaseBody: "Automated Tauri build for Linux. \n\n* Note: Requires the Cíbrid Backend to be running natively on `localhost:8000` & `8001`."
+          releaseDraft: false
+          prerelease: ${{ github.event.inputs.build_type == 'nightly' }}
+          args: ${{ github.event.inputs.build_type == 'nightly' && '--runner cargo' || '--runner cargo' }}
