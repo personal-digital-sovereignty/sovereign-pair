@@ -199,7 +199,7 @@ Se quiser testar ou modificar a UI do pop-up do relógio visualmente:
 ```bash
 npm run tauri dev
 ```
-*(Um ícone de 🧠 aparecerá no seu relógio/tray!)*
+*(O ícone circular do Sovereign Pair aparecerá no seu relógio/tray!)*
 
 ### 5. Compilando o Embalamento Final (Build Release)
 Para gerar executáveis prontos para instalação (ex: `.deb`, `.AppImage`, `.msi`, `.dmg`):
