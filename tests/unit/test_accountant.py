@@ -11,7 +11,7 @@ def test_static_values():
     
     assert results["A1"] == "10.0"
     assert results["B1"] == "25.5"
-    assert results["C1"] == "0.0" # Non-numeric fallbacks to 0 for math safety
+    assert results["C1"] == "#VALUE!" # Non-numeric fallbacks to #VALUE! for math safety
 
 def test_simple_addition():
     """Somas simples e referências unitárias."""
