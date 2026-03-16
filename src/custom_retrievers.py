@@ -128,8 +128,6 @@ class CustomSqliteVecRetriever(BaseRetriever):
         import struct
         import json
 
-        print(f"!!! TRACING _retrieve: {query_bundle.query_str} !!!"); logger.info(f"🔍 [SQLite-Vec] Executando Busca Vetorial: '{query_bundle.query_str}'")
-
         try:
             # 1. Obter o vetor F32 (Embeddings via Nomic Nomic/Ollama)
             query_embedding = self._embed_model.get_text_embedding(query_bundle.query_str)
