@@ -6,7 +6,7 @@ from sqlalchemy import create_mock_engine
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, base_dir)
 
-from src.api.models import Base
+from src.api.models import Base  # noqa: E402
 
 def dump_schema():
     out_file = os.path.join(base_dir, "data", "schema_0.4.1.sql")

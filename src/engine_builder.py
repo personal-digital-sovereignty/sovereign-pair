@@ -90,7 +90,6 @@ def build_chat_engine(index, history=None, provider=None, model_name=None, tenan
     else:
         # Bypass temporário caso o framework esteja em refatoração para Rust/SQLite Vec
         from llama_index.core.retrievers import BaseRetriever
-        from llama_index.core.schema import NodeWithScore
         class EmptyRetriever(BaseRetriever):
             def _retrieve(self, query_bundle):
                 return []
@@ -265,7 +264,6 @@ def build_system_chat_engine(provider=None, model_name=None, api_keys=None):
             
         active_llm = resolve_dynamic_llm(sys_provider, sys_model, get_default_llm(), api_keys)
         
-        import logging
         from llama_index.core.chat_engine import CondensePlusContextChatEngine
         from src.config import get_embed_model
         from src.custom_retrievers import CustomSqliteVecRetriever
