@@ -176,7 +176,6 @@ MAX_WEB_SEARCH_RESULTS = int(os.getenv("MAX_WEB_SEARCH_RESULTS", "3"))
 def get_default_llm():
     from src.llm_factory import _get_active_ollama_url
     from src.api.database import SessionLocal
-    from src.api.models import SystemSettings
     from src.api.routes import _get_setting_value
     
     # Try fetching the DB value first to ensure centrality

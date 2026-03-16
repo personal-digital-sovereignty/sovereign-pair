@@ -1,4 +1,5 @@
 import os
+
 import logging
 from typing import Any
 
@@ -50,7 +51,6 @@ def _get_active_ollama_url() -> str:
     from src.config import OLLAMA_BASE_URL
     import json
     import sqlite3
-    import os
     
     try:
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

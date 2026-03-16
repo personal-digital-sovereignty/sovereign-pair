@@ -14,6 +14,8 @@ except ImportError:
     from slowapi.util import get_remote_address
     limiter = Limiter(key_func=get_remote_address)
 
+
+
 router = APIRouter()
 
 @router.post("/chat/completions")
@@ -32,6 +34,7 @@ async def opencode_chat_completions(
         OpenAIChatRequest, OpenAIChatResponse, OpenAIChatChoice, OpenAIChatChoiceMessage, 
         OpenAIChatChunkResponse, OpenAIChatChunkChoice, OpenAIChatChunkDelta, OpenAITokenUsage
     )
+    import logging
     from llama_index.core.llms import ChatMessage as LlamaMsg, MessageRole
     from src.engine_builder import resolve_dynamic_llm
     from src.config import get_default_llm
@@ -63,8 +66,8 @@ async def opencode_chat_completions(
     if target_model.startswith("gpt-") or target_model.startswith("claude-") or target_model == "openai/gpt-4o":
         import logging
         logging.info(f"Sovereign Proxy: Interceptado pedido comercial {target_model}, Redirecionando para a Identidade Local Dinamica")
-        target_model = db_model
-        target_provider = db_provider
+        target_model = body_request.model if body_request.model else "ollama"
+        target_provider = body_request.provider if body_request.provider else "ollama"
     else:
         target_provider = "ollama" if any(k in target_model.lower() for k in ["llama", "qwen", "mistral", "deepseek"]) else db_provider
     
