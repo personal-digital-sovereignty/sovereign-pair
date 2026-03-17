@@ -4,17 +4,22 @@ use tracing::info;
 
 pub async fn init_pool() -> SqlitePool {
     // Escaneia a variável de ambiente ou injeta a raiz Cíbrida Master (Hardcoded fallback p/ o projeto)
+    // Escaneia a variável de ambiente ou usa a pasta nativa do Sistema Operacional (Evita crash Sidecar/AppImage)
     let db_path = env::var("DATABASE_URL").unwrap_or_else(|_| {
-        let mut path = env::current_dir().expect("Sovereign: Current Dir Not Found");
-        // Sobe um nível se estiver dentro de 'core'
-        if path.ends_with("core") {
-            path.pop();
-        }
+        let mut path = dirs::data_local_dir().expect("Sovereign: SO Data Local Dir Not Found");
+        path.push("sovereign-pair");
         path.push("data");
+        
+        // Garante que a estrutura da pasta exista antes que o SQLite tente criar o arquivo
+        if !path.exists() {
+            std::fs::create_dir_all(&path).expect("Sovereign: Falha ao criar arvore de dados do O.S");
+        }
+        
         path.push("sovereign_memory.db");
         
         let path_str = path.to_string_lossy().to_string();
-        format!("sqlite:{}", path_str)
+        // O mode=rwc obriga o libsqlite3 a criar o arquivo físico caso ele não exista na pasta
+        format!("sqlite:{}?mode=rwc", path_str)
     });
 
     info!("🗄️ [Sovereign Core] Acoplando Banco Híbrido Cíbrido: {}", db_path);
