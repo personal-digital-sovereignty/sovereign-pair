@@ -23,7 +23,19 @@ let _ = state.log_sender.send(crate::models::LogEntry {
 // O Roteamento de Conversão (OpenAI -> Ollama)
 // 1. Transpilar Nomes de Modelos Proprietários para Modelos Locais
 let ollama_model = if requested_model.to_lowercase().contains("gpt") {
-    "qwen2.5:3b".to_string() // Hardcode forçado do modelo cognitivo soberano
+    let mut resolved_model = "qwen2.5:3b".to_string(); // Fallback de segurança
+    if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'system_settings'").fetch_optional(&state.db).await {
+        let val: String = sqlx::Row::get(&row, "value_json");
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&val) {
+            if let Some(model_str) = parsed.get("llm_model").and_then(|v| v.as_str()) {
+                if !model_str.is_empty() {
+                    resolved_model = model_str.to_string();
+                }
+            }
+        }
+    }
+    tracing::info!("🔄 Proxy OpenCode/Desktop enviou {}. Remapeando para o modelo local SQLite: {}", requested_model, resolved_model);
+    resolved_model
 } else {
     requested_model.clone()
 };
@@ -219,7 +231,7 @@ let res = match state
         error!("❌ Ollama recusou a requisição HTTP. Status: {} - Body: {}", status, err_body);
         
         let err_msg = if status == reqwest::StatusCode::NOT_FOUND && err_body.contains("not found") {
-            format!("*(Conexão Remota)* 🚨 **Falha: Modelo Ausente na Oracle (OCI)**\nO modelo `{}` não está instalado no seu nó remoto (`{}`).\n\n**Solução:** Vá em 'Gerenciar Nós' nas configurações e execute o Download/Pull deste modelo para que a AWS/Oracle possa usá-lo.", ollama_model, endpoint)
+            format!("*(Conexão Remota)* 🚨 **Falha: Modelo Ausente no Nó Remoto**\nO modelo `{}` não está instalado no seu nó remoto (`{}`).\n\n**Solução:** Vá em 'Gerenciar Nós' nas configurações e execute o Download/Pull deste modelo para que nossos agentes possam usá-lo.", ollama_model, endpoint)
         } else {
             format!("*(Protocolo de Fallback)* 🚨 Falha no nó LLM configurado ({}). Status HTTP: {} - Body: {}", endpoint, status, err_body)
         };
