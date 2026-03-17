@@ -129,7 +129,7 @@ const getStepBgColor = (currentStep: number, boxIndex: number) => {
 // ==========================================
 // RAG VAULT SYNC ENGINE: SSE NATIVE OBSERVER
 // ==========================================
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:38001`
 let eventSource: EventSource | null = null
 
 const startSseConnection = () => {

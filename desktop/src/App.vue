@@ -5,7 +5,7 @@ const searchQuery = ref("");
 const messages = ref<{role: string, content: string}[]>([]);
 const isProcessing = ref(false);
 const inputField = ref<HTMLInputElement | null>(null);
-const activePort = ref<number>(8001); // Começa na 8001 e escala dinamicamente
+const activePort = ref<number>(38001); // Começa na 38001 e escala dinamicamente
 
 function closeWindow() {
   // Can be hooked to Tauri window.hide() when needed
@@ -43,7 +43,7 @@ async function performSearch() {
     });
 
     if (!response.ok) {
-        messages.value.push({ role: 'assistant', content: `⚠️ O Sovereign Pair Backend recusou a conexão (HTTP ${response.status}). Verifique se The Mom está rodando no porto 8001.` });
+        messages.value.push({ role: 'assistant', content: `⚠️ O Sovereign Pair Backend recusou a conexão (HTTP ${response.status}). Verifique se The Mom está rodando no porto 38001.` });
         isProcessing.value = false;
         return;
     }
@@ -93,7 +93,7 @@ async function performSearch() {
     }
   } catch (error) {
     console.error(error);
-    messages.value.push({ role: 'assistant', content: `❌ Erro de Conexão: Não foi possível alcançar a RAG API no localhost:8001. O Motor está desligado.` });
+    messages.value.push({ role: 'assistant', content: `❌ Erro de Conexão: Não foi possível alcançar a RAG API no localhost:38001. O Motor está desligado.` });
   } finally {
     isProcessing.value = false;
   }
@@ -102,8 +102,8 @@ async function performSearch() {
 onMounted(async () => {
   inputField.value?.focus();
   
-  // Realiza varredura silenciosa da API Rust (Sidecar) para descobrir em qual porta subiu (8001 até 8010)
-  for (let port = 8001; port <= 8010; port++) {
+  // Realiza varredura silenciosa da API Rust (Sidecar) para descobrir em qual porta subiu (38001 até 38010)
+  for (let port = 38001; port <= 38010; port++) {
       try {
           const res = await fetch(`http://127.0.0.1:${port}/v1/models`, {
               method: 'GET',

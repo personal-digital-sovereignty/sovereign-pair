@@ -2,7 +2,7 @@
 import { ref, watch, onMounted } from 'vue'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000`
-const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
+const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:38001`
 
 const getAuthHeaders = (): Record<string, string> => {
    const token = localStorage.getItem('sovereign_token')
@@ -675,7 +675,7 @@ watch(() => systemSettings.value.theme, (newTheme) => {
                <div class="space-y-3 pt-6 border-t border-surface-700">
                   <label class="block text-sm font-semibold text-emerald-400">Integrações de API Clientes (Vercel/OpenCode)</label>
                   <p class="text-xs text-slate-400 leading-relaxed mb-2">
-                     O SOVEREIGN Rust-Core (Servidor Local 8001) pode atuar como um Proxy Compatível com OpenAI. Habilite abaixo para o seu VS Code redirecionar inference via SSE local.
+                     O SOVEREIGN Rust-Core (Servidor Local 38001) pode atuar como um Proxy Compatível com OpenAI. Habilite abaixo para o seu VS Code redirecionar inference via SSE local.
                   </p>
                   <div class="p-4 bg-surface-900 border border-surface-700 rounded-xl flex items-center gap-3">
                      <input type="checkbox" id="proxy-opencode" v-model="proxyEnabled" class="w-4 h-4 rounded bg-surface-950 border-primary-800 text-primary-500 focus:ring-primary-500">
