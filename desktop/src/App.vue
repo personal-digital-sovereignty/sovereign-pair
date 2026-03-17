@@ -236,7 +236,7 @@ input::placeholder {
 /* Chat Area */
 .chat-area {
   padding: 20px 24px;
-  max-height: 380px;
+  max-height: 450px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
