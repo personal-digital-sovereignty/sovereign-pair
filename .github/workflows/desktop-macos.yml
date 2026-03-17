@@ -48,6 +48,13 @@ jobs:
         working-directory: ./desktop
         run: npm ci
 
+      - name: Build Rust Core Sidecar (sovereign-axum)
+        working-directory: ./core
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+          mkdir -p ../desktop/src-tauri/binaries
+          cp target/${{ matrix.target }}/release/sovereign-core ../desktop/src-tauri/binaries/sovereign-axum-${{ matrix.target }}
+
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0
         env:
