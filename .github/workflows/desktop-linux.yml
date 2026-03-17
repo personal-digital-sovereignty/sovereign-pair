@@ -60,15 +60,36 @@ jobs:
           mkdir -p ../desktop/src-tauri/binaries
           cp target/x86_64-unknown-linux-gnu/release/sovereign-core ../desktop/src-tauri/binaries/sovereign-axum-x86_64-unknown-linux-gnu
 
+      - name: Generate Dynamic Version
+        id: versioning
+        shell: bash
+        run: |
+          TIMESTAMP=$(date +'%Y%m%d%H%M')
+          if [ "${{ github.event.inputs.build_type }}" == "nightly" ]; then
+            TAG_NAME="0.4.0-${TIMESTAMP}"
+            RELEASE_NAME="Sovereign Pair Desktop (Nightly ${TAG_NAME})"
+            cd desktop/src-tauri
+            jq --arg v "$TAG_NAME" '.version = $v' tauri.conf.json > tmp.json && mv tmp.json tauri.conf.json
+            cd ../..
+          else
+            TAG_NAME="${{ github.event.inputs.tag_name }}"
+            RELEASE_NAME="Sovereign Pair Desktop ${TAG_NAME}"
+            cd desktop/src-tauri
+            jq --arg v "$TAG_NAME" '.version = $v' tauri.conf.json > tmp.json && mv tmp.json tauri.conf.json
+            cd ../..
+          fi
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: "./desktop"
-          tagName: ${{ github.event.inputs.build_type == 'nightly' && 'nightly' || github.event.inputs.tag_name }}
-          releaseName: ${{ github.event.inputs.build_type == 'nightly' && 'Sovereign Pair Desktop (Nightly)' || format('Sovereign Pair Desktop {0}', github.event.inputs.tag_name) }}
-          releaseBody: "Automated Tauri build for Linux. \n\n* Note: Requires the Cíbrid Backend to be running natively on `localhost:8000` & `8001`."
+          tagName: desktop_${{ steps.versioning.outputs.tag_name }}
+          releaseName: ${{ steps.versioning.outputs.release_name }}
+          releaseBody: "Automated Tauri build for Linux. \n\n* Note: Requires the Cíbrid Backend to be running natively on `localhost:8000` & `38001`."
           releaseDraft: false
           prerelease: ${{ github.event.inputs.build_type == 'nightly' }}
           args: ${{ github.event.inputs.build_type == 'nightly' && '--runner cargo' || '--runner cargo' }}
