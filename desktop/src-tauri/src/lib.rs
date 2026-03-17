@@ -15,9 +15,9 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let quit_i = MenuItem::with_id(app, "quit", "Quit Sovereign Pair", true, None::<&str>)?;
-            let show_i = MenuItem::with_id(app, "show", "Show Spotlight", true, None::<&str>)?;
-            let hide_i = MenuItem::with_id(app, "hide", "Hide Spotlight", true, None::<&str>)?;
+            let quit_i = MenuItem::with_id(app, "quit", "Encerrar Sovereign Pair", true, None::<&str>)?;
+            let show_i = MenuItem::with_id(app, "show", "Exibir Spotlight", true, None::<&str>)?;
+            let hide_i = MenuItem::with_id(app, "hide", "Ocultar Spotlight", true, None::<&str>)?;
             
             let menu = Menu::with_items(app, &[&show_i, &hide_i, &quit_i])?;
 
