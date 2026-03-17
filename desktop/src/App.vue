@@ -57,14 +57,28 @@ async function performSearch() {
     messages.value.push({ role: 'assistant', content: '' });
     const assistantMsgIndex = messages.value.length - 1;
 
+    let buffer = '';
+
     while (true) {
       const { value, done } = await reader.read();
-      if (done) break;
+      if (done) {
+        // Flushing final do buffer caso decodificador segure algo
+        if (buffer.trim()) {
+           // O que restou aqui que não terminou em \n provavelmente é lixo ou final, mas é bom prevenir
+        }
+        break;
+      }
 
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      
+      // A última linha pode estar cortada ao meio num pacote TCP. 
+      // Então removemos do array de linhas prontas e jogamos de volta no buffer para a próxima iteração.
+      buffer = lines.pop() || '';
       
       for (const line of lines) {
+        if (line.trim() === '') continue;
+        
         if (line.startsWith('data: ')) {
           const dataStr = line.slice(6).trim();
           if (dataStr === '[DONE]') continue;
@@ -86,7 +100,7 @@ async function performSearch() {
               if (chatArea) chatArea.scrollTop = chatArea.scrollHeight;
             }
           } catch (e) {
-            console.error("SSE JSON Parse Error", e);
+            console.error("SSE JSON Parse Error no pedaço:", dataStr, e);
           }
         }
       }
