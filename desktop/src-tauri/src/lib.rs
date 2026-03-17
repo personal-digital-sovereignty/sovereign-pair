@@ -9,12 +9,38 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Manager,
 };
+use tauri_plugin_shell::ShellExt;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
+            // SPONTANEOUS HUB MODE (As requested by User)
+            // Starts the Rust API Sidecar in background listening on 0.0.0.0.
+            let sidecar_command = app.shell().sidecar("sovereign-axum").unwrap()
+                .args(["--host", "0.0.0.0"]);
+            
+            let (mut rx, mut child) = sidecar_command.spawn().expect("Falha ao iniciar o Motor Sovereign Core (Sidecar)");
+            
+            // Spawn an async task to monitor the Sidecar's stdout/stderr
+            tauri::async_runtime::spawn(async move {
+                while let Some(event) = rx.recv().await {
+                    match event {
+                        tauri_plugin_shell::process::CommandEvent::Stdout(line) => {
+                            println!("[API SIDECAR]: {}", String::from_utf8_lossy(&line));
+                        }
+                        tauri_plugin_shell::process::CommandEvent::Stderr(error) => {
+                            eprintln!("[API SIDECAR ERROR]: {}", String::from_utf8_lossy(&error));
+                        }
+                        tauri_plugin_shell::process::CommandEvent::Terminated(payload) => {
+                            eprintln!("[API SIDECAR EXITED]: Code {:?}", payload.code);
+                        }
+                        _ => {}
+                    }
+                }
+            });
             let quit_i = MenuItem::with_id(app, "quit", "Encerrar Sovereign Pair", true, None::<&str>)?;
             let show_i = MenuItem::with_id(app, "show", "Exibir Spotlight", true, None::<&str>)?;
             let hide_i = MenuItem::with_id(app, "hide", "Ocultar Spotlight", true, None::<&str>)?;
