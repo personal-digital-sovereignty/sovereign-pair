@@ -394,7 +394,7 @@ const props = defineProps({
 const emit = defineEmits(['editor-stats', 'update-view-mode', 'editor-saving'])
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000`
-const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
+const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:38001`
 const isLoading = ref(true)
 const fetchError = ref<string | null>(null)
 const isSaving = ref(false)

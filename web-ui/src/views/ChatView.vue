@@ -32,7 +32,7 @@ const formatMessageIcons = (content: string) => {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000`
-const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
+const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:38001`
 
 const getAuthHeaders = (): Record<string, string> => {
    const token = localStorage.getItem('sovereign_token')
@@ -294,7 +294,7 @@ const sendMessage = async (invokeSource: boolean | Event = false) => {
     currentAbortController.value = new AbortController()
 
     // 🚀 BYPASS CÍBRIDO: Redirecionar Inferência para o Core Rust (Fase 25)
-    // Deixamos a 8000 para histórico (Python), mas o tráfego RAG quente flui pela 8001 (Rust)
+    // Deixamos a 8000 para histórico (Python), mas o tráfego RAG quente flui pela 38001 (Rust)
     const HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
     
     // Convertemos o Histórico Atual da UI para a estrutura estrita OpenAI Role/Content/ToolCalls
@@ -317,7 +317,7 @@ const sendMessage = async (invokeSource: boolean | Event = false) => {
     // Se for comando /web ou /sys, bypassamos pro Python. Se não, RAG puro no Rust:
     const TARGET_URL = isSpecialCommand 
       ? `http://${HOST}:8000/v1/chat` 
-      : `http://${HOST}:8001/v1/chat/completions`
+      : `http://${HOST}:38001/v1/chat/completions`
 
     const payloadBody = isSpecialCommand 
       ? JSON.stringify({
@@ -544,7 +544,7 @@ const sendMessage = async (invokeSource: boolean | Event = false) => {
                   }
                   
                   let toolResult = null
-                  const RUST_CORE_URL_TOOLS = 'http://127.0.0.1:8001'
+                  const RUST_CORE_URL_TOOLS = 'http://127.0.0.1:38001'
                   
                   if (tc.function.name === 'read_vault_file') {
                       const res = await fetch(`${RUST_CORE_URL_TOOLS}/v1/tools/read_vault_file`, {

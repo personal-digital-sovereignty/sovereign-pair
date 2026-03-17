@@ -17,7 +17,7 @@ export interface Task {
     updated_at?: string
 }
 
-const getBaseURL = () => (import.meta.env.VITE_RUST_CORE_URL as string) || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
+const getBaseURL = () => (import.meta.env.VITE_RUST_CORE_URL as string) || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:38001`
 const getHeaders = () => {
     const token = localStorage.getItem('sovereign_token')
     return token ? { Authorization: `Bearer ${token}` } : {}
