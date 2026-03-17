@@ -75,7 +75,7 @@ let eventSource: EventSource | null = null
 
 const connectToSSE = () => {
     // Endereço físico dinâmico do Sovereign Core
-    const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
+    const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:38001`
     eventSource = new EventSource(`${RUST_CORE_URL}/v1/logs`)
     
     eventSource.onopen = () => {

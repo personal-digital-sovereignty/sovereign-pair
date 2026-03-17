@@ -158,7 +158,7 @@ const scrollToBottom = () => {
    }
 }
 
-const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
+const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:38001`
 
 const getAuthHeaders = (): Record<string, string> => {
    const token = localStorage.getItem('sovereign_token')

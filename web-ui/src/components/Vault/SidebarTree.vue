@@ -116,7 +116,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import SidebarTreeNode from './SidebarTreeNode.vue'
 
-const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8001`
+const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:38001`
 const isLoading = ref(true)
 
 // O Estado UI Mestre de Workspaces Array (Não mais FileRoot única)
@@ -178,7 +178,7 @@ const getHeaders = (): Record<string, string> => {
   return headers
 }
 
-// --- CRUD Operations (RUST NATIVE PORT 8001) ---
+// --- CRUD Operations (RUST NATIVE PORT 38001) ---
 const getTargetParentPath = () => {
   if (!contextMenu.value.node) return "" // Root of Workspace
   if (contextMenu.value.node.type === 'dir' || contextMenu.value.node.is_dir) return contextMenu.value.node.id // Id em rust node é o path relativo ao root!
@@ -204,7 +204,7 @@ const mountOsDrive = async () => {
             alert(`Falha Cíbrida ao Atrelar Drive O.S: ${err.message || 'Desconhecida'}`)
         }
     } catch (e) {
-        alert("Erro fatal na comunicação com o Motor Rust (8001).")
+        alert("Erro fatal na comunicação com o Motor Rust (38001).")
     } finally {
         isLoadingMount.value = false;
     }
@@ -229,7 +229,7 @@ const removeWorkspace = async (id: number, name: string) => {
             alert(`Falha Cíbrida ao Desatrelar Workspace: ${err.message || 'Desconhecida'}`)
         }
     } catch (e) {
-        alert("Erro fatal na comunicação com o Motor Rust (8001).")
+        alert("Erro fatal na comunicação com o Motor Rust (38001).")
     } finally {
         isLoading.value = false;
     }
