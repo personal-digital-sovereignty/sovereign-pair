@@ -138,12 +138,47 @@ async fn main() {
         .layer(CorsLayer::permissive())
         .with_state(state);
 
-    // Configura o TcpListener (Roda na porta 8001 para não colidir com o FastAPI se estiver aberto)
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8001")
-        .await
-        .unwrap();
+    // Parsing CLI arguments to allow dynamic Host binding (Desktop vs Hub Mode)
+    let args: Vec<String> = std::env::args().collect();
+    let mut host_address = "127.0.0.1:8001".to_string(); // Default to secure localhost
+
+    let mut i = 1;
+    while i < args.len() {
+        if args[i] == "--host" && i + 1 < args.len() {
+            host_address = format!("{}:8001", args[i + 1]);
+            i += 1;
+        }
+        i += 1;
+    }
+
+    // Configura o TcpListener com Port Escaping progressivo (Evita colisão EADDRINUSE no Desktop)
+    let mut listener = None;
+    let mut final_port = 8001;
+
+    for port in 8001..=8010 {
+        let bind_target = if host_address.contains(":") {
+            // Se via CLI vier "0.0.0.0:8001", a gente fatia e substitui pela porta da iteração
+            let base_ip = host_address.split(':').next().unwrap_or("127.0.0.1");
+            format!("{}:{}", base_ip, port)
+        } else {
+            format!("{}:{}", host_address, port)
+        };
+
+        match tokio::net::TcpListener::bind(&bind_target).await {
+            Ok(l) => {
+                listener = Some(l);
+                final_port = port;
+                break;
+            }
+            Err(e) => {
+                tracing::warn!("Port {} ocupada. Tentando próxima... ({})", port, e);
+            }
+        }
+    }
+
+    let listener = listener.expect("Sovereign Error: Todas as portas de 8001 a 8010 estão ocupadas!");
     
-    tracing::info!("🚀 Core Listening on {}", listener.local_addr().unwrap());
+    tracing::info!("🚀 Sovereign Core Listening Resiliently on {}", listener.local_addr().unwrap());
     
     // Inicia o Servidor Nativo
     axum::serve(listener, app).await.unwrap();

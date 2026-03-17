@@ -5,6 +5,7 @@ const searchQuery = ref("");
 const messages = ref<{role: string, content: string}[]>([]);
 const isProcessing = ref(false);
 const inputField = ref<HTMLInputElement | null>(null);
+const activePort = ref<number>(8001); // Começa na 8001 e escala dinamicamente
 
 function closeWindow() {
   // Can be hooked to Tauri window.hide() when needed
@@ -21,7 +22,7 @@ async function performSearch() {
   
   try {
     const HOST = '127.0.0.1';
-    const TARGET_URL = `http://${HOST}:8001/v1/chat/completions`;
+    const TARGET_URL = `http://${HOST}:${activePort.value}/v1/chat/completions`;
     
     // Convert to OpenAI format
     const rustMessages = messages.value.map(m => ({
@@ -98,8 +99,26 @@ async function performSearch() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   inputField.value?.focus();
+  
+  // Realiza varredura silenciosa da API Rust (Sidecar) para descobrir em qual porta subiu (8001 até 8010)
+  for (let port = 8001; port <= 8010; port++) {
+      try {
+          const res = await fetch(`http://127.0.0.1:${port}/v1/models`, {
+              method: 'GET',
+              headers: { 'Accept': 'application/json' }
+          });
+          if (res.ok) {
+              activePort.value = port;
+              console.log(`[Sovereign Core] Estabeleceu Uplink na porta: ${port}`);
+              break;
+          }
+      } catch (e) {
+          // Ignora erros de "Connection Refused" enquanto engole as portas
+      }
+  }
+
   // Listen for ESC to hide window
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
