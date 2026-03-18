@@ -4,6 +4,27 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+#[tauri::command]
+fn open_studio_mode(app: tauri::AppHandle, port: u16) {
+    let url = format!("http://127.0.0.1:{}", port);
+    
+    // Foca se já existir a janela
+    if let Some(win) = tauri::Manager::get_webview_window(&app, "studio") {
+        let _ = win.set_focus();
+        return;
+    }
+
+    let _window = tauri::WebviewWindowBuilder::new(
+        &app,
+        "studio",
+        tauri::WebviewUrl::External(url.parse().unwrap())
+    )
+    .title("Sovereign Pair Studio")
+    .inner_size(1400.0, 900.0)
+    .center()
+    .build();
+}
+
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -22,7 +43,7 @@ pub fn run() {
             let sidecar_command = app.shell().sidecar("sovereign-axum").unwrap()
                 .args(["--host", "0.0.0.0"]);
             
-            let (mut rx, mut child) = sidecar_command.spawn().expect("Falha ao iniciar o Motor Sovereign Core (Sidecar)");
+            let (mut rx, _child) = sidecar_command.spawn().expect("Falha ao iniciar o Motor Sovereign Core (Sidecar)");
             
             // Spawn an async task to monitor the Sidecar's stdout/stderr
             tauri::async_runtime::spawn(async move {
@@ -102,7 +123,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![greet, open_studio_mode])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

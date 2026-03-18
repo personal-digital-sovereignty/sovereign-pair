@@ -11,13 +11,44 @@ mod api_projects;
 mod api_settings;
 mod api_tools;
 pub mod kms;
+pub mod network;
 
-use axum::{routing::post, Router, response::IntoResponse};
+use axum::{routing::post, Router, response::IntoResponse, http::{header, StatusCode, Uri}};
 use reqwest::Client;
 use std::sync::{Arc, RwLock};
 use tokio::sync::broadcast;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use rust_embed::RustEmbed;
+
+#[derive(RustEmbed)]
+#[folder = "../web-ui/dist/"]
+struct BackendWebUI;
+
+async fn spa_static_handler(uri: Uri) -> impl IntoResponse {
+    let mut path = uri.path().trim_start_matches('/');
+    if path.is_empty() {
+        path = "index.html";
+    }
+
+    match BackendWebUI::get(path) {
+        Some(content) => {
+            let mime = mime_guess::from_path(path).first_or_octet_stream();
+            ([(header::CONTENT_TYPE, mime.as_ref())], content.data).into_response()
+        }
+        None => {
+            if path.contains('.') {
+                tracing::warn!("🚨 404: Static asset não encontrado -> {}", uri);
+                return (StatusCode::NOT_FOUND, "404 Sovereign Fallback (Asset Not Found)").into_response();
+            }
+            if let Some(index) = BackendWebUI::get("index.html") {
+                ([(header::CONTENT_TYPE, "text/html")], index.data).into_response()
+            } else {
+                (StatusCode::NOT_FOUND, "Sovereign Web-UI Offline").into_response()
+            }
+        }
+    }
+}
 
 // Estado Global (Músculo Cíbrido) compartilhado entre Threads
 pub struct AppState {
@@ -41,6 +72,9 @@ async fn main() {
         .init();
 
     tracing::info!("🦀 Sovereign Core (Rust) Initializing...");
+
+    // Instancia a Identidade de Rede (O Alias e Segredos JWT para a Sessão LAN)
+    let identity = network::init_network_identity();
 
     // Inicializa as Engrenagens do RAG Indexer nativo (Std::fs)
     let active_vault = rag::init_vault();
@@ -130,12 +164,12 @@ async fn main() {
                 ]
             }))
         }))
-        // Radar de Captura de Escapada (Se bater 404, logaremos a URL exata requisitada pelo OpenCode)
-        .fallback(|uri: axum::http::Uri| async move {
-            tracing::error!("🚨 404 NOT FOUND: O OpenCode tentou acessar o endpoint camuflado -> {}", uri);
-            (reqwest::StatusCode::NOT_FOUND, format!("404 Sovereign Fallback: {} não existe no local.", uri))
-        })
+        // Emparelhamento Mágico de Rede (QR Code Endpoint)
+        .route("/v1/network/pair", axum::routing::get(network::get_pairing_info_handler))
+        // Static Web-UI Fallback Server (SPA HTML5 History Mode)
+        .fallback(spa_static_handler)
         .layer(CorsLayer::permissive())
+        .layer(axum::middleware::from_fn(network::lan_auth_guard))
         .with_state(state);
 
     // Parsing CLI arguments to allow dynamic Host binding (Desktop vs Hub Mode)
@@ -180,6 +214,9 @@ async fn main() {
     
     tracing::info!("🚀 Sovereign Core Listening Resiliently on {}", listener.local_addr().unwrap());
     
-    // Inicia o Servidor Nativo
-    axum::serve(listener, app).await.unwrap();
+    // Inicia o Beacon mDNS apenas depois da porta confirmada
+    network::start_mdns_beacon(&identity.alias, final_port);
+    
+    // Inicia o Servidor Nativo (Conector tipado pra permitir extração de IP pela LAN Guard)
+    axum::serve(listener, app.into_make_service_with_connect_info::<std::net::SocketAddr>()).await.unwrap();
 }
