@@ -69,6 +69,14 @@ pub async fn execute_rewoo_plan(user_query: &str, vault_path: &std::path::PathBu
                     // Abusing existing Rag logic for now
                     crate::rag::parse_vault_documents(&v_path)
                 },
+                "OracleSandbox" => {
+                    info!("💻 [ReWOO Worker {}] Invoking The Coder on Oracle Cloud Sandbox...", step_id);
+                    let payload = args.join("\n");
+                    match crate::ssh_gateway::SshGateway::execute_sandboxed_script(&payload).await {
+                        Ok(res) => res,
+                        Err(e) => e,
+                    }
+                },
                 "Telemetry" => {
                     "System IO at 100%".to_string()
                 },
