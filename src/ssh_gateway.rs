@@ -10,7 +10,13 @@ impl SshGateway {
     /// Executes a strictly isolated bash/python script on the Oracle Cloud VM.
     /// Captures Stdout and Stderr to feed back into the Sovereign Pair 'ReWOO Solver'.
     pub async fn execute_sandboxed_script(script_payload: &str) -> Result<String, String> {
-        let target_ip = env::var("OCI_HOST").unwrap_or_else(|_| "129.159.179.116".to_string());
+        let target_ip = match env::var("OCI_HOST") {
+            Ok(ip) => ip,
+            Err(_) => {
+                error!("❌ [Zero-Trust Gateway] OCI_HOST não está configurado na variável de ambiente.");
+                return Err("Missing OCI_HOST in .env variables.".to_string());
+            }
+        };
         let target_user = env::var("OCI_USER").unwrap_or_else(|_| "ubuntu".to_string());
         let key_path = env::var("OCI_SSH_KEY").unwrap_or_else(|_| {
             let mut p = dirs::home_dir().unwrap_or_default();
