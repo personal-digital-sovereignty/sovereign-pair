@@ -1,6 +1,6 @@
 import QtQuick
 import org.kde.plasma.plasmoid
-import org.kde.plasma.core as PlasmaCore
+import org.kde.kirigami as Kirigami
 import QtQuick.Layouts
 
 PlasmoidItem {
@@ -8,7 +8,7 @@ PlasmoidItem {
 
     preferredRepresentation: Plasmoid.compactRepresentation
 
-    Plasmoid.backgroundHints: PlasmaCore.Types.DefaultBackground
+    Plasmoid.backgroundHints: Plasmoid.DefaultBackground
     
     // Core state properties mapped from Rust Telemetry
     property int totalTokens: 0
