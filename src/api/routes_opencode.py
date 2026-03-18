@@ -102,8 +102,10 @@ async def opencode_chat_completions(
                 response_gen = await active_llm.astream_chat(llama_msgs)
                 seq_number = 1
                 item_id = str(uuid.uuid4())
+                full_stream_content = ""
                 async for token in response_gen:
                     if token.delta:
+                        full_stream_content += token.delta
                         if is_opencode_native:
                             # Payload Customizado Protocolo OpenCode SDK
                             chunk = {
@@ -129,9 +131,15 @@ async def opencode_chat_completions(
                             )
                             yield f"data: {chunk_response.model_dump_json(exclude_none=True)}\n\n"
                 
+                # Token metric approximation for STREAM
+                prompt_text = " ".join([str(m.content) for m in llama_msgs])
+                p_tokens = len(prompt_text) // 4
+                c_tokens = len(full_stream_content) // 4
+                usage_obj = OpenAITokenUsage(prompt_tokens=p_tokens, completion_tokens=c_tokens, total_tokens=p_tokens+c_tokens)
+                
                 # Finalização de Stream
                 if is_opencode_native:
-                    chunk = {"type": "response.completed"}
+                    chunk = {"type": "response.completed", "usage": usage_obj.model_dump()}
                     yield f"data: {json.dumps(chunk)}\n\n"
                 else:
                     final_choice = OpenAIChatChunkChoice(
@@ -143,7 +151,8 @@ async def opencode_chat_completions(
                         id=chat_id,
                         created=created_ts,
                         model=target_model,
-                        choices=[final_choice]
+                        choices=[final_choice],
+                        usage=usage_obj
                     )
                     yield f"data: {final_response.model_dump_json(exclude_none=True)}\n\n"
                     yield "data: [DONE]\n\n"
@@ -175,8 +184,18 @@ async def opencode_chat_completions(
             choice_msg = OpenAIChatChoiceMessage(role="assistant", content=str(response.message.content))
             choice = OpenAIChatChoice(index=0, message=choice_msg, finish_reason="stop")
             
-            # TODO: Tokenizer metric counts
-            usage = OpenAITokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+            # TODO: Tokenizer metric counts (Approximated if not provided by native LLM raw response)
+            prompt_text = " ".join([str(m.content) for m in llama_msgs])
+            completion_text = str(response.message.content)
+            
+            p_tokens = len(prompt_text) // 4
+            c_tokens = len(completion_text) // 4
+            
+            usage = OpenAITokenUsage(
+                prompt_tokens=p_tokens, 
+                completion_tokens=c_tokens, 
+                total_tokens=p_tokens + c_tokens
+            )
             
             # Formata utilizando os Schema Pydantics novos
             final_pydantic_res = OpenAIChatResponse(
