@@ -217,13 +217,13 @@ onMounted(async () => {
     
     <!-- Footer Context Hints -->
     <div class="footer hacker-footer" data-tauri-drag-region v-if="messages.length === 0">
-      <div class="shortcut"><span>Esc</span> Ocultar</div>
-      <div class="shortcut popup-btn" @click="triggerStudioMode" title="Abre a Interface Completa Web"><span>@studio</span> RAG Subsystem</div>
-      <div class="shortcut popup-btn" @click="openPairingModal" title="Distribui o RAG na Rede Wi-Fi"><span>@lan</span> Network Pair</div>
+      <div class="shortcut" title="Ocultar janela"><span>Esc</span></div>
+      <div class="shortcut popup-btn" @click="triggerStudioMode" title="Abre a Interface Completa Web (RAG Subsystem)"><span>@studio</span></div>
+      <div class="shortcut popup-btn" @click="openPairingModal" title="Distribui o RAG na Rede Wi-Fi (Network Pair)"><span>@lan</span></div>
       
       <!-- Hacker Personas -->
-      <div class="shortcut popup-btn" @click="addAgentTag('@mom')" title="Evocar The Mom (Gestão e RAG Aberto)"><span>@mom</span> Contexto Geral</div>
-      <div class="shortcut popup-btn" @click="addAgentTag('@dev')" title="Evocar The Coder (Arquitetura e Código)"><span>@dev</span> Contexto Código</div>
+      <div class="shortcut popup-btn" @click="addAgentTag('@mom')" title="Evocar The Mom (Gestão e RAG Aberto)"><span>@mom</span></div>
+      <div class="shortcut popup-btn" @click="addAgentTag('@dev')" title="Evocar The Coder (Arquitetura e Código)"><span>@dev</span></div>
     </div>
     
     <!-- Pairing Modal (QR Code) -->
