@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path as AxumPath, State},
+    extract::{Path as AxumPath, State, Query},
     response::IntoResponse,
     Json,
 };
@@ -216,20 +216,38 @@ pub async fn workspace_tree_handler(
     Json(vec![root_node]).into_response()
 }
 
+#[derive(Deserialize)]
+pub struct ReadDocQuery {
+    pub workspace_id: Option<i64>,
+}
+
 /// Rota GET /v1/vault/document/:id - Leitura direta do O.S Binário
 pub async fn vault_document_read(
     AxumPath(file_id): AxumPath<String>,
+    Query(query): Query<ReadDocQuery>,
     State(state): State<Arc<AppState>>
 ) -> impl IntoResponse {
     // Decodifica a URL String
     let decoded_id = urlencoding::decode(&file_id).unwrap_or(std::borrow::Cow::Borrowed(&file_id)).to_string();
     
-    // Se o frontend enviar um Path Absoluto da Base de Dados Cíbrida, nós lemos ele puramente.
-    // Senão, nós atrelamos ao Vault Default.
+    // FETCH THE WORKSPACE PATH
+    let mut ws_root = state.vault_path.clone();
+
+    if let Some(w_id) = query.workspace_id {
+        let ws = sqlx::query_as::<_, WorkspaceRow>("SELECT id, name, path, created_at FROM workspaces WHERE id = ?")
+            .bind(w_id)
+            .fetch_optional(&state.db)
+            .await;
+
+        if let Ok(Some(row)) = ws {
+            ws_root = PathBuf::from(row.path);
+        }
+    }
+
     let abs_path = if std::path::Path::new(&decoded_id).is_absolute() {
         PathBuf::from(&decoded_id)
     } else {
-        state.vault_path.join(&decoded_id)
+        ws_root.join::<PathBuf>(decoded_id.strip_prefix('/').unwrap_or(&decoded_id).into())
     };
 
     match fs::read_to_string(&abs_path).await {
