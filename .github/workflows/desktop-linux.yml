@@ -16,11 +16,12 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+
 jobs:
   build-tauri:
     runs-on: ubuntu-22.04
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout repository
@@ -53,6 +54,12 @@ jobs:
         working-directory: ./desktop
         run: npm ci
 
+      - name: Build Web-UI PWA (For Rust Embed)
+        working-directory: ./web-ui
+        run: |
+          npm ci
+          npm run build
+
       - name: Build Rust Core Sidecar (sovereign-axum)
         working-directory: ./core
         run: |
@@ -82,7 +89,7 @@ jobs:
           echo "release_name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Build Tauri App
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v0.6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

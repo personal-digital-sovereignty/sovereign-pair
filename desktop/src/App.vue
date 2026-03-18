@@ -1,5 +1,40 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import QrcodeVue from 'qrcode.vue';
+import { invoke } from "@tauri-apps/api/core";
+
+const showPairingModal = ref(false);
+const pairAlias = ref("");
+const pairToken = ref("");
+const pairUrl = ref("");
+
+async function openPairingModal() {
+    try {
+        const res = await fetch(`http://127.0.0.1:${activePort.value}/v1/network/pair`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.alias && data.token) {
+                pairAlias.value = data.alias;
+                pairToken.value = data.token;
+                pairUrl.value = `http://${data.alias}:${activePort.value}/?token=${data.token}`;
+                showPairingModal.value = true;
+            }
+        }
+    } catch (e) {
+        console.error("Modo Offline: não foi possível parear via mDNS.", e);
+    }
+}
+
+async function triggerStudioMode() {
+    await invoke("open_studio_mode", { port: activePort.value });
+}
+
+function addAgentTag(tag: string) {
+    if (!searchQuery.value.includes(tag)) {
+        searchQuery.value = tag + " " + searchQuery.value;
+    }
+    inputField.value?.focus();
+}
 
 const searchQuery = ref("");
 const messages = ref<{role: string, content: string}[]>([]);
@@ -181,10 +216,33 @@ onMounted(async () => {
     </div>
     
     <!-- Footer Context Hints -->
-    <div class="footer" data-tauri-drag-region v-if="messages.length === 0">
+    <div class="footer hacker-footer" data-tauri-drag-region v-if="messages.length === 0">
       <div class="shortcut"><span>Esc</span> Ocultar</div>
-      <div class="shortcut"><span>@mom</span> Contexto Geral</div>
-      <div class="shortcut"><span>@dev</span> Contexto Código</div>
+      <div class="shortcut popup-btn" @click="triggerStudioMode" title="Abre a Interface Completa Web"><span>@studio</span> RAG Subsystem</div>
+      <div class="shortcut popup-btn" @click="openPairingModal" title="Distribui o RAG na Rede Wi-Fi"><span>@lan</span> Network Pair</div>
+      
+      <!-- Hacker Personas -->
+      <div class="shortcut popup-btn" @click="addAgentTag('@mom')" title="Evocar The Mom (Gestão e RAG Aberto)"><span>@mom</span> Contexto Geral</div>
+      <div class="shortcut popup-btn" @click="addAgentTag('@dev')" title="Evocar The Coder (Arquitetura e Código)"><span>@dev</span> Contexto Código</div>
+    </div>
+    
+    <!-- Pairing Modal (QR Code) -->
+    <div class="modal-overlay" v-if="showPairingModal" @click.self="showPairingModal = false">
+        <div class="modal-content">
+            <h3>Pareamento Seguro (Rede Local)</h3>
+            <p>Acesse a Inteligência Artificial diretamente pelo navegador do seu celular ou de outro computador na mesma rede Wi-Fi.</p>
+            
+            <div class="qr-box">
+                <qrcode-vue :value="pairUrl" :size="180" level="M" />
+            </div>
+            
+            <div class="alias-box">
+                <code>{{ pairUrl.split('?')[0] }}</code>
+                <p class="token-hint">Acesso restrito via Token Autenticado.</p>
+            </div>
+            
+            <button class="close-btn" @click="showPairingModal = false">Fechar</button>
+        </div>
     </div>
   </main>
 </template>
@@ -302,24 +360,34 @@ input::placeholder {
   border-color: rgba(107, 76, 255, 0.25);
 }
 
-.footer {
+.footer.hacker-footer {
   padding: 14px 24px;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
-  gap: 20px;
+  gap: 16px;
   font-size: 13px;
-  color: var(--text-muted);
+  color: #888;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  flex-wrap: wrap; /* in case of smaller windows */
+}
+
+.shortcut {
+  display: flex;
+  align-items: center;
 }
 
 .shortcut span {
   display: inline-block;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(16, 185, 129, 0.15); /* matrix green tint */
+  border: 1px solid rgba(16, 185, 129, 0.3);
   padding: 2px 8px;
   border-radius: 4px;
-  margin-right: 6px;
-  font-family: monospace;
+  margin-right: 8px;
+  font-family: "Fira Code", "Courier New", monospace;
   font-weight: 600;
-  color: #ccc;
+  color: #10b981;
+  text-transform: lowercase;
+  letter-spacing: 0.5px;
 }
 
 /* Typing Indicator */
@@ -342,5 +410,101 @@ input::placeholder {
 @keyframes bounce {
   0%, 80%, 100% { transform: scale(0); }
   40% { transform: scale(1); }
+}
+
+.popup-btn {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.popup-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+.popup-btn:hover span {
+  color: #10b981;
+}
+
+/* Modal Styling */
+.modal-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fade-in 0.2s ease-out;
+}
+
+.modal-content {
+  background: #1a1a1e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+  width: 90%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
+.modal-content h3 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  color: #fff;
+}
+
+.modal-content p {
+  font-size: 13px;
+  color: #aaa;
+  margin: 0 0 20px;
+  line-height: 1.4;
+}
+
+.qr-box {
+  background: #fff;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.alias-box {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  border-radius: 8px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.alias-box code {
+  color: #10b981;
+  font-size: 14px;
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.token-hint {
+  margin: 6px 0 0 !important;
+  font-size: 11px !important;
+  color: #666 !important;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  width: 100%;
+  transition: background 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 </style>
