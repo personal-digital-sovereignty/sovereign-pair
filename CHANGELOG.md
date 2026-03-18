@@ -9,6 +9,28 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.5.0] - 2026-03-18
+
+### 🤖 Major Release - Agentic Workflows & Zero-Trust Sandbox
+
+Esta versão introduz a primeira etapa de Autonomia Predial (Agentic Workflows) através das Fases 1 (Desacoplamento de Inferência) e Fase 2 (The Evaluator/Coder). Além disso, marca a erradicação cabal das dependências do Docker para a execução do Core Híbrido, tornando a stack Sovereign Pair totalmente portável em Rust nativo.
+
+### Adicionado
+- **ReWOO Orchestrator (Reasoning Without Observation)**: Modificada a topologia de requests cruas da OpenAI. A thread Rust agora intercepta os prompts complexos e constrói um DAG (Directed Acyclic Graph) pré-calculado, quebrando tarefas monolíticas em passos concorrentes. 
+- **The Coder (Zero-Trust Sandbox)**: Introduzido um Gateway OCI `ssh_gateway.rs` nativo. Scripts gerados de programação ou ferramentas shell não são mais avaliados na máquina host, mas tunelados via subprocessos SSH assíncronos direto para as caixas de areia estéreis provisionadas na Nuvem Oracle, retornando as exceções/STDOUT para o LLM aprender sem ferir o repositório local.
+- **KMS-Backed Credentials**: Migração completa das credenciais vitais de nuvem do formato `.env` expostas para o SQLite Key Management System. Chaves SSH, usuário e IPs agora são configuráveis pela Web UI sob forte encriptação AES-GCM 256.
+- **KDE Plasma Widget (Wayland Native)**: Lançamento de um Plasmoid Desktop Nativo injetado diretamente no System Tray Explorer do SO. O app fornece telemetria *live* do Rust Core (Memória e Tokens por segundo) contornando totalmente as falhas de renderização do empacotamento AppImage (Tauri) sobre a pilha Wayland.
+
+### Modificado
+- **Integração Global Workspaces Total**: Adaptação da visualização hierárquica transversal no Vue3 (`VaultView.vue`). O Sensus Engine agora orquestra a varredura visual de todos os sub-workspaces declarados soltos pelo SO, sem duplicar/copiar um único arquivo físico.
+- **Desacoplamento Backend Docker**: Início da supressão das amarras containerizadas. O projeto passa a exigir cadeias CI/CD puras para provisionamento de executáveis `standalone` no lugar do orquestrador efêmero Compose.
+
+### Corrigido
+- **Sensus TipTap Component Bug**: Solucionado o glitch intermitente de *race-condition* no mount point visual do editor de blocos Vue3, causado pela assincronia pesada da transição para workpaces distribuídos O.S.
+- **MemCache Zumbi KDE Plasma**: Aplicados *hotfixes* profundos e reinstalação paramétrica de pacote para dissipar referências órfãs (`PlasmaCore.IconItem`) travadas no cache da VM QML local.
+
+---
+
 ## [0.4.0] - 2026-03-14
 
 ### 🦀 Major Release - The Rust Paradigm Shift & OCI Cibrid Architecture
