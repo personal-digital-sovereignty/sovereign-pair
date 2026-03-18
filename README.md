@@ -210,3 +210,19 @@ O framework passará os parâmetros otimizados definidos no `src-tauri/Cargo.tom
 `desktop/src-tauri/target/release/bundle/`
 
 > **⚠️ Atenção:** O Desktop App não carrega modelos LLM pesado por padrão para preservar o instalador enxuto (< 10MB). O App se comunicará via HTTP na porta local com o Motor Principal do `Sovereign Pair`. Certifique-se de startar o `sovereign-core` localmente ou no Docker!
+
+### 6. Contornando Alertas de Segurança (Nightlies & Releases)
+
+Como o Sovereign Pair prioriza a soberania digital e opera de forma nativa Open-Source, os instaladores (`.msi`, `.dmg`, `.app`) fornecidos nas abas de Release do GitHub não são criptograficamente assinados usando chaves corporativas pagas. Isso aciona os falsos-positivos nativos de segurança dos Sistemas Operacionais. Siga os passos abaixo na primeira execução:
+
+**Proteção do Windows (SmartScreen)**
+Na primeira vez que tentar instalar o arquivo final `.msi` ou executável, o Windows exibirá uma tela azul de bloqueio "O Windows protegeu o seu computador".
+1. Clique no texto sublinhado: **"Mais Informações"** (More Info).
+2. Assim que o botão surgir, clique em **"Executar assim mesmo"** (Run anyway).
+
+**Proteção da Apple (MacOS Gatekeeper)**
+O MacOS é severo com arquivos Open-Source não registrados (Ad-Hoc Signing). Ao arrastar o `SovereignPair.app` para dentro da pasta `Applications`, se você tentar abrir, o Mac pode emitir um pop-up de alerta severo avisando que "O aplicativo está danificado e deve ser movido para a lixeira". Para sanar a restrição de Quarentena:
+1. Abra o **Terminal** nativo do seu Mac.
+2. Cole exatamente o seguinte comando para limpar o atributo estendido de quarentena do Gatekeeper:
+   `xattr -cr /Applications/SovereignPair.app`
+3. Após o Enter silencioso, clique no aplicativo Sovereign Pair e ele abrirá perfeitamente.
