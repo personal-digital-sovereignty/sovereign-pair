@@ -156,6 +156,7 @@ const systemSettings = ref({
   geolocation: '',
   formality: 'neutral',
   theme: 'dark',
+  persona: 'custom',
   openai_api_key: '',
   anthropic_api_key: '',
   gemini_api_key: '',
