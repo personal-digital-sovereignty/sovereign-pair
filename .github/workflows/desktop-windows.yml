@@ -16,11 +16,12 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+
 jobs:
   build-tauri:
     runs-on: windows-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout repository
