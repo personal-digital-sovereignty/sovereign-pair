@@ -19,6 +19,7 @@ echo "2. Installing PyInstaller (via venv)..."
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
+pip install -r src/requirements.txt
 pip install pyinstaller
 
 echo "3. Compiling Python API natively..."
