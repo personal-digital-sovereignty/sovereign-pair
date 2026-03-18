@@ -1,15 +1,17 @@
 <template>
-  <div class="h-full bg-surface-900 text-surface-200 flex flex-col items-center justify-center" v-if="isLoading">
-     <div class="animate-pulse flex items-center gap-2">
-        <div class="w-4 h-4 rounded-full bg-emerald-500/50"></div> Carregando Documento Neural...
-     </div>
-  </div>
-  
-  <div v-else-if="fetchError" class="h-full flex items-center justify-center text-red-400">
-     {{ fetchError }}
-  </div>
+  <div class="h-full bg-surface-900 text-surface-200 relative">
+    
+    <!-- Render Fix: TipTap Mount Glitch Solution (Overlay invés de v-if destruindo a DOM) -->
+    <div v-if="isLoading" class="absolute inset-0 z-50 bg-surface-900/90 backdrop-blur-sm flex flex-col items-center justify-center">
+       <div class="animate-pulse flex items-center gap-2">
+          <div class="w-4 h-4 rounded-full bg-emerald-500/50"></div> Carregando Documento Neural...
+       </div>
+    </div>
+    
+    <div v-if="fetchError" class="absolute inset-0 z-50 bg-surface-900 flex items-center justify-center text-red-400">
+       {{ fetchError }}
+    </div>
 
-  <div v-else class="h-full bg-surface-900 text-surface-200 relative">
     <!-- Discreet Spellcheck Notification -->
     <div v-if="showSpellcheckPrompt" class="absolute top-4 right-8 z-50 bg-surface-900 dark:bg-surface-800 border border-surface-700/50 rounded-lg shadow-2xl p-4 max-w-xs animate-in slide-in-from-top-4 fade-in duration-300">
       <div class="flex items-start gap-3">
@@ -797,7 +799,13 @@ const fetchDocument = async () => {
         const headers: Record<string, string> = {}
         if (token) headers['Authorization'] = `Bearer ${token}`
 
-        const res = await fetch(`${RUST_CORE_URL}/v1/vault/document/${props.fileId}`, { headers })
+        // Global Workspaces Support
+        let url = `${RUST_CORE_URL}/v1/vault/document/${encodeURIComponent(props.fileId)}`
+        if (props.workspaceId) {
+            url += `?workspace_id=${props.workspaceId}`
+        }
+
+        const res = await fetch(url, { headers })
         if (!res.ok) throw new Error("Documento não encontrado no Vault")
         
         docData.value = await res.json()
