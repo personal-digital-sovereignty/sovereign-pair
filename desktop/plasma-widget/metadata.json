@@ -13,6 +13,7 @@
         "Version": "1.0",
         "Website": "https://sovereignpair.local"
     },
+    "X-Plasma-API-Minimum-Version": "6.0",
     "X-Plasma-API": "declarativeappletscript",
     "X-Plasma-MainScript": "ui/main.qml",
     "KPackageStructure": "Plasma/Applet"
