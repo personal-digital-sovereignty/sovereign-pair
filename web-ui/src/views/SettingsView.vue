@@ -156,10 +156,12 @@ const systemSettings = ref({
   geolocation: '',
   formality: 'neutral',
   theme: 'dark',
-  persona: 'custom',
   openai_api_key: '',
   anthropic_api_key: '',
   gemini_api_key: '',
+  oci_sandbox_ip: '',
+  oci_sandbox_user: 'ubuntu',
+  oci_sandbox_key: '',
   custom_ollama_url: '',
   default_intake_vault: '',
   workspaces: [] as string[],
@@ -680,6 +682,30 @@ watch(() => systemSettings.value.theme, (newTheme) => {
                   <div class="p-4 bg-surface-900 border border-surface-700 rounded-xl flex items-center gap-3">
                      <input type="checkbox" id="proxy-opencode" v-model="proxyEnabled" class="w-4 h-4 rounded bg-surface-950 border-primary-800 text-primary-500 focus:ring-primary-500">
                      <label for="proxy-opencode" class="text-sm font-semibold text-emerald-400 cursor-pointer">Habilitar Proxy Local OpenCode via Sovereign Pair</label>
+                  </div>
+               </div>
+
+               <!-- ORACLE OCI ZERO-TRUST SANDBOX (THE CODER) -->
+               <div class="space-y-4 pt-6 border-t border-surface-700">
+                  <label class="block text-sm font-semibold text-emerald-400 flex items-center gap-2">
+                     <span class="i-ph-cloud-check-duotone text-lg"></span> Sandboxed Cloud Execution (Oracle OCI Gateway)
+                  </label>
+                  <p class="text-xs text-slate-400 leading-relaxed mb-2">
+                     Variáveis de pareamento do Worker Remoto. A execução de códigos validados pelo Agente "The Coder" transitará estritamente via Subprocesso OpenSSH.
+                  </p>
+                  <div class="grid grid-cols-2 gap-4">
+                     <div class="space-y-2">
+                        <label class="block text-xs font-medium text-slate-400">IP Público / Tailscale (OCI_HOST)</label>
+                        <input v-model="systemSettings.oci_sandbox_ip" type="text" placeholder="ex: 129.159.179.116" class="w-full bg-surface-950 border border-surface-700 text-surface-200 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block p-2 outline-none font-mono placeholder:text-surface-600">
+                     </div>
+                     <div class="space-y-2">
+                        <label class="block text-xs font-medium text-slate-400">Usuário SSH (OCI_USER)</label>
+                        <input v-model="systemSettings.oci_sandbox_user" type="text" placeholder="ex: ubuntu" class="w-full bg-surface-950 border border-surface-700 text-surface-200 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block p-2 outline-none font-mono placeholder:text-surface-600">
+                     </div>
+                  </div>
+                  <div class="space-y-2">
+                     <label class="block text-xs font-medium text-slate-400">Caminho Absoluto da Chave Privada (Ed25519 / RSA)</label>
+                     <input v-model="systemSettings.oci_sandbox_key" type="text" placeholder="ex: /home/jefersonlopes/.ssh/id_ed25519" class="w-full bg-surface-950 border border-surface-700 text-surface-200 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block p-2 outline-none font-mono placeholder:text-surface-600 shadow-inner">
                   </div>
                </div>
 
