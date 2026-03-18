@@ -1,0 +1,4 @@
+docker-compose.n8n.yml
+node_modules/
+web-ui/node_modules/
+infra/legacy-pipelines/
