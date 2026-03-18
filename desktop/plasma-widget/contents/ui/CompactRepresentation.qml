@@ -24,15 +24,16 @@ Item {
         }
     }
 
-    Kirigami.Icon {
+    Image {
         id: icon
         anchors.centerIn: parent
         width: Math.min(parent.width, parent.height) * 0.9
         height: width
-        // Troca de cor/icone caso haja algo na quarentena ou modelos ativos
-        source: root.quarantineCount > 0 ? "security-high" : (root.activeModels > 0 ? "cpu" : "brain")
-        isMask: true
-        color: root.quarantineCount > 0 ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
+        // The beautiful layered SVG instead of a simple monochrome mask
+        source: "app-icon.svg"
+        sourceSize.width: 128
+        sourceSize.height: 128
+        fillMode: Image.PreserveAspectFit
     }
     
     // Notification Badge for Pending Vault Actions
