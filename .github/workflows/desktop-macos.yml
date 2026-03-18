@@ -40,6 +40,12 @@ jobs:
         working-directory: ./desktop
         run: npm ci
 
+      - name: Build Web-UI PWA (For Rust Embed)
+        working-directory: ./web-ui
+        run: |
+          npm ci
+          npm run build
+
       - name: Build Rust Core Sidecar (sovereign-axum) Universal
         working-directory: ./core
         run: |
