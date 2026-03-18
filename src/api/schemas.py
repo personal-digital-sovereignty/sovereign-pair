@@ -320,3 +320,4 @@ class OpenAIChatChunkResponse(BaseModel):
     created: int
     model: str
     choices: List[OpenAIChatChunkChoice]
+    usage: Optional[OpenAITokenUsage] = None
