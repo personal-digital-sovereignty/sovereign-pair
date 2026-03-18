@@ -72,11 +72,13 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGN_WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTS_CERTIFICATE_BASE64 }}
+          TAURI_SIGN_WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTS_CERTIFICATE_PASSWORD }}
         with:
           projectPath: "./desktop"
           tagName: desktop_${{ steps.versioning.outputs.tag_name }}
           releaseName: ${{ steps.versioning.outputs.release_name }}
-          releaseBody: "Automated Tauri build for Windows."
+          releaseBody: "Automated Tauri build for Windows. Note: The installer (.msi) is self-signed (Sovereign Pair Local Cert). You may need to click 'More Info' -> 'Run anyway' on Windows SmartScreen for this Nightly build."
           releaseDraft: false
           prerelease: ${{ github.event.inputs.build_type == 'nightly' }}
           args: --runner cargo
