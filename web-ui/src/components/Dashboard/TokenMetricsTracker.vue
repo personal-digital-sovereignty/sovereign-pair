@@ -97,7 +97,7 @@ const fetchTelemetry = async () => {
       const RUST_CORE_URL = import.meta.env.VITE_RUST_CORE_URL || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:38001`
       
       if (RUST_CORE_URL.includes('localhost') || RUST_CORE_URL.includes('127.0.0.1')) {
-          clusterName.value = 'Ryzen Runtime'
+          clusterName.value = 'Local Runtime'
       } else {
           clusterName.value = 'Oracle Cloud OCI'
       }
