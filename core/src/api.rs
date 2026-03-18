@@ -250,6 +250,7 @@ let res = match state
                 },
                 finish_reason: Some("error".to_string()),
             }],
+            usage: None,
         };
         let stream = futures_util::stream::iter(vec![
             Ok::<Event, Infallible>(Event::default().data(serde_json::to_string(&err_chunk).unwrap_or_default())),
@@ -279,6 +280,7 @@ let res = match state
                 },
                 finish_reason: Some("error".to_string()),
             }],
+            usage: None,
         };
         let stream = futures_util::stream::iter(vec![
             Ok::<Event, Infallible>(Event::default().data(serde_json::to_string(&err_chunk).unwrap_or_default())),
@@ -371,6 +373,7 @@ let stream = res.bytes_stream().map(move |result| {
                                         },
                                         finish_reason: None,
                                     }],
+                                    usage: None,
                                 };
                                 if let Ok(json_str) = serde_json::to_string(&chunk_response) {
                                     return Ok::<Event, Infallible>(Event::default().data(json_str));
@@ -400,7 +403,7 @@ let stream = res.bytes_stream().map(move |result| {
                                     crate::api_chat::save_message(&db_clone, tracking_session, "assistant", &final_text).await;
                                 });
 
-                               let finish_response = OpenAIChatChunkResponse {
+                                let finish_response = OpenAIChatChunkResponse {
                                     id: "chatcmpl-end".to_string(),
                                     object: "chat.completion.chunk".to_string(),
                                     created: 1234567890,
@@ -414,6 +417,11 @@ let stream = res.bytes_stream().map(move |result| {
                                         },
                                         finish_reason: Some("stop".to_string()),
                                     }],
+                                    usage: Some(crate::models::OpenAITokenUsage {
+                                        prompt_tokens: llm_prompt_tokens as i32,
+                                        completion_tokens: llm_gen_tokens as i32,
+                                        total_tokens: total_real_tokens as i32,
+                                    }),
                                 };
                                 if let Ok(json_str) = serde_json::to_string(&finish_response) {
                                     return Ok::<Event, Infallible>(Event::default().data(json_str));

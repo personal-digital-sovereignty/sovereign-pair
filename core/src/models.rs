@@ -202,4 +202,6 @@ pub struct OpenAIChatChunkResponse {
     pub created: i64,
     pub model: String,
     pub choices: Vec<OpenAIChatChunkChoice>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub usage: Option<OpenAITokenUsage>,
 }

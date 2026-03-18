@@ -109,20 +109,7 @@ async fn main() {
             .post(api_vault::create_workspace_handler))
         .route("/v1/workspaces/:workspace_id", axum::routing::delete(api_vault::delete_workspace_handler))
         .route("/v1/workspaces/:workspace_id/tree", axum::routing::get(api_vault::workspace_tree_handler))
-        .route("/v1/vault/graph", axum::routing::get(|| async {
-            // Forward para o The Mom (Python FastAPI RAG Database Network)
-            let client = reqwest::Client::new();
-            match client.get("http://127.0.0.1:8000/v1/vault/graph").send().await {
-                Ok(resp) => {
-                    if let Ok(json) = resp.json::<serde_json::Value>().await {
-                        axum::Json(json).into_response()
-                    } else {
-                        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Invalid JSON from The Mom").into_response()
-                    }
-                },
-                Err(_) => (axum::http::StatusCode::BAD_GATEWAY, "Graph Engine (The Mom) Offline").into_response(),
-            }
-        }))
+        .route("/v1/vault/graph", axum::routing::get(api_vault::vault_graph_handler))
         .route("/v1/vault/document/*id", axum::routing::get(api_vault::vault_document_read)
             .put(api_vault::vault_document_write))
         .route("/v1/vault/fs/create", axum::routing::post(api_vault::vault_fs_create_handler))

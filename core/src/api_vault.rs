@@ -488,3 +488,133 @@ pub async fn vault_document_write(
 
     (axum::http::StatusCode::OK, Json(serde_json::json!({"status":"saved"}))).into_response()
 }
+
+// ------------------- COGNITIVE GRAPH (NATIVE RUST) -------------------
+
+#[derive(Serialize)]
+pub struct GraphNode {
+    pub id: String,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    pub val: f64,
+    pub r#type: String,
+    pub tags: Vec<String>,
+}
+
+#[derive(Serialize)]
+pub struct GraphLink {
+    pub source: String,
+    pub target: String,
+    pub r#type: String,
+}
+
+#[derive(Serialize)]
+pub struct GraphResponse {
+    pub nodes: Vec<GraphNode>,
+    pub links: Vec<GraphLink>,
+}
+
+#[derive(sqlx::FromRow)]
+struct SensusDocRow {
+    id: String,
+    file_path: String,
+    extracted_tags: Option<String>,
+    extracted_links: Option<String>,
+}
+
+pub async fn vault_graph_handler(
+    State(state): State<Arc<AppState>>
+) -> impl IntoResponse {
+    // Busca todos os documentos do banco (tenant default)
+    let rows_res = sqlx::query_as::<_, SensusDocRow>(
+        "SELECT id, file_path, extracted_tags, extracted_links FROM sensus_documents WHERE tenant_id IN ('default')"
+    )
+    .fetch_all(&state.db)
+    .await;
+
+    let rows = match rows_res {
+        Ok(r) => r,
+        Err(e) => return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"detail": format!("DB Error: {}", e)}))).into_response(),
+    };
+
+    let mut nodes = Vec::new();
+    let mut links = Vec::new();
+    let mut folder_nodes = std::collections::HashSet::new();
+
+    let mut basename_to_id = std::collections::HashMap::new();
+
+    for doc in &rows {
+        let node_id = doc.id.clone();
+        let path = Path::new(&doc.file_path);
+        let basename = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+        let basename_without_ext = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
+
+        basename_to_id.insert(basename.clone(), node_id.clone());
+        basename_to_id.insert(basename_without_ext.clone(), node_id.clone());
+
+        let tags: Vec<String> = doc.extracted_tags.as_deref()
+            .and_then(|t| serde_json::from_str(t).ok())
+            .unwrap_or_default();
+
+        nodes.push(GraphNode {
+            id: node_id.clone(),
+            name: basename.clone(),
+            path: Some(doc.file_path.clone()),
+            val: 1.5,
+            r#type: "file".to_string(),
+            tags,
+        });
+
+        if let Some(parent) = path.parent() {
+            let dirname = parent.file_name().unwrap_or_default().to_string_lossy().to_string();
+            if !dirname.is_empty() && dirname != "data" && dirname != "RAW_DOCS_DIR" {
+                let folder_id = format!("folder_{}", dirname);
+                if !folder_nodes.contains(&folder_id) {
+                    folder_nodes.insert(folder_id.clone());
+                    nodes.push(GraphNode {
+                        id: folder_id.clone(),
+                        name: dirname,
+                        path: None,
+                        val: 3.0,
+                        r#type: "folder".to_string(),
+                        tags: vec![],
+                    });
+                }
+                links.push(GraphLink {
+                    source: node_id.clone(),
+                    target: folder_id,
+                    r#type: "hierarchy".to_string(),
+                });
+            }
+        }
+    }
+
+    for doc in rows {
+        let source_id = doc.id;
+        let ext_links: Vec<String> = doc.extracted_links.as_deref()
+            .and_then(|l| serde_json::from_str(l).ok())
+            .unwrap_or_default();
+
+        for raw_link in ext_links {
+            let link_target = raw_link.replace("[[", "").replace("]]", "").trim().to_string();
+            let link_target_with_ext = format!("{}.md", link_target);
+
+            let target_id = basename_to_id.get(&link_target)
+                .or_else(|| basename_to_id.get(&link_target_with_ext));
+
+            if let Some(t_id) = target_id {
+                if *t_id != source_id {
+                    links.push(GraphLink {
+                        source: source_id.clone(),
+                        target: t_id.clone(),
+                        r#type: "semantic".to_string(),
+                    });
+                }
+            }
+        }
+    }
+
+    let res = GraphResponse { nodes, links };
+    (axum::http::StatusCode::OK, Json(res)).into_response()
+}

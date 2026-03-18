@@ -167,8 +167,6 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/v1/auth", tags=["Authentication"])
-from .routes_opencode import router as opencode_router  # noqa: E402
-app.include_router(opencode_router, prefix="/opencode/v1", tags=["OpenAI Compatible Proxy"])
 
 from .blue_collar import router as blue_collar_router  # noqa: E402
 app.include_router(blue_collar_router, prefix="/v1", dependencies=[Depends(get_current_user)])
