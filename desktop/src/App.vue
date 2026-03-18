@@ -29,6 +29,13 @@ async function triggerStudioMode() {
     await invoke("open_studio_mode", { port: activePort.value });
 }
 
+function addAgentTag(tag: string) {
+    if (!searchQuery.value.includes(tag)) {
+        searchQuery.value = tag + " " + searchQuery.value;
+    }
+    inputField.value?.focus();
+}
+
 const searchQuery = ref("");
 const messages = ref<{role: string, content: string}[]>([]);
 const isProcessing = ref(false);
@@ -209,10 +216,14 @@ onMounted(async () => {
     </div>
     
     <!-- Footer Context Hints -->
-    <div class="footer" data-tauri-drag-region v-if="messages.length === 0">
-      <div class="shortcut popup-btn" @click="triggerStudioMode" title="Abre a Interface Completa Web"><span>💻</span> Studio RAG</div>
-      <div class="shortcut popup-btn" @click="openPairingModal" title="Distribui o RAG na Rede Wi-Fi"><span>📡</span> Parear LAN</div>
+    <div class="footer hacker-footer" data-tauri-drag-region v-if="messages.length === 0">
       <div class="shortcut"><span>Esc</span> Ocultar</div>
+      <div class="shortcut popup-btn" @click="triggerStudioMode" title="Abre a Interface Completa Web"><span>@studio</span> RAG Subsystem</div>
+      <div class="shortcut popup-btn" @click="openPairingModal" title="Distribui o RAG na Rede Wi-Fi"><span>@lan</span> Network Pair</div>
+      
+      <!-- Hacker Personas -->
+      <div class="shortcut popup-btn" @click="addAgentTag('@mom')" title="Evocar The Mom (Gestão e RAG Aberto)"><span>@mom</span> Contexto Geral</div>
+      <div class="shortcut popup-btn" @click="addAgentTag('@dev')" title="Evocar The Coder (Arquitetura e Código)"><span>@dev</span> Contexto Código</div>
     </div>
     
     <!-- Pairing Modal (QR Code) -->
@@ -349,24 +360,34 @@ input::placeholder {
   border-color: rgba(107, 76, 255, 0.25);
 }
 
-.footer {
+.footer.hacker-footer {
   padding: 14px 24px;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
-  gap: 20px;
+  gap: 16px;
   font-size: 13px;
-  color: var(--text-muted);
+  color: #888;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  flex-wrap: wrap; /* in case of smaller windows */
+}
+
+.shortcut {
+  display: flex;
+  align-items: center;
 }
 
 .shortcut span {
   display: inline-block;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(16, 185, 129, 0.15); /* matrix green tint */
+  border: 1px solid rgba(16, 185, 129, 0.3);
   padding: 2px 8px;
   border-radius: 4px;
-  margin-right: 6px;
-  font-family: monospace;
+  margin-right: 8px;
+  font-family: "Fira Code", "Courier New", monospace;
   font-weight: 600;
-  color: #ccc;
+  color: #10b981;
+  text-transform: lowercase;
+  letter-spacing: 0.5px;
 }
 
 /* Typing Indicator */
