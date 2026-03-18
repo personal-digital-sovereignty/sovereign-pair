@@ -23,12 +23,12 @@ Item {
             // Header
             RowLayout {
                 spacing: 8
-                Kirigami.Icon {
-                    source: "brain"
+                Image {
+                    source: "app-icon.svg"
+                    sourceSize.width: 32
+                    sourceSize.height: 32
                     implicitWidth: 32
                     implicitHeight: 32
-                    isMask: true
-                    color: root.activeModels > 0 ? Kirigami.Theme.highlightColor : Kirigami.Theme.textColor
                 }
                 ColumnLayout {
                     spacing: 0
