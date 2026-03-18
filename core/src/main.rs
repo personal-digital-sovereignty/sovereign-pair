@@ -13,6 +13,7 @@ mod api_tools;
 pub mod kms;
 pub mod network;
 pub mod rewoo;
+pub mod ssh_gateway;
 
 use axum::{routing::post, Router, response::IntoResponse, http::{header, StatusCode, Uri}};
 use reqwest::Client;
