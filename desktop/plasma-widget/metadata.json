@@ -2,7 +2,7 @@
     "KPlugin": {
         "Name": "Sovereign Pair",
         "Description": "Cibrid Agent AI Telemetry & Hub",
-        "Icon": "cpu",
+        "Icon": "app-icon.svg",
         "Authors": [
             {
                 "Name": "Sovereign",
