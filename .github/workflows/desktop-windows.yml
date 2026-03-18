@@ -55,15 +55,9 @@ jobs:
           if [ "${{ github.event.inputs.build_type }}" == "nightly" ]; then
             TAG_NAME="0.4.0-${TIMESTAMP}"
             RELEASE_NAME="Sovereign Pair Desktop (Nightly ${TAG_NAME})"
-            cd desktop/src-tauri
-            jq --arg v "$TAG_NAME" '.version = $v' tauri.conf.json > tmp.json && mv tmp.json tauri.conf.json
-            cd ../..
           else
             TAG_NAME="${{ github.event.inputs.tag_name }}"
             RELEASE_NAME="Sovereign Pair Desktop ${TAG_NAME}"
-            cd desktop/src-tauri
-            jq --arg v "$TAG_NAME" '.version = $v' tauri.conf.json > tmp.json && mv tmp.json tauri.conf.json
-            cd ../..
           fi
           echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
           echo "release_name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
