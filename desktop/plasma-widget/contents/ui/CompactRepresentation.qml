@@ -1,6 +1,7 @@
 import QtQuick
 import org.kde.plasma.plasmoid
 import org.kde.plasma.components as PlasmaComponents
+import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 
 Item {
@@ -18,10 +19,8 @@ Item {
         hoverEnabled: true
         onClicked: Plasmoid.expanded = !Plasmoid.expanded
         
-        PlasmaComponents.ToolTip {
-            visible: mouseArea.containsMouse
-            text: "Sovereign Pair\n" + (root.activeModels > 0 ? "AI Online (" + root.avgTps.toFixed(1) + " T/s)" : "Modo O.S (Standby)")
-        }
+        QQC2.ToolTip.visible: containsMouse
+        QQC2.ToolTip.text: "Sovereign Pair\n" + (root.activeModels > 0 ? "AI Online (" + root.avgTps.toFixed(1) + " T/s)" : "Modo O.S (Standby)")
     }
 
     Image {
