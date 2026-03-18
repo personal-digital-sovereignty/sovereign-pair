@@ -105,3 +105,36 @@ jobs:
         with:
           name: sovereign-api-python-linux
           path: dist/sovereign-api
+
+  publish-nightly:
+    needs: [build-linux-core, build-kde-plasmoid, build-python-fallback]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - name: Download all built artifacts
+        uses: actions/download-artifact@v4
+      
+      - name: Update Nightly Tag
+        uses: richardsimko/update-tag@v1
+        with:
+          tag_name: nightly
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Generate Nightly Pre-Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          name: "Sovereign Pair Nightly (Unstable)"
+          prerelease: true
+          make_latest: false
+          body: |
+            Builds automatizados (Nightly) do Sovereign Pair contendo a arquitetura puramente nativa em RUST, Python Fallback e Plasma Desktop.
+            
+            🚨 **Aviso:** Estes binários são compilados progressivamente (Continuous Deployment) no último commit da branch `main` e não refletem garantias de estabilidade.
+          files: |
+            sovereign-core-linux-amd64/sovereign-core
+            sovereign-pair-kde-widget/sovereign-pair-widget.plasmoid
+            sovereign-api-python-linux/sovereign-api
