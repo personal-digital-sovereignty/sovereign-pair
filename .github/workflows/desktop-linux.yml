@@ -67,19 +67,19 @@ jobs:
           TIMESTAMP=$(date +'%Y%m%d%H%M')
           if [ "${{ github.event.inputs.build_type }}" == "nightly" ]; then
             TAG_NAME="0.4.0-${TIMESTAMP}"
-            RELEASE_NAME="Sovereign Pair Desktop (Nightly ${TAG_NAME})"
+            RELEASE_NAME="Sovereign Pair Desktop Linux (Nightly ${TAG_NAME})"
             cd desktop/src-tauri
             jq --arg v "$TAG_NAME" '.version = $v' tauri.conf.json > tmp.json && mv tmp.json tauri.conf.json
             cd ../..
           else
             TAG_NAME="${{ github.event.inputs.tag_name }}"
-            RELEASE_NAME="Sovereign Pair Desktop ${TAG_NAME}"
+            RELEASE_NAME="Sovereign Pair Desktop Linux ${TAG_NAME}"
             cd desktop/src-tauri
             jq --arg v "$TAG_NAME" '.version = $v' tauri.conf.json > tmp.json && mv tmp.json tauri.conf.json
             cd ../..
           fi
-          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-          echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+          echo "tag_name=desktop_linux_$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "release_name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0
@@ -87,7 +87,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: "./desktop"
-          tagName: desktop_${{ steps.versioning.outputs.tag_name }}
+          tagName: ${{ steps.versioning.outputs.tag_name }}
           releaseName: ${{ steps.versioning.outputs.release_name }}
           releaseBody: "Automated Tauri build for Linux. \n\n* Note: Requires the Cíbrid Backend to be running natively on `localhost:8000` & `38001`."
           releaseDraft: false
