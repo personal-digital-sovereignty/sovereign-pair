@@ -50,6 +50,12 @@ jobs:
           # Combine them using lipo into a Universal Binary for Tauri Sidecar
           mkdir -p ../desktop/src-tauri/binaries
           rustup target add universal-apple-darwin || true
+          
+          # Copy Individual Architectures (Required by Tauri Bundler validation)
+          cp target/x86_64-apple-darwin/release/sovereign-core ../desktop/src-tauri/binaries/sovereign-axum-x86_64-apple-darwin
+          cp target/aarch64-apple-darwin/release/sovereign-core ../desktop/src-tauri/binaries/sovereign-axum-aarch64-apple-darwin
+          
+          # Create the Universal Binary
           lipo -create -output ../desktop/src-tauri/binaries/sovereign-axum-universal-apple-darwin \
             target/x86_64-apple-darwin/release/sovereign-core \
             target/aarch64-apple-darwin/release/sovereign-core
