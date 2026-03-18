@@ -89,7 +89,8 @@ jobs:
           python3 -m venv .venv
           source .venv/bin/activate
           pip install --upgrade pip
-          pip install pyinstaller -r requirements.txt
+          pip install -r src/requirements.txt
+          pip install pyinstaller
           pyinstaller --name sovereign-api --clean --onefile \
             --hidden-import=llama_index \
             --hidden-import=sqlalchemy \
