@@ -1,4 +1,4 @@
-name: Desktop Build & Release (macOS)
+name: Desktop Build & Release (MacOS)
 
 on:
   workflow_dispatch:
@@ -18,14 +18,6 @@ on:
 
 jobs:
   build-tauri:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - target: x86_64-apple-darwin
-            arch: intel
-          - target: aarch64-apple-darwin
-            arch: silicon
     runs-on: macos-latest
     permissions:
       contents: write
@@ -42,18 +34,25 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: x86_64-apple-darwin, aarch64-apple-darwin
 
       - name: Install Vue Dependencies
         working-directory: ./desktop
         run: npm ci
 
-      - name: Build Rust Core Sidecar (sovereign-axum)
+      - name: Build Rust Core Sidecar (sovereign-axum) Universal
         working-directory: ./core
         run: |
-          cargo build --release --target ${{ matrix.target }}
+          # Build specifically for both architectures
+          cargo build --release --target x86_64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin
+          
+          # Combine them using lipo into a Universal Binary for Tauri Sidecar
           mkdir -p ../desktop/src-tauri/binaries
-          cp target/${{ matrix.target }}/release/sovereign-core ../desktop/src-tauri/binaries/sovereign-axum-${{ matrix.target }}
+          rustup target add universal-apple-darwin || true
+          lipo -create -output ../desktop/src-tauri/binaries/sovereign-axum-universal-apple-darwin \
+            target/x86_64-apple-darwin/release/sovereign-core \
+            target/aarch64-apple-darwin/release/sovereign-core
 
       - name: Generate Dynamic Version
         id: versioning
@@ -62,29 +61,29 @@ jobs:
           TIMESTAMP=$(date +'%Y%m%d%H%M')
           if [ "${{ github.event.inputs.build_type }}" == "nightly" ]; then
             TAG_NAME="0.4.0-${TIMESTAMP}"
-            RELEASE_NAME="Sovereign Pair Desktop (Nightly ${TAG_NAME})"
+            RELEASE_NAME="Sovereign Pair Desktop MacOS (Nightly ${TAG_NAME})"
             cd desktop/src-tauri
             jq --arg v "$TAG_NAME" '.version = $v' tauri.conf.json > tmp.json && mv tmp.json tauri.conf.json
             cd ../..
           else
             TAG_NAME="${{ github.event.inputs.tag_name }}"
-            RELEASE_NAME="Sovereign Pair Desktop ${TAG_NAME}"
+            RELEASE_NAME="Sovereign Pair Desktop MacOS ${TAG_NAME}"
             cd desktop/src-tauri
             jq --arg v "$TAG_NAME" '.version = $v' tauri.conf.json > tmp.json && mv tmp.json tauri.conf.json
             cd ../..
           fi
-          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-          echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+          echo "tag_name=desktop_macos_universal_$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "release_name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
 
-      - name: Build Tauri App
+      - name: Build Tauri App (Ad-Hoc Unsigned)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: "./desktop"
-          tagName: desktop_${{ steps.versioning.outputs.tag_name }}
+          tagName: ${{ steps.versioning.outputs.tag_name }}
           releaseName: ${{ steps.versioning.outputs.release_name }}
-          releaseBody: "Automated Tauri build for macOS."
+          releaseBody: "Automated Tauri build for MacOS (Universal Binary - Intel & Apple Silicon).\n\n⚠️ **Gatekeeper Bypass:** Because this app is Open Source Ad-Hoc Signed, you MUST run this command once in your MacOS Terminal after dragging to the Applications folder:\n\n`xattr -cr /Applications/SovereignPair.app`"
           releaseDraft: false
           prerelease: ${{ github.event.inputs.build_type == 'nightly' }}
-          args: --runner cargo --target ${{ matrix.target }}
+          args: --target universal-apple-darwin --runner cargo
