@@ -36,23 +36,4 @@ Item {
         fillMode: Image.PreserveAspectFit
     }
     
-    // Notification Badge for Pending Vault Actions
-    Rectangle {
-        visible: root.tasksToday > 0 || root.quarantineCount > 0
-        width: 12
-        height: 12
-        radius: 6
-        color: root.quarantineCount > 0 ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.highlightColor
-        anchors.right: icon.right
-        anchors.top: icon.top
-        anchors.margins: -2
-
-        PlasmaComponents.Label {
-            anchors.centerIn: parent
-            text: root.quarantineCount > 0 ? root.quarantineCount : root.tasksToday
-            font.pixelSize: 8
-            font.weight: Font.Bold
-            color: Kirigami.Theme.backgroundColor
-        }
-    }
 }
