@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import org.kde.plasma.plasmoid
-import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.kirigami as Kirigami
 
@@ -13,7 +12,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: PlasmaCore.Theme.backgroundColor
+        color: Kirigami.Theme.backgroundColor
         radius: 8
 
         ColumnLayout {
@@ -24,11 +23,12 @@ Item {
             // Header
             RowLayout {
                 spacing: 8
-                PlasmaCore.IconItem {
+                Kirigami.Icon {
                     source: "brain"
                     implicitWidth: 32
                     implicitHeight: 32
-                    colorGroup: root.activeModels > 0 ? PlasmaCore.Theme.HighlightColor : PlasmaCore.Theme.NormalTextColor
+                    isMask: true
+                    color: root.activeModels > 0 ? Kirigami.Theme.highlightColor : Kirigami.Theme.textColor
                 }
                 ColumnLayout {
                     spacing: 0
@@ -36,13 +36,13 @@ Item {
                         text: "Sovereign Pair"
                         font.weight: Font.Bold
                         font.pixelSize: 16
-                        color: PlasmaCore.Theme.textColor
+                        color: Kirigami.Theme.textColor
                     }
                     PlasmaComponents.Label {
                         text: root.activeModels > 0 ? "Core LLM Ativo" : "Em Espera (Desidratado)"
                         font.pixelSize: 11
                         opacity: 0.7
-                        color: root.activeModels > 0 ? PlasmaCore.Theme.highlightColor : PlasmaCore.Theme.textColor
+                        color: root.activeModels > 0 ? Kirigami.Theme.highlightColor : Kirigami.Theme.textColor
                     }
                 }
             }
@@ -50,7 +50,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 height: 1
-                color: PlasmaCore.Theme.textColor
+                color: Kirigami.Theme.textColor
                 opacity: 0.1
             }
 
@@ -74,7 +74,7 @@ Item {
                         text: root.totalTokens.toLocaleString()
                         font.pixelSize: 20
                         font.family: "monospace"
-                        color: PlasmaCore.Theme.textColor
+                        color: Kirigami.Theme.textColor
                     }
                 }
 
@@ -93,13 +93,14 @@ Item {
                             text: root.avgTps.toFixed(1)
                             font.pixelSize: 20
                             font.family: "monospace"
-                            color: PlasmaCore.Theme.highlightColor
+                            color: Kirigami.Theme.highlightColor
                         }
-                        PlasmaCore.IconItem {
+                        Kirigami.Icon {
                             source: "lightning"
                             implicitWidth: 16
                             implicitHeight: 16
-                            colorGroup: PlasmaCore.Theme.HighlightColor
+                            isMask: true
+                            color: Kirigami.Theme.highlightColor
                             visible: root.avgTps > 0
                         }
                     }
@@ -118,7 +119,7 @@ Item {
                         text: root.tasksToday.toString()
                         font.pixelSize: 20
                         font.family: "monospace"
-                        color: PlasmaCore.Theme.textColor
+                        color: Kirigami.Theme.textColor
                     }
                 }
 
@@ -135,7 +136,7 @@ Item {
                         text: root.quarantineCount.toString()
                         font.pixelSize: 20
                         font.family: "monospace"
-                        color: root.quarantineCount > 0 ? PlasmaCore.Theme.negativeTextColor : PlasmaCore.Theme.textColor
+                        color: root.quarantineCount > 0 ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.textColor
                     }
                 }
             }
@@ -145,7 +146,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 height: 1
-                color: PlasmaCore.Theme.textColor
+                color: Kirigami.Theme.textColor
                 opacity: 0.1
             }
 
