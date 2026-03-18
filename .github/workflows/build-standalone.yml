@@ -1,0 +1,106 @@
+name: Build Standalone Binaries
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ created ]
+
+jobs:
+  build-linux-core:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (For Web-UI Build)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: 'web-ui/package-lock.json'
+
+      - name: Build Web UI (Vue 3 Vite)
+        working-directory: ./web-ui
+        run: |
+          npm ci
+          npm run build
+
+      - name: Setup Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+          
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core
+
+      - name: Install SQLite Runtime Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
+      - name: Compile Sovereign Cibrid Core (Rust)
+        working-directory: ./core
+        run: |
+          cargo build --release
+
+      - name: Upload Core Artifact (Linux x86_64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sovereign-core-linux-amd64
+          path: core/target/release/sovereign-core
+
+  build-kde-plasmoid:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Package KDE Plasma 6 Widget
+        working-directory: ./desktop/plasma-widget
+        run: |
+          # A KDE .plasmoid is dynamically just a structurally valid ZIP file
+          zip -r ../../sovereign-pair-widget.plasmoid metadata.json contents/
+
+      - name: Upload Plasmoid Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sovereign-pair-kde-widget
+          path: sovereign-pair-widget.plasmoid
+
+  build-python-fallback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Build Python API with PyInstaller
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install pyinstaller -r requirements.txt
+          pyinstaller --name sovereign-api --clean --onefile \
+            --hidden-import=llama_index \
+            --hidden-import=sqlalchemy \
+            --hidden-import=pydantic \
+            --hidden-import=uvicorn \
+            --hidden-import=fastapi \
+            --paths=src \
+            src/api/main.py
+
+      - name: Upload Python Standalone Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sovereign-api-python-linux
+          path: dist/sovereign-api
