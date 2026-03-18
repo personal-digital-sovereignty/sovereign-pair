@@ -148,7 +148,7 @@ O código fonte restritivo encontra-se sob regimento validado da [**PolyForm Non
 
 Para alinhamentos voltados a implantações empresariais de software robusto, acione corporativamente via: jefersonlopes@proton.me.# Sovereign Pair - Desktop Application
 
-Este é o cliente Desktop nativo e multiplataforma do **Sovereign Pair**, construído com **Tauri**, **Vue 3** e **Rust**. Ele atua como um widget "Spotlight" invisível no System Tray do seu Sistema Operacional, oferecendo acesso instantâneo aos Agentes Cíbridos através da sua bandeja do sistema.
+Este é o cliente Desktop nativo e multiplataforma do **Sovereign Pair**, construído com **Tauri**, **Vue 3** e **Rust**. Ele atua como um widget "Spotlight" invisível no System Tray do seu Sistema Operacional, oferecendo acesso instantâneo aos Agentes Cíbridos através da sua bandeja do sistema. **A partir da versão V0.4.0, o aplicativo embuti nativamente o servidor `sovereign-core` (via Tauri Sidecar Architecture)**, o que significa que o banco vetorial, o file-watcher nativo e a API RAG são iniciados rotineiramente em background no modo Plug-and-Play assim que vocẽ abre o App.
 
 ## 🛠️ Como Compilar Nativamente (Para Hackers & Devs Avançados)
 
@@ -209,7 +209,7 @@ npm run tauri build
 O framework passará os parâmetros otimizados definidos no `src-tauri/Cargo.toml` (`opt-level = "z"`, `lto = true`). Quando terminado, os instaladores nativos estrão disponíveis na pasta:
 `desktop/src-tauri/target/release/bundle/`
 
-> **⚠️ Atenção:** O Desktop App não carrega modelos LLM pesado por padrão para preservar o instalador enxuto (< 10MB). O App se comunicará via HTTP na porta local com o Motor Principal do `Sovereign Pair`. Certifique-se de startar o `sovereign-core` localmente ou no Docker!
+> **⚠️ Atenção (Modelos LLM):** Para preservar o instalador incrivelmente enxuto e performático (< 20MB), o Desktop App embute e orquestra automaticamente o servidor de Cérebro Cíbrido (`sovereign-core`) e seu Banco Vetorial Local. Contudo, ele **não embute Modelos LLM em Rede Neural** internamente. A API comunicará-se ativamente com as *Cloud APIs* ou priorizará uma instância de **Ollama** rodando localmente no seu hardware para processar a inferência de textos e geração lógica densa.
 
 ### 6. Contornando Alertas de Segurança (Nightlies & Releases)
 
