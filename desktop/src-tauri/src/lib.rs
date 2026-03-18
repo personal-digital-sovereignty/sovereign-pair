@@ -43,7 +43,7 @@ pub fn run() {
             let sidecar_command = app.shell().sidecar("sovereign-axum").unwrap()
                 .args(["--host", "0.0.0.0"]);
             
-            let (mut rx, mut child) = sidecar_command.spawn().expect("Falha ao iniciar o Motor Sovereign Core (Sidecar)");
+            let (mut rx, _child) = sidecar_command.spawn().expect("Falha ao iniciar o Motor Sovereign Core (Sidecar)");
             
             // Spawn an async task to monitor the Sidecar's stdout/stderr
             tauri::async_runtime::spawn(async move {
