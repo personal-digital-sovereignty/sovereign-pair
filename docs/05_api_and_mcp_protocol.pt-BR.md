@@ -6,7 +6,7 @@ O Sovereign Pair foi projetado para expor seu motor de inferência central atrav
 
 A infraestrutura compilatória principal em Rust Axum (`src-rust/main.rs`) expõe uma interface padrão para serviços. A implantação central pode ocorrer na nuvem (como a OCI) ou instanciada localmente de forma nativa.
 
-Este modelo arquitetural permite que construtores visuais de fluxo e aplicações Web em `Vue.js` interajam nativamente com os endpoints síncronos da infraestrutura.
+Este modelo arquitetural permite que construtores visuais de fluxo e aplicações Web em `Svelte` interajam nativamente com os endpoints síncronos da infraestrutura.
 
 ### 1.1 Roteamento e Endpoints Disponíveis
 - `POST /v1/chat/completions`: EndPoint principal, padronizado com os Schemas JSON de Payload (como a matriz `messages: []`) estipulados na sintaxe de integrações padrão OpenAI. A rota engatilha o pipeline RAG (Retrieval-Augmented Generation) acionando consultas locais e prevendo retornos conversacionais. Possui lógica mitigatória acoplada para contornar instabilidades de pesquisa em bancos recém criados através do *Fallback Sistemático* que prioriza um fluxo unicamente voltado para Chat regular (ignorando pesquisa documental forçada).
@@ -26,7 +26,7 @@ Buscando padronizar integrações locais voltadas a desenvolvimento de software 
 A implementação do MCP elimina a dependência de conexões abertas convencionais via TCP/HTTP no Desktop. Toda interação transacional adota o modo padrão *Stdio* (Standard Input/Output) efetuando leitura restrita mediante à via de comunicação inter-processos segura no sistema operacional nativo (IPC Node Kernel Routing). A abordagem elimina riscos associados ao monitoramento passivo LAN/WiFi O.S (Network Panning). **A declaração da via isolada encontra-se definida integralmente no binário local originário do gateway `src-rust/mcp_stdio.rs`]**.
 
 ### 2.2 Requisitos de Instanciação do Kernel no Client (Acoplamento a IDE VS Code)
-O método de registro nas extensões assistentes impinge atrelamento puramente configuracional ativando chamadas no Rust local sem invocar sub-roteiros Python ou processos Docker externos à máquina do usuário:
+O método de registro nas extensões assistentes impinge atrelamento puramente configuracional ativando chamadas no Rust local sem invocar sub-roteiros Rust ou processos Standalone Binary externos à máquina do usuário:
 
 Configuração e Registro:
 ```json

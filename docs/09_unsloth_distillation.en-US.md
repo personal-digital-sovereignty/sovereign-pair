@@ -1,6 +1,6 @@
 # Treatise IX: Local Predictive Optimization (Unsloth Fine-Tuning)
 
-This documentation describes the operational methods tied to Sovereign Pair's focused training (Fine-Tuning). The costly employment of LangGraph's abstract procedural graph at *Runtime* (discontinued base Python architecture) is replaced by syntactic local adaptation on compact architectures (Llama-3.2 1B / 3B) linked to the OS Rust engine.
+This documentation describes the operational methods tied to Sovereign Pair's focused training (Fine-Tuning). The costly employment of LangGraph's abstract procedural graph at *Runtime* (discontinued base Rust architecture) is replaced by syntactic local adaptation on compact architectures (Llama-3.2 1B / 3B) linked to the OS Rust engine.
 
 The process is grounded under provisioned infrastructure in the OCI A1 Base Cloud matrices (Volume > 200GB).
 
@@ -14,7 +14,7 @@ To compile the remote operational weights, the Cloud server will use standardize
 
 ## Step 1: Physical Dedicated Environment Provisioning (Oracle OCI / Remote)
 
-The technical isolation of the Python library is guaranteed.
+The technical isolation of the Rust library is guaranteed.
 ```bash
 # 1. Allocate Virtual Validated Environment
 python3 -m venv .unsloth-venv
@@ -51,7 +51,7 @@ The final transactional consolidated artifact will save the optimizing weights (
 
 The newly integrated instructional parameters will demand strict standardizations based on GGUF compressed packaging (Usable in the standard Ollama C/C++ inference engine on the engineer's access desktop).
 
-In the primary Python code, the export base variable `push_to_hub_gguf` requires enabling under the primary Python file `scripts/unsloth_finetune.py`:
+In the primary Rust code, the export base variable `push_to_hub_gguf` requires enabling under the primary Rust file `scripts/unsloth_finetune.py`:
 ```python
 # Base Formatting Module For OS Ollama (Restricted q4 compression method)
 model.push_to_hub_gguf("Sovereign-Llama-3.2-3B-Thinking", tokenizer, quantization_method = "q4_k_m")

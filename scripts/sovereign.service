@@ -7,8 +7,8 @@ Wants=network-online.target
 Type=simple
 User=root
 # Se desejar isolacionismo puro, troque User=root por um usuário service non-sudo
-WorkingDirectory=/opt/sovereign/
-ExecStart=/usr/local/bin/sovereign-core --host 127.0.0.1
+WorkingDirectory=/opt/sovereign-pair/
+ExecStart=/usr/local/bin/sovereign-core
 Restart=always
 RestartSec=5
 # Segredos de telemetria ou Chaves de rede podem ser injetados aqui

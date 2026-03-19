@@ -2,7 +2,7 @@
   import '../app.css';
   import { globalState, toggleSidebar, setSidebarWidth } from '$lib/state.svelte';
   import { telemetryState, connectTelemetry, disconnectTelemetry } from '$lib/telemetry.svelte';
-  import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, CloudOff, Activity } from 'lucide-svelte';
+  import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, CloudOff, Activity, Database } from 'lucide-svelte';
   import { page } from '$app/state';
   import { onMount, onDestroy } from 'svelte';
 
@@ -10,7 +10,36 @@
 
   onMount(() => {
     connectTelemetry();
+    fetchWorkspaces();
   });
+
+  async function fetchWorkspaces() {
+      try {
+          const res = await fetch('http://localhost:38001/v1/workspaces', { headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` } });
+          if (res.ok) {
+              const data = await res.json();
+              globalState.workspaces = data.workspaces || [];
+              if (globalState.workspaces.length === 0) {
+                  globalState.workspaces = [{ id: 'mesh_roaming', name: 'Sovereign Mesh Roaming' }];
+              }
+              // If current mapped workspace isn't in list, select the first
+              const exists = globalState.workspaces.find((w: any) => w.id === globalState.activeWorkspaceId);
+              if (!exists) {
+                  globalState.activeWorkspaceId = globalState.workspaces[0].id;
+                  globalState.activeWorkspaceName = globalState.workspaces[0].name;
+              }
+          }
+      } catch (e) {
+          console.error("Failed to load workspaces via Rust Mesh:", e);
+      }
+  }
+
+  function handleWorkspaceChange(e: Event) {
+      const select = e.target as HTMLSelectElement;
+      globalState.activeWorkspaceId = select.value;
+      const ws = globalState.workspaces.find((w: any) => w.id === select.value);
+      if (ws) globalState.activeWorkspaceName = ws.name;
+  }
 
   onDestroy(() => {
     disconnectTelemetry();
@@ -84,10 +113,25 @@
   >
     <div class="flex flex-col h-full shrink-0" style="width: {globalState.sidebarWidth}px; min-width: {globalState.sidebarWidth}px">
       <!-- Context Header -->
-      <div class="h-14 px-4 flex items-center border-b border-surface-700 shrink-0">
-        <span class="font-semibold text-surface-300 tracking-wide text-sm truncate uppercase">
-          {routeId.replace('/', '') || 'SOVEREIGN'}
-        </span>
+      <div class="h-16 px-4 flex flex-col justify-center border-b border-surface-700 shrink-0 gap-1 bg-surface-800/80 backdrop-blur-sm z-10 sticky top-0">
+        <label for="workspace-selector" class="text-[9px] uppercase font-bold tracking-widest text-primary-500 flex items-center gap-1">
+          <Database class="w-3 h-3" />
+          Active Workspace
+        </label>
+        <select 
+          id="workspace-selector"
+          value={globalState.activeWorkspaceId}
+          onchange={handleWorkspaceChange}
+          class="bg-surface-900 border border-surface-600 text-surface-200 text-sm rounded-lg block w-full outline-none focus:border-primary-500 p-1 cursor-pointer appearance-none transition-colors"
+        >
+          {#each globalState.workspaces as ws}
+            <option value={ws.id}>{ws.name}</option>
+          {/each}
+        </select>
+        <!-- Custom invisible caret for pristine OS uniform looks -->
+        <div class="pointer-events-none absolute inset-y-0 right-6 bottom-0 flex items-center justify-center pt-4">
+           <svg class="w-3 h-3 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
       </div>
       <!-- Context Area (Dynamic Route Content + Telemetry Array) -->
       <div class="flex-1 w-full overflow-hidden flex flex-col relative min-h-0">

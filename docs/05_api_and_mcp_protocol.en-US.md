@@ -6,7 +6,7 @@ The Sovereign Pair project exposes its internal brain through two distinct proto
 
 The primary entry point is the native Rust Axum application (`src-rust/main.rs`), typically running on the Oracle Cloud Orchestrator or local instances. 
 
-It provides synchronous and asynchronous endpoints optimized for standard webhooks. This is the **preferred method** when connecting Sovereign Pair to platforms like N8N, Make, or custom Vue.js frontends.
+It provides synchronous and asynchronous endpoints optimized for standard webhooks. This is the **preferred method** when connecting Sovereign Pair to platforms like N8N, Make, or custom Svelte frontends.
 
 ### 1.1 Key Endpoints
 - `POST /v1/chat/completions`: The primary route and central cognitive engine. Accepts OpenAI-compatible payload structures (`messages: []`). This route automatically triggers the **Sovereign RAG** pipeline (BM25 + Vector Search) and applies the "Sovereign Bypass" to prevent system crashes on "Day Zero" (the exact moment of deployment when the `sqlite-vec` vector indexing table is still physically devoid of data and no PDFs have been ingested).
@@ -19,13 +19,13 @@ It provides synchronous and asynchronous endpoints optimized for standard webhoo
 > [!NOTE] 
 > ▫️ **Core Webhook Controller:** `src-rust/main.rs`
 > ▫️ **Application Init:** Cargo Binary
-> ▫️ **God-Mode SPA (Vue.js):** Consuming natively from `src/ui/`
+> ▫️ **God-Mode SPA (Svelte):** Consuming natively from `src/ui/`
 
 ---
 
 ## 2. Model Context Protocol (MCP) Integration
 
-The original LangGraph/Python architecture (which trapped complex, inflexible graphs in the cloud API) was completely decommissioned to natively expose the deep reasoning engines of its Agents (The Doctor, The Nurse, The Coder) through Anthropic's open **Model Context Protocol (MCP)** via optimized C++ and Rust dependencies. The architectural and market appeal of this shift is clear: Instead of isolating intelligence within the Python application's endpoint, it transforms the entire backend into a powerful "Skill Expansion Module". This umbilical cord dynamically plugs into modern corporate IDEs (VSCode, Cursor, Cline-based projects, and the upcoming *OpenCode* ecosystem).
+The original LangGraph/Rust architecture (which trapped complex, inflexible graphs in the cloud API) was completely decommissioned to natively expose the deep reasoning engines of its Agents (The Doctor, The Nurse, The Coder) through Anthropic's open **Model Context Protocol (MCP)** via optimized C++ and Rust dependencies. The architectural and market appeal of this shift is clear: Instead of isolating intelligence within the Rust application's endpoint, it transforms the entire backend into a powerful "Skill Expansion Module". This umbilical cord dynamically plugs into modern corporate IDEs (VSCode, Cursor, Cline-based projects, and the upcoming *OpenCode* ecosystem).
 
 ### 2.1. Absolute Local-First Sovereignty
 Unlike traditional Web REST APIs over HTTP—which can potentially leak packets interceptable via network *Sniffing* attacks—the MCP connection scheme operates strictly via **Stdio** (Standard Input/Output) Inter-Process Communication (IPC). The IDE initiates a blind socket bridge inside local RAM. Your proprietary corporate code architecture **will never traverse a routed network packet**, rendering the environment Zero-Trust and inviolable. **[Living Code: Pure IPC bind at `src-rust/mcp_stdio.rs`]**

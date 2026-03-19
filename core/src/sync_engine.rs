@@ -49,11 +49,11 @@ impl SyncEngine {
 
             // 1. Coletar e Atrelar todos os Workspaces do Banco de Dados Dinâmico
             #[derive(sqlx::FromRow)]
-            struct PathRow { path: String }
+            struct PathRow { id: String, absolute_path: String }
 
-            if let Ok(rows) = sqlx::query_as::<_, PathRow>("SELECT path FROM workspaces").fetch_all(&db).await {
+            if let Ok(rows) = sqlx::query_as::<_, PathRow>("SELECT id, absolute_path FROM workspaces").fetch_all(&db).await {
                 for row in rows {
-                    let ws_path = Path::new(&row.path);
+                    let ws_path = Path::new(&row.absolute_path);
                     if ws_path.exists() && ws_path.is_dir() {
                         // 2. Proteção de Polling Limitado (Config)
                         // A crate notify resolve internamente se precisa fazer fallback p/ Polling (em NFS/Network Drives).
@@ -118,7 +118,6 @@ impl SyncEngine {
                             
                             let _ = current_tx.send(job.clone());
                             
-                            // Lança processamento Pipeline RAG O.S real
                             let process_tx = current_tx.clone();
                             let process_db = db.clone();
                             let file_path_clone = path_str.clone();
@@ -152,16 +151,17 @@ impl SyncEngine {
         job.current_step = 1;
         let _ = tx.send(job.clone());
         
+        let content_for_rayon = content.clone();
         let (fallback_summary, chunks) = tokio::task::spawn_blocking(move || {
             use rayon::prelude::*;
             // Heurística de Chunking Multi-core: split por parágrafos longos
-            let paragraphs: Vec<&str> = content.split("\n\n").filter(|s| !s.trim().is_empty()).collect();
+            let paragraphs: Vec<&str> = content_for_rayon.split("\n\n").filter(|s| !s.trim().is_empty()).collect();
             let processed_chunks: Vec<String> = paragraphs.into_par_iter()
                 .map(|p| p.trim().to_string())
                 .filter(|p| p.len() > 10)
                 .collect();
             
-            let summary = content.chars().take(500).collect::<String>();
+            let summary = content_for_rayon.chars().take(500).collect::<String>();
             (summary, processed_chunks)
         }).await.unwrap_or_default();
 
@@ -192,6 +192,13 @@ impl SyncEngine {
         job.current_step = 3;
         let _ = tx.send(job.clone());
         
+        // Recupera o Workspace ID com base no Caminho do Arquivo
+        let workspace_id: String = sqlx::query_scalar("
+            SELECT id FROM workspaces WHERE ? LIKE absolute_path || '%' LIMIT 1
+        ")
+        .bind(&file_path)
+        .fetch_optional(&db).await.unwrap_or_default().unwrap_or_else(|| "default".to_string());
+
         for (i, chunk_text) in chunks.iter().enumerate() {
             let chunk_ref = format!("{}_{}", job.id, i);
             let meta_json = serde_json::json!({
@@ -201,31 +208,89 @@ impl SyncEngine {
             }).to_string();
 
             let _ = sqlx::query("
-                INSERT INTO sovereign_chunks (uuid_reference, tenant_id, file_path, text_content, metadata_json)
+                INSERT INTO sovereign_chunks (uuid_reference, workspace_id, file_path, text_content, metadata_json)
                 VALUES (?, ?, ?, ?, ?)
             ")
             .bind(&chunk_ref)
-            .bind("default")
+            .bind(&workspace_id)
             .bind(&file_path)
             .bind(chunk_text)
             .bind(&meta_json)
             .execute(&db).await;
         }
 
-        // Se o arquivo tiver sombra na 'sensus_documents', injeta summary nela para compatibilidade do The Nurse Python
+        // Injeta o documento principal na Tabela Mestre
         let _ = sqlx::query("
-            UPDATE sensus_documents 
-            SET semantic_summary = ?, vector_id = ?
-            WHERE file_path = ? AND vector_id IS NULL
+            INSERT INTO sensus_documents (id, workspace_id, file_path, content_raw, summary, last_modified)
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(file_path) DO UPDATE SET 
+                content_raw = excluded.content_raw,
+                summary = excluded.summary,
+                last_modified = CURRENT_TIMESTAMP
         ")
-        .bind(&final_summary)
         .bind(&job.id)
+        .bind(&workspace_id)
         .bind(&file_path)
+        .bind(&content)
+        .bind(&final_summary)
         .execute(&db).await;
 
         job.status = "completed".to_string();
         job.current_step = 4;
         let _ = tx.send(job.clone());
         info!("🧬 [The Dad/Mom Rust] Conhecimento Engolido Atomicamente via Rayon: {}", job.filename);
+
+        // ==========================================
+        // MESH P2P: DISTRIBUIÇÃO DE CONHECIMENTO CÍBRIDO
+        // ==========================================
+        let workspace_name: String = sqlx::query_scalar("SELECT name FROM workspaces WHERE id = ?")
+            .bind(&workspace_id)
+            .fetch_optional(&db).await.unwrap_or_default().unwrap_or_else(|| "Sovereign Mesh Roaming".to_string());
+
+        let mut mesh_chunks = Vec::new();
+        for (i, chunk_text) in chunks.iter().enumerate() {
+            let chunk_ref = format!("{}_{}", job.id, i);
+            let meta_json = serde_json::json!({
+                "summary": final_summary,
+                "chunk_index": i,
+                "total_chunks": chunks.len(),
+            }).to_string();
+            
+            mesh_chunks.push(serde_json::json!({
+                "uuid_reference": chunk_ref,
+                "text_content": chunk_text,
+                "metadata_json": meta_json
+            }));
+        }
+
+        let sync_payload = serde_json::json!({
+            "document_id": job.id,
+            "workspace_name": workspace_name, // Permite que o outro Nó tente rotear pelo nome
+            "file_path": file_path,
+            "content_raw": content,
+            "summary": final_summary,
+            "chunks": mesh_chunks
+        });
+
+        let tunnels = crate::ssh_mesh_connector::ACTIVE_MESH_TUNNELS.lock().await;
+        if !tunnels.is_empty() {
+            info!("📡 [Sovereign Mesh P2P] Transmitindo Conhecimento recém-ingerido para {} Nós pares...", tunnels.len());
+            let client = reqwest::Client::new();
+
+            for (port, (uri, _)) in tunnels.iter() {
+                let target_url = format!("http://127.0.0.1:{}/v1/mesh/sync/document", port);
+                let payload_clone = sync_payload.clone();
+                let uri_clone = uri.clone();
+                let client_clone = client.clone();
+                
+                tokio::spawn(async move {
+                    if let Err(e) = client_clone.post(&target_url).json(&payload_clone).timeout(std::time::Duration::from_secs(10)).send().await {
+                        warn!("⚠️ [Sovereign Mesh] Falha ao sincronizar com Nó Pareado '{}': {}", uri_clone, e);
+                    } else {
+                        info!("✅ [Sovereign Mesh] Ingestão sincronizada com Nó Pareado '{}'.", uri_clone);
+                    }
+                });
+            }
+        }
     }
 }
