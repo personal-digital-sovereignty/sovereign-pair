@@ -22,7 +22,7 @@ The Sovereign project follows an absolute "Zero Hardcoding" directive. During in
 
 ## 2. Validation Pipelines (CI/CD Quality Gates)
 
-To ensure the enterprise-level integrity of the core Rust Axum configuration variables and Vue.JS frontend, all pull requests on the main branch must successfully pass three mandatory structural testing layers (High Difficulty) before any deployment to the company's OCI Server.
+To ensure the enterprise-level integrity of the core Rust Axum configuration variables and Svelte.JS frontend, all pull requests on the main branch must successfully pass three mandatory structural testing layers (High Difficulty) before any deployment to the company's OCI Server.
 
 ### 2.1 Memory Safety and Trait Audits (Native Rust Borrow-Checker)
 We deploy Native Cargo Clippy and `rust-analyzer` engines strictly evaluating logic allocations systemically.

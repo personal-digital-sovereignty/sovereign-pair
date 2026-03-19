@@ -13,7 +13,7 @@ O sistema possui design modular, orientado a agentes autônomos e integra-se dir
 > [!NOTE] 
 > O código-fonte referente a esta topologia encontra-se nos seguintes caminhos:
 > ▫️ **Front-End PWA (Sensus Vault):** `web-ui/src/views/VaultView.vue`
-> ▫️ **API Gateway (FastAPI):** `src/api/routes.py`
+> ▫️ **API Gateway (Axum):** `src/api/routes.py`
 
 ---
 
@@ -56,4 +56,4 @@ A API backend executada pelo Framework base estrutural C/C++/Rust (Axum + Tokio)
 As buscas e alocações transdicionais lógicas processuais ocorrem sob SQLite (usando a sub-arquitetura nativa C/C++ vinculada, `sqlite-vec`), nas quais chaves limitantes alocadas durante a indexação inicial restringem instâncias originativas garantindo que transições entre sessões ou inquilinos não transponham a isolação nativa processual local de leitura vetorial.
 
 > [!WARNING]
-> Histórico Evolutivo Arquitetural: Durante os primeiros estágios da aplicação (quando rodava ancorada em Python e LlamaIndex/FastAPI), bases vazias causavam crashes devolvendo strings de falha "Empty Response". Tais retornos demandavam fluxos paralelos via código (Sovereign Bypass Python). Após a reengenharia O.S e desenvolvimento de todo o RAG Mestre em **Rust/C++**, referidas defasagens processuais externas aos containers falharam perante isolações corporativas de rede (Data Leaks a terceiros da API LLM). A nova arquitetura RAG Cíbrida lidando iterativamente aos bytes brutos do O.S resolveu nativamente o direcionamento analítico LLM, eliminando do projeto as bibliotecas originárias e obsoletas.
+> Histórico Evolutivo Arquitetural: Durante os primeiros estágios da aplicação (quando rodava ancorada em Rust e LlamaIndex/Axum), bases vazias causavam crashes devolvendo strings de falha "Empty Response". Tais retornos demandavam fluxos paralelos via código (Sovereign Bypass Rust). Após a reengenharia O.S e desenvolvimento de todo o RAG Mestre em **Rust/C++**, referidas defasagens processuais externas aos containers falharam perante isolações corporativas de rede (Data Leaks a terceiros da API LLM). A nova arquitetura RAG Cíbrida lidando iterativamente aos bytes brutos do O.S resolveu nativamente o direcionamento analítico LLM, eliminando do projeto as bibliotecas originárias e obsoletas.

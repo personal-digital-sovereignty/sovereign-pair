@@ -17,7 +17,7 @@ Sovereign Pair is a **production-ready Multi-Agent System** that connects your f
 
 > [!NOTE] 🧬 **Living Code: Sovereign Gateway (SHA: `94bfb2f`)**
 > ▫️ **Frontend Vault UI:** `web-ui/src/views/VaultView.vue`
-> ▫️ **FastAPI Gateway:** `src/api/routes.py`
+> ▫️ **Axum Gateway:** `src/api/routes.py`
 
 ---
 
@@ -37,8 +37,8 @@ Instead of forcing a user to either buy a $10,000 GPU server *or* rent a Cloud V
 > *   **Vector Database (ChromaDB):** An engine that stores text as mathematical coordinates (embeddings). If you ask "How to deploy?", it mathematically finds paragraphs sitting near the coordinates of "deployment" and "servers".
 
 > [!NOTE] 🧬 **Living Code: Cybrid Topology (SHA: `94bfb2f`)**
-> ▫️ **Zero-Cost Oracle Cloud Bridge:** `docker-compose.n8n.yml`
-> ▫️ **Multi-Container Local Network:** `docker-compose.yml`
+> ▫️ **Zero-Cost Oracle Cloud Bridge:** `sovereign-core.n8n.yml`
+> ▫️ **Multi-Container Local Network:** `sovereign-core.yml`
 > ▫️ **Tailscale mTLS Loopback:** `.env.example` (`OLLAMA_BASE_URL` config target)
 
 ---
@@ -74,4 +74,4 @@ The backend architectural API (compiled entirely in Rust via Axum and Tokio runt
 Searches and allocations operate dynamically under SQLite arrays through unique Metadata UUID constraints. This process restricts chunk creation logic forcing system access loops to deny queries without correct session hashes.
 
 > [!WARNING]
-> Historical Dependency Bug: In legacy Python configurations relying heavily on LlamaIndex modules, blank SaaS setups (0 Nodes metadata indexed) caused unrecoverable loop breakdowns and `Empty Response` fallback issues. The complete internal migration scaling up and re-coding RAG vectors internally into Rust Core Base C/C++ Logic (via embedded `sqlite-vec`) fixed those operational dependencies, ending occurrences related to commercial vendor data leaks. Sovereign Architectures no longer rely on external Python pipelines for core file abstractions.
+> Historical Dependency Bug: In legacy Rust configurations relying heavily on LlamaIndex modules, blank SaaS setups (0 Nodes metadata indexed) caused unrecoverable loop breakdowns and `Empty Response` fallback issues. The complete internal migration scaling up and re-coding RAG vectors internally into Rust Core Base C/C++ Logic (via embedded `sqlite-vec`) fixed those operational dependencies, ending occurrences related to commercial vendor data leaks. Sovereign Architectures no longer rely on external Rust pipelines for core file abstractions.
