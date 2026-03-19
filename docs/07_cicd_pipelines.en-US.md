@@ -18,15 +18,15 @@ This is the primary security pipeline (Central Gateway). It acts as a firewall t
 
 ## 2. Backend API CI/CD (`docker-api.yml`)
 The engine compiling the neural heart (Rust Axum).
-* **Triggers:** Modifications triggered within `src-rust/`, `Dockerfile.rust` and `Cargo.toml`.
+* **Triggers:** Modifications triggered within `src-rust/`, `Standalone Binaryfile.rust` and `Cargo.toml`.
 * **Action Steps:**
   * **Cargo Test & Traits:** Spins up robust async tests to validate RAG memory extraction (`The Nurse`), markdown parsing, parallel semantic ingestions, and unit states.
   * **Cargo Clippy:** Secondary backend guard gate for strict memory structural integrity.
   * **Build & Push ghcr.io:** Exclusively compiles the lean *sovereign-pair-axum* container mirroring the new state, securely exporting it to GitHub's container registry for edge-node consumption.
 
 ## 3. Web UI CI/CD (`docker-web.yml`)
-Delivery architecture pipeline focused solely on the Frontend presentation (Vue 3 + Vite).
-* **Triggers:** Patches within the `web-ui/` directory subtree or changes in `Dockerfile.web`.
+Delivery architecture pipeline focused solely on the Frontend presentation (Svelte 5 + Vite).
+* **Triggers:** Patches within the `web-ui/` directory subtree or changes in `Standalone Binaryfile.web`.
 * **Action Steps:**
   * **Node/npm CI:** Compiles NPM dependency tree matching absolute state boundaries in the lockfile preventing drift packages.
   * **TypeScript Checkout:** Strongly typed checking to detect front-end memory regressions.
@@ -37,7 +37,7 @@ The Heart of automation transiting the edge to Oracle Cloud (Infrastructure Auto
 * **Triggers:** Manually invoked (via *Workflow Dispatch* UI `apply`/`destroy`) or via root updates on `infra/terraform/`.
 * **Action Steps:**
   * **OpenTofu Init:** Consumes repository injected encrypted secrets mapping private `Tailscale` clusters, OCI keys, and Network parameters.
-  * **Infrastructure Orchestration:** Applies the architecture strictly via OpenTofu (stateful IaC code), communicating recursively with Oracle resolving the *Zero-Trust Network*, creating the A1 processor node, mapping cloud-init payload, booting Docker natively alongside RAG/N8N Cibrid integration. It serves both scaling upwards and total cloud-burn down (Destroy mode).
+  * **Infrastructure Orchestration:** Applies the architecture strictly via OpenTofu (stateful IaC code), communicating recursively with Oracle resolving the *Zero-Trust Network*, creating the A1 processor node, mapping cloud-init payload, booting Standalone Binary natively alongside RAG/N8N Cibrid integration. It serves both scaling upwards and total cloud-burn down (Destroy mode).
 
 ## 5. Sensus Vault Plugin Release (`release-sensusvault.yml`)
 Distribution module rendering auto-installable packages linking sovereign context into the Sensus Vault PKM grid.

@@ -1,20 +1,83 @@
 <script lang="ts">
-    import { MessageSquare, Cpu, Shield, Send } from 'lucide-svelte';
+    import { MessageSquare, Cpu, Shield, Send, Loader2 } from 'lucide-svelte';
+    import { globalState } from '$lib/state.svelte';
 
     let message = $state('');
     let messages = $state([
         { role: 'assistant', agent: 'Sovereign Coder', text: 'Sensus Synchronized. Ready for prompt ingestion.', time: new Date().toLocaleTimeString() }
     ]);
 
-    function sendMessage() {
-        if (!message.trim()) return;
-        messages = [...messages, { role: 'user', agent: 'Commander', text: message, time: new Date().toLocaleTimeString() }];
+    let isTyping = $state(false);
+
+    async function sendMessage() {
+        if (!message.trim() || isTyping) return;
+        const currentMsg = message;
+        messages = [...messages, { role: 'user', agent: 'Commander', text: currentMsg, time: new Date().toLocaleTimeString() }];
         message = '';
+        isTyping = true;
         
-        // Simular Resposta
-        setTimeout(() => {
-            messages = [...messages, { role: 'assistant', agent: 'Sovereign Oracle', text: 'Acknowledged. Telemetry stream is stable.', time: new Date().toLocaleTimeString() }];
-        }, 1000);
+        let assistantIdx = messages.length;
+        messages = [...messages, { role: 'assistant', agent: 'Sovereign Evaluator', text: '', time: new Date().toLocaleTimeString() }];
+
+        try {
+            const token = localStorage.getItem('sovereign_token') || '';
+            const ws_id = globalState.activeWorkspaceId || 'default';
+            
+            const payload = {
+                model: 'sovereign-router',
+                messages: [{ role: 'user', content: currentMsg }],
+                workspace_id: ws_id,
+                stream: true
+            };
+
+            const response = await fetch('http://localhost:38001/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.body) throw new Error("No readable stream");
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (line.trim() === '') continue;
+                    if (line.includes('[DONE]')) break;
+                    
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.substring(6));
+                            if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
+                                messages[assistantIdx].text += data.choices[0].delta.content;
+                            }
+                        } catch(e) { /* ignore JSON chunk errors */ }
+                    }
+                }
+            }
+            
+            // Re-trigger reactivity in Svelte 5 by replacing the array reference
+            messages = [...messages];
+
+        } catch (error) {
+            console.error("Inference Engine Down:", error);
+            messages[assistantIdx].text += "\n\n[SYSTEM ERROR] Conexão com o roteador Mesh P2P / OCI foi perdida. Telemetria Inacessível.";
+            messages = [...messages];
+        } finally {
+            isTyping = false;
+        }
     }
 </script>
 
@@ -80,8 +143,12 @@
                 }}
             ></textarea>
 
-            <button type="submit" class="absolute right-2 bottom-2 p-2.5 bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                <Send class="w-5 h-5" />
+            <button type="submit" disabled={isTyping} class="absolute right-2 bottom-2 p-2.5 bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                {#if isTyping}
+                    <Loader2 class="w-5 h-5 animate-spin" />
+                {:else}
+                    <Send class="w-5 h-5" />
+                {/if}
             </button>
         </form>
         <div class="text-[10px] text-center text-surface-500 mt-2 font-mono uppercase tracking-widest">

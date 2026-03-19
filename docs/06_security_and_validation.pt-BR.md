@@ -35,7 +35,7 @@ Serviços emulados nativamente (*Traits & Mock Objects em Rust*) garantem testab
 - **Cobertura via Mock:** Impõe falhas induzidas como Timeouts HTTP com bibliotecas de conectividade Reqwest visando depurar o Fallback da Arquitetura Rest API. Avalia estritamente a durabilidade nativa frente a estresse em ambientes de simulação (Simuladores Unitários). **[Base contida via testes declarados em sub-módulos unitários nas sources `src-rust`]**
 
 ### 2.3 Execuções UI Automations PWA Rendering
-A infraestrutura inclui orquestradores de testes Headless da interface de usuário gerida em Vue.js utilizando o Playwright Framework.
+A infraestrutura inclui orquestradores de testes Headless da interface de usuário gerida em Svelte utilizando o Playwright Framework.
 - **Teste de Renderização Estrutural Dom:** Avalia limitações e renderizações carregando listas longas ou grafos gerados. O Playwright realiza validações dinâmicas analisando o tempo de framerate no Layout, apontando *Memory Leaks* com antecedência em caso de travamentos ocasionais criados na reatividade dos botões do Sensus Vault.
 **[Casos Mapeados na Automação: `tests/e2e/vault_stress_test.spec.ts`]**
 

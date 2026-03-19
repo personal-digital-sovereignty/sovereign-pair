@@ -92,3 +92,85 @@ pub async fn mesh_tunnels_status_handler() -> Json<serde_json::Value> {
     }
     Json(serde_json::json!({"active_tunnels": response}))
 }
+
+// ==========================================
+// MESH P2P: SYNCHRONIZATION ENGINE
+// ==========================================
+
+#[derive(Deserialize, Clone)]
+pub struct MeshSyncChunk {
+    pub uuid_reference: String,
+    pub text_content: String,
+    pub metadata_json: String,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct MeshSyncDocument {
+    pub document_id: String,
+    pub workspace_name: String,
+    pub file_path: String,
+    pub content_raw: String,
+    pub summary: String,
+    pub chunks: Vec<MeshSyncChunk>,
+}
+
+pub async fn mesh_sync_document_handler(
+    axum::extract::State(state): axum::extract::State<std::sync::Arc<crate::AppState>>,
+    axum::Json(payload): axum::Json<MeshSyncDocument>
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    tracing::info!("📡 [Mesh P2P] Inbound Sync: Received document '{}' from Sovereign Peer.", payload.file_path);
+
+    let db = &state.db;
+
+    // Resolve or Create Workspace automatically based on peering Name
+    let workspace_id: String = sqlx::query_scalar("SELECT id FROM workspaces WHERE name = ? LIMIT 1")
+        .bind(&payload.workspace_name)
+        .fetch_optional(db).await.unwrap_or_default()
+        .unwrap_or_else(|| {
+            // Se o nó não possui um Workspace com este nome explícito, usamos o MESH Default
+            tracing::warn!("⚠️ [Mesh P2P] Workspace '{}' inexistente no nó local. Injetando no Mesh Pool.", payload.workspace_name);
+            "mesh_roaming".to_string()
+        });
+
+    if workspace_id == "mesh_roaming" {
+        let _ = sqlx::query("
+            INSERT OR IGNORE INTO workspaces (id, name, absolute_path) 
+            VALUES ('mesh_roaming', 'Sovereign Mesh Roaming', '/dev/null/mesh')
+        ").execute(db).await;
+    }
+
+    // Upsert Document
+    let _ = sqlx::query("
+        INSERT INTO sensus_documents (id, workspace_id, file_path, content_raw, summary, last_modified)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(file_path) DO UPDATE SET 
+            content_raw = excluded.content_raw,
+            summary = excluded.summary,
+            last_modified = CURRENT_TIMESTAMP
+    ")
+    .bind(&payload.document_id)
+    .bind(&workspace_id)
+    .bind(&payload.file_path)
+    .bind(&payload.content_raw)
+    .bind(&payload.summary)
+    .execute(db).await;
+
+    // Delete existing chunks for this document on Peer override
+    let _ = sqlx::query("DELETE FROM sovereign_chunks WHERE file_path = ?").bind(&payload.file_path).execute(db).await;
+
+    // Insert Chunks
+    for chunk in payload.chunks {
+        let _ = sqlx::query("
+            INSERT INTO sovereign_chunks (uuid_reference, workspace_id, file_path, text_content, metadata_json)
+            VALUES (?, ?, ?, ?, ?)
+        ")
+        .bind(&chunk.uuid_reference)
+        .bind(&workspace_id)
+        .bind(&payload.file_path)
+        .bind(&chunk.text_content)
+        .bind(&chunk.metadata_json)
+        .execute(db).await;
+    }
+
+    Ok(Json(serde_json::json!({"status": "synchronized"})))
+}

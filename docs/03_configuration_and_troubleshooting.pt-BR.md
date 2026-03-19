@@ -45,11 +45,11 @@ rm -rf data/sovereign_memory.db*
 cargo run --bin sovereign-axum -- --rebuild
 ```
 
-### 2.2 Workflow Legado (Python/ChromaDB descontinuado)
-Nas implementações primárias Python, o indexamento RAG operava sob coleções locais do banco `ChromaDB` em sinergia ao rastreador de modificações `.ingestion_history.json`.
+### 2.2 Workflow Legado (Rust/ChromaDB descontinuado)
+Nas implementações primárias Rust, o indexamento RAG operava sob coleções locais do banco `ChromaDB` em sinergia ao rastreador de modificações `.ingestion_history.json`.
 
 ```bash
-# [AVISO: Apenas Arquitetura Histórica Legada Python]
+# [AVISO: Apenas Arquitetura Histórica Legada Rust]
 rm -rf data/chroma_db
 rm -rf data/sovereign_memory.db 
 rm data/.ingestion_history.json
@@ -66,8 +66,8 @@ python src/ingest.py
 ## 3. Dependência Legada: A Vulnerabilidade "Empty Response" LlamaIndex
 Versões experimentais primárias relativas do Sovereign Pair acoplaram-se ao framework `LlamaIndex` para instanciamento analógico. Procedimentos isolativos testados auditaram comportamentos arbitrários nocivos restritivos do instanciador base.
 
-- **Motivo Arquitetural:** Tal ocorrência nativa referia-se ao design restritivo contido na biblioteca base do provedor `LlamaIndex` (Classes contextuais Python). Se as operações baseadas no input aos bancos apontassem "0 nodes", a Engine Python declinava a execução e devolvia falhas estruturais fixas "Empty Response" impossibilitando conversações triviais (Ou tentava, via Silent Fallbacks, alcançar nós comerciais OpenAI transpondo o cerco privativo da rede local).  
-- **Resolução Cíbrida Definitiva (Adoção Rust/Axum):** Visando prover comunicação e isolação total da infraestrutura, elaborou-se primeiramente o conceito interceptativo `Sovereign Bypass` (via Python log hooks). No entanto, o nível de restrição exigido no formato Zero-Trust forçou a eliminação absoluta das abstrações comerciais de dependência Python (`LangGraph`, `LlamaIndex`). As execuções primárias restritas RAG transicionaram ao domínio das implementações compiladas via **Rust (`Axum` e `Tokio`)**, com matrizes SQLite (`sqlite-vec`) lidadas primariamente no terminal direto com o inferenciador `Ollama`. O sistema não apresenta mais bloqueios sistêmicos decorrentes de ambientes operacionais vazios (New Startups).
+- **Motivo Arquitetural:** Tal ocorrência nativa referia-se ao design restritivo contido na biblioteca base do provedor `LlamaIndex` (Classes contextuais Rust). Se as operações baseadas no input aos bancos apontassem "0 nodes", a Engine Rust declinava a execução e devolvia falhas estruturais fixas "Empty Response" impossibilitando conversações triviais (Ou tentava, via Silent Fallbacks, alcançar nós comerciais OpenAI transpondo o cerco privativo da rede local).  
+- **Resolução Cíbrida Definitiva (Adoção Rust/Axum):** Visando prover comunicação e isolação total da infraestrutura, elaborou-se primeiramente o conceito interceptativo `Sovereign Bypass` (via Rust log hooks). No entanto, o nível de restrição exigido no formato Zero-Trust forçou a eliminação absoluta das abstrações comerciais de dependência Rust (`LangGraph`, `LlamaIndex`). As execuções primárias restritas RAG transicionaram ao domínio das implementações compiladas via **Rust (`Axum` e `Tokio`)**, com matrizes SQLite (`sqlite-vec`) lidadas primariamente no terminal direto com o inferenciador `Ollama`. O sistema não apresenta mais bloqueios sistêmicos decorrentes de ambientes operacionais vazios (New Startups).
 
 > [!NOTE] 
-> ▫️ **Antigo Bypass HTTP API (Obsoleto):** Anteriormente localizado estruturalmente na raiz do Handler Rest: `src/api/routes.py` (Python FastAPI). Padrão reescrito sobre Core Rust e devidamente removido da arquitetura limitante legada.
+> ▫️ **Antigo Bypass HTTP API (Obsoleto):** Anteriormente localizado estruturalmente na raiz do Handler Rest: `src/api/routes.py` (Rust Axum). Padrão reescrito sobre Core Rust e devidamente removido da arquitetura limitante legada.
