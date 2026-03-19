@@ -137,6 +137,11 @@ async fn main() {
         .route("/v1/sessions", axum::routing::get(api_chat::get_sessions_handler))
         .route("/v1/sessions/:id", axum::routing::get(api_chat::get_session_by_id_handler)
             .delete(api_chat::delete_session_handler))
+        // ------------------ P2P Sovereign Mesh Router ----------------
+        .route("/v1/mesh/handshake", axum::routing::get(api_mesh::mesh_handshake_handler))
+        .route("/v1/mesh/connect", axum::routing::post(api_mesh::mesh_connect_handler))
+        .route("/v1/mesh/tunnels", axum::routing::get(api_mesh::mesh_tunnels_status_handler))
+        .route("/v1/mesh/sync/document", axum::routing::post(api_mesh::mesh_sync_document_handler))
         // ------------------ Projects & Tasks (Kanban O.S) ------------
         .route("/v1/projects", axum::routing::get(api_projects::get_projects_handler)
             .post(api_projects::create_project_handler))
@@ -149,6 +154,8 @@ async fn main() {
             .post(api_settings::set_system_settings_handler))
         .route("/v1/settings/ollama_clusters", axum::routing::get(api_settings::get_ollama_clusters_handler)
             .post(api_settings::set_ollama_clusters_handler))
+        .route("/v1/system/export_config", axum::routing::get(api_settings::export_config_handler))
+        .route("/v1/system/import_config", axum::routing::post(api_settings::import_config_handler))
         // ------------------ Chat Endpoints ------------------
         .route("/opencode/v1/chat/completions", post(api::chat_completions_handler))
         .route("/v1/chat/completions", post(api::chat_completions_handler))

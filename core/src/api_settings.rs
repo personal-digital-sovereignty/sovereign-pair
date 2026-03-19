@@ -65,6 +65,13 @@ pub async fn set_system_settings_handler(
     if res.is_err() {
         return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Database Error").into_response();
     }
+
+    // Auto-Roaming: Mesh Broadcast
+    let s_clone = state.clone();
+    tokio::spawn(async move {
+        broadcast_profile_to_mesh(s_clone).await;
+    });
+
     Json(serde_json::json!({"status": "ok"})).into_response()
 }
 
@@ -99,5 +106,145 @@ pub async fn set_ollama_clusters_handler(
     if res.is_err() {
         return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Database Error").into_response();
     }
+
+    // Auto-Roaming: Mesh Broadcast
+    let s_clone = state.clone();
+    tokio::spawn(async move {
+        broadcast_profile_to_mesh(s_clone).await;
+    });
+
     Json(serde_json::json!({"status": "ok"})).into_response()
+}
+
+// ==========================================
+// THE ROAMING ARCHITECTURE: O.S IMP/EXP
+// ==========================================
+
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+pub struct CybridConfigExport {
+    pub global_settings: Vec<Value>,
+    pub workspaces: Vec<Value>,
+}
+
+pub async fn generate_cybrid_payload(db: &sqlx::SqlitePool) -> String {
+    let mut payload = CybridConfigExport {
+        global_settings: vec![],
+        workspaces: vec![],
+    };
+
+    if let Ok(rows) = sqlx::query("SELECT id, value_json FROM global_settings").fetch_all(db).await {
+        for row in rows {
+            payload.global_settings.push(serde_json::json!({
+                "id": row.get::<String, _>("id"),
+                "value_json": row.get::<String, _>("value_json")
+            }));
+        }
+    }
+
+    if let Ok(rows) = sqlx::query("SELECT id, name, absolute_path FROM workspaces").fetch_all(db).await {
+        for row in rows {
+            payload.workspaces.push(serde_json::json!({
+                "id": row.get::<String, _>("id"),
+                "name": row.get::<String, _>("name"),
+                "absolute_path": row.get::<String, _>("absolute_path")
+            }));
+        }
+    }
+
+    let json_str = serde_json::to_string(&payload).unwrap_or_default();
+    use base64::{Engine as _, engine::general_purpose};
+    general_purpose::STANDARD.encode(&json_str)
+}
+
+pub async fn broadcast_profile_to_mesh(state: Arc<AppState>) {
+    let tunnels = crate::ssh_mesh_connector::ACTIVE_MESH_TUNNELS.lock().await;
+    if tunnels.is_empty() { return; }
+
+    tracing::info!("📡 [Sovereign Roaming] Transmitindo mutação de Identidade/Config para '{}' Nós pares...", tunnels.len());
+    
+    let encoded_config = generate_cybrid_payload(&state.db).await;
+    let client = reqwest::Client::new();
+
+    for (port, (uri, _)) in tunnels.iter() {
+        let target_url = format!("http://127.0.0.1:{}/v1/system/import_config", port);
+        let config_clone = encoded_config.clone();
+        let uri_clone = uri.clone();
+        let client_clone = client.clone();
+        
+        tokio::spawn(async move {
+            if let Err(e) = client_clone.post(&target_url).body(config_clone).timeout(std::time::Duration::from_secs(10)).send().await {
+                tracing::warn!("⚠️ [Sovereign Roaming] Falha ao sincronizar identidade com Nó Pareado '{}': {}", uri_clone, e);
+            } else {
+                tracing::info!("✅ [Sovereign Roaming] Identidade sincronizada ininterruptamente com Nó '{}'.", uri_clone);
+            }
+        });
+    }
+}
+
+/// Rota GET /v1/system/export_config - Empacota o Nó atual em um arquivo .cybrid
+pub async fn export_config_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let encoded = generate_cybrid_payload(&state.db).await;
+
+    // Force browser download headers
+    let headers = axum::response::AppendHeaders([
+        (axum::http::header::CONTENT_DISPOSITION, "attachment; filename=\"identity.cybrid\""),
+        (axum::http::header::CONTENT_TYPE, "application/octet-stream"),
+    ]);
+
+    (headers, encoded).into_response()
+}
+
+/// Rota POST /v1/system/import_config - Engole um .cybrid e reescreve o Nó O.S
+pub async fn import_config_handler(
+    State(state): State<Arc<AppState>>,
+    body: String
+) -> impl IntoResponse {
+    use base64::{Engine as _, engine::general_purpose};
+    let decoded = match general_purpose::STANDARD.decode(&body) {
+        Ok(b) => b,
+        Err(_) => return (axum::http::StatusCode::BAD_REQUEST, "Arquivo Cíbrido Corrompido").into_response()
+    };
+
+    let payload: CybridConfigExport = match serde_json::from_slice(&decoded) {
+        Ok(p) => p,
+        Err(_) => return (axum::http::StatusCode::BAD_REQUEST, "Formato incompatível do Córtex Cíbrido").into_response()
+    };
+
+    let mut tx = match state.db.begin().await {
+        Ok(t) => t,
+        Err(_) => return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "DB Transaction Error").into_response()
+    };
+
+    // Reseta e Importa Workspaces
+    let _ = sqlx::query("DELETE FROM workspaces").execute(&mut *tx).await;
+    for ws in payload.workspaces {
+        if let Some(id) = ws.get("id").and_then(|v| v.as_str())
+            && let Some(name) = ws.get("name").and_then(|v| v.as_str())
+                && let Some(abs_path) = ws.get("absolute_path").and_then(|v| v.as_str()) {
+                    let _ = sqlx::query("INSERT INTO workspaces (id, name, absolute_path) VALUES (?, ?, ?)")
+                        .bind(id)
+                        .bind(name)
+                        .bind(abs_path)
+                        .execute(&mut *tx).await;
+                }
+    }
+
+    // Importa (Upsert) Global Settings
+    for st in payload.global_settings {
+        if let Some(id) = st.get("id").and_then(|v| v.as_str())
+            && let Some(val) = st.get("value_json").and_then(|v| v.as_str()) {
+                let _ = sqlx::query("INSERT INTO global_settings (id, value_json) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET value_json = excluded.value_json")
+                    .bind(id)
+                    .bind(val)
+                    .execute(&mut *tx).await;
+            }
+    }
+
+    if tx.commit().await.is_ok() {
+        Json(serde_json::json!({"status": "Córtex Absorvido com Sucesso. Reinicie a Interface."})).into_response()
+    } else {
+        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "O Nó Rejeitou o Coração Cíbrido.").into_response()
+    }
 }

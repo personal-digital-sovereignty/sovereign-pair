@@ -544,9 +544,9 @@ struct SensusDocRow {
 pub async fn vault_graph_handler(
     State(state): State<Arc<AppState>>
 ) -> impl IntoResponse {
-    // Busca todos os documentos do banco (tenant default)
+    // Busca todos os documentos do banco (tenant default -> workspace_id 'default' initially)
     let rows_res = sqlx::query_as::<_, SensusDocRow>(
-        "SELECT id, file_path, extracted_tags, extracted_links FROM sensus_documents WHERE tenant_id IN ('default')"
+        "SELECT id, file_path, extracted_tags, extracted_links FROM sensus_documents WHERE workspace_id = 'default'"
     )
     .fetch_all(&state.db)
     .await;
