@@ -63,9 +63,10 @@ if human_prompt.to_lowercase().starts_with("/plan") {
     
     let db_clone = state.db.clone();
     let log_tx_clone = state.log_sender.clone();
+    let vault_clone = state.vault_path.clone();
     
     tokio::spawn(async move {
-        crate::plan_execute::start_plan_and_execute(query, db_clone, log_tx_clone).await;
+        crate::plan_execute::start_plan_and_execute(query, vault_clone, db_clone, log_tx_clone).await;
     });
 
     let msg = "🧭 **Plan & Execute (Macro-Orquestração) Iniciado!**\nSua tarefa foi inserida no Threadpool Assíncrono do Cíbrido. O Planner irá quebrar seu pedido em etapas menores, validará nativamente na formatação strict JSON, e o Executor cuidará de cada etapa seqüencialmente sem travar seu terminal. \n\n*Acompanhe o Plasma Widget ou Logs para ver a orquestração em andamento!*".to_string();
