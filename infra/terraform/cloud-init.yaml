@@ -24,8 +24,20 @@ write_files:
     owner: root:root
     permissions: '0644'
 
+bootcmd:
+  # Oracle's default DHCP resolver (169.254.169.254) can blackhole Ubuntu instances on ARM A1.
+  # We forcefully override systemd-resolved to use resilient external DNS before any apt command runs.
+  - mkdir -p /etc/systemd/resolved.conf.d
+  - echo "[Resolve]\nDNS=8.8.8.8 1.1.1.1" > /etc/systemd/resolved.conf.d/dns_servers.conf
+  - systemctl restart systemd-resolved
+  # Desabilita IPv6 estritamente no boot para acelerar networking stack
+  - sysctl -w net.ipv6.conf.all.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.default.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.lo.disable_ipv6=1
+
 runcmd:
   # Aquece o network stack (DHCP/DNS) do Oracle OCI antes do gatilho principal
+
   - sleep 20
 
   # 0. Fix Oracle's broken regional APT mirrors strictly before any apt command
@@ -56,11 +68,6 @@ runcmd:
 
   # 6. Legacy Compilers Removed (Moved to Github Actions CI)
   # Rust and Node.js are no longer installed on the Baremetal OCI.
-
-  # 7. Disable IPv6 to optimize local VCN routing
-  - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
-  - sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
-  - sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
 
   # 8. Clone Sovereign Pair and Spin Up Baremetal Architecture
   - git clone https://${pat_ghcr}@github.com/Personal-Digital-Sovereignty/sovereign-pair.git /opt/sovereign-pair
