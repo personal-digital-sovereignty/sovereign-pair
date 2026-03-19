@@ -13,7 +13,7 @@
         { id: '2', hostname: 'ryzen-local-alpha', role: 'The Coder (Sandbox)', hardware: '32GB RAM, Ryzen 9', location: 'Local Network' }
     ];
 
-    let fileInput: HTMLInputElement;
+    let fileInput: HTMLInputElement | undefined = $state(undefined);
 
     async function handleFileImport(e: Event) {
         const input = e.target as HTMLInputElement;
@@ -80,7 +80,7 @@
                     <input type="file" bind:this={fileInput} accept=".cybrid" class="hidden" onchange={handleFileImport} />
 
                     <div class="flex gap-2 w-full">
-                        <button onclick={() => fileInput.click()} class="flex-1 py-2 rounded-lg bg-surface-700 text-surface-200 hover:bg-surface-600 transition-colors flex items-center justify-center gap-2 cursor-pointer border border-surface-600">
+                        <button onclick={() => fileInput?.click()} class="flex-1 py-2 rounded-lg bg-surface-700 text-surface-200 hover:bg-surface-600 transition-colors flex items-center justify-center gap-2 cursor-pointer border border-surface-600">
                             <Upload class="w-4 h-4" />
                             <span class="text-sm">Import Config</span>
                         </button>

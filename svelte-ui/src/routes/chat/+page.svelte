@@ -1,6 +1,6 @@
 <script lang="ts">
     import { MessageSquare, Cpu, Shield, Send, Loader2 } from 'lucide-svelte';
-    import { globalState } from '$lib/state.svelte';
+    import { globalState } from '$lib/state.svelte.ts';
 
     let message = $state('');
     let messages = $state([
