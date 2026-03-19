@@ -9,6 +9,7 @@ pub struct HardwareProfile {
     pub has_gpu: bool,
     pub has_npu: bool,
     pub is_sandbox_isolated: bool,
+    pub accepts_agent_delegation: bool,
     pub available_ram_mb: u64,
 }
 
@@ -26,6 +27,10 @@ pub async fn mesh_handshake_handler() -> Json<HardwareProfile> {
 
     // 3. Sandbox Isolation (Via Engine ENV)
     let is_sandbox = std::env::var("SOVEREIGN_RUN_ENV").unwrap_or_default() == "sandbox";
+
+    // O.S Manual Override (Anti-Interferência Humana)
+    // Permite que o operador humano tranque o nó para evitar lags em processamentos massivos
+    let accepts_jobs = std::env::var("SOVEREIGN_REJECT_MESH_ROUTING").unwrap_or_default() != "true";
 
     // 4. Memory Probe (Linux Native `/proc/meminfo`)
     let mut ram_mb = 0;
@@ -48,6 +53,7 @@ pub async fn mesh_handshake_handler() -> Json<HardwareProfile> {
         has_gpu,
         has_npu,
         is_sandbox_isolated: is_sandbox,
+        accepts_agent_delegation: accepts_jobs,
         available_ram_mb: ram_mb,
     })
 }
