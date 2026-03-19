@@ -26,7 +26,7 @@ A lógica que organiza e designa responsabilidades dentro dos nós do ambiente m
 
 ## 3. Segurança Estrutural VPN (Tunnel Peer-to-Peer mTLS)
 
-Em caráter definitivo, endpoints da API LLM O.S providenciados pelo *Docker `11434`* ou sub-dependente Rust API Axum *8000* estarão completamente fechados a instâncias da banda global (Sem *Bind TCP 0.0.0.0* e desprovidos de portas expostas em WAN).
+Em caráter definitivo, endpoints da API LLM O.S providenciados pelo *Standalone Binary `11434`* ou sub-dependente Rust API Axum *8000* estarão completamente fechados a instâncias da banda global (Sem *Bind TCP 0.0.0.0* e desprovidos de portas expostas em WAN).
 
 *   **Validação Criptográfica Operativa (WireGuard via Tailscale):** Tráfegos originárias das chamadas na Nuvem perante arquivos vetoriais locais são conduzidos sob conexão criptografada via peer-to-peer atuando diretamente através das interfaces (`100.x.x.x`). A estrutura facilita acesso remoto seguro independente dos roteadores bloqueantes O.S corporativos das companhias locais do usuário.
 *   **Mitigação Contraste Passivo:** Varreduras em escaneamento O.S massivo O.S Port Scan externas recairão sob falhas já que os aplicativos isolantes confinam explicitamente na sub-rede VPN, invisibilizando aberturas em portas lógicas do SO da máquina ou Servidor VPS.
@@ -57,5 +57,5 @@ O GitHub Operations centraliza e autoriza roteamentos do código orquestrado via
 ## 6. Procedimentos Resilientes (Self-Healing Application Containers)
 O desenho base em contêiner obedece à engenharia restrita da recomendação base de sistemas imutáveis (Ex: *12-Factor App*). Diante de oscilações estruturais provindas do OS (Kernel Reboots acidentais, atualizações em massa que reiniciam instâncias VPS primárias base), não requerem inicializações interativas SSH dos usuários corporativos O.S ou engenheiro base local da máquina:
 
-- Suas ferramentas e volumes internos recomeçarão isoladamente, parametrizados sob as configurações restart nativas Docker Engine (`restart: always`).
+- Suas ferramentas e volumes internos recomeçarão isoladamente, parametrizados sob as configurações restart nativas Standalone Binary Engine (`restart: always`).
 - Apenas submetem a Engine de RAG final à verificação da NuvemMesh VPN (Interface interna) e realizam o acoplamento autônomo do O.S sob interfaces relativas API compilada em Rust (Rest Local) atestados assim que O.S Server retoma estabilidade elétrica computacional básica.

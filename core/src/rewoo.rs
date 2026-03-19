@@ -46,7 +46,7 @@ impl HybridRouter {
 }
 
 // Intercepts the query and initiates the ReWOO DAG Execution
-pub async fn execute_rewoo_plan(user_query: &str, vault_path: &std::path::PathBuf, db: &sqlx::SqlitePool) -> String {
+pub async fn execute_rewoo_plan(user_query: &str, workspace_id: &str, db: &sqlx::SqlitePool) -> String {
     info!("🧠 [ReWOO Orchestrator] Intercepting Query for Planning: {}", user_query);
     
     // Dynamic Hybrid Routing: Offload the heavy topological planning
@@ -60,7 +60,7 @@ pub async fn execute_rewoo_plan(user_query: &str, vault_path: &std::path::PathBu
         let args = step.args.clone();
         let step_id = step.id.clone();
         
-        let v_path = vault_path.clone();
+        let w_id = workspace_id.to_string();
         let pool_clone = db.clone();
 
         let handle = tokio::spawn(async move {
@@ -68,7 +68,7 @@ pub async fn execute_rewoo_plan(user_query: &str, vault_path: &std::path::PathBu
                 "VaultSearch" => {
                     info!("🔍 [ReWOO Worker {}] Running VaultSearch Async...", step_id);
                     // Abusing existing Rag logic for now
-                    crate::rag::parse_vault_documents(&v_path)
+                    crate::rag::parse_vault_documents(&w_id, &pool_clone).await
                 },
                 "OracleSandbox" => {
                     info!("💻 [ReWOO Worker {}] Invoking The Coder on Oracle Cloud Sandbox...", step_id);

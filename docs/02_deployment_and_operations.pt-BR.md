@@ -4,21 +4,21 @@
 
 Para poupar o uso contínuo de recursos no hardware do desenvolvedor (ambiente local), aplicações secundárias sem necessidade de acesso ao banco de dados isolado podem ser provisionadas em servidores em nuvem. O ambiente homologado para este caso é a instância gratuita *Ampere A1 Compute* da Oracle Cloud Infrastructure (OCI), operando sob arquitetura ARM64.
 
-### 1.1 Orquestração em Contêineres (Docker)
+### 1.1 Orquestração em Contêineres (Standalone Binary)
 
-Todo o fluxo operacional do back-end é containerizado através do Docker. O uso de instâncias escaláveis e isoladas evita conflitos com as dependências nativas e bibliotecas de sistema operacional locais.
+Todo o fluxo operacional do back-end é containerizado através do Standalone Binary. O uso de instâncias escaláveis e isoladas evita conflitos com as dependências nativas e bibliotecas de sistema operacional locais.
 
 #### Serviços Isolados Core O.S (Container/Node Level)
 
 1.  **Backend Nativo O.S OCI Gateway (`sovereign-api`):** API mestre e matriz funcional compilatória do projeto O.S construída em **Rust (Axum + Tokio)**. Provê rotinas estruturais de processamento e leitura RAG operados iterativamente via sistema de matriz interna nativa C/C++ `sqlite-vec` ao invés de depender de instanciadores python.
-2.  **Sensus Vault UI Frontend (`sovereign-web`):** Módulo Vue 3.x empacotado puramente focado provendo Client-Side-Rendering UI estática sem expor servidores externos integrativos. Requisita interface diretamente direcionada à API restritiva Gateway e opera a PWA.
+2.  **Sensus Vault UI Frontend (`sovereign-web`):** Módulo Svelte 5.x empacotado puramente focado provendo Client-Side-Rendering UI estática sem expor servidores externos integrativos. Requisita interface diretamente direcionada à API restritiva Gateway e opera a PWA.
 3.  **Fila de Processos (`redis`):** Sistema para armazenamento transitório em memória. Atua como barramento de mensagens e controlador primário para as listas de execução dos fluxos assíncronos gerados pelo N8N.
 4.  **Banco de Dados PostgreSQL (`postgres`):** Banco relacional dedicado ao cache de longo prazo e ao registro de eventos para as execuções dos workflows do nó N8N.
 
 > [!NOTE] 
 > A automação dos contêineres está dividida em sub-processos do `docker compose` específicos para cada serviço.
-> ▫️ **Topologia Backend Servidor:** `docker-compose.yml`
-> ▫️ **Topologia N8N Nuvem:** `docker-compose.n8n.yml`
+> ▫️ **Topologia Backend Servidor:** `sovereign-core.yml`
+> ▫️ **Topologia N8N Nuvem:** `sovereign-core.n8n.yml`
 
 ---
 
@@ -31,11 +31,11 @@ Emprega-se a conexão via *Overlay Network* configurada através do túnel remot
 ### 2.1 Conectividade P2P Híbrida 
 1. A certificação e a integração ocorrem pelo provisionamento da chave da máquina na rede do cliente Tailscale do desenvolvedor.
 2. A VPN designará blocos de IP fixos baseados na sub-rede de carrier-grade NAT segura (`100.x.x.x`).
-3. O mapeamento de acesso nos arquivos do `docker-compose.yml` restringe os endpoints estritamente para essa rede interna (exemplo: `ports: ["100.x.x.x:5678:5678"]`).
+3. O mapeamento de acesso nos arquivos do `sovereign-core.yml` restringe os endpoints estritamente para essa rede interna (exemplo: `ports: ["100.x.x.x:5678:5678"]`).
 4. Solicitações remotas, como pedidos direcionados pela API hospedada na nuvem ao `Ollama` na máquina do usuário, trafegam usando a interface da VPN (`http://100.y.y.y:11434`), sendo inacessíveis à navegação de rede pública.
 
 > [!WARNING]
-> O serviço do `Ollama` reserva o acesso local na interface de loopback tcp (`127.0.0.1`) por padrão. Para que os serviços de nuvem ou workers no Docker consigam se comunicar com ele através do Tailscale, é necessário configurar o SystemD da máquina host para incluir a variável de ambiente: `OLLAMA_HOST=0.0.0.0`. O acesso seguro global continua sendo regido pelo firewall do sistema (ex: UFW), que deve permitir o tráfego exclusivamente para a interface de rede provida pelo Tailscale.
+> O serviço do `Ollama` reserva o acesso local na interface de loopback tcp (`127.0.0.1`) por padrão. Para que os serviços de nuvem ou workers no Standalone Binary consigam se comunicar com ele através do Tailscale, é necessário configurar o SystemD da máquina host para incluir a variável de ambiente: `OLLAMA_HOST=0.0.0.0`. O acesso seguro global continua sendo regido pelo firewall do sistema (ex: UFW), que deve permitir o tráfego exclusivamente para a interface de rede provida pelo Tailscale.
 
 ---
 

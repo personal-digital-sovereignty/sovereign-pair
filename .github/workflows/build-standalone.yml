@@ -9,8 +9,20 @@ on:
     types: [ created ]
 
 jobs:
-  build-linux-core:
-    runs-on: ubuntu-latest
+  build-core:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: sovereign-core-linux-amd64
+            binary_name: sovereign-core
+          - os: windows-latest
+            artifact_name: sovereign-core-windows-amd64
+            binary_name: sovereign-core.exe
+          - os: macos-latest
+            artifact_name: sovereign-core-macos-arm64
+            binary_name: sovereign-core
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
@@ -36,7 +48,8 @@ jobs:
         with:
           workspaces: core
 
-      - name: Install SQLite Runtime Dependencies
+      - name: Install SQLite Runtime Dependencies (Linux Only)
+        if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
 
       - name: Compile Sovereign Cibrid Core (Rust)
@@ -44,11 +57,11 @@ jobs:
         run: |
           cargo build --release
 
-      - name: Upload Core Artifact (Linux x86_64)
+      - name: Upload Core Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sovereign-core-linux-amd64
-          path: core/target/release/sovereign-core
+          name: ${{ matrix.artifact_name }}
+          path: core/target/release/${{ matrix.binary_name }}
 
   build-kde-plasmoid:
     runs-on: ubuntu-latest
@@ -69,7 +82,7 @@ jobs:
           path: sovereign-pair-widget.plasmoid
 
   publish-nightly:
-    needs: [build-linux-core, build-kde-plasmoid]
+    needs: [build-core, build-kde-plasmoid]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
@@ -98,4 +111,26 @@ jobs:
             🚨 **Aviso:** Estes binários são compilados progressivamente (Continuous Deployment) no último commit da branch `main` e não refletem garantias de estabilidade.
           files: |
             sovereign-core-linux-amd64/sovereign-core
+            sovereign-core-windows-amd64/sovereign-core.exe
+            sovereign-core-macos-arm64/sovereign-core
+            sovereign-pair-kde-widget/sovereign-pair-widget.plasmoid
+
+  publish-stable:
+    needs: [build-core, build-kde-plasmoid]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download all built artifacts
+        uses: actions/download-artifact@v4
+      
+      - name: Generate Stable Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            sovereign-core-linux-amd64/sovereign-core
+            sovereign-core-windows-amd64/sovereign-core.exe
+            sovereign-core-macos-arm64/sovereign-core
             sovereign-pair-kde-widget/sovereign-pair-widget.plasmoid

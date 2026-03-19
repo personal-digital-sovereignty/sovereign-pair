@@ -172,7 +172,8 @@ if !sys_context.is_empty() {
 }
 
 // Injeta a Orquestração do ReWOO (Reasoning Without Observation)
-let rewoo_observations = crate::rewoo::execute_rewoo_plan(&human_prompt, &state.vault_path, &state.db).await;
+let workspace_id = payload.workspace_id.clone().unwrap_or_else(|| "default".to_string());
+let rewoo_observations = crate::rewoo::execute_rewoo_plan(&human_prompt, &workspace_id, &state.db).await;
 tracing::debug!("🧠 ReWOO Workflow Executed. Injecting compiled DAG observations.");
 purified_messages.push(json!({
     "role": "system",
