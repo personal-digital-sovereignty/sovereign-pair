@@ -43,7 +43,8 @@ pub async fn realtime_responses_handler(
     // 2. Transcrição Multimodal Hostil para Texto Limpo + Injeção RAG Nativa
     let mut purified_messages: Vec<Value> = Vec::new();
 
-    if let Some(rag_cortex) = crate::rag::build_rag_context_message(&state.vault_path) {
+    let workspace_id = payload.workspace_id.clone().unwrap_or_else(|| "default".to_string());
+    if let Some(rag_cortex) = crate::rag::build_rag_context_message(&workspace_id, &state.db).await {
         purified_messages.push(rag_cortex);
     }
 
