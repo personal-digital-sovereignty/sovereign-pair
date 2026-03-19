@@ -2,6 +2,12 @@
 
 All notable changes to the Sovereign Pair project will be documented in this file.
 
+## [0.7.1] - 2026-03-19
+### Changed
+- **CI/CD Unification**: FOSS DevSecOps matrices now strictly precede the Standalone Multi-OS Builder, forging a single sequential vulnerability-free build pipeline (`ci.yml`).
+- **Artifact Namespacing**: Cross-OS artifacts dynamically rename to avoid Release overwrites on Github Actions.
+- **Strict Semantic Versioning**: Refactored the internal tagging structure to omit the `v` wrapper, adhering cleanly to pure SemVer (0.X.Y).
+
 ## [v0.7.0] - 2026-03-19
 ### 🚀 Major Release - Svelte Mesh, Multi-Workspaces & Native CI/CD
 
