@@ -2,6 +2,17 @@
 
 All notable changes to the Sovereign Pair project will be documented in this file.
 
+## [0.7.2] - 2026-03-19
+
+### 🛡️ Pipeline DevSecOps: Estabilização e Zero-Downtime CD Fixes
+
+### Adicionado
+- **Zero-Cost Stateful Backend (GPG Artifacts)**: Implementado um mecanismo no `deploy-oci.yml` para transferir criptograficamente a memória `.tfstate` do OpenTofu entre execuções isoladas do Github Actions. Previsto o *spawn* descontrolado de instâncias órfãs na Nuvem OCI.
+- **Hash SHA256 na Chave SSH (GPG Strict)**: A encriptação da memória foi estabilizada através da compactação forçada da Private Key multilinha para um Hash estrito injetado via `stdin`, evitando o crash fatal por quebra de linha no parser do `gpg`.
+
+### Corrigido
+- **ActionLint e Semgrep Strictness (Gate 0 e 1)**: Refatorados comandos bash e re-alocadas variáveis de contexto Github para passar sob a malha fina da esteira CI Global. Neutralizada uma falsa vulnerabilidade de Shell-Injection capturada ativamente pelo SAST.
+
 ## [0.7.1] - 2026-03-19
 ### Changed
 - **CI/CD Unification**: FOSS DevSecOps matrices now strictly precede the Standalone Multi-OS Builder, forging a single sequential vulnerability-free build pipeline (`ci.yml`).
