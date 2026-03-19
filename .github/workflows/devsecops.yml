@@ -70,20 +70,53 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
   # ==========================================
-  # Gate 4: Code Quality & Complexity
+  # Gate 4: Code Quality & Complexity (Rust)
   # ==========================================
-  quality-ruff:
-    name: "Gate 4: Ruff (Python Code Quality)"
+  quality-rust:
+    name: "Gate 4: Rust Clippy & Unit Tests"
     needs: sast-semgrep
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          python-version: "3.12"
-      - run: pip install ruff
-      # Fail heavily on Syntax, Cyclomatic Complexity or Bad formatting
-      - run: ruff check .
+          components: clippy
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core
+      - name: Install SQLite Runtime Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+      # Fail heavily on Syntax, Memory Safety or Formatting
+      - name: Cargo Clippy Audit
+        working-directory: ./core
+        run: cargo clippy -- -D warnings
+      - name: Cargo Test Runner
+        working-directory: ./core
+        run: cargo test
+
+  # ==========================================
+  # Gate 5: SvelteKit UI Analysis
+  # ==========================================
+  quality-svelte:
+    name: "Gate 5: Svelte Static Analyzer"
+    needs: pipeline-security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: 'svelte-ui/package-lock.json'
+      - name: Install Dependencies
+        working-directory: ./svelte-ui
+        run: npm ci
+      - name: Run SvelteKit Check
+        working-directory: ./svelte-ui
+        run: npm run check
 
   # ==========================================
   # Aggregate Job for Branch Protection
@@ -91,7 +124,7 @@ jobs:
   foss-enterprise-devsecops:
     name: "FOSS Enterprise DevSecOps"
     # Needs all other gates to complete successfully
-    needs: [pipeline-security, sast-semgrep, sca-trivy, quality-ruff]
+    needs: [pipeline-security, sast-semgrep, sca-trivy, quality-rust, quality-svelte]
     runs-on: ubuntu-latest
     steps:
-      - run: echo "All FOSS Enterprise DevSecOps Gates Passed!"
+      - run: echo "All FOSS Enterprise DevSecOps Gates Passed! Emitting Release Signal."
