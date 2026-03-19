@@ -18,6 +18,7 @@ pub mod ssh_gateway;
 pub mod plan_execute;
 pub mod mcp;
 pub mod ssh_mesh_connector;
+pub mod mesh_installer;
 
 use axum::{routing::post, Router, response::IntoResponse, http::{header, StatusCode, Uri}};
 use reqwest::Client;
@@ -72,12 +73,21 @@ async fn main() {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "sovereign_core=debug,axum=debug".into()),
+                .unwrap_or_else(|_| "sovereign_core=info,axum=info".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
 
     tracing::info!("🦀 Sovereign Core (Rust) Initializing...");
+
+    // ------------------------------------------------------------------------------------------
+    // [MESH ENTRYPOINT] Zero-Touch Auto-Deployment Catch (Interactive CLI Installer Bypass)
+    // ------------------------------------------------------------------------------------------
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|arg| arg == "--deploy-mesh") {
+        mesh_installer::run_interactive_installer().await;
+        std::process::exit(0);
+    }
 
     // Instancia a Identidade de Rede (O Alias e Segredos JWT para a Sessão LAN)
     let identity = network::init_network_identity();
