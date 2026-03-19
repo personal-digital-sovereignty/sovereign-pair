@@ -337,12 +337,66 @@ const onProviderChange = () => {
 const proxyEnabled = ref(false)
 const isMounted = ref(false)
 
+// ---- MESH P2P NETWORK LOGIC ----
+const isFetchingMesh = ref(false)
+const isConnectingMesh = ref(false)
+const meshNodes = ref<any[]>([])
+const meshLocalInfo = ref<any>(null)
+const newMeshIp = ref('')
+const newMeshUser = ref('opc')
+const newMeshKey = ref('~/.ssh/id_rsa')
+
+const fetchMeshNodes = async () => {
+   isFetchingMesh.value = true
+   try {
+       const res = await fetch(`${RUST_CORE_URL}/v1/mesh/tunnels`, { headers: getAuthHeaders() })
+       if(res.ok) {
+           const body = await res.json()
+           meshNodes.value = body.active_tunnels || []
+       }
+   } catch(e) { console.warn("Failed fetching tunnels", e) }
+   finally { isFetchingMesh.value = false }
+}
+
+const fetchLocalMeshProfile = async () => {
+   try {
+       const res = await fetch(`${RUST_CORE_URL}/v1/mesh/handshake`, { headers: getAuthHeaders() })
+       if(res.ok) {
+           meshLocalInfo.value = await res.json()
+       }
+   } catch(e) {}
+}
+
+const connectMeshNode = async () => {
+    if (!newMeshIp.value.trim()) return
+    isConnectingMesh.value = true
+    try {
+        const localBind = 39000 + Math.floor(Math.random() * 1000)
+        const payload = {
+            remote_ip: newMeshIp.value.trim(),
+            remote_user: newMeshUser.value.trim(),
+            key_path: newMeshKey.value.trim(),
+            local_port: localBind,
+            remote_port: 38001
+        }
+        await fetch(`${RUST_CORE_URL}/v1/mesh/connect`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json', ...getAuthHeaders()}, 
+            body: JSON.stringify(payload) 
+        })
+        newMeshIp.value = ''
+        setTimeout(fetchMeshNodes, 1500) // Delay to let SCP / Tunnel catch up
+    } catch(e) { console.error(e) }
+    finally { isConnectingMesh.value = false }
+}
+
 onMounted(() => {
   const saved = localStorage.getItem('sensus_opencode_proxy_enabled')
   if (saved) proxyEnabled.value = saved === 'true'
 
   loadConfig()
   loadClusters()
+  fetchLocalMeshProfile()
   isMounted.value = true
 })
 
@@ -383,6 +437,9 @@ watch(() => systemSettings.value.theme, (newTheme) => {
                 </button>
                 <button @click="activeTab = 'workspaces'" :class="activeTab === 'workspaces' ? 'bg-surface-700 border-l-2 border-primary-500 text-primary-400' : 'border-l-2 border-transparent text-surface-400 hover:text-surface-200 hover:bg-surface-700/50'" class="px-6 py-3 text-sm font-medium transition-all text-left flex items-center gap-3">
                     <span class="i-ph-hard-drives-duotone text-lg"></span> Workspaces O.S.
+                </button>
+                <button @click="activeTab = 'mesh'; fetchMeshNodes();" :class="activeTab === 'mesh' ? 'bg-surface-700 border-l-2 border-primary-500 text-primary-400' : 'border-l-2 border-transparent text-surface-400 hover:text-surface-200 hover:bg-surface-700/50'" class="px-6 py-3 text-sm font-medium transition-all text-left flex items-center gap-3 group mt-2">
+                    <span class="i-ph-plugs-connected-duotone text-lg group-hover:text-primary-400"></span> P2P Sovereign Mesh
                 </button>
             </div>
         </Teleport>
@@ -711,6 +768,114 @@ watch(() => systemSettings.value.theme, (newTheme) => {
                </div>
 
             </div>
+         </div>
+
+         <!-- ================= SOVEREIGN MESH (P2P) TAB ================= -->
+         <div v-show="activeTab === 'mesh'" class="space-y-8">
+            <div class="bg-primary-500/10 border border-primary-500/30 rounded-lg p-5 flex items-start gap-4 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+               <span class="i-ph-graph-duotone text-4xl text-primary-400 shrink-0"></span>
+               <div class="flex-1">
+                  <h4 class="text-primary-400 font-semibold text-sm mb-1 uppercase tracking-wider flex items-center gap-2">
+                     Topologia P2P Cíbrida
+                  </h4>
+                  <p class="text-xs text-primary-300/80 leading-relaxed mb-1">
+                     O Sovereign Core atua como um Nó descentralizado. Conecte-se a outras máquinas (Nuvem, Laptops) via criptografia OpenSSH nativa. A malha roteará dinamicamente *Agents* pesados para o Nó com melhor Perfil de Hardware.
+                  </p>
+               </div>
+            </div>
+
+            <!-- Identidade Local do Nó -->
+            <div class="p-5 bg-surface-900 border border-surface-700 rounded-xl space-y-4 relative overflow-hidden">
+               <div class="absolute -right-4 -top-4 text-surface-800 opacity-20 pointer-events-none">
+                  <span class="i-ph-cpu-duotone text-[120px]"></span>
+               </div>
+               <h5 class="text-sm font-semibold text-slate-300 flex items-center gap-2 relative z-10">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Identificação de Hardware (Eu Lírico)
+               </h5>
+               <div v-if="meshLocalInfo" class="grid grid-cols-2 md:grid-cols-4 gap-3 relative z-10">
+                  <div class="bg-surface-950 border border-surface-800 p-3 rounded-lg text-center shadow-inner">
+                     <span class="block text-[10px] text-slate-500 mb-1">Sistema Operacional</span>
+                     <span class="block text-xs font-semibold text-slate-200 capitalize">{{ meshLocalInfo.os_name }}</span>
+                  </div>
+                  <div class="bg-surface-950 border border-surface-800 p-3 rounded-lg text-center shadow-inner">
+                     <span class="block text-[10px] text-slate-500 mb-1">Cálculo de Aceleração</span>
+                     <span class="block text-xs font-semibold" :class="meshLocalInfo.has_gpu || meshLocalInfo.has_npu ? 'text-emerald-400' : 'text-slate-400'">
+                        {{ meshLocalInfo.has_gpu ? 'GPU Dedicada' : (meshLocalInfo.has_npu ? 'Accelerator NPU' : 'CPU Only') }}
+                     </span>
+                  </div>
+                  <div class="bg-surface-950 border border-surface-800 p-3 rounded-lg text-center shadow-inner">
+                     <span class="block text-[10px] text-slate-500 mb-1">Memória RAM</span>
+                     <span class="block text-xs font-semibold text-slate-200">{{ meshLocalInfo.available_ram_mb }} MB</span>
+                  </div>
+                  <div class="bg-surface-950 border border-surface-800 p-3 rounded-lg text-center shadow-inner">
+                     <span class="block text-[10px] text-slate-500 mb-1">Modo Zero-Trust</span>
+                     <span class="block text-xs font-semibold" :class="meshLocalInfo.is_sandbox_isolated ? 'text-rose-400' : 'text-slate-400'">
+                        {{ meshLocalInfo.is_sandbox_isolated ? 'Isolado' : 'Máquina Pessoal' }}
+                     </span>
+                  </div>
+               </div>
+            </div>
+
+            <!-- Tabela de Túneis Ativos -->
+            <div class="space-y-4">
+               <div class="flex items-center justify-between">
+                  <h5 class="text-sm font-semibold text-slate-300">Túneis SSH Estabelecidos</h5>
+                  <button @click="fetchMeshNodes" class="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1 bg-surface-800 px-2 py-1 rounded">
+                     <span class="i-ph-arrows-clockwise" :class="{'animate-spin': isFetchingMesh}"></span> Atualizar
+                  </button>
+               </div>
+               
+               <div v-if="meshNodes.length === 0" class="p-8 border border-dashed border-surface-700 rounded-xl text-center flex flex-col items-center justify-center gap-2">
+                  <span class="i-ph-plugs-duotone text-4xl text-surface-600"></span>
+                  <p class="text-sm text-surface-400 font-medium">Nenhum Túnel Acoplado</p>
+                  <p class="text-xs text-surface-500">Esta instância está operando isoladamente. Adicione nós abaixo para expandir o pipeline Cíbrido.</p>
+               </div>
+               
+               <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div v-for="t in meshNodes" :key="t.local_port" class="bg-surface-900 border border-emerald-500/20 p-4 rounded-xl flex items-center justify-between shadow-sm relative overflow-hidden group">
+                     <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+                     <div>
+                        <span class="inline-flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded mb-1">
+                           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online
+                        </span>
+                        <p class="text-sm font-mono text-slate-200 mt-1">{{ t.target_uri }}</p>
+                        <p class="text-[10px] text-slate-500 mt-0.5">Mapeado localmente via Porta: <b class="text-slate-400">{{ t.local_port }}</b></p>
+                     </div>
+                     <span class="i-ph-shield-check-duotone text-3xl text-emerald-500/20 group-hover:text-emerald-500/40 transition-colors"></span>
+                  </div>
+               </div>
+            </div>
+
+            <!-- Engatar Novo Nó -->
+            <div class="bg-surface-800/50 border border-surface-700/50 rounded-xl p-5 space-y-4">
+               <h5 class="text-sm font-semibold text-slate-300 pb-2 border-b border-surface-700/50 flex items-center gap-2">
+                  <span class="i-ph-plus-circle-duotone text-lg text-primary-400"></span> Engatar Servidor como Nó (Propagação)
+               </h5>
+               
+               <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div class="space-y-1.5">
+                     <label class="block text-[11px] font-medium text-slate-400">IP Público / Tailscale</label>
+                     <input v-model="newMeshIp" type="text" placeholder="100.116.x.y" class="w-full bg-surface-950 border border-surface-700 text-surface-200 text-xs rounded focus:ring-primary-500 focus:border-primary-500 block p-2 outline-none font-mono">
+                  </div>
+                  <div class="space-y-1.5">
+                     <label class="block text-[11px] font-medium text-slate-400">Usuário do SO Remoto</label>
+                     <input v-model="newMeshUser" type="text" placeholder="ubuntu / opc" class="w-full bg-surface-950 border border-surface-700 text-surface-200 text-xs rounded focus:ring-primary-500 focus:border-primary-500 block p-2 outline-none font-mono">
+                  </div>
+                  <div class="space-y-1.5">
+                     <label class="block text-[11px] font-medium text-slate-400">Chave Privada (Absolute Path)</label>
+                     <input v-model="newMeshKey" type="text" placeholder="~/.ssh/id_rsa" class="w-full bg-surface-950 border border-surface-700 text-surface-200 text-xs rounded focus:ring-primary-500 focus:border-primary-500 block p-2 outline-none font-mono">
+                  </div>
+               </div>
+               
+               <div class="flex items-center justify-between pt-2">
+                  <p class="text-[10px] text-slate-500 max-w-sm">O Sovereign injetará silenciosamente um executável paralelo neste servidor rodando sob Port Forward Criptografado.</p>
+                  <button @click="connectMeshNode" :disabled="!newMeshIp || isConnectingMesh" class="px-5 py-2 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded shadow-md transition-colors flex items-center gap-2">
+                     <svg v-if="isConnectingMesh" class="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                     {{ isConnectingMesh ? 'Engatando Túnel...' : 'Executar Hook P2P' }}
+                  </button>
+               </div>
+            </div>
+
          </div>
          
          <!-- ================= SOVEREIGN LICENSING (B2B) TAB ================= -->
