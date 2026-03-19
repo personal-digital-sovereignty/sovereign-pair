@@ -2,6 +2,21 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 // ==========================================
+// Agentic Workflows: Plan & Execute Models
+// ==========================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlanExecuteStep {
+    pub task: String,
+    pub action: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlanExecuteBlueprint {
+    pub plan: Vec<PlanExecuteStep>,
+}
+
+// ==========================================
 // Sovereign Ecosystem Log Models
 // ==========================================
 
