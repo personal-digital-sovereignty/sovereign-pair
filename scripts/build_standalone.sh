@@ -3,8 +3,8 @@ set -e
 
 echo "=> Building Sovereign Pair Standalone Binaries..."
 
-echo "0. Building Web UI (Vue 3)..."
-cd web-ui
+echo "0. Building Web UI (Svelte 5 Static)..."
+cd svelte-ui
 npm install
 npm run build
 cd ..
