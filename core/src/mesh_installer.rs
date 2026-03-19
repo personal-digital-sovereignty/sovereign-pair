@@ -9,6 +9,17 @@ pub async fn run_interactive_installer() {
 
     println!("Este assistente configurará um novo Node P2P da malha copiando fisicamente este mesmo binário para o servidor de destino.\n");
 
+    // Validação Tática do SSH OS-Level (Windows/Mac/Linux fallback graceful)
+    match Command::new("ssh").arg("-V").output() {
+        Ok(_) => {},
+        Err(_) => {
+            error!("❌ CRÍTICO: Executável 'ssh' não encontrado no PATH do Sistema!");
+            println!("No Windows: Instale o 'OpenSSH Client' em Recursos Opcionais do Sistema.");
+            println!("No Linux/MacOS: Instale o pacote openssh-client via apt/pacman/brew.");
+            return;
+        }
+    }
+
     let ip = prompt("Endpoint Remoto (IP ou Hostname): ", "");
     let user = prompt("SSH Username [default: opc]: ", "opc");
     let key_path = prompt("Caminho absoluto para Chave SSH [default: ~/.ssh/id_rsa]: ", "~/.ssh/id_rsa");
