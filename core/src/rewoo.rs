@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error};
-use std::sync::Arc;
+use tracing::{info, warn};
 use tokio::task::JoinHandle;
 
 // The JSON Structure the Planner LLM will return

@@ -38,12 +38,11 @@ pub async fn mesh_handshake_handler() -> Json<HardwareProfile> {
         for line in meminfo.lines() {
             if line.starts_with("MemTotal:") {
                 let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 2 {
-                    if let Ok(kb) = parts[1].parse::<u64>() {
+                if parts.len() >= 2
+                    && let Ok(kb) = parts[1].parse::<u64>() {
                         ram_mb = kb / 1024;
                         break;
                     }
-                }
             }
         }
     }

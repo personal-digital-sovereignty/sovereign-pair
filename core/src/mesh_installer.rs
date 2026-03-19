@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 use std::process::Command;
-use tracing::{info, warn, error};
+use tracing::error;
 
 pub async fn run_interactive_installer() {
     println!("\n=======================================================");

@@ -1,7 +1,7 @@
-use crate::models::{LogEntry, PlanExecuteBlueprint, PlanExecuteStep};
+use crate::models::{LogEntry, PlanExecuteBlueprint};
 use serde_json::json;
 use tokio::sync::broadcast;
-use tracing::{error, info};
+use tracing::error;
 
 pub async fn start_plan_and_execute(
     query: String,
@@ -59,8 +59,8 @@ VOCÊ NÃO PODE RESPONDER NADA ALÉM DO JSON.
     };
 
     let plan_json_res = plan_response.json::<serde_json::Value>().await;
-    if let Ok(json_body) = plan_json_res {
-        if let Some(msg) = json_body.get("message").and_then(|m| m.get("content").and_then(|c| c.as_str())) {
+    if let Ok(json_body) = plan_json_res
+        && let Some(msg) = json_body.get("message").and_then(|m| m.get("content").and_then(|c| c.as_str())) {
             
             // Tenta deserializar o JSON purificado na strict Struct do Rust (Prompt Chaining)
             match serde_json::from_str::<PlanExecuteBlueprint>(msg) {
@@ -92,9 +92,9 @@ VOCÊ NÃO PODE RESPONDER NADA ALÉM DO JSON.
                             "stream": false
                         });
 
-                        if let Ok(exec_res) = client.post(ollama_url).json(&executor_payload).send().await {
-                            if let Ok(exec_json) = exec_res.json::<serde_json::Value>().await {
-                                if let Some(message) = exec_json.get("message") {
+                        if let Ok(exec_res) = client.post(ollama_url).json(&executor_payload).send().await
+                            && let Ok(exec_json) = exec_res.json::<serde_json::Value>().await
+                                && let Some(message) = exec_json.get("message") {
                                     // Se o LLM Cuspiu uma ToolCall MCP Autônoma:
                                     if let Some(tool_calls) = message.get("tool_calls").and_then(|tc| tc.as_array()) {
                                         for tc in tool_calls {
@@ -118,8 +118,6 @@ VOCÊ NÃO PODE RESPONDER NADA ALÉM DO JSON.
                                         aggregated_results.push_str(&format!("\n[Conclusão Semântica do Step {}]:\n{}\n", i + 1, content));
                                     }
                                 }
-                            }
-                        }
                     }
 
                     let _ = log_sender.send(LogEntry {
@@ -142,5 +140,4 @@ VOCÊ NÃO PODE RESPONDER NADA ALÉM DO JSON.
                 }
             }
         }
-    }
 }
