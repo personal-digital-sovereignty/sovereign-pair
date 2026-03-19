@@ -301,6 +301,7 @@ let tracking_model = ollama_model.clone();
 let start_time = std::time::Instant::now();
 let mut session_tokens = 0;
 let mut accumulator = String::new(); // Memory Builder da Resposta do Agente
+let tracking_log_sender = state.log_sender.clone();
 
 // Extraímos os Bytes Chunk a Chunk e mapeamos pro formato OpenAI SSE:
 let stream = res.bytes_stream().map(move |result| {
@@ -397,6 +398,13 @@ let stream = res.bytes_stream().map(move |result| {
                                 if let Ok(mut t) = tracking_telemetry.write() {
                                     t.record_session(total_real_tokens, duration, &tracking_model);
                                 }
+                                
+                                let tps = if duration > 0 { (total_real_tokens as f64 / (duration as f64 / 1000.0)).round() } else { 0.0 };
+                                let _ = tracking_log_sender.send(crate::models::LogEntry {
+                                    timestamp: chrono::Utc::now().to_rfc3339(),
+                                    level: "system".to_string(),
+                                    message: format!("⚡ Geração de Conhecimento: {} tokens a {} T/s [{}]", total_real_tokens, tps, tracking_model),
+                                });
 
                                 // 🗄️ Imortalidade de Diálogo: Insere via Spawn para não bloquear o Axum Stream
                                 let final_text = accumulator.clone();
