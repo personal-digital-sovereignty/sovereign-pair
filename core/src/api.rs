@@ -56,6 +56,43 @@ let human_prompt = payload.messages.last()
     })
     .unwrap_or_else(|| "Interação O.S".to_string());
 
+// ===== THE PLANNER (MACRO ORCHESTRATION BYPASS) =====
+if human_prompt.to_lowercase().starts_with("/plan") {
+    let query = human_prompt[5..].trim().to_string();
+    info!("🧠 [Sovereign Core] Plan & Execute Task detectada: /plan -> Iniciando Macro Orquestração em Background...");
+    
+    let db_clone = state.db.clone();
+    let log_tx_clone = state.log_sender.clone();
+    
+    tokio::spawn(async move {
+        crate::plan_execute::start_plan_and_execute(query, db_clone, log_tx_clone).await;
+    });
+
+    let msg = "🧭 **Plan & Execute (Macro-Orquestração) Iniciado!**\nSua tarefa foi inserida no Threadpool Assíncrono do Cíbrido. O Planner irá quebrar seu pedido em etapas menores, validará nativamente na formatação strict JSON, e o Executor cuidará de cada etapa seqüencialmente sem travar seu terminal. \n\n*Acompanhe o Plasma Widget ou Logs para ver a orquestração em andamento!*".to_string();
+
+    let chunk = crate::models::OpenAIChatChunkResponse {
+        id: format!("chatcmpl-plan-{}", uuid::Uuid::new_v4()),
+        object: "chat.completion.chunk".to_string(),
+        created: chrono::Utc::now().timestamp(),
+        model: requested_model.clone(),
+        choices: vec![crate::models::OpenAIChatChunkChoice {
+            index: 0,
+            delta: crate::models::OpenAIChatChunkDelta {
+                role: Some("assistant".to_string()),
+                content: Some(msg),
+                tool_calls: None,
+            },
+            finish_reason: Some("stop".to_string()),
+        }],
+        usage: None,
+    };
+    let stream = futures_util::stream::iter(vec![
+        Ok::<Event, Infallible>(Event::default().data(serde_json::to_string(&chunk).unwrap_or_default())),
+        Ok::<Event, Infallible>(Event::default().data("[DONE]")),
+    ]);
+    return Sse::new(stream).into_response();
+}
+
 // ===== THE NURSE (WEB & SYS AGENTIC BYPASS) =====
 let mut web_context = String::new();
 let mut sys_context = String::new();
