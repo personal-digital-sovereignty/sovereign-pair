@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ChevronDown, Server, Cpu, Shield, User, GlobeLock } from 'lucide-svelte';
+    import { ChevronDown, Server, Cpu, Shield, User, GlobeLock, Cloud, Download, Upload } from 'lucide-svelte';
 
     let expandedCard = $state<string | null>('mesh');
 
@@ -12,6 +12,36 @@
         { id: '1', hostname: 'oracle-a1-max', role: 'The Doctor', hardware: '24GB RAM, ARM64', location: 'Cloud' },
         { id: '2', hostname: 'ryzen-local-alpha', role: 'The Coder (Sandbox)', hardware: '32GB RAM, Ryzen 9', location: 'Local Network' }
     ];
+
+    let fileInput: HTMLInputElement;
+
+    async function handleFileImport(e: Event) {
+        const input = e.target as HTMLInputElement;
+        if (!input.files || input.files.length === 0) return;
+        
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const content = e.target?.result as string;
+            try {
+                const res = await fetch('http://localhost:38001/v1/system/import_config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: content
+                });
+                if (res.ok) {
+                    alert('Sovereign Cortex successfully imported. The system and mesh nodes are synchronized.');
+                    window.location.reload();
+                } else {
+                    alert('Failed to absorb Cybrid Cortex. File may be corrupted.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('P2P Hub offline or unreachable.');
+            }
+        };
+        reader.readAsText(file);
+    }
 </script>
 
 <div class="h-full w-full max-w-4xl mx-auto p-4 md:p-8 flex flex-col gap-6 overflow-y-auto">
@@ -40,8 +70,26 @@
                 <ChevronDown class="w-5 h-5 text-surface-500 transition-transform duration-300 transform {expandedCard === 'identity' ? 'rotate-180' : ''}" />
             </button>
             {#if expandedCard === 'identity'}
-            <div class="p-5 border-t border-surface-700/50 bg-surface-900/30">
-                <p class="text-sm text-surface-400 italic">Identity parameters loading...</p>
+            <div class="p-5 border-t border-surface-700/50 bg-surface-900/30 flex flex-col gap-4">
+                <p class="text-sm text-surface-400">Manage your local Identity parameters and export your entire Sovereign configuration to securely roam between multiple nodes.</p>
+                
+                <div class="bg-surface-800 p-4 rounded-xl border border-surface-700 flex flex-col gap-3">
+                    <h3 class="text-surface-200 font-bold text-sm tracking-widest uppercase mb-1">Cortex Continuity (Backup)</h3>
+                    <p class="text-xs text-surface-400 mb-2">A file with the `.cybrid` extension contains fully encrypted O.S State (Global Workspaces, Mesh Keys, Node Preferences) to instantly synchronize a new machine.</p>
+                    
+                    <input type="file" bind:this={fileInput} accept=".cybrid" class="hidden" onchange={handleFileImport} />
+
+                    <div class="flex gap-2 w-full">
+                        <button onclick={() => fileInput.click()} class="flex-1 py-2 rounded-lg bg-surface-700 text-surface-200 hover:bg-surface-600 transition-colors flex items-center justify-center gap-2 cursor-pointer border border-surface-600">
+                            <Upload class="w-4 h-4" />
+                            <span class="text-sm">Import Config</span>
+                        </button>
+                        <a href="http://localhost:38001/v1/system/export_config" target="_blank" class="flex-1 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-500 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                            <Download class="w-4 h-4" />
+                            <span class="text-sm">Export .cybrid</span>
+                        </a>
+                    </div>
+                </div>
             </div>
             {/if}
         </section>
