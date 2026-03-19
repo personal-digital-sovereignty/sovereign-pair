@@ -51,6 +51,27 @@ jobs:
             echo "A versão Manual Apontada foi: $TARGET_VERSION"
           fi
 
+      - name: Fetch Encrypted TF State (Zero-Cost Backend)
+        id: fetch-state
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STATE_PASSWORD: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+        run: |
+          echo "Buscando o log mestre do último sucesso (State)..."
+          LAST_RUN=$(gh run list --workflow "Deploy Sovereign Cibrid Cloud (OCI)" --status success --branch main --limit 1 --json databaseId -q '.[0].databaseId')
+          if [ "$LAST_RUN" != "null" ] && [ ! -z "$LAST_RUN" ]; then
+            echo "Ultima run viavel: $LAST_RUN. Fazendo download do estado criptografado..."
+            gh run download $LAST_RUN -n tofu-state -D . || echo "Sem artefato de state prévio encontrado."
+            
+            if [ -f "terraform.tfstate.gpg" ]; then
+              echo "Descriptografando infra-state OCI injetado..."
+              gpg --quiet --batch --yes --decrypt --passphrase "$STATE_PASSWORD" --output terraform.tfstate terraform.tfstate.gpg
+              echo "✅ Estado carregado com sucesso na maquina runner!"
+            fi
+          else
+            echo "Primeiro deploy oficial detectado ou retenção expirada. Nenhuma run-state encontrada."
+          fi
+
       - name: Setup OpenTofu
         uses: opentofu/setup-opentofu@v1
         with:
@@ -90,3 +111,22 @@ jobs:
             echo "⚡ O deploy remoto injetou o Binário Versão: $TF_VAR_release_version"
             echo "==================================================================="
           fi
+
+      - name: Encrypt Output State
+        if: always()
+        env:
+          STATE_PASSWORD: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+        run: |
+          if [ -f "terraform.tfstate" ]; then
+            echo "Criptografando estado da infraestrutura Oracle para retenção..."
+            gpg --quiet --batch --yes --symmetric --cipher-algo AES256 --passphrase "$STATE_PASSWORD" --output terraform.tfstate.gpg terraform.tfstate
+          fi
+
+      - name: Upload Encrypted State Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tofu-state
+          path: infra/terraform/terraform.tfstate.gpg
+          retention-days: 90
+          overwrite: true
