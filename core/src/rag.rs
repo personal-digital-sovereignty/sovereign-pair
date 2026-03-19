@@ -48,7 +48,7 @@ pub async fn parse_vault_documents(workspace_id: &str, db: &SqlitePool) -> Strin
             
             // Limitador de Profiling Crítico: Evitar OOM/Context Bombing no Servidor
             // O Vault inteiro (ex: 5MB) jamais deve ir cruçado no System Prompt.
-            let mut snippet = if !summary.is_empty() {
+            let snippet = if !summary.is_empty() {
                 summary
             } else {
                 let safe_trunc: String = raw_content.chars().take(2000).collect();

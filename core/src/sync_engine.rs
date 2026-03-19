@@ -49,6 +49,7 @@ impl SyncEngine {
 
             // 1. Coletar e Atrelar todos os Workspaces do Banco de Dados Dinâmico
             #[derive(sqlx::FromRow)]
+            #[allow(dead_code)]
             struct PathRow { id: String, absolute_path: String }
 
             if let Ok(rows) = sqlx::query_as::<_, PathRow>("SELECT id, absolute_path FROM workspaces").fetch_all(&db).await {
