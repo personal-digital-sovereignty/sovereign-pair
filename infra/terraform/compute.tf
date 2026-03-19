@@ -49,6 +49,7 @@ resource "oci_core_instance" "the_coder" {
   lifecycle {
     ignore_changes = [
       source_details,  # Previne erro de kmsKeyId vazio em atualizações
+      metadata,        # Previne DESTRUIÇÃO da instância A1 existente ao mudar o cloud-init.yaml
     ]
   }
 }
@@ -56,4 +57,37 @@ resource "oci_core_instance" "the_coder" {
 output "coder_public_ip" {
   value       = oci_core_instance.the_coder.public_ip
   description = "O IP Publico apenas de fachada (Bloqueado por Firewall Zero-Trust)"
+}
+
+resource "null_resource" "deploy_release" {
+  triggers = {
+    release_version = var.release_version
+    instance_id     = oci_core_instance.the_coder.id
+  }
+
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = var.ssh_private_key
+    host        = oci_core_instance.the_coder.public_ip
+    timeout     = "5m"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "echo 'Waiting for cloud-init to finish (if newly created)...'",
+      "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do sleep 5; done",
+      "echo 'Deploying Sovereign Pair Release: ${var.release_version}'",
+      "sudo systemctl stop sovereign || true",
+      "mkdir -p /tmp/sovereign",
+      "cd /tmp/sovereign",
+      "wget -qO sovereign-core https://github.com/Personal-Digital-Sovereignty/sovereign-pair/releases/download/${var.release_version}/sovereign-core-linux-arm64-binary",
+      "chmod +x sovereign-core",
+      "sudo mv sovereign-core /usr/local/bin/sovereign-core",
+      "sudo systemctl daemon-reload",
+      "sudo systemctl enable sovereign",
+      "sudo systemctl start sovereign",
+      "echo 'Deployment successful!'"
+    ]
+  }
 }

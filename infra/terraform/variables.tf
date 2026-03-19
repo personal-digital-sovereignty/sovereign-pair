@@ -40,12 +40,22 @@ variable "ssh_public_key" {
   description = "The public SSH key for user authentication on the Oracle instance"
 }
 
+variable "ssh_private_key" {
+  type        = string
+  description = "The corresponding private SSH key to authenticate against the OCI instance."
+  sensitive   = true
+}
+
 variable "pat_ghcr" {
   type        = string
   description = "GitHub Personal Access Token for cloning private Sovereign Pair repo"
   sensitive   = true
 }
-
+variable "release_version" {
+  description = "A versão do Release (Github App) a ser instalada na VM. Ex: 0.7.1, nightly"
+  type        = string
+  default     = "0.7.1"
+}
 variable "boot_volume_size_in_gbs" {
   type        = number
   description = "Size of the Boot Volume (GB). Default to 200 (Oracle Max Always Free)"
