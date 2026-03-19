@@ -160,7 +160,7 @@ Item {
                     text: "Abrir Dashboard"
                     icon.name: "window-new"
                     onClicked: {
-                        Qt.openUrlExternally("http://localhost:5173")
+                        Qt.openUrlExternally("http://127.0.0.1:38001")
                         Plasmoid.expanded = false
                     }
                 }

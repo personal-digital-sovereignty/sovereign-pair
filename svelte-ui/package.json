@@ -14,20 +14,40 @@
 		"format": "prettier --write ."
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.58.2",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.50.2",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
 		"@tailwindcss/vite": "^4.2.2",
+		"@testing-library/jest-dom": "^6.9.1",
+		"@testing-library/svelte": "^5.3.1",
+		"jsdom": "^29.0.0",
 		"prettier": "^3.8.1",
 		"prettier-plugin-svelte": "^3.4.1",
 		"svelte": "^5.51.0",
 		"svelte-check": "^4.4.2",
 		"tailwindcss": "^4.2.2",
 		"typescript": "^5.9.3",
-		"vite": "^7.3.1"
+		"vite": "^7.3.1",
+		"vitest": "^4.1.0"
 	},
 	"dependencies": {
+		"@tiptap/core": "^3.20.4",
+		"@tiptap/extension-highlight": "^3.20.4",
+		"@tiptap/extension-link": "^3.20.4",
+		"@tiptap/extension-placeholder": "^3.20.4",
+		"@tiptap/extension-table": "^3.20.4",
+		"@tiptap/extension-table-cell": "^3.20.4",
+		"@tiptap/extension-table-header": "^3.20.4",
+		"@tiptap/extension-table-row": "^3.20.4",
+		"@tiptap/extension-task-item": "^3.20.4",
+		"@tiptap/extension-task-list": "^3.20.4",
+		"@tiptap/pm": "^3.20.4",
+		"@tiptap/starter-kit": "^3.20.4",
+		"@types/js-yaml": "^4.0.9",
 		"force-graph": "^1.51.2",
-		"lucide-svelte": "^0.577.0"
+		"js-yaml": "^4.1.1",
+		"lucide-svelte": "^0.577.0",
+		"tiptap-markdown": "^0.9.0"
 	}
 }

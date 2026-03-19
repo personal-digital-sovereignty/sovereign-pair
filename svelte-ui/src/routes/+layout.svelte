@@ -1,10 +1,20 @@
 <script lang="ts">
   import '../app.css';
   import { globalState, toggleSidebar, setSidebarWidth } from '$lib/state.svelte';
-  import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, CloudOff } from 'lucide-svelte';
+  import { telemetryState, connectTelemetry, disconnectTelemetry } from '$lib/telemetry.svelte';
+  import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, CloudOff, Activity } from 'lucide-svelte';
   import { page } from '$app/state';
+  import { onMount, onDestroy } from 'svelte';
 
   let { children } = $props();
+
+  onMount(() => {
+    connectTelemetry();
+  });
+
+  onDestroy(() => {
+    disconnectTelemetry();
+  });
 
   let isResizing = $state(false);
 
@@ -39,7 +49,7 @@
   <nav class="w-16 bg-surface-900 border-r border-surface-700 flex flex-col h-full shrink-0 z-30 relative py-3">
     <!-- Top Identity Logo -->
     <div class="flex items-center justify-center border-b border-surface-700 pb-3 mb-3 shrink-0">
-      <button onclick={toggleSidebar} class="text-primary-500 hover:scale-110 transition-transform p-2 rounded-lg cursor-pointer">
+      <button aria-label="Toggle Navigation" onclick={toggleSidebar} class="text-primary-500 hover:scale-110 transition-transform p-2 rounded-lg cursor-pointer">
          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" class="shrink-0">
            <circle cx="12" cy="12" r="4.5" fill="currentColor"/>
            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.3"/>
@@ -79,9 +89,44 @@
           {routeId.replace('/', '') || 'SOVEREIGN'}
         </span>
       </div>
-      <!-- Context Area -->
-      <div class="flex-1 w-full overflow-hidden flex flex-col relative min-h-0 p-4 text-xs text-surface-400">
-        <span>Sensus System Active.</span>
+      <!-- Context Area (Dynamic Route Content + Telemetry Array) -->
+      <div class="flex-1 w-full overflow-hidden flex flex-col relative min-h-0">
+        
+        <div class="flex-1 p-4 text-xs text-surface-400 overflow-y-auto custom-scrollbar">
+           <!-- Render sub-navigation or specific route tree here later -->
+           <span class="block mb-4 tracking-widest uppercase opacity-50 font-bold">O.S Route: {routeId.replace('/', '') || 'ROOT'}</span>
+        </div>
+
+        <!-- Sticky Telemetry Dashboard (Bottom of context panel) -->
+        <div class="p-4 border-t border-surface-700 bg-surface-900/50 flex flex-col gap-3 shrink-0">
+            <div class="text-[10px] font-bold uppercase tracking-widest text-surface-500 mb-1 flex items-center justify-between">
+                <span>Hardware Telemetry</span>
+                <Activity class="w-3 h-3 {telemetryState.connected ? 'text-primary-500 animate-pulse' : 'text-surface-600'}" />
+            </div>
+
+            <!-- T/s Speedometer -->
+            <div class="flex flex-col gap-1">
+                <div class="flex justify-between items-end">
+                    <span class="text-xs text-surface-400">Tokens/sec</span>
+                    <span class="text-lg font-mono font-bold {telemetryState.tokensPerSecond > 20 ? 'text-emerald-400' : 'text-primary-400'}">
+                        {telemetryState.tokensPerSecond.toFixed(1)} <span class="text-[10px] text-surface-500 uppercase">T/s</span>
+                    </span>
+                </div>
+                <div class="w-full h-1 bg-surface-800 rounded-full overflow-hidden">
+                    <div class="h-full bg-primary-500 transition-all duration-300" style="width: {Math.min(100, (telemetryState.tokensPerSecond / 80) * 100)}%"></div>
+                </div>
+            </div>
+
+            <!-- Memory Specs -->
+            <div class="flex justify-between items-center text-xs font-mono text-surface-400">
+                <span>VRAM</span>
+                <span class={telemetryState.vramUsageMB > 12000 ? 'text-amber-400 font-bold' : ''}>{telemetryState.vramUsageMB} MB</span>
+            </div>
+
+            <div class="text-[10px] text-surface-600 uppercase tracking-widest truncate" title={telemetryState.activeModel}>
+                {telemetryState.activeModel}
+            </div>
+        </div>
       </div>
     </div>
   </aside>
