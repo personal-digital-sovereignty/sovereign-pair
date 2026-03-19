@@ -1,7 +1,7 @@
 <script lang="ts">
    import BlockEditor from '$lib/components/BlockEditor.svelte';
    import { FileText, Database } from 'lucide-svelte';
-   import { globalState } from '$lib/state.svelte';
+   import { globalState } from '$lib/state.svelte.ts';
 
    let activeDocumentId = $state('');
    let sidebarWidth = $state(280);
