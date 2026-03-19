@@ -1,6 +1,14 @@
 use std::process::Stdio;
 use tokio::process::Command;
 use tracing::{info, error};
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use std::collections::HashMap;
+
+lazy_static::lazy_static! {
+    // Map with Local Port as key and Node Info as value (IP, Status)
+    pub static ref ACTIVE_MESH_TUNNELS: Arc<Mutex<HashMap<u16, String>>> = Arc::new(Mutex::new(HashMap::<u16, String>::new()));
+}
 
 pub struct MeshConnector;
 
@@ -37,10 +45,19 @@ impl MeshConnector {
             Ok(mut child) => {
                 info!("✅ [Sovereign Mesh] Túnel de Cobre Ativado. Endpoint {} da Malha conectado de forma invisível via porta {}.", target_uri, local_port);
                 
+                // Grava o túnel no Estado Global
+                tokio::spawn({
+                    let t_uri = target_uri.clone();
+                    async move {
+                        ACTIVE_MESH_TUNNELS.lock().await.insert(local_port, t_uri);
+                    }
+                });
+
                 // Monitorador de Integridade da Malha (Heal Loop eventual entrará aqui)
                 tokio::spawn(async move {
                     if let Ok(status) = child.wait().await {
                         error!("❌ [Sovereign Mesh] Alerta de Falha Estrutural! O Túnel P2P da porta {} colapsou. (Exit: {})", local_port, status);
+                        ACTIVE_MESH_TUNNELS.lock().await.remove(&local_port);
                     }
                 });
 

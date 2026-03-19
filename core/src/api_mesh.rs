@@ -57,3 +57,38 @@ pub async fn mesh_handshake_handler() -> Json<HardwareProfile> {
         available_ram_mb: ram_mb,
     })
 }
+
+#[derive(Deserialize)]
+pub struct MeshConnectRequest {
+    pub remote_ip: String,
+    pub remote_user: String,
+    pub key_path: String,
+    pub local_port: u16,
+    pub remote_port: u16, // usually 38001
+}
+
+pub async fn mesh_connect_handler(axum::Json(payload): axum::Json<MeshConnectRequest>) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    match crate::ssh_mesh_connector::MeshConnector::establish_mesh_tunnel(
+        payload.remote_ip,
+        payload.remote_user,
+        payload.key_path,
+        payload.local_port,
+        payload.remote_port
+    ).await {
+        Ok(_) => Ok(Json(serde_json::json!({"status": "Tunneling Initiated", "local_bind_port": payload.local_port}))),
+        Err(_) => Err(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+    }
+}
+
+pub async fn mesh_tunnels_status_handler() -> Json<serde_json::Value> {
+    let tunnels = crate::ssh_mesh_connector::ACTIVE_MESH_TUNNELS.lock().await;
+    let mut response = Vec::new();
+    for (port, uri) in tunnels.iter() {
+        response.push(serde_json::json!({
+            "local_port": port,
+            "target_uri": uri,
+            "status": "established"
+        }));
+    }
+    Json(serde_json::json!({"active_tunnels": response}))
+}
