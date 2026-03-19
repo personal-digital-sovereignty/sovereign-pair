@@ -30,12 +30,12 @@ Quando você digita algo na UI, o Sovereign não vomita o texto pro primeiro mod
 - **Interação:** The Doctor é um motor de *Raciocínio Profundo*. Ele recebe o *Contexto Vetorial Pesado* (RAG) empilhado do SQLite-Vec e faz inferência lenta e cautelosa. Se o nó Oracle cair, a API rebaixará graciosamente o pedido de volta The Nurse local informando _"(Raciocínio Profundo Indisponível...)"_.
 
 ### The Accountant (Motor AST / Auditor)
-**Onde Roda Idealmente:** Local (Exclusivo Python AST Nativo - Não usa LLM)
+**Onde Roda Idealmente:** Local (Exclusivo Rust AST Nativo - Não usa LLM)
 - **O Papel:** Impede que os LLMs mintam em tabelas ou sofram "alucinação aritmética". Os LLMs são geniais para criatividade, mas podem errar `10.5 * 2`.
-- **Interação:** Enquanto *The Doctor* ou *The Nurse* cospe a resposta Markdown, *The Accountant* está ouvindo nos bastidores. Se ele pegar uma expressão `=SUM(A1:B2)`, ele puxa do Python, processa a matemática perfeita em milissegundos, e empurra o valor limpo pro UI.
+- **Interação:** Enquanto *The Doctor* ou *The Nurse* cospe a resposta Markdown, *The Accountant* está ouvindo nos bastidores. Se ele pegar uma expressão `=SUM(A1:B2)`, ele puxa do Rust, processa a matemática perfeita em milissegundos, e empurra o valor limpo pro UI.
 
 ### The Sentinel (Cyber-Security Guard)
-**Onde Roda Idealmente:** Local (YARA Rules + Hashes em Python / ClamAV Docker)
+**Onde Roda Idealmente:** Local (YARA Rules + Hashes em Rust / ClamAV Standalone Binary)
 - **O Papel:** Escaneador assíncrono.
 - **Interação:** Antes da The Nurse ou do the Doctor lerem qualquer PDF no RAG, o Sentinela veta ou tranca arquivos na Base de Quarentena. Ele não usa LLM intencionalmente para evitar injeções de prompt no motor de segurança.
 
@@ -52,7 +52,7 @@ Quando você digita algo na UI, o Sovereign não vomita o texto pro primeiro mod
 sequenceDiagram
     participant User as Usuário
     participant DB as Sovereign DB (SQLite)
-    participant Mom as The Mom (FastAPI)
+    participant Mom as The Mom (Axum)
     participant Nurse as The Nurse (SLM Local)
     participant Doctor as The Doctor (Oracle OCI / BYOK)
     
@@ -75,4 +75,4 @@ sequenceDiagram
 ## 4. O Hub de BYOK vs BYOC (Settings)
 
 * **[Bring Your Own Key] (Provedores API):** OpenAI, Groq e Anthropic bypassam as LLMs abertas e entregam a requisição diretamente aos endpoints americanos via `httpx`.
-* **[Bring Your Own Compute] (Nós OLLAMA):** Em Configurações > Gerenciar Nós, você adiciona as "Baterias Físicas". Ex: `http://100.116.x.y:11434`. Todo tráfego Docker interno passa a apontar pro Tunel Tailscale ao invés do localhost físico. A I.A fica burra se o nó desconectar e a Nurse assume (Fallback Dinâmico implementado na V0.4.0).
+* **[Bring Your Own Compute] (Nós OLLAMA):** Em Configurações > Gerenciar Nós, você adiciona as "Baterias Físicas". Ex: `http://100.116.x.y:11434`. Todo tráfego Standalone Binary interno passa a apontar pro Tunel Tailscale ao invés do localhost físico. A I.A fica burra se o nó desconectar e a Nurse assume (Fallback Dinâmico implementado na V0.4.0).

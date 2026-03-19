@@ -26,7 +26,7 @@ The logic that organizes and designates responsibilities within the nodes of the
 
 ## 3. VPN Structural Security (Peer-to-Peer mTLS Tunnel)
 
-On a definitive basis, OS LLM API endpoints provided by *Docker `11434`* or sub-dependent Rust API Axum *8000* will be completely closed to global band instances (No *Bind TCP 0.0.0.0* and devoid of exposed WAN ports).
+On a definitive basis, OS LLM API endpoints provided by *Standalone Binary `11434`* or sub-dependent Rust API Axum *8000* will be completely closed to global band instances (No *Bind TCP 0.0.0.0* and devoid of exposed WAN ports).
 
 *   **Operative Cryptographic Validation (WireGuard via Tailscale):** Traffic originating from Cloud calls to local vector files is conducted under an encrypted peer-to-peer connection acting directly through internal interfaces (`100.x.x.x`). The structure facilitates secure remote access independent of the blocking corporate OS routers at the user's local companies.
 *   **Passive Contrast Mitigation:** Scans in massive OS external Port Scans will fail since the isolating applications explicitly confine themselves strictly to the VPN subnet, making openings in logical ports of the machine's OS or VPS Server invisible.
@@ -57,5 +57,5 @@ GitHub Operations centralizes and authorizes orchestration code routing via the 
 ## 6. Resilient Procedures (Self-Healing Application Containers)
 The base container design obeys the restricted engineering of the base recommendation for immutable systems (e.g., *12-Factor App*). Faced with structural oscillations originating from the OS (Accidental Kernel Reboots, mass updates restarting base primary VPS instances), they do not require interactive SSH initializations by corporate OS users or the machine's local base engineer:
 
-- Their internal tools and volumes will restart in isolation, parameterized under the native Docker Engine reset configurations (`restart: always`).
+- Their internal tools and volumes will restart in isolation, parameterized under the native Standalone Binary Engine reset configurations (`restart: always`).
 - They merely subject the ultimate RAG Engine to the CloudMesh VPN verification (internal interface) and perform the autonomous OS coupling operating relative to the Rust compiled API interfaces (Local Rest) attested as soon as the OS Server resumes basic computational electrical stability.

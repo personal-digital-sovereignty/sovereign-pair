@@ -38,7 +38,7 @@ Macbooks Intel não possuem a arquitetura UMA nem decodificação tensorial avan
 
 No Windows 10/11, as restrições baseiam-se fortemente no formato de Execução do Ollama (Virtualizado via WSL2 vs Executável Binário Nativo).
 
-### Cenário 1: WSL2 ou Docker Desktop (Isolamento Linux no Windows)
+### Cenário 1: WSL2 ou Standalone Binary Desktop (Isolamento Linux no Windows)
 O Windows Subsystem for Linux arquiteta um limite virtual agressivo. Por padrão dinâmico, o WSL2 se recusa a invadir mais do que **50% da sua RAM Total**. 
 Num Intel Core i5 com 8GB de RAM, o seu *Sovereign Core* no WSL2 tentará sobreviver com **risíveis 4GB de RAM virtuais**. 
 
