@@ -12,6 +12,7 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 - **Hash SHA256 na Chave SSH (GPG Strict)**: A encriptação da memória foi estabilizada através da compactação forçada da Private Key multilinha para um Hash estrito injetado via `stdin`, evitando o crash fatal por quebra de linha no parser do `gpg`.
 
 ### Corrigido
+- **Oracle VCN DNS Blackhole**: Injetada diretiva estrita via `bootcmd` no `cloud-init` do Arch Linux/Ubuntu OCI para forçar a pré-configuração do `systemd-resolved` com DNS resilientes (8.8.8.8, 1.1.1.1) contornando o DHCP defeituoso nativo do OCI (`169.254.169.254`) que impossibilitava resoluções cruciais de espelhos APT e Github.
 - **ActionLint e Semgrep Strictness (Gate 0 e 1)**: Refatorados comandos bash e re-alocadas variáveis de contexto Github para passar sob a malha fina da esteira CI Global. Neutralizada uma falsa vulnerabilidade de Shell-Injection capturada ativamente pelo SAST.
 
 ## [0.7.1] - 2026-03-19
