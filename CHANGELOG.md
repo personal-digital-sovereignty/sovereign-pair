@@ -13,7 +13,7 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 
 ### Removed
 - Purged the entire Vue 3 `web-ui` directory.
-- Deprecated legacy `obsidian-plugin` architectural footprints.
+- Deprecated legacy `vue-plugin` architectural footprints.
 - Emojis unconditionally purged across the OS layout logic.
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
