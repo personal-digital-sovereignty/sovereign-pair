@@ -68,42 +68,8 @@ jobs:
           name: sovereign-pair-kde-widget
           path: sovereign-pair-widget.plasmoid
 
-  build-python-fallback:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-          cache: 'pip'
-
-      - name: Build Python API with PyInstaller
-        run: |
-          python3 -m venv .venv
-          source .venv/bin/activate
-          pip install --upgrade pip
-          pip install -r src/requirements.txt
-          pip install pyinstaller
-          pyinstaller --name sovereign-api --clean --onefile \
-            --hidden-import=llama_index \
-            --hidden-import=sqlalchemy \
-            --hidden-import=pydantic \
-            --hidden-import=uvicorn \
-            --hidden-import=fastapi \
-            --paths=src \
-            src/api/main.py
-
-      - name: Upload Python Standalone Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sovereign-api-python-linux
-          path: dist/sovereign-api
-
   publish-nightly:
-    needs: [build-linux-core, build-kde-plasmoid, build-python-fallback]
+    needs: [build-linux-core, build-kde-plasmoid]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
@@ -127,10 +93,9 @@ jobs:
           prerelease: true
           make_latest: false
           body: |
-            Builds automatizados (Nightly) do Sovereign Pair contendo a arquitetura puramente nativa em RUST, Python Fallback e Plasma Desktop.
+            Builds automatizados (Nightly) do Sovereign Pair contendo a arquitetura puramente nativa em RUST e Plasma Desktop.
             
             🚨 **Aviso:** Estes binários são compilados progressivamente (Continuous Deployment) no último commit da branch `main` e não refletem garantias de estabilidade.
           files: |
             sovereign-core-linux-amd64/sovereign-core
             sovereign-pair-kde-widget/sovereign-pair-widget.plasmoid
-            sovereign-api-python-linux/sovereign-api

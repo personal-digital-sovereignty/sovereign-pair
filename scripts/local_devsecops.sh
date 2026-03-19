@@ -27,7 +27,21 @@ docker run --rm -v $(pwd):/src -w /src returntocorp/semgrep semgrep scan --confi
     echo "❌ ERROR: Semgrep Security Scan caught vulnerabilities."
     exit 1
 }
-echo "✅ Semgrep passed! Static analysis returned clean."
+echo ""
+echo "⏳ [Gate 2] Running Trivy (SCA & Vulnerabilities)..."
+docker run --rm -v $(pwd):/repo aquasec/trivy:latest fs --ignore-unfixed --format table --exit-code 1 --severity CRITICAL,HIGH /repo || {
+    echo "❌ ERROR: Trivy found CRITICAL or HIGH vulnerabilities in dependencies."
+    exit 1
+}
+echo "✅ Trivy passed! Code dependencies are secure."
+
+echo ""
+echo "⏳ [Gate 3] Running Ruff (Python Code Quality & Formatting)..."
+docker run --rm -v $(pwd):/src -w /src python:3.12-slim bash -c "pip install ruff && ruff check ." || {
+    echo "❌ ERROR: Ruff found syntax/formatting violations in Python source."
+    exit 1
+}
+echo "✅ Ruff passed! Python code is PEP-8 compliant and clean."
 
 echo ""
 echo "✅ Local DevSecOps Suite Finished Perfectly!"
