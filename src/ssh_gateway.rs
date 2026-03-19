@@ -1,7 +1,6 @@
 use std::process::Stdio;
 use tokio::process::Command;
 use tracing::{info, error, debug};
-use std::env;
 use sqlx::Row;
 use serde_json::Value;
 use reqwest::Client;
@@ -14,7 +13,7 @@ impl SshGateway {
     /// Executes a strictly isolated bash/python script on the Oracle Cloud VM.
     /// Captures Stdout and Stderr to feed back into the Sovereign Pair 'ReWOO Solver'.
     pub async fn execute_sandboxed_script(script_payload: &str, db: sqlx::SqlitePool) -> Result<String, String> {
-        let mut target_uri = String::new();
+        let target_uri: String;
         let mut key_path = String::new();
 
         let client = Client::new();

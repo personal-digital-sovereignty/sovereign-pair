@@ -26,13 +26,11 @@ let ollama_model = if requested_model.to_lowercase().contains("gpt") {
     let mut resolved_model = "qwen2.5:3b".to_string(); // Fallback de segurança
     if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'system_settings'").fetch_optional(&state.db).await {
         let val: String = sqlx::Row::get(&row, "value_json");
-        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&val) {
-            if let Some(model_str) = parsed.get("llm_model").and_then(|v| v.as_str()) {
-                if !model_str.is_empty() {
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&val)
+            && let Some(model_str) = parsed.get("llm_model").and_then(|v| v.as_str())
+                && !model_str.is_empty() {
                     resolved_model = model_str.to_string();
                 }
-            }
-        }
     }
     tracing::info!("🔄 Proxy OpenCode/Desktop enviou {}. Remapeando para o modelo local SQLite: {}", requested_model, resolved_model);
     resolved_model
