@@ -88,6 +88,8 @@ jobs:
           workspaces: core
       - name: Install SQLite Runtime Dependencies
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+      - name: Mock Svelte Artifacts (RustEmbed)
+        run: mkdir -p svelte-ui/build && touch svelte-ui/build/index.html
       # Fail heavily on Syntax, Memory Safety or Formatting
       - name: Cargo Clippy Audit
         working-directory: ./core
