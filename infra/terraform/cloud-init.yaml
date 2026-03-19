@@ -54,17 +54,17 @@ runcmd:
   - sudo bash -c "nohup ollama pull qwen2.5-coder:7b > /var/log/ollama_pull_coder.log 2>&1 &"
   - sudo bash -c "nohup ollama pull llama3.2:3b > /var/log/ollama_pull_doctor.log 2>&1 &"
 
-  # 6. Install Docker Engine Native
-  - curl -fsSL https://get.docker.com | sudo sh
-  - sudo systemctl enable docker
-  - sudo systemctl start docker
+  # 6. Install Rust Toolchain & Node.js
+  - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  - curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  - sudo apt-get install -y nodejs build-essential
 
-  # 7. Disable IPv6 to prevent Docker Pull network unreachable on Oracle VCN
+  # 7. Disable IPv6 to optimize local VCN routing
   - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
   - sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
   - sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
 
-  # 8. Clone Sovereign Pair and Spin Up Cibrid Services (RAG + N8N Zero Cost)
+  # 8. Clone Sovereign Pair and Spin Up Baremetal Architecture
   - git clone https://${pat_ghcr}@github.com/Personal-Digital-Sovereignty/sovereign-pair.git /opt/sovereign-pair
   # Prepare environments and vault architecture
   - sudo sh -c "cd /opt/sovereign-pair && cp .env.example .env && sed -i 's/TS_AUTHKEY=tskey-auth-xxxxxxxxx/TS_AUTHKEY=${tailscale_auth_key}/g' .env && mkdir -p ./data/vault"
@@ -74,5 +74,15 @@ runcmd:
   - sudo tailscale up --authkey=${tailscale_auth_key} --ssh --accept-dns=true --hostname=sovereign-coder
   - sleep 10
   
-  # 10. Inicializar a Malha de Containers (OCI Edge) apontando para os sub-paths corretos
-  - sudo sh -c "cd /opt/sovereign-pair && docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.n8n.yml up -d"
+  # 10. Compile Svelte UI Framework
+  - sudo sh -c "cd /opt/sovereign-pair/svelte-ui && npm ci && npm run build"
+
+  # 11. Compile Sovereign Cibrid Core (Rust Native)
+  - sudo -u root bash -c "source \$HOME/.cargo/env && cd /opt/sovereign-pair/core && cargo build --release"
+  
+  # 12. Dematerialize into Systemd Daemon
+  - sudo cp /opt/sovereign-pair/core/target/release/sovereign-core /usr/local/bin/
+  - sudo cp /opt/sovereign-pair/scripts/sovereign.service /etc/systemd/system/
+  - sudo systemctl daemon-reload
+  - sudo systemctl enable sovereign
+  - sudo systemctl start sovereign
