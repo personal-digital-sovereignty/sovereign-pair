@@ -1,6 +1,6 @@
 <script lang="ts">
   import '../app.css';
-  import { globalState, toggleSidebar, setSidebarWidth } from '$lib/state.svelte.ts';
+  import { globalState, toggleSidebar, setSidebarWidth } from '$lib/state.svelte.js';
   import { telemetryState, connectTelemetry, disconnectTelemetry } from '$lib/telemetry.svelte';
   import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, CloudOff, Activity, Database } from 'lucide-svelte';
   import { page } from '$app/state';
