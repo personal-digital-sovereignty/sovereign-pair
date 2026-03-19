@@ -44,10 +44,10 @@ jobs:
           if [ -z "$TARGET_VERSION" ] || [ "$TARGET_VERSION" == "latest" ]; then
             # Github event default ou push em main -> Busca a mais recente no repositorio
             LATEST=$(gh release list --limit 1 | awk '{print $1}')
-            echo "version=$LATEST" >> $GITHUB_ENV
+            echo "version=$LATEST" >> "$GITHUB_ENV"
             echo "A versão Dinâmica Selecionada foi: $LATEST"
           else
-            echo "version=$TARGET_VERSION" >> $GITHUB_ENV
+            echo "version=$TARGET_VERSION" >> "$GITHUB_ENV"
             echo "A versão Manual Apontada foi: $TARGET_VERSION"
           fi
 
