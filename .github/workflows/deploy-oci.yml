@@ -39,8 +39,9 @@ jobs:
         id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION_INPUT: ${{ github.event.inputs.release_version }}
         run: |
-          TARGET_VERSION="${{ github.event.inputs.release_version }}"
+          TARGET_VERSION="$RELEASE_VERSION_INPUT"
           if [ -z "$TARGET_VERSION" ] || [ "$TARGET_VERSION" == "latest" ]; then
             # Github event default ou push em main -> Busca a mais recente no repositorio
             LATEST=$(gh release list --limit 1 | awk '{print $1}')
