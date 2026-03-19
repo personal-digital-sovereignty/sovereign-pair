@@ -1,0 +1,23 @@
+[Unit]
+Description=Sovereign Pair Cibrid Node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+# Se desejar isolacionismo puro, troque User=root por um usuário service non-sudo
+WorkingDirectory=/opt/sovereign/
+ExecStart=/usr/local/bin/sovereign-core --host 127.0.0.1
+Restart=always
+RestartSec=5
+# Segredos de telemetria ou Chaves de rede podem ser injetados aqui
+Environment="SOVEREIGN_RUN_ENV=production"
+
+# Hardening / Proteção do Sistema (Evitar alucinações MCP do LLM fora da Sandbox estrita)
+# ProtectSystem=full
+# ProtectHome=read-only
+# PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
