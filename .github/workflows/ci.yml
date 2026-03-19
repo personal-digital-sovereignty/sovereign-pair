@@ -146,6 +146,9 @@ jobs:
           - os: windows-latest
             artifact_name: sovereign-core-windows-amd64
             binary_name: sovereign-core.exe
+          - os: ubuntu-24.04-arm
+            artifact_name: sovereign-core-linux-arm64
+            binary_name: sovereign-core
           - os: macos-latest
             artifact_name: sovereign-core-macos-arm64
             binary_name: sovereign-core
@@ -232,6 +235,7 @@ jobs:
       - name: Rename Artifacts for Release
         run: |
           mv sovereign-core-linux-amd64/sovereign-core sovereign-core-linux-amd64-binary
+          mv sovereign-core-linux-arm64/sovereign-core sovereign-core-linux-arm64-binary
           mv sovereign-core-windows-amd64/sovereign-core.exe sovereign-core-windows-amd64.exe
           mv sovereign-core-macos-arm64/sovereign-core sovereign-core-macos-arm64-binary
           
@@ -248,6 +252,7 @@ jobs:
             🚨 **Aviso:** Estes binários são compilados progressivamente (Continuous Deployment) no último commit da branch `main` e não refletem garantias de estabilidade.
           files: |
             sovereign-core-linux-amd64-binary
+            sovereign-core-linux-arm64-binary
             sovereign-core-windows-amd64.exe
             sovereign-core-macos-arm64-binary
             sovereign-pair-kde-widget/sovereign-pair-widget.plasmoid
@@ -265,6 +270,7 @@ jobs:
       - name: Rename Artifacts for Release
         run: |
           mv sovereign-core-linux-amd64/sovereign-core sovereign-core-linux-amd64-binary
+          mv sovereign-core-linux-arm64/sovereign-core sovereign-core-linux-arm64-binary
           mv sovereign-core-windows-amd64/sovereign-core.exe sovereign-core-windows-amd64.exe
           mv sovereign-core-macos-arm64/sovereign-core sovereign-core-macos-arm64-binary
           
@@ -274,6 +280,7 @@ jobs:
           generate_release_notes: true
           files: |
             sovereign-core-linux-amd64-binary
+            sovereign-core-linux-arm64-binary
             sovereign-core-windows-amd64.exe
             sovereign-core-macos-arm64-binary
             sovereign-pair-kde-widget/sovereign-pair-widget.plasmoid

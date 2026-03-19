@@ -16,10 +16,15 @@ on:
         options:
           - apply
           - destroy
+      release_version:
+        description: 'Release Target (Ex: 0.7.1, 0.7.0, nightly, ou deixe "latest")'
+        required: true
+        default: 'latest'
+        type: string
 
 jobs:
   opentofu-action:
-    name: "OpenTofu Apply (Oracle ARM A1)"
+    name: "OpenTofu Apply & Binary Deployment (Oracle ARM A1)"
     runs-on: ubuntu-latest
 
     defaults:
@@ -29,6 +34,22 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Resolve Release Version
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TARGET_VERSION="${{ github.event.inputs.release_version }}"
+          if [ -z "$TARGET_VERSION" ] || [ "$TARGET_VERSION" == "latest" ]; then
+            # Github event default ou push em main -> Busca a mais recente no repositorio
+            LATEST=$(gh release list --limit 1 | awk '{print $1}')
+            echo "version=$LATEST" >> $GITHUB_ENV
+            echo "A versão Dinâmica Selecionada foi: $LATEST"
+          else
+            echo "version=$TARGET_VERSION" >> $GITHUB_ENV
+            echo "A versão Manual Apontada foi: $TARGET_VERSION"
+          fi
 
       - name: Setup OpenTofu
         uses: opentofu/setup-opentofu@v1
@@ -42,7 +63,7 @@ jobs:
       - name: OpenTofu Validate
         run: tofu validate
 
-      - name: OpenTofu Action
+      - name: OpenTofu Action (Infrastructure as Code)
         env:
           TF_VAR_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
           TF_VAR_user_ocid: ${{ secrets.OCI_USER_OCID }}
@@ -52,21 +73,20 @@ jobs:
           TF_VAR_compartment_ocid: ${{ secrets.OCI_COMPARTMENT_OCID != '' && secrets.OCI_COMPARTMENT_OCID || secrets.OCI_TENANCY_OCID }}
           TF_VAR_tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
           TF_VAR_ssh_public_key: ${{ secrets.OCI_SSH_PUBLIC_KEY }}
+          TF_VAR_ssh_private_key: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
           TF_VAR_pat_ghcr: ${{ secrets.PAT_GHCR }}
           TF_VAR_boot_volume_size_in_gbs: ${{ vars.OCI_BOOT_VOLUME_SIZE || 200 }}
-          ACTION_INPUT: ${{ github.event.inputs.action }}
+          TF_VAR_release_version: ${{ env.version }}
+          ACTION_INPUT: ${{ github.event.inputs.action || 'apply' }}
         run: |
           if [ "$ACTION_INPUT" == "destroy" ]; then
             echo "Running OpenTofu Destroy..."
             tofu destroy -auto-approve
           else
-            echo "Running OpenTofu Apply..."
+            echo "Running OpenTofu Apply (Zero-Downtime Pipeline)..."
             tofu apply -auto-approve
             echo "==================================================================="
-            echo "✅ INSTÂNCIA OCI PROVISIONADA COM SUCESSO!"
-            echo "⚠️ AVISO MESTRE: O provisionamento Terraform terminou, mas o O.S"
-            echo "ainda está rodando as automações internas do 'cloud-init'. O"
-            echo "Tailscale, Ollama e o Download dos Modelos (Pull) podem levar de"
-            echo "10 a 20 minutos rodando em background na máquina Oracle."
+            echo "✅ INSTÂNCIA OCI VERIFICADA / PROVISIONADA!"
+            echo "⚡ O deploy remoto injetou o Binário Versão: $TF_VAR_release_version"
             echo "==================================================================="
           fi
