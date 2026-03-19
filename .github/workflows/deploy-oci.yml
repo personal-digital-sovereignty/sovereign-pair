@@ -22,6 +22,9 @@ on:
         default: 'latest'
         type: string
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   opentofu-action:
     name: "OpenTofu Apply & Binary Deployment (Oracle ARM A1)"

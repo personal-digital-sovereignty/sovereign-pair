@@ -7,6 +7,7 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 ### 🛡️ Pipeline DevSecOps: Estabilização e Zero-Downtime CD Fixes
 
 ### Adicionado
+- **Github Actions Node.js 24 (Future-Proof)**: Injetada a variável global `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` em todos os *workflows* da esteira FOSS, suprimindo advertências de depreciação do Node.js 20 em plugins vitais (`actions/checkout`, `actions/upload-artifact`).
 - **Zero-Cost Stateful Backend (GPG Artifacts)**: Implementado um mecanismo no `deploy-oci.yml` para transferir criptograficamente a memória `.tfstate` do OpenTofu entre execuções isoladas do Github Actions. Previsto o *spawn* descontrolado de instâncias órfãs na Nuvem OCI.
 - **Hash SHA256 na Chave SSH (GPG Strict)**: A encriptação da memória foi estabilizada através da compactação forçada da Private Key multilinha para um Hash estrito injetado via `stdin`, evitando o crash fatal por quebra de linha no parser do `gpg`.
 
