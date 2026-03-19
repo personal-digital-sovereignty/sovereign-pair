@@ -97,6 +97,10 @@ pub struct OpenAIChatRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_choice: Option<Value>,
 
+    // Extensão O.S (Cybrid Router) para isolamento de Contexto
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
+
     // Parâmetros de Inferência Opcionais
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f32>,

@@ -43,17 +43,36 @@ pub async fn init_pool() -> SqlitePool {
         );
     ").execute(&pool).await;
 
-    // Garante a existência da Multi-Drive Tabela (Fase 32: Global Workspace Architecture)
+    // Seção de HIGIENIZAÇÃO e RE-ARQUITETURA (Drop Legacy Tables autorizado na V0.6.0)
+    let _ = sqlx::query("DROP TABLE IF EXISTS sensus_documents;").execute(&pool).await;
+
+    // Garante a existência da Multi-Drive Tabela
     let _ = sqlx::query("
         CREATE TABLE IF NOT EXISTS workspaces (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
-            path TEXT NOT NULL,
+            absolute_path TEXT NOT NULL UNIQUE,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     ").execute(&pool).await;
 
-    // Se o banco estiver vazio, engolimos a V1 Retrocompatível como 'Workspace 1' atómica
+    // Nova Tabela Mestre de Documentos (O.S Indexing) mapeada ao Workspace
+    let _ = sqlx::query("
+        CREATE TABLE IF NOT EXISTS sensus_documents (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL,
+            file_path TEXT NOT NULL UNIQUE,
+            content_raw TEXT,
+            summary TEXT,
+            extracted_tags TEXT,
+            extracted_links TEXT,
+            metadata_json TEXT,
+            last_modified TIMESTAMP,
+            FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+        );
+    ").execute(&pool).await;
+
+    // Se o banco estiver vazio, engolimos a V1 Retrocompatível como 'Workspace Origin'
     let path_str = env::var("RAG_VAULT_PATH").unwrap_or_else(|_| {
         let mut path = env::current_dir().expect("Hostile Environment");
         if path.ends_with("core") { path.pop(); }
@@ -62,9 +81,9 @@ pub async fn init_pool() -> SqlitePool {
     });
 
     let _ = sqlx::query("
-        INSERT INTO workspaces (id, name, path)
-        SELECT 1, 'Default Vault', ?
-        WHERE NOT EXISTS (SELECT 1 FROM workspaces WHERE id = 1)
+        INSERT INTO workspaces (id, name, absolute_path)
+        SELECT 'default', 'Origin Vault', ?
+        WHERE NOT EXISTS (SELECT 1 FROM workspaces WHERE id = 'default')
     ").bind(&path_str).execute(&pool).await;
 
     pool
