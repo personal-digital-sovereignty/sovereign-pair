@@ -1,228 +1,48 @@
 # Sovereign Pair
 
-Sovereign Pair é um sistema de Retrieval-Augmented Generation (RAG) com arquitetura desacoplada, projetado com foco em alta performance, privacidade de dados e segurança Zero-Trust. O sistema suporta a execução de modelos de linguagem (LLMs) localmente (via Ollama) ou por meio de provedores em nuvem, sendo orquestrado por uma API RESTful e operado nativamente por sua própria interface Web PWA, batizada de Sensus Vault.
+Sovereign Pair e um sistema de Retrieval-Augmented Generation (RAG) com arquitetura desacoplada, projetado com foco em alta performance, privacidade de dados e seguranca Zero-Trust. O sistema suporta a execucao de modelos de linguagem localmente (via Ollama) ou por meio de provedores em nuvem, sendo orquestrado por um binario nativo em Rust que embute a interface SvelteKit.
 
-
-
-## Visão Geral da Arquitetura
+## Visao Geral da Arquitetura
 
 O sistema opera com base nos seguintes componentes principais:
 
-1. **Inferência Local e Reflexiva (LLM)**
-   - Execução local offline utilizando **Ollama** para gerenciamento de contexto alocado em VRAM.
-   - Pipeline RAG implementada nativamente via motor Axum Local, permitindo iterações reflexivas (tags `<thinking>`) e autocorreção durante a inferência.
+1. Inferencia Local e Reflexiva (LLM)
+   - Execucao local offline utilizando Ollama para gerenciamento de contexto alocado em VRAM.
+   - Pipeline RAG implementada nativamente via motor Axum Local, permitindo iteracoes reflexivas e autocorrecao durante a inferencia.
 
-2. **Persistência de Dados (SQLite)**
-   - O banco de dados vetorial legado (ChromaDB) foi substituído de forma a priorizar velocidade transacional O.S.
-   - **sovereign_memory.db**: Banco associado e integrado via `sqlite-vec` ao Rust configurado com `journal_mode=WAL`, responsável por gerenciar o histórico de conversas, quadros Kanban e embeddings vetoriais de forma integrada.
+2. Persistencia de Dados (SQLite)
+   - O banco de dados vetorial legado foi substituido de forma a priorizar velocidade transacional O.S.
+   - sovereign_memory.db: Banco associado e integrado via sqlite-vec ao Rust configurado com journal_mode=WAL, responsavel por gerenciar o historico de conversas, quadros Kanban e embeddings vetoriais de forma integrada.
 
-3. **Backend RAG (Rust Axum)**
-   - Motor principal construído integralmente em **Rust (Axum + Tokio)**, otimizado para operações puras e nativas de baixíssima latência em leitura de sistemas de arquivos, gestão de estado (Kanban) e roteamento de requisições paralelas RAG ao LLM.
-   - Suporte a **Server-Sent Events (SSE)** para respostas assíncronas e telemetria estrita de uso de recursos (CPU, contagem de tokens).
+3. Backend RAG (Rust Axum)
+   - Motor principal construido integralmente em Rust (Axum + Tokio), otimizado para operacoes puras e nativas de baixissima latencia em leitura de sistemas de arquivos, gestao de estado e roteamento de requisicoes paralelas RAG ao LLM.
+   - Suporte a Server-Sent Events (SSE) para respostas assincronas e telemetria estrita de uso de recursos.
 
-4. **Dashboard Web (Vue.js)**
-   - Interface Web (PWA) de painel único que centraliza logs do sistema, monitoramento de recursos (RAM/VRAM) e navegação interativa e controlada do repositório físico de documentos.
+4. Dashboard Web (Svelte 5)
+   - Interface Web (PWA) de painel unico que centraliza logs do sistema, monitoramento de recursos (RAM/VRAM) e navegacao interativa e controlada do repositorio fisico de documentos. 
+   - Arquitetura Zero-VDOM baseada em Runes, embutida diretamente no binario Rust para entrega sem dependencias externas.
 
-5. **Arquitetura Distribuída (Oracle OCI)**
-   - O nó local sincroniza dados com instâncias em nuvem, quando acionado. O processo **MeshSyncWorker** realiza extração de dados de forma assíncrona em servidores na Oracle Cloud e atualiza os embeddings no repositório local de forma incremental, integrando a pesquisa web ao Vector Database sem prejudicar a CPU local.
+5. Arquitetura Distribuida P2P (Sovereign Mesh)
+   - Nos locais sincronizam dados par-a-par atraves de tuneis SSH dinamicos. A engine garante transmissividade de metadados, configuracoes de usuario (.cybrid) e vetores de embeddings em topologias distribuidas.
 
----
+## Instalacao
 
-## Funcionalidades Principais
+Consulte o documento de [Guia de Instalacao](docs/install_guide.md) para instrucoes detalhadas de execucao do binario pre-compilado em ambientes Windows, Linux ou MacOS.
 
-### Busca Híbrida Avançada (Hybrid Search 0.2.2)
-Combina **Busca Vetorial Densa** (aproximação semântica) com **Busca BM25** (correspondência exata de palavras-chave) utilizando o algoritmo *Reciprocal Rank Fusion*, otimizando a assertividade da filtragem antes da injeção de contexto.
+## Mapas Arquiteturais dos Repositorios
 
-### Memória Conversacional Persistente
-A arquitetura RAG mantém o fluxo do estado conversacional salvando o histórico estruturado de interações no banco de dados e realimentando restritamente o "context memory buffer" do LLM em solicitações dinâmicas de conversas sequenciais.
-
-### Sincronização Incremental 
-A rotina de ingestão de arquivos processa unicamente os deltas diferenciais (arquivos criados, alterados ou sistematicamente deletados). Através de validação por **Hash SHA256** (cache LRU em memória), a recontagem estrita atinge drástica redução no custo computacional.
-
-### Sistema Multi-Agente O.S Nativo
-A orquestração cognitiva é delimitada através do encapsulamento de agentes modulares em workflows direcionados: **The Mom**, **The Dad** (Orquestração de Dados e I/O), **The Nurse** (Roteamento Semântico e Classificação de Requisições), **The Doctor** (Análise RAG, Prompt Engineering), **The Coder** (Validação e Geração de Lógica de Software) e **The Accountant** (Auditoria de Casos Extremos Multivariáveis). 
-A alta escala de mapeamento físico e de paralelismo em embeddings foi nativamente escrita e portabilizada da nuvem para **Rust**, valendo-se estritamente das dependências computacionais `Rayon` (Multi-Threading de Kernel) e `notify` (File-Watcher OS).
-
-### Segurança da Arquitetura (Zero-Trust)
-O ambiente restringe severamente endpoints não autenticados via bloqueio originário de preflights (CORS) e Application-Level Middleware Control. Validações contra *Prompt Injections* mitigam que vetores de pesquisa retornem payloads executáveis na Dashboard do Sistema. O projeto garante verificações de CI/CD (SAST/DAST) nos merges e branches de infraestrutura.
-
----
-
-## Instalação e Requisitos
-
-### Pré-Requisitos Computacionais
-- Sistema Linux / WSL2
-- Python 3.10+
-- Node.js 18+ (Para compilação dos Módulos Web e Plugin)
-- Ollama runtime system (se for configurar como endpoint estritamente local)
-
-### Procedimentos Básicos de Deploy
-
-> **Aviso de Compatibilidade de Infra (Cloud-Init):**  
-> Os metadados Terraform e as rotinas automatizadas de Continuous Deployment preveem explicitamente que a raiz da hospedagem esteja no diretório `/opt/sovereign-pair/`.
-
-**Infraestrutura Linux (Nós de Produção):**
-```bash
-cd /opt
-sudo git clone https://github.com/Personal-Digital-Sovereignty/sovereign-pair.git
-cd sovereign-pair
-```
-
-**Workstations Isoladas (Desenvolvimento e Uso Pessoal):**
-```bash
-git clone https://github.com/Personal-Digital-Sovereignty/sovereign-pair.git
-cd sovereign-pair
-cargo build --release
-```
-
-**2. Injeção de Variáveis .env**
-Crie a estrutura declarativa copiando o arquivo fornecido pelo repositório:
-```bash
-cp .env.template .env
-```
-*(As propriedades técnicas `EMBED_MODEL`, `LLM_MODEL` e `CORS_ORIGINS` necessitam estar alinhadas à arquitetura planejada.)*
-
-**3. Inicialização e Mapeamento O.S Base**
-Estabeleça parâmetros seguros executando o build originário via ferramentas nativas:
-```bash
-cargo run --bin sovereign-axum
-```
-
----
-
-## Estratégias Operacionais de Deploy
-
-### Cliente e Agente CLI Isolado
-Para debugar rapidamente inferências assíncronas no seu Vector DB interno, o diretório disponibiliza uma abstração direta via executável compilado CLI, dispensando instâncias REST ativas.
-```bash
-cargo run --bin sovereign-cli chat
-```
-
-### Topologias de Implantação e Contêiner
-
-**Cenário de Deploy Integral Web-Only (Cloud OCI)**  
-Ambiente executado exclusivamente na Nuvem (API, Workers DAST, Ollama em rede isolada mTLS e SQLite persistido em Volumes Lógicos Cloud).
-```bash
-docker compose -f infra/docker/docker-compose.yml up -d --build
-```
-
-**Cenário Edge Computing Bare Metal (Nó Local)**  
-Recurso voltado a Desktops potentes, transferindo 100% da carga operacional (Rust, RAG, Web GUI e GPUs físicas da máquina base) sob isolamento local.
-```bash
-docker compose -f infra/docker/docker-compose.local.yml up -d --build
-```
-
----
-
-## Mapas Arquiteturais dos Repositórios
-
-- `src-rust/` - Contratos técnicos de processamento modular Rust (The Sentinel, The Nurse) e Retriever Vetorial O.S.
-- `src-rust/api/` - Entregas de Rota via Axum (Tokio Threads), Integração de Sessões Vector DB.
-- `docs/` - Acondiciona manifestos técnicos da construção da aplicação, incluindo design system e logs de refatoramento.
-- `infra/` - Assets Terraform, dockerfiles otimizantes, shell-scripts e cloud-inits.
-- `data/` - Volume compartilhado contendo dados primários e banco relacional masterizado (`sqlite-vec`).
-- `web-ui/` - Camada VUE PWA para visualizações gerenciais.
-
-Para detalhes arquiteturais microscópicos de serviços internos, indexe-se ao manual [Architecture Overview](docs/01_architecture_and_philosophy.pt-BR.md).
-
----
-
-## Ciclos de Vida (Testes de Memória e Lógica Rust)
-
-O repositório nativamente possui testes unitários acoplados via diretrizes Cargo Test e Memory Isolation cobrindo Edge e End-to-End no Engine.
-
-```bash
-# Validar toda a bateria de automação em sub-módulos unitários Rust System O.S
-cargo test
-cargo clippy
-```
+- core/ - Contratos tecnicos de processamento modular Rust e Retriever Vetorial O.S.
+- svelte-ui/ - Camada Svelte 5 para visualizacoes gerenciais.
+- docs/ - Acondiciona manifestos tecnicos da construcao da aplicacao.
+- infra/ - Assets Terraform e shell-scripts cloud-inits.
 
 ---
 
 ## Licenciamento de Software
 
-O código fonte restritivo encontra-se sob regimento validado da [**PolyForm Noncommercial License 1.0.0**](https://polyformproject.org/licenses/noncommercial/1.0.0).
+O codigo fonte restritivo encontra-se sob regimento validado da PolyForm Noncommercial License 1.0.0.
 
-- **Limites de Aplicação Não Comercial**: De uso garantidamente liberado sem pagamento para finalidades particulares, estudo algorítmico acadêmico, sem fins lucrativos ou topologia de laboratórios domésticos (HomeLabs isolados). O código e os seus dados processados localmente mantêm-se protegidos de invasão corporativa corporativa.
-- **Implementação Comercial Restrita**: Nulamente permitido derivar o core vetorial e seu back-end, criar wrappers sob o fluxo, ou encapsular e alienar soluções pagas originárias ou parciais desta base para clientes B2C/B2B sem que obtenha-se documentada e assinada a vertente comercial de uma Autorização Proprietária do titular.
+- Limites de Aplicacao Nao Comercial: De uso garantidamente liberado sem pagamento para finalidades particulares, estudo algoritmico academico, sem fins lucrativos ou topologia de laboratorios domesticos (HomeLabs isolados). O codigo e os seus dados processados localmente mantem-se protegidos de invasao corporativa.
+- Implementacao Comercial Restrita: Nulamente permitido derivar o core vetorial e seu back-end, criar wrappers sob o fluxo, ou encapsular e alienar solucoes pagas originarias ou parciais desta base para clientes B2C/B2B sem que obtenha-se documentada e assinada a vertente comercial de uma Autorizacao Proprietaria do titular.
 
-Para alinhamentos voltados a implantações empresariais de software robusto, acione corporativamente via: jefersonlopes@proton.me.# Sovereign Pair - Desktop Application
-
-Este é o cliente Desktop nativo e multiplataforma do **Sovereign Pair**, construído com **Tauri**, **Vue 3** e **Rust**. Ele atua como um widget "Spotlight" invisível no System Tray do seu Sistema Operacional, oferecendo acesso instantâneo aos Agentes Cíbridos através da sua bandeja do sistema. **A partir da versão V0.4.0, o aplicativo embuti nativamente o servidor `sovereign-core` (via Tauri Sidecar Architecture)**, o que significa que o banco vetorial, o file-watcher nativo e a API RAG são iniciados rotineiramente em background no modo Plug-and-Play assim que vocẽ abre o App.
-
-## 🛠️ Como Compilar Nativamente (Para Hackers & Devs Avançados)
-
-Se você não quer confiar nos binários pré-compilados do GitHub Releases e prefere gerar o seu próprio instalador super otimizado na sua máquina, siga os passos abaixo.
-
-### 1. Pré-requisitosGlobais
-Você precisará ter instalado na sua máquina:
-1. [Node.js](https://nodejs.org/) (v20+)
-2. [Rust / Cargo](https://rustup.rs/) (Stable)
-
-### 2. Dependências do Sistema Operacional
-
-#### 🐧 Linux (Debian / Ubuntu)
-O Tauri exige que bibliotecas nativas como o WebKit e o GTK estejam presentes para embutir o motor do navegador na janela transparente.
-```bash
-sudo apt-get update
-sudo apt-get install -y libwebkit2gtk-4.1-dev \
-    build-essential \
-    curl \
-    wget \
-    file \
-    libxdo-dev \
-    libssl-dev \
-    libayatana-appindicator3-dev \
-    librsvg2-dev
-```
-
-#### 🍎 MacOS
-Requer apenas a build chain da Apple. Instale via terminal:
-```bash
-xcode-select --install
-```
-
-#### 🪟 Windows
-Baixe e instale a [C++ Build Tools do Visual Studio](https://visualstudio.microsoft.com/visual-cpp-build-tools/). Mantenha marcado as opções de `Desenvolvimento para Desktop com C++` e os SDKs do Windows 10/11.
-
----
-
-### 3. Instalando Pacotes Frontend
-Entre na pasta do projeto desktop e instale as dependências Vue:
-```bash
-cd desktop
-npm install
-```
-
-### 4. Rodando em Modo Desenvolvedor (Hot-Reload)
-Se quiser testar ou modificar a UI do pop-up do relógio visualmente:
-```bash
-npm run tauri dev
-```
-*(O ícone circular do Sovereign Pair aparecerá no seu relógio/tray!)*
-
-### 5. Compilando o Embalamento Final (Build Release)
-Para gerar executáveis prontos para instalação (ex: `.deb`, `.AppImage`, `.msi`, `.dmg`):
-```bash
-npm run tauri build
-```
-O framework passará os parâmetros otimizados definidos no `src-tauri/Cargo.toml` (`opt-level = "z"`, `lto = true`). Quando terminado, os instaladores nativos estrão disponíveis na pasta:
-`desktop/src-tauri/target/release/bundle/`
-
-> **⚠️ Atenção (Modelos LLM):** Para preservar o instalador incrivelmente enxuto e performático (< 20MB), o Desktop App embute e orquestra automaticamente o servidor de Cérebro Cíbrido (`sovereign-core`) e seu Banco Vetorial Local. Contudo, ele **não embute Modelos LLM em Rede Neural** internamente. A API comunicará-se ativamente com as *Cloud APIs* ou priorizará uma instância de **Ollama** rodando localmente no seu hardware para processar a inferência de textos e geração lógica densa.
-
-### 6. Contornando Alertas de Segurança (Nightlies & Releases)
-
-Como o Sovereign Pair prioriza a soberania digital e opera de forma nativa Open-Source, os instaladores (`.msi`, `.dmg`, `.app`) fornecidos nas abas de Release do GitHub não são criptograficamente assinados usando chaves corporativas pagas. Isso aciona os falsos-positivos nativos de segurança dos Sistemas Operacionais. Siga os passos abaixo na primeira execução:
-
-**Proteção do Windows (SmartScreen)**
-Na primeira vez que tentar instalar o arquivo final `.msi` ou executável, o Windows exibirá uma tela azul de bloqueio "O Windows protegeu o seu computador".
-1. Clique no texto sublinhado: **"Mais Informações"** (More Info).
-2. Assim que o botão surgir, clique em **"Executar assim mesmo"** (Run anyway).
-
-**Proteção da Apple (MacOS Gatekeeper)**
-O MacOS é severo com arquivos Open-Source não registrados (Ad-Hoc Signing). Ao arrastar o `SovereignPair.app` para dentro da pasta `Applications`, se você tentar abrir, o Mac pode emitir um pop-up de alerta severo avisando que "O aplicativo está danificado e deve ser movido para a lixeira". Para sanar a restrição de Quarentena:
-1. Abra o **Terminal** nativo do seu Mac.
-2. Cole exatamente o seguinte comando para limpar o atributo estendido de quarentena do Gatekeeper:
-   `xattr -cr /Applications/SovereignPair.app`
-3. Após o Enter silencioso, clique no aplicativo Sovereign Pair e ele abrirá perfeitamente.
+Para alinhamentos voltados a implantacoes empresariais de software robusto, acione corporativamente via: jefersonlopes@proton.me.
