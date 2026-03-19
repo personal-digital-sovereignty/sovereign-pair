@@ -59,9 +59,9 @@ jobs:
         run: |
           echo "Buscando o log mestre do último sucesso (State)..."
           LAST_RUN=$(gh run list --workflow "Deploy Sovereign Cibrid Cloud (OCI)" --status success --branch main --limit 1 --json databaseId -q '.[0].databaseId')
-          if [ "$LAST_RUN" != "null" ] && [ ! -z "$LAST_RUN" ]; then
+          if [ "$LAST_RUN" != "null" ] && [ -n "$LAST_RUN" ]; then
             echo "Ultima run viavel: $LAST_RUN. Fazendo download do estado criptografado..."
-            gh run download $LAST_RUN -n tofu-state -D . || echo "Sem artefato de state prévio encontrado."
+            gh run download "$LAST_RUN" -n tofu-state -D . || echo "Sem artefato de state prévio encontrado."
             
             if [ -f "terraform.tfstate.gpg" ]; then
               echo "Descriptografando infra-state OCI injetado..."
