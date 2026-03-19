@@ -54,10 +54,8 @@ runcmd:
   - sudo bash -c "nohup ollama pull qwen2.5-coder:7b > /var/log/ollama_pull_coder.log 2>&1 &"
   - sudo bash -c "nohup ollama pull llama3.2:3b > /var/log/ollama_pull_doctor.log 2>&1 &"
 
-  # 6. Install Rust Toolchain & Node.js
-  - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-  - curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-  - sudo apt-get install -y nodejs build-essential
+  # 6. Legacy Compilers Removed (Moved to Github Actions CI)
+  # Rust and Node.js are no longer installed on the Baremetal OCI.
 
   # 7. Disable IPv6 to optimize local VCN routing
   - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
@@ -74,15 +72,8 @@ runcmd:
   - sudo tailscale up --authkey=${tailscale_auth_key} --ssh --accept-dns=true --hostname=sovereign-coder
   - sleep 10
   
-  # 10. Compile Svelte UI Framework
-  - sudo sh -c "cd /opt/sovereign-pair/svelte-ui && npm ci && npm run build"
-
-  # 11. Compile Sovereign Cibrid Core (Rust Native)
-  - sudo -u root bash -c "source \$HOME/.cargo/env && cd /opt/sovereign-pair/core && cargo build --release"
-  
-  # 12. Dematerialize into Systemd Daemon
-  - sudo cp /opt/sovereign-pair/core/target/release/sovereign-core /usr/local/bin/
+  # 10. Copy Systemd Daemon Configuration
   - sudo cp /opt/sovereign-pair/scripts/sovereign.service /etc/systemd/system/
   - sudo systemctl daemon-reload
   - sudo systemctl enable sovereign
-  - sudo systemctl start sovereign
+  # Note: The service will be started via Terraform remote-exec after downloading the Release Binary.
