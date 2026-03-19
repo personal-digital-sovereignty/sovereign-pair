@@ -629,15 +629,14 @@ pub async fn vault_graph_handler(
             let target_id = basename_to_id.get(&link_target)
                 .or_else(|| basename_to_id.get(&link_target_with_ext));
 
-            if let Some(t_id) = target_id {
-                if *t_id != source_id {
+            if let Some(t_id) = target_id
+                && *t_id != source_id {
                     links.push(GraphLink {
                         source: source_id.clone(),
                         target: t_id.clone(),
                         r#type: "semantic".to_string(),
                     });
                 }
-            }
         }
     }
 
