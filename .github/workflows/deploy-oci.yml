@@ -65,7 +65,8 @@ jobs:
             
             if [ -f "terraform.tfstate.gpg" ]; then
               echo "Descriptografando infra-state OCI injetado..."
-              gpg --quiet --batch --yes --decrypt --passphrase "$STATE_PASSWORD" --output terraform.tfstate terraform.tfstate.gpg
+              SYMMETRIC_KEY=$(echo "$STATE_PASSWORD" | sha256sum | awk '{print $1}')
+              echo "$SYMMETRIC_KEY" | gpg --quiet --batch --yes --decrypt --passphrase-fd 0 --output terraform.tfstate terraform.tfstate.gpg
               echo "✅ Estado carregado com sucesso na maquina runner!"
             fi
           else
@@ -119,7 +120,8 @@ jobs:
         run: |
           if [ -f "terraform.tfstate" ]; then
             echo "Criptografando estado da infraestrutura Oracle para retenção..."
-            gpg --quiet --batch --yes --symmetric --cipher-algo AES256 --passphrase "$STATE_PASSWORD" --output terraform.tfstate.gpg terraform.tfstate
+            SYMMETRIC_KEY=$(echo "$STATE_PASSWORD" | sha256sum | awk '{print $1}')
+            echo "$SYMMETRIC_KEY" | gpg --quiet --batch --yes --symmetric --cipher-algo AES256 --passphrase-fd 0 --output terraform.tfstate.gpg terraform.tfstate
           fi
 
       - name: Upload Encrypted State Artifact
