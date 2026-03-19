@@ -2,16 +2,18 @@
 
 All notable changes to the Sovereign Pair project will be documented in this file.
 
-## [v0.6.0] - 2026-03-19
+## [v0.7.0] - 2026-03-19
+### 🚀 Major Release - Svelte Mesh, Multi-Workspaces & Native CI/CD
+
 ### Added
 - Complete migration of frontend architecture from Vue 3 to Native Svelte 5.
 - Epic `Estabilidade e Certificação` effectively concluded (Vitest + Playwright).
-- TipTap ProseMirror integrated directly with native DOM manipulations, eliminating Vue Virtual DOM memory leaks (Render Glitch Fixed).
+- TipTap ProseMirror integrated directly with native DOM manipulations, eliminating Vue Virtual DOM memory leaks.
 - Real-time Hardware Telemetry (T/s + VRAM) bonded natively to the OS Shell using Svelte `$state` tracking.
 - KDE Plasma Widget Systray physically opens the Cybrid Web Hub (`127.0.0.1:38001`) bypassing obsolete Vue router links.
-- Unit Testing, A11y Verification, and E2E Headless Browser validation suites implemented.
-
-### Removed
+- Cross-OS CI/CD Action compiling native `windows-amd64`, `linux-amd64` and `macos-arm64` static executables.
+- Complete system decoupling from Docker/Virtualization, elevating the core to Baremetal execution.
+- Workspaces Sync via Sovereign Mesh (P2P), including .cybrid JSON credential roaming.
 - Purged the entire Vue 3 `web-ui` directory.
 - Deprecated legacy `vue-plugin` architectural footprints.
 - Emojis unconditionally purged across the OS layout logic.
