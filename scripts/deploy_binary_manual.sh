@@ -29,7 +29,7 @@ ssh -o StrictHostKeyChecking=no ubuntu@$SERVER_IP << EOF
     cd /tmp/sovereign
     
     echo "🔽 Baixando release binário da API Github..."
-    TAR_URL="\$(curl -sH \"Authorization: Bearer $GH_TOKEN\" https://api.github.com/repos/Personal-Digital-Sovereignty/sovereign-pair/releases/tags/$RELEASE_TAG | grep browser_download_url | grep sovereign-core-linux-arm64-binary | cut -d '\"' -f 4)"
+    TAR_URL=\$(curl -sH "Authorization: Bearer $GH_TOKEN" https://api.github.com/repos/Personal-Digital-Sovereignty/sovereign-pair/releases/tags/$RELEASE_TAG | grep browser_download_url | grep sovereign-core-linux-arm64-binary | cut -d '"' -f 4)
     
     if [ -z "\$TAR_URL" ]; then
         echo "❌ Erro: Não foi possível obter a URL do artefato na Release $RELEASE_TAG."
