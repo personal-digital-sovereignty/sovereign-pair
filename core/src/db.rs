@@ -49,9 +49,9 @@ pub async fn init_pool() -> SqlitePool {
     // Garante a existência da Multi-Drive Tabela
     let _ = sqlx::query("
         CREATE TABLE IF NOT EXISTS workspaces (
-            id TEXT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            absolute_path TEXT NOT NULL UNIQUE,
+            path TEXT NOT NULL UNIQUE,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     ").execute(&pool).await;
@@ -81,9 +81,9 @@ pub async fn init_pool() -> SqlitePool {
     });
 
     let _ = sqlx::query("
-        INSERT INTO workspaces (id, name, absolute_path)
-        SELECT 'default', 'Origin Vault', ?
-        WHERE NOT EXISTS (SELECT 1 FROM workspaces WHERE id = 'default')
+        INSERT INTO workspaces (id, name, path)
+        SELECT 1, 'Origin Vault', ?
+        WHERE NOT EXISTS (SELECT 1 FROM workspaces WHERE id = 1)
     ").bind(&path_str).execute(&pool).await;
 
     pool

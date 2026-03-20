@@ -643,3 +643,60 @@ pub async fn vault_graph_handler(
     let res = GraphResponse { nodes, links };
     (axum::http::StatusCode::OK, Json(res)).into_response()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::StatusCode;
+    use sqlx::sqlite::SqlitePoolOptions;
+
+    async fn setup_test_db() -> sqlx::SqlitePool {
+        let pool = SqlitePoolOptions::new()
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+
+        sqlx::query("
+            CREATE TABLE IF NOT EXISTS workspaces (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                path TEXT NOT NULL UNIQUE,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        ").execute(&pool).await.unwrap();
+
+        sqlx::query("
+            INSERT INTO workspaces (id, name, path)
+            SELECT 1, 'Origin Vault', '/mock/origin'
+        ").execute(&pool).await.unwrap();
+
+        pool
+    }
+
+    #[tokio::test]
+    async fn test_create_and_list_workspaces() {
+        let db = setup_test_db().await;
+        // Mock State for the test environment
+        let (log_sender, _) = tokio::sync::broadcast::channel(16);
+        let (sync_sender, _) = tokio::sync::broadcast::channel(16);
+        
+        let state = Arc::new(crate::AppState { 
+            db, 
+            http_client: reqwest::Client::new(),
+            vault_path: std::path::PathBuf::from("/tmp"),
+            telemetry: std::sync::Arc::new(std::sync::RwLock::new(crate::telemetry::TelemetryState::new())),
+            log_sender,
+            sync_sender,
+        });
+
+        // 1. Test POST /workspaces (Creation)
+        // Note: Canonicalize() will fail on abstract non-existing paths, so we use a safe mock OS directory like "/" or "/tmp".
+        let req = CreateWorkspaceReq { name: "Test WS".into(), path: "/tmp".into() };
+        let creation_resp = create_workspace_handler(State(state.clone()), Json(req)).await.into_response();
+        assert_eq!(creation_resp.status(), StatusCode::CREATED, "Failed asserting the creation of a new Workspace via Database Schema");
+
+        // 2. Test GET /workspaces (Listing)
+        let list_resp = list_workspaces_handler(State(state.clone())).await.into_response();
+        assert_eq!(list_resp.status(), StatusCode::OK, "Failed asserting execution of the workpsaces query");
+    }
+}
