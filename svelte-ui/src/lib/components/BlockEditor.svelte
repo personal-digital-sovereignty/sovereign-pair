@@ -17,10 +17,13 @@
 
     let editorElement: HTMLElement;
     let editor: Editor | null = $state(null);
-    let rawMarkdown = $state(initialContent);
+    let rawMarkdown = $state("");
 
-    // Document Properties (Frontmatter)
-    let documentProperties = $state<Record<string, any>>({});
+    // Strict Typescript Document Properties Schema
+    type FrontmatterValue = string | number | boolean | null | string[];
+    type DocumentProperties = Record<string, FrontmatterValue>;
+
+    let documentProperties = $state<DocumentProperties>({});
     let showProperties = $state(false);
 
     let viewMode = $state<'visual' | 'split' | 'source'>('visual');
@@ -31,17 +34,17 @@
         if (match) {
             try {
                 return {
-                    frontmatter: yaml.load(match[1]) || {},
+                    frontmatter: yaml.load(match[1]) as DocumentProperties || ({} as DocumentProperties),
                     content: match[2] ? match[2].trimStart() : ''
                 };
             } catch (e) {
-                return { frontmatter: { _error: "Invalid YAML" }, content: md };
+                return { frontmatter: { _error: "Invalid YAML" } as DocumentProperties, content: md };
             }
         }
-        return { frontmatter: {}, content: md };
+        return { frontmatter: {} as DocumentProperties, content: md };
     };
 
-    const buildMarkdown = (content: string, propsObj: Record<string, any>) => {
+    const buildMarkdown = (content: string, propsObj: DocumentProperties) => {
         if (Object.keys(propsObj).length === 0) return content;
         try {
             const yamlStr = yaml.dump(propsObj);
@@ -53,8 +56,9 @@
 
     function syncToSource() {
         if (!editor) return;
-        // @ts-ignore
-        const currentContent = editor.storage.markdown.getMarkdown();
+        const storage = editor.storage as Record<string, any>;
+        const markdownStorage = storage.markdown as { getMarkdown: () => string };
+        const currentContent = markdownStorage.getMarkdown();
         const fullMarkdown = buildMarkdown(currentContent, documentProperties);
         rawMarkdown = fullMarkdown;
         onSave(fullMarkdown);
@@ -62,7 +66,8 @@
 
     onMount(() => {
         const parsed = parseFrontmatter(initialContent);
-        documentProperties = parsed.frontmatter as Record<string, any>;
+        rawMarkdown = initialContent;
+        documentProperties = parsed.frontmatter;
         
         editor = new Editor({
             element: editorElement,
@@ -83,8 +88,9 @@
                 }
             },
             onUpdate: ({ editor: e }) => {
-                // @ts-ignore
-                const currentContent = e.storage.markdown.getMarkdown();
+                const storage = e.storage as Record<string, any>;
+                const markdownStorage = storage.markdown as { getMarkdown: () => string };
+                const currentContent = markdownStorage.getMarkdown();
                 const fullMarkdown = buildMarkdown(currentContent, $state.snapshot(documentProperties));
                 rawMarkdown = fullMarkdown;
                 onSave(fullMarkdown);
@@ -182,7 +188,7 @@
                            <div class="flex items-center gap-2">
                                <input value={key} readonly class="text-xs bg-transparent text-surface-500 border border-surface-700 rounded px-2 py-1 w-32" />
                                <span class="text-surface-600">:</span>
-                               <input value={value} oninput={e => {
+                               <input value={String(value ?? '')} oninput={e => {
                                    documentProperties[key] = (e.currentTarget as HTMLInputElement).value;
                                    syncToSource();
                                }} class="flex-1 text-sm bg-surface-900 border border-surface-700 rounded px-3 py-1 text-surface-300" />

@@ -1,11 +1,6 @@
 name: "Deploy Sovereign Cibrid Cloud (OCI)"
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'infra/terraform/**'
   workflow_dispatch:
     inputs:
       action:
@@ -17,7 +12,7 @@ on:
           - apply
           - destroy
       release_version:
-        description: 'Release Target (Ex: 0.7.1, 0.7.0, nightly, ou deixe "latest")'
+        description: 'Artefato a Imputar (Ex: 0.7.3, 0.7.2, nightly, ou deixe "latest")'
         required: true
         default: 'latest'
         type: string
