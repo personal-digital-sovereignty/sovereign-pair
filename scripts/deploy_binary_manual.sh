@@ -37,7 +37,7 @@ ssh -o StrictHostKeyChecking=no ubuntu@$SERVER_IP << EOF
     fi
     
     echo "🌐 Baixando de \$TAR_URL ..."
-    wget -qO sovereign-core --header="Authorization: Bearer $GH_TOKEN" --header="Accept: application/octet-stream" "\$TAR_URL"
+    curl -sL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/octet-stream" "\$TAR_URL" -o sovereign-core
     
     chmod +x sovereign-core
     sudo mv sovereign-core /usr/local/bin/sovereign-core
