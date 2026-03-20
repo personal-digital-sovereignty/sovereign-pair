@@ -46,8 +46,7 @@ runcmd:
   # 1. Manually trigger non-interactive apt installations
   - export DEBIAN_FRONTEND=noninteractive
   - sudo -E apt-get update -y
-  - sudo -E apt-get upgrade -y
-  - sudo -E apt-get install -y curl wget git zram-tools sqlite3
+  - sudo -E DEBIAN_FRONTEND=noninteractive apt-get install -y curl wget git zram-tools sqlite3
   
   # 2. Apply ZRAM Config for Heavy LLMs
   - sudo systemctl enable --now zramswap
