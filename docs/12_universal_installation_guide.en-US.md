@@ -45,9 +45,13 @@ Designed for ARM64 / Ampere A1 processors running inside scalable cloud architec
    ```
 
 2. **Curl the Stable Release**:
-   Since the server is headless, utilize `wget` to capture the native executable explicitly compiled by the `publish-stable` continuous integration pipeline:
+   Since the server is headless, utilize `wget` or `curl` to capture the native executable explicitly compiled by the `publish-stable` continuous integration pipeline:
    ```bash
+   # Via wget
    wget https://github.com/Personal-Digital-Sovereignty/sovereign-pair/releases/download/0.8.0/sovereign-core-linux-arm64-binary -O sovereign-core
+   
+   # Or via curl
+   curl -L https://github.com/Personal-Digital-Sovereignty/sovereign-pair/releases/download/0.8.0/sovereign-core-linux-arm64-binary -o sovereign-core
    ```
    *(Replace `0.8.0` with the current target tag if tracking a newer release).*
 
