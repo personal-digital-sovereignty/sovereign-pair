@@ -1,9 +1,9 @@
 use tauri::{menu::{Menu, MenuItem}, tray::TrayIconBuilder, Manager};
-use std::path::PathBuf;
+#[cfg(target_os = "linux")]
 use fs_extra::dir::{copy, CopyOptions};
 
 #[tauri::command]
-async fn install_desktop_widgets(app: tauri::AppHandle) -> Result<String, String> {
+async fn install_desktop_widgets(#[allow(unused_variables)] app: tauri::AppHandle) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
         let resource_dir = app.path().resource_dir().map_err(|_| "Falha ao obter pasta de recursos")?;
