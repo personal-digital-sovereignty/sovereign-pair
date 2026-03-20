@@ -10,7 +10,7 @@
             }
         ],
         "Id": "org.sovereign.pair.widget",
-        "Version": "1.0",
+        "Version": "0.8.0",
         "Website": "https://sovereignpair.local"
     },
     "X-Plasma-API-Minimum-Version": "6.0",
