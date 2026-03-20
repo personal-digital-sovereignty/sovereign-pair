@@ -24,8 +24,20 @@ write_files:
     owner: root:root
     permissions: '0644'
 
+bootcmd:
+  # Oracle's default DHCP resolver (169.254.169.254) can blackhole Ubuntu instances on ARM A1.
+  # We forcefully override systemd-resolved to use resilient external DNS before any apt command runs.
+  - mkdir -p /etc/systemd/resolved.conf.d
+  - echo "[Resolve]\nDNS=8.8.8.8 1.1.1.1" > /etc/systemd/resolved.conf.d/dns_servers.conf
+  - systemctl restart systemd-resolved
+  # Desabilita IPv6 estritamente no boot para acelerar networking stack
+  - sysctl -w net.ipv6.conf.all.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.default.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.lo.disable_ipv6=1
+
 runcmd:
   # Aquece o network stack (DHCP/DNS) do Oracle OCI antes do gatilho principal
+
   - sleep 20
 
   # 0. Fix Oracle's broken regional APT mirrors strictly before any apt command
@@ -34,8 +46,7 @@ runcmd:
   # 1. Manually trigger non-interactive apt installations
   - export DEBIAN_FRONTEND=noninteractive
   - sudo -E apt-get update -y
-  - sudo -E apt-get upgrade -y
-  - sudo -E apt-get install -y curl wget git zram-tools sqlite3
+  - sudo -E DEBIAN_FRONTEND=noninteractive apt-get install -y curl wget git zram-tools sqlite3
   
   # 2. Apply ZRAM Config for Heavy LLMs
   - sudo systemctl enable --now zramswap
@@ -51,16 +62,11 @@ runcmd:
   - sudo systemctl restart ollama
 
   # 5. Pull The Coder (and The Doctor) Models Asynchronously
-  - sudo bash -c "nohup ollama pull qwen2.5-coder:7b > /var/log/ollama_pull_coder.log 2>&1 &"
-  - sudo bash -c "nohup ollama pull llama3.2:3b > /var/log/ollama_pull_doctor.log 2>&1 &"
+  - sudo bash -c "sleep 15 && nohup ollama pull qwen2.5-coder:7b > /var/log/ollama_pull_coder.log 2>&1 &"
+  - sudo bash -c "sleep 15 && nohup ollama pull llama3.2:3b > /var/log/ollama_pull_doctor.log 2>&1 &"
 
   # 6. Legacy Compilers Removed (Moved to Github Actions CI)
   # Rust and Node.js are no longer installed on the Baremetal OCI.
-
-  # 7. Disable IPv6 to optimize local VCN routing
-  - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
-  - sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
-  - sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
 
   # 8. Clone Sovereign Pair and Spin Up Baremetal Architecture
   - git clone https://${pat_ghcr}@github.com/Personal-Digital-Sovereignty/sovereign-pair.git /opt/sovereign-pair
