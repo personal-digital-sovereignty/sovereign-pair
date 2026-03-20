@@ -17,6 +17,10 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 - **Fail-Fast Remote-Exec e Token Sync no OCI**: O script de injeção direta via SSH no Terraform (`compute.tf`) estava engolindo exceções (`gh: command not found`) com sucesso falso em exit loops. Refatorada a string para possuir validação `set -ex` (explodindo falhas críticas no log) e `always_run=timestamp()` forçando re-runs da action caso a instância suba órfã.
 - **Oracle VCN DNS Blackhole**: Injetada diretiva estrita via `bootcmd` no `cloud-init` do Arch Linux/Ubuntu OCI para forçar a pré-configuração do `systemd-resolved` com DNS resilientes (8.8.8.8, 1.1.1.1) contornando o DHCP defeituoso nativo do OCI (`169.254.169.254`) que impossibilitava resoluções cruciais de espelhos APT e Github.
 - **ActionLint e Semgrep Strictness (Gate 0 e 1)**: Refatorados comandos bash e re-alocadas variáveis de contexto Github para passar sob a malha fina da esteira CI Global. Neutralizada uma falsa vulnerabilidade de Shell-Injection capturada ativamente pelo SAST.
+- **Zero-Trust KMS Encryption (SQLite)**: Subtituído o uso altamente perigoso de `unsafe { env::set_var }` por um cache atômico `OnceLock` para a Master Key, varrendo ativamente event log buffers com `zeroize()` para evitar vazamento do vetor criptografado GCM na Memória RAM.
+- **SQLite Constraint Trap**: Corrigido um gap colossal onde a API Cíbrida enviava Inteiros Mágicos contra um esquema de banco aguardando UUIDs textuais no instante de criação de um Workspace Global, causando pânico fatal na inicialização de um OCI nativo.
+- **Rust Unit Testing (Sovereign Core)**: Implementada uma Sandbox SQLite `in-memory` com mocks perfeitos de `tokio::sync::broadcast` para comprovar a eficácia contra Deadlocks e validar a consistência do Router Axum durante Ingestão de Diretórios.
+
 ## [0.7.1] - 2026-03-19
 ### Changed
 - **CI/CD Unification**: FOSS DevSecOps matrices now strictly precede the Standalone Multi-OS Builder, forging a single sequential vulnerability-free build pipeline (`ci.yml`).

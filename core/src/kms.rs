@@ -12,47 +12,52 @@ use zeroize::Zeroize;
 
 const KEK_ENV_VAR: &str = "SOVEREIGN_MASTER_KEK";
 
+use std::sync::OnceLock;
+
+static MASTER_KEY: OnceLock<[u8; 32]> = OnceLock::new();
+
 /// Obtém a chave mestra de criptografia (KEK).
-/// Se não existir, gera uma chave aleatória de 256 bits (32 bytes),
-/// salva no arquivo `.env` local e retorna.
+/// Thread-safe via OnceLock para evitar chamadas de r/w concorrentes que explodiriam o OS Env.
 fn get_or_generate_master_key() -> [u8; 32] {
-    let key_b64 = env::var(KEK_ENV_VAR).unwrap_or_else(|_| {
-        warn!("Módulo KMS: SOVEREIGN_MASTER_KEK não encontrada no ambiente. Gerando nova Chave de Segurança O.S...");
+    *MASTER_KEY.get_or_init(|| {
+        let key_b64 = env::var(KEK_ENV_VAR).unwrap_or_else(|_| {
+            warn!("Módulo KMS: SOVEREIGN_MASTER_KEK não encontrada no ambiente. Gerando nova Chave de Segurança O.S...");
+            let mut key_bytes = [0u8; 32];
+            OsRng.fill_bytes(&mut key_bytes);
+            let b64 = BASE64.encode(key_bytes);
+
+            // Registra a chave gerada no .env (para persistência do sistema do usuário)
+            if let Ok(mut file) = OpenOptions::new().append(true).open(".env") {
+                let config_line = format!("\n# Gerado automaticamente pelo Módulo SecOps (KMS) - REQUIRED FOR DECRYPTION\n{}={}\n", KEK_ENV_VAR, b64);
+                let _ = file.write_all(config_line.as_bytes());
+                info!("Módulo KMS: Nova chave injetada no arquivo .env local.");
+            } else {
+                warn!("Módulo KMS: Falha ao escrever no .env local. A chave será perdida no próximo boot se não for salva.");
+            }
+            // JAMAIS utilizar unsafe { env::set_var } num ambiente Tokio Multithreaded! (Causa UB e GLIBC segfaults).
+            b64
+        });
+
         let mut key_bytes = [0u8; 32];
-        OsRng.fill_bytes(&mut key_bytes);
-        let b64 = BASE64.encode(key_bytes);
-
-        // Registra a chave gerada no .env (para persistência do sistema do usuário)
-        if let Ok(mut file) = OpenOptions::new().append(true).open(".env") {
-            let config_line = format!("\n# Gerado automaticamente pelo Módulo SecOps (KMS) - REQUIRED FOR DECRYPTION\n{}={}\n", KEK_ENV_VAR, b64);
-            let _ = file.write_all(config_line.as_bytes());
-            info!("Módulo KMS: Nova chave injetada no arquivo .env local.");
-        } else {
-            warn!("Módulo KMS: Falha ao escrever no .env local. A chave será perdida no próximo boot se não for salva.");
+        if let Ok(mut decoded) = BASE64.decode(&key_b64) {
+            if decoded.len() == 32 {
+                key_bytes.copy_from_slice(&decoded);
+            } else {
+                warn!("Módulo KMS: A chave SOVEREIGN_MASTER_KEK não possui 32 bytes válidos. Usando derivação/zero.");
+            }
+            decoded.zeroize(); // Memory Wipe do vetor na heap
         }
-        
-        unsafe { env::set_var(KEK_ENV_VAR, &b64); }
-        b64
-    });
-
-    let mut key_bytes = [0u8; 32];
-    if let Ok(decoded) = BASE64.decode(&key_b64) {
-        if decoded.len() == 32 {
-            key_bytes.copy_from_slice(&decoded);
-        } else {
-            warn!("Módulo KMS: A chave SOVEREIGN_MASTER_KEK não possui 32 bytes válidos. Usando derivação/zero.");
-        }
-    }
-
-    key_bytes
+        key_bytes
+    })
 }
 
 /// Encripta uma string em AES-GCM 256
 pub fn encrypt_vault_secret(plaintext: &str) -> Option<String> {
     if plaintext.is_empty() { return None; }
 
-    let key = get_or_generate_master_key();
+    let mut key = get_or_generate_master_key();
     let cipher = Aes256Gcm::new(&key.into());
+    key.zeroize(); // Memory Wipe do array mestra na stack
 
     let mut nonce_bytes = [0u8; 12];
     OsRng.fill_bytes(&mut nonce_bytes);
@@ -79,8 +84,9 @@ pub fn decrypt_vault_secret(encrypted_b64: &str) -> Option<String> {
     let payload = BASE64.decode(encrypted_b64).ok()?;
     if payload.len() < 12 { return None; }
 
-    let key = get_or_generate_master_key();
+    let mut key = get_or_generate_master_key();
     let cipher = Aes256Gcm::new(&key.into());
+    key.zeroize(); // Memory Wipe do array mestra na stack
 
     let (nonce_bytes, ciphertext) = payload.split_at(12);
     let nonce = Nonce::from_slice(nonce_bytes);
