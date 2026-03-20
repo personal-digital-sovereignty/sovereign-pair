@@ -50,11 +50,11 @@ impl SyncEngine {
             // 1. Coletar e Atrelar todos os Workspaces do Banco de Dados Dinâmico
             #[derive(sqlx::FromRow)]
             #[allow(dead_code)]
-            struct PathRow { id: String, absolute_path: String }
+            struct PathRow { id: i64, path: String }
 
-            if let Ok(rows) = sqlx::query_as::<_, PathRow>("SELECT id, absolute_path FROM workspaces").fetch_all(&db).await {
+            if let Ok(rows) = sqlx::query_as::<_, PathRow>("SELECT id, path FROM workspaces").fetch_all(&db).await {
                 for row in rows {
-                    let ws_path = Path::new(&row.absolute_path);
+                    let ws_path = Path::new(&row.path);
                     if ws_path.exists() && ws_path.is_dir() {
                         // 2. Proteção de Polling Limitado (Config)
                         // A crate notify resolve internamente se precisa fazer fallback p/ Polling (em NFS/Network Drives).
@@ -194,11 +194,12 @@ impl SyncEngine {
         let _ = tx.send(job.clone());
         
         // Recupera o Workspace ID com base no Caminho do Arquivo
-        let workspace_id: String = sqlx::query_scalar("
-            SELECT id FROM workspaces WHERE ? LIKE absolute_path || '%' LIMIT 1
+        let workspace_id_raw: Option<i64> = sqlx::query_scalar("
+            SELECT id FROM workspaces WHERE ? LIKE path || '%' LIMIT 1
         ")
         .bind(&file_path)
-        .fetch_optional(&db).await.unwrap_or_default().unwrap_or_else(|| "default".to_string());
+        .fetch_optional(&db).await.unwrap_or_default();
+        let workspace_id = workspace_id_raw.map(|id| id.to_string()).unwrap_or_else(|| "default".to_string());
 
         for (i, chunk_text) in chunks.iter().enumerate() {
             let chunk_ref = format!("{}_{}", job.id, i);
