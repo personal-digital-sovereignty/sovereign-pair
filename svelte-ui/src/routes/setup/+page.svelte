@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { invoke } from '@tauri-apps/api/core';
+	import { desktopDir, join } from '@tauri-apps/api/path';
+	import { writeTextFile } from '@tauri-apps/plugin-fs';
 	import { Command } from '@tauri-apps/plugin-shell';
 
 	let statusLogs: string[] = [];
@@ -51,7 +53,24 @@
 			const output = await coreCommand.execute();
 			
 			if (output.code === 0) {
-				appendLog("✅ Sovereign Daemons e Extensões Instalados com Sucesso!");
+				appendLog("✅ Sovereign Daemons e Logs Inicializados!");
+				
+				appendLog("🧩 Injetando Widgets de Desktop (KDE/Gnome) no Espaço do Usuário Local...");
+				try {
+					const widgetMsg = await invoke("install_desktop_widgets") as string;
+					appendLog(`✅ ${widgetMsg}`);
+				} catch (wErr) {
+					appendLog(`⚠️ AVISO Widget: ${wErr}`);
+				}
+
+				try {
+					const deskPath = await join(await desktopDir(), "Sovereign_Install.log");
+					await writeTextFile(deskPath, statusLogs.join("\n"));
+					appendLog(`📄 Log de implantação exportado para a sua Área de Trabalho!`);
+				} catch (logErr) {
+					appendLog(`⚠️ Falha ao exportar Log: ${logErr}`);
+				}
+
 				setupComplete = true;
 			} else {
 				appendLog(`❌ Erro de Sistema: Permissão Negada ou Falha (Código ${output.code}). Tente rodar o instalador como Administrador.`);
@@ -123,6 +142,7 @@
 
 	.gradient-text {
 		background: linear-gradient(135deg, #a370f7, #5a4fcf);
+		background-clip: text;
 		-webkit-background-clip: text;
 		-webkit-text-fill-color: transparent;
 		font-size: 2.2rem;

@@ -2,6 +2,15 @@
 
 All notable changes to the Sovereign Pair project will be documented in this file.
 
+## [0.8.0] - 2026-03-20
+
+### Adicionado
+- **Universal Installers & GUI Setup**: Lançamento do Instalador Visual Tauri v2. O App engloba o Backend RUST injetado via `externalBin` e executa um Setup Wizard na primeira inicialização da Dashboard Svelte.
+- **Arquitetura Cíbrida (Thin-Client e Fat-Daemon)**: O motor de dados e segurança (Sensus / SQLite) foi definitivamente movido para Background Daemons escalonados via `sudo/UAC/pkexec`.
+- **System Tray (Area de Notificação)**: Adicionado suporte cross-platform nativo para manter a engine ativa enquanto o Frontend webview é desligado com segurança de RAM.
+- **KDE Plasma & Shell Implants**: A injeção universal do `sovereign-pair-widget` (Plasmoids) e integrações nativas ocorrem silenciadas via `tauri-plugin-fs` como diretivas do "Usuário Local", anulando os riscos de vazamentos de superusuário do SysDaemon.
+- **Logs Nativos Desktop**: A atividade gerada entre o escalonamento do daemon e inicialização das extensões agora emite um `.log` limpo na visualização do Desktop do hospedeiro.
+
 ## [0.7.2] - 2026-03-19
 
 ### 🛡️ Pipeline DevSecOps: Estabilização e Zero-Downtime CD Fixes
