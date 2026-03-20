@@ -45,9 +45,13 @@ Ideal para processadores ARM64/Ampere A1 na Nuvem. Neste cenário, não há Desk
    ```
 
 2. **Capturar a Release**:
-   Como a instância não tem GUI, usaremos o `wget` para capturar a release compilada pela própria esteira `publish-stable`:
+   Como a instância não tem GUI, usaremos o `wget` ou `curl` para capturar a release compilada pela própria esteira `publish-stable`:
    ```bash
+   # Via wget
    wget https://github.com/Personal-Digital-Sovereignty/sovereign-pair/releases/download/0.8.0/sovereign-core-linux-arm64-binary -O sovereign-core
+   
+   # Ou via curl
+   curl -L https://github.com/Personal-Digital-Sovereignty/sovereign-pair/releases/download/0.8.0/sovereign-core-linux-arm64-binary -o sovereign-core
    ```
    *(Substitua `0.8.0` pela tag atual caso lance versões novas).*
 
