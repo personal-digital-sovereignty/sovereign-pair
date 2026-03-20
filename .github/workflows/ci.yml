@@ -204,7 +204,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Package KDE Plasma 6 Widget
-        working-directory: ./desktop/plasma-widget
+        working-directory: ./infra/plasma-widget
         run: |
           # A KDE .plasmoid is dynamically just a structurally valid ZIP file
           zip -r ../../sovereign-pair-widget.plasmoid metadata.json contents/
