@@ -20,6 +20,7 @@ pub mod mcp;
 pub mod ssh_mesh_connector;
 pub mod mesh_installer;
 pub mod mesh_router;
+pub mod os_installer;
 
 use axum::{routing::post, Router, response::IntoResponse, http::{header, StatusCode, Uri}};
 use reqwest::Client;
@@ -182,8 +183,15 @@ async fn main() {
         .layer(axum::middleware::from_fn(network::lan_auth_guard))
         .with_state(state);
 
-    // Parsing CLI arguments to allow dynamic Host binding (Desktop vs Hub Mode)
+    // Parsing CLI arguments to allow dynamic Host binding or Headless Installation
     let args: Vec<String> = std::env::args().collect();
+    
+    if args.iter().any(|a| a == "--setup") {
+        tracing::info!("🛠️ [Headless Wizard] Iniciando rotina nativa de instalação OS/Daemons...");
+        os_installer::run_headless_setup().await;
+        std::process::exit(0);
+    }
+
     let mut host_address = "127.0.0.1:38001".to_string(); // Default to secure localhost
 
     let mut i = 1;
