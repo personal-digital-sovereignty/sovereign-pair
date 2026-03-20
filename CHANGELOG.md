@@ -2,6 +2,12 @@
 
 All notable changes to the Sovereign Pair project will be documented in this file.
 
+## [0.7.3] - 2026-03-20
+
+### 🛡️ DevSecOps & Estabilização Extrema
+- **Bloqueio de Autorização Manual OCI (No-GitOps)**: Desativados completamente os gatilhos CI/CD automáticos do OpenTofu (`on: push`). O ciclo de Deploy para Nuvem (A1) agora é **100% Manual via Workflow Dispatch**, impedindo mutações não-solicitadas e "corridas" contra binários corrompidos no Storage. Inclusivo suporte visual na listagem de *Workflows* para imputação determinística de versão de artefato semântico ou `nightly`.
+- **Benchmarking de Latência Extrema (Hyper-Stress)**: Escrito e acoplado teste de carga multi-thread na base Cíbrida (Axum/SQLite WAL). O nó virtual injetou 10.000 requisições simultâneas assíncronas no pool do Banco atingindo throughput oficial absoluto de > 31.000 RPS (Requests p/ Segundo) limitados pela thread OS.
+
 ## [0.7.2] - 2026-03-19
 
 ### 🛡️ Pipeline DevSecOps: Estabilização e Zero-Downtime CD Fixes
