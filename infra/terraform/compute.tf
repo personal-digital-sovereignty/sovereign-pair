@@ -27,7 +27,6 @@ resource "oci_core_instance" "the_coder" {
   create_vnic_details {
     subnet_id        = oci_core_subnet.public_subnet.id
     display_name     = "sovereign-coder"
-    hostname_label   = "sovereign-coder"
     assign_public_ip = true
   }
 
@@ -63,6 +62,7 @@ resource "null_resource" "deploy_release" {
   triggers = {
     release_version = var.release_version
     instance_id     = oci_core_instance.the_coder.id
+    always_run      = timestamp()
   }
 
   connection {
@@ -75,6 +75,7 @@ resource "null_resource" "deploy_release" {
 
   provisioner "remote-exec" {
     inline = [
+      "set -ex",
       "echo 'Waiting for cloud-init to finish (if newly created)...'",
       "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do sleep 5; done",
       "echo 'Deploying Sovereign Pair Release: ${var.release_version}'",
@@ -82,7 +83,15 @@ resource "null_resource" "deploy_release" {
       "mkdir -p /tmp/sovereign",
       "cd /tmp/sovereign",
       "export GH_TOKEN=${var.pat_ghcr}",
-      "if ! command -v gh &> /dev/null; then echo \"Installing GitHub CLI (gh)...\"; sudo mkdir -p -m 755 /etc/apt/keyrings && wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt-get update && sudo apt-get install gh -y; fi",
+      "if ! command -v gh &> /dev/null; then",
+      "  echo \"Installing GitHub CLI (gh)...\"",
+      "  sudo mkdir -p -m 755 /etc/apt/keyrings",
+      "  wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null",
+      "  sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg",
+      "  echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null",
+      "  while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do echo \"Waiting for apt lock...\"; sleep 5; done",
+      "  sudo apt-get update && sudo apt-get install gh -y",
+      "fi",
       "gh release download ${var.release_version} -R Personal-Digital-Sovereignty/sovereign-pair -p sovereign-core-linux-arm64-binary -O sovereign-core",
       "chmod +x sovereign-core",
       "sudo mv sovereign-core /usr/local/bin/sovereign-core",
