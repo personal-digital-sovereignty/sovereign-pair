@@ -64,7 +64,15 @@ Perfeito! O Tailscale dará à sua Oracle Cloud um IP mágico intocável pela In
 
 ## Passo 3.5: Inicialização do Cérebro Cíbrido (Systemd Service)
 
-Caso o Cloud-Init não consiga completar o Boot automatizado pela falta da sua chave (ou falhas na internet nativa), o Sovereign Pair dispõe de um script salva-vidas. Após a instância criar vida:
+Caso a automação da esteira de CD (Terraform) congele (devido a falhas temporárias na API da Oracle OCI ou locks de sistema), o Sovereign Pair dispõe de um script manual salva-vidas para forçar o download e estabilização do núcleo servidor (O Módulo Cíbrido nativo) *bypassando* os pipelines.
+
+Após a instância física ligar no painel e estabilizar o SSH, execute em **sua máquina local** (a mesma que abriga este repositório fonte):
+```bash
+./scripts/deploy_binary_manual.sh <IP_PUBLICO_DA_ORACLE> <SEU_TOKEN_GITHUB_PAT>
+```
+Este utilitário conectará via SSH, rasgará locks do Ubuntu e baixará o motor perfeitamente pela Web API do Github.
+
+**Caso esteja montando os dados manualmente (sem CD automatizado):**
 
 1. **Preencha sua Chave (Tailscale Auth) nas Variáveis de Ambiente:**
 Como as chaves sensíveis não são enviadas para o Github, você precisa declarar sua identidade na nuvem:
