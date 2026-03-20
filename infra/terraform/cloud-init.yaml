@@ -62,8 +62,8 @@ runcmd:
   - sudo systemctl restart ollama
 
   # 5. Pull The Coder (and The Doctor) Models Asynchronously
-  - sudo bash -c "nohup ollama pull qwen2.5-coder:7b > /var/log/ollama_pull_coder.log 2>&1 &"
-  - sudo bash -c "nohup ollama pull llama3.2:3b > /var/log/ollama_pull_doctor.log 2>&1 &"
+  - sudo bash -c "sleep 15 && nohup ollama pull qwen2.5-coder:7b > /var/log/ollama_pull_coder.log 2>&1 &"
+  - sudo bash -c "sleep 15 && nohup ollama pull llama3.2:3b > /var/log/ollama_pull_doctor.log 2>&1 &"
 
   # 6. Legacy Compilers Removed (Moved to Github Actions CI)
   # Rust and Node.js are no longer installed on the Baremetal OCI.
