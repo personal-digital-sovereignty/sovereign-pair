@@ -1,11 +1,6 @@
 name: "Deploy Sovereign Cibrid Cloud (OCI)"
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'infra/terraform/**'
   workflow_dispatch:
     inputs:
       action:
@@ -102,7 +97,7 @@ jobs:
           TF_VAR_ssh_private_key: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
           TF_VAR_pat_ghcr: ${{ secrets.PAT_GHCR }}
           TF_VAR_boot_volume_size_in_gbs: ${{ vars.OCI_BOOT_VOLUME_SIZE || 200 }}
-          TF_VAR_release_version: ${{ env.version }}
+          TF_VAR_release_version: ${{ github.event.inputs.release_version || 'nightly' }}
           ACTION_INPUT: ${{ github.event.inputs.action || 'apply' }}
         run: |
           if [ "$ACTION_INPUT" == "destroy" ]; then
