@@ -10,11 +10,13 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 - **Github Actions Node.js 24 (Future-Proof)**: Injetada a variável global `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` em todos os *workflows* da esteira FOSS, suprimindo advertências de depreciação do Node.js 20 em plugins vitais (`actions/checkout`, `actions/upload-artifact`).
 - **Zero-Cost Stateful Backend (GPG Artifacts)**: Implementado um mecanismo no `deploy-oci.yml` para transferir criptograficamente a memória `.tfstate` do OpenTofu entre execuções isoladas do Github Actions. Previsto o *spawn* descontrolado de instâncias órfãs na Nuvem OCI.
 - **Hash SHA256 na Chave SSH (GPG Strict)**: A encriptação da memória foi estabilizada através da compactação forçada da Private Key multilinha para um Hash estrito injetado via `stdin`, evitando o crash fatal por quebra de linha no parser do `gpg`.
+- **Manual Binary Injector (Failover OCI)**: Construído utilitário nativo bash (`scripts/deploy_binary_manual.sh`) executável isoladamente pelo usuário para contornar falhas no loop de CD do Terraform. Ele trafega credenciais e baixa a Release privada via ponte e API REST da Github sem dependência de ferramentas locais limitadas no host.
 
 ### Corrigido
+- **Ubuntu apt-get Freeze (cloud-init)**: O `runcmd` do OCI cloud-init estava congelando indefinidamente aguardando intervenção humana para lidar com alertas de "Daemons outdated" gerados pela instrução nativa do `apt-get upgrade`. A atualização de Kernel foi cortada da esteira, encurtando o bootcycle base em longos 10 minutos.
+- **Fail-Fast Remote-Exec e Token Sync no OCI**: O script de injeção direta via SSH no Terraform (`compute.tf`) estava engolindo exceções (`gh: command not found`) com sucesso falso em exit loops. Refatorada a string para possuir validação `set -ex` (explodindo falhas críticas no log) e `always_run=timestamp()` forçando re-runs da action caso a instância suba órfã.
 - **Oracle VCN DNS Blackhole**: Injetada diretiva estrita via `bootcmd` no `cloud-init` do Arch Linux/Ubuntu OCI para forçar a pré-configuração do `systemd-resolved` com DNS resilientes (8.8.8.8, 1.1.1.1) contornando o DHCP defeituoso nativo do OCI (`169.254.169.254`) que impossibilitava resoluções cruciais de espelhos APT e Github.
 - **ActionLint e Semgrep Strictness (Gate 0 e 1)**: Refatorados comandos bash e re-alocadas variáveis de contexto Github para passar sob a malha fina da esteira CI Global. Neutralizada uma falsa vulnerabilidade de Shell-Injection capturada ativamente pelo SAST.
-
 ## [0.7.1] - 2026-03-19
 ### Changed
 - **CI/CD Unification**: FOSS DevSecOps matrices now strictly precede the Standalone Multi-OS Builder, forging a single sequential vulnerability-free build pipeline (`ci.yml`).
