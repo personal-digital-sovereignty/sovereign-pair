@@ -23,6 +23,8 @@ jobs:
       contents: read
       actions: read
       security-events: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -46,6 +48,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: semgrep/semgrep
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
       
@@ -59,6 +63,8 @@ jobs:
     name: "Gate 3: Trivy (SCA & Config)"
     needs: sast-semgrep
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -80,6 +86,8 @@ jobs:
     name: "Gate 4: Rust Clippy & Unit Tests"
     needs: sast-semgrep
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
       - name: Setup Rust Toolchain
@@ -109,6 +117,8 @@ jobs:
     name: "Gate 5: Svelte Static Analyzer"
     needs: pipeline-security
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js
@@ -132,6 +142,8 @@ jobs:
     # Needs all other gates to complete successfully
     needs: [pipeline-security, sast-semgrep, sca-trivy, quality-rust, quality-svelte]
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - run: echo "All FOSS Enterprise DevSecOps Gates Passed! Emitting Release Signal for Builder Matrix."
 
@@ -159,6 +171,8 @@ jobs:
             artifact_name: sovereign-core-macos-amd64
             binary_name: sovereign-core
     runs-on: ${{ matrix.os }}
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
@@ -202,6 +216,8 @@ jobs:
   build-kde-plasmoid:
     needs: [foss-enterprise-devsecops]
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
@@ -238,6 +254,8 @@ jobs:
             core_artifact: sovereign-core-macos-amd64
             target_triple: x86_64-apple-darwin
     runs-on: ${{ matrix.os }}
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
       
@@ -305,6 +323,8 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Download all built artifacts
         uses: actions/download-artifact@v4
