@@ -2,22 +2,35 @@
     import { CircleDollarSign, Timer, Gauge, AlertTriangle, TrendingUp, CheckCircle2, Zap, ShieldAlert, Network, AlertCircle, FileText, DownloadCloud, RefreshCw, ShieldCheck } from 'lucide-svelte';
 </script>
 
-<div class="p-6 max-w-7xl mx-auto space-y-8 h-full overflow-y-auto custom-scrollbar">
-    <!-- Headline Section -->
-    <div class="flex justify-between items-end shrink-0">
-        <div>
-            <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight mb-2">Command Center</h1>
-            <p class="text-slate-500 max-w-lg text-sm">Intelligence-led oversight of global RAG operations and multi-model routing performance.</p>
+<div class="flex flex-col h-full w-full bg-white rounded-2xl border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
+    <!-- Sovereign Standard Sub-Header -->
+    <header class="h-20 border-b border-slate-100 bg-white flex items-center px-6 shrink-0 justify-between z-10 w-full">
+        <div class="flex items-center gap-4">
+            <div class="bg-blue-600/10 p-2.5 rounded-xl border border-blue-100/50">
+                <Network class="w-6 h-6 text-blue-600" />
+            </div>
+            <div class="flex flex-col">
+                <div class="flex items-center gap-2">
+                    <h1 class="text-lg font-bold tracking-tight text-slate-800">Nexus Command Center</h1>
+                    <span class="px-2 py-0.5 bg-emerald-100/50 text-emerald-700 text-[9px] uppercase tracking-widest font-bold rounded-full border border-emerald-200/50">PROD</span>
+                </div>
+                <span class="text-xs text-slate-500 font-medium">Intelligence-led oversight of global RAG operations and multi-model routing.</span>
+            </div>
         </div>
-        <div class="flex gap-3">
-            <button class="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors cursor-pointer shadow-sm">
+        
+        <div class="flex items-center gap-4">
+            <button class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors cursor-pointer shadow-sm">
                 <DownloadCloud class="w-4 h-4" /> Export Report
             </button>
-            <button class="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-[0_4px_14px_rgba(79,70,229,0.3)] hover:shadow-[0_6px_20px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 transition-all cursor-pointer">
+            <button class="flex items-center gap-2 px-5 py-2 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-[0_4px_14px_rgba(79,70,229,0.3)] hover:shadow-[0_6px_20px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 transition-all cursor-pointer">
                 <RefreshCw class="w-4 h-4" /> Global Refresh
             </button>
         </div>
-    </div>
+    </header>
+
+    <!-- Scrollable Content Viewport -->
+    <div class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50/50">
+        <div class="max-w-7xl mx-auto space-y-8">
 
     <!-- Row 1: Vital Signs -->
     <div class="grid grid-cols-1 md:grid-cols-2 border border-slate-200/50 bg-white/50 backdrop-blur p-2 rounded-3xl lg:grid-cols-4 gap-4 shrink-0 shadow-sm">
@@ -269,6 +282,7 @@
                     </div>
                 </div>
             </div>
+        </div>
         </div>
     </div>
 </div>
