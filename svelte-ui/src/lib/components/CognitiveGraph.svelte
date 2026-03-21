@@ -128,8 +128,8 @@
         nodeDegrees.forEach(val => { if (val > maxConnections) maxConnections = val; });
         const effectiveMax = Math.min(maxConnections, 20); 
 
-        graphInstance.d3Force('charge').strength(-150).distanceMax(600); 
-        graphInstance.d3Force('link').distance(40).strength(0.8); // Enable strong local synapses!
+        graphInstance.d3Force('charge').strength(-200).distanceMax(800); 
+        graphInstance.d3Force('link').distance(60).strength(0.8); // Enable strong local synapses!
 
         graphInstance.d3Force('gentle_orbit', (alpha: number) => {
             const currentNodes = $state.snapshot(graphData).nodes;
@@ -144,23 +144,26 @@
                 const dy = node.y - centerY;
                 const r = Math.sqrt(dx*dx + dy*dy) || 1;
                 
-                // Very gentle repulsion from the exact center so they don't spawn/clump inside the sun
-                if (r < 250) {
-                    const pushForce = (250 - r) * 0.05 * alpha;
+                // AGGRESSIVE repulsion from the exact center (The Sun). 
+                // The rings in the background are drawn at ~542, ~1084, ~1626.
+                // We force nodes to spawn and orbit at MINIMUM the 2nd ring (Radius 1000+).
+                if (r < 1100) {
+                    const pushForce = (1100 - r) * 0.15 * alpha;
                     node.vx += (dx / r) * pushForce;
                     node.vy += (dy / r) * pushForce;
                 }
 
-                // Slow galactic rotation
-                const speed = 0.001 * alpha;
+                // Smooth galactic rotation (clockwise)
+                const speed = 0.002 * alpha;
                 node.vx += (-dy) * speed;
                 node.vy += (dx) * speed;
                 
-                // Ultra gentle radial pull to keep them from drifting into infinite space
-                // Target average radius: 800
-                const radialForce = (800 - r) * 0.01 * alpha;
-                node.vx += (dx / r) * radialForce;
-                node.vy += (dy / r) * radialForce;
+                // Gravity wall to prevent them from drifting into infinite deep space
+                if (r > 2000) {
+                    const pullForce = (r - 2000) * 0.05 * alpha;
+                    node.vx -= (dx / r) * pullForce;
+                    node.vy -= (dy / r) * pullForce;
+                }
             });
         });
 
