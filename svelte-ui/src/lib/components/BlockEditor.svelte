@@ -71,7 +71,8 @@
             });
             if (res.ok) {
                 const data = await res.json();
-                const content = data.content_raw || '';
+                // The native OS reader endpoint returns 'content', DB endpoints return 'content_raw'
+                const content = data.content || data.content_raw || '';
                 const parsed = parseFrontmatter(content);
                 documentProperties = parsed.frontmatter as Record<string, any>;
                 rawMarkdown = buildMarkdown(parsed.content, $state.snapshot(documentProperties));
