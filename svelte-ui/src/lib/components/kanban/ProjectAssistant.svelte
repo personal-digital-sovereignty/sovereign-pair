@@ -2,9 +2,7 @@
     import type { Project } from '$lib/projects.svelte';
     import { MessageSquare, X, Send } from 'lucide-svelte';
 
-    let { project }: { project: Project } = $props();
-    
-    let isOpen = $state(false);
+    let { project, isOpen = $bindable(false) }: { project: Project; isOpen?: boolean } = $props();
     let message = $state('');
     let chatLog = $state<{role: string, content: string}[]>([]);
     
@@ -127,8 +125,5 @@
         </div>
     </div>
     
-    <!-- Backdrop -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div onclick={() => isOpen = false} class="fixed inset-0 bg-slate-900/10 backdrop-blur-[1px] z-40"></div>
+    <!-- Remover Backdrop para permitir edição do Kanban com a gaveta aberta -->
 {/if}

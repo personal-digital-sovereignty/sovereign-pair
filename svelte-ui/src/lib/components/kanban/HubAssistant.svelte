@@ -2,7 +2,7 @@
     import { projectState } from '$lib/projects.svelte';
     import { MessageSquare, Send, X } from 'lucide-svelte';
 
-    let isOpen = $state(false);
+    let { isOpen = $bindable(false) } = $props<{ isOpen?: boolean }>();
     let message = $state('');
     let isTyping = $state(false);
     
@@ -138,8 +138,5 @@
         </div>
     </div>
     
-    <!-- Backdrop -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div onclick={() => isOpen = false} class="fixed inset-0 bg-slate-900/10 backdrop-blur-[1px] z-40"></div>
+    <!-- Backdrop Removido para orquestração fluída -->
 {/if}
