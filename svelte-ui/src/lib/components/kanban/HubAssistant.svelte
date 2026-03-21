@@ -26,12 +26,25 @@
         try {
             const token = localStorage.getItem('sovereign_token') || '';
             const origin = window.location.origin.includes('5173') ? 'http://127.0.0.1:38001' : window.location.origin;
+            
+            // Construir o Contexto Dinâmico Soberano para o Hub
+            let systemContext = `INSTRUÇÃO MÁXIMA (SOVEREIGN ORCHESTRATION AI): Você é o assistente global do Hub de Controle. Responda de forma direta, executiva e analítica. NÃO invente, não seja poético em excesso.\nATUALMENTE, NO BANCO DE DADOS CÍBRIDO O USUÁRIO POSSUI EXATAMENTE ESTES PROJETOS:\n`;
+            systemContext += projectState.projects.filter(p => !p.is_archived).map(p => `- PROJETO ATIVO: "${p.name}" | Propósito: ${p.purpose || 'N/A'} | Tarefas Ativas: ${p.tasks ? p.tasks.length : 0}`).join('\n');
+            systemContext += '\n\n';
+            systemContext += projectState.projects.filter(p => p.is_archived).map(p => `- PROJETO ARQUIVADO: "${p.name}"`).join('\n');
+            systemContext += `\n\nBaseie 100% de sua resposta apenas nesses dados concretos. Responda a pergunta do usuário a seguir.`;
+            
+            const apiMessages = [
+                { role: 'system', content: systemContext },
+                ...chatLog.slice(0, -1)
+            ];
+
             const res = await fetch(`${origin}/v1/chat/completions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
                     model: 'qwen2.5:3b',
-                    messages: chatLog.slice(0, -1),
+                    messages: apiMessages,
                     stream: true
                 })
             });
