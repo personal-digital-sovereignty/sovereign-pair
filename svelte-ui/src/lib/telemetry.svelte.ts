@@ -4,6 +4,7 @@ export const telemetryState = $state({
     tokensPerSecond: 0.0,
     activeModel: 'Not Loaded',
     ramUsageMB: 0,
+    ramTotalGB: 24,
     vramUsageMB: 0,
     gpuTemperature: 0,
     logs: [] as string[]
@@ -27,6 +28,7 @@ export function connectTelemetry() {
                 telemetryState.connected = true;
                 telemetryState.tokensPerSecond = data.avg_tps || 0;
                 telemetryState.ramUsageMB = data.hardware?.ram || 0;
+                telemetryState.ramTotalGB = data.hardware?.ram_total_gb || 24;
                 
                 // If there are active models, VRAM is engaged.
                 if (data.active_models && data.active_models > 0) {

@@ -17,13 +17,15 @@ export const globalState = $state({
     // Vault Teleport State
     vault: {
         activeDocumentId: '',
+        activeDocumentContent: null as string | null,
         workspaceFiles: [] as any[]
     },
     
     // Chat History State
     chat: {
         activeSessionId: null as number | null,
-        activeSessionTitle: 'Nova Sessão'
+        activeSessionTitle: 'Nova Sessão',
+        inputContext: ''
     }
 });
 
