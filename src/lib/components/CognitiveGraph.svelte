@@ -128,10 +128,10 @@
         nodeDegrees.forEach(val => { if (val > maxConnections) maxConnections = val; });
         const effectiveMax = Math.min(maxConnections, 20); 
 
-        graphInstance.d3Force('charge').strength(-40).distanceMax(200); 
-        graphInstance.d3Force('link').distance(0).strength(0); // Zero link pull to let orbital forces take over
+        graphInstance.d3Force('charge').strength(-150).distanceMax(600); 
+        graphInstance.d3Force('link').distance(40).strength(0.8); // Enable strong local synapses!
 
-        graphInstance.d3Force('orbital', (alpha: number) => {
+        graphInstance.d3Force('gentle_orbit', (alpha: number) => {
             const currentNodes = $state.snapshot(graphData).nodes;
             const rootNode = currentNodes.find((n: any) => n.id === 'root');
             const centerX = rootNode ? (rootNode.x || 0) : 0;
@@ -140,32 +140,27 @@
             currentNodes.forEach((node: any) => {
                 if (node.id === 'root') return;
 
-                if (!node.targetOrbit) {
-                    const connections = nodeDegrees.get(node.id) || 0;
-                    const connRatio = Math.min(connections / effectiveMax, 1.0);
-                    const distanceScore = 1.0 - Math.pow(connRatio, 0.7); 
-                    
-                    let hash = 0;
-                    const nid = String(node.id) || '';
-                    for (let i = 0; i < nid.length; i++) hash = nid.charCodeAt(i) + ((hash << 5) - hash);
-                    const normalizedHash = Math.abs(hash) / 2147483647; 
-                    
-                    // Push nodes OUT into the rings. (200 to 1600 radius)
-                    const orbitFactor = (distanceScore * 0.6) + (normalizedHash * 0.4);
-                    node.targetOrbit = 200 + (orbitFactor * 1400);
-                    node.orbitSpeed = 0.001 + ((1.0 - orbitFactor) * 0.005);
-                }
-
                 const dx = node.x - centerX;
                 const dy = node.y - centerY;
                 const r = Math.sqrt(dx*dx + dy*dy) || 1;
-                const radialForce = (node.targetOrbit - r) * 0.5 * alpha;
+                
+                // Very gentle repulsion from the exact center so they don't spawn/clump inside the sun
+                if (r < 250) {
+                    const pushForce = (250 - r) * 0.05 * alpha;
+                    node.vx += (dx / r) * pushForce;
+                    node.vy += (dy / r) * pushForce;
+                }
+
+                // Slow galactic rotation
+                const speed = 0.001 * alpha;
+                node.vx += (-dy) * speed;
+                node.vy += (dx) * speed;
+                
+                // Ultra gentle radial pull to keep them from drifting into infinite space
+                // Target average radius: 800
+                const radialForce = (800 - r) * 0.01 * alpha;
                 node.vx += (dx / r) * radialForce;
                 node.vy += (dy / r) * radialForce;
-
-                const speed = node.orbitSpeed * alpha;
-                node.vx += (-dy / r) * (r * speed);
-                node.vy += (dx / r) * (r * speed);
             });
         });
 
