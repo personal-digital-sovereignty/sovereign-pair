@@ -150,36 +150,34 @@
                 const deg = nodeDegrees.get(node.id) || 0;
 
                 if (deg === 0) {
-                    const pullForce = (2000 - r) * 0.01 * alpha;
+                    const pullForce = (2000 - r) * 0.005 * alpha;
                     node.vx += (dx / r) * pullForce;
                     node.vy += (dy / r) * pullForce;
                 } else if (deg > 3) {
-                    // Impenetrable Inner Void ONLY applied to Hubs to avoid crushing leaves
-                    if (r < 600) {
-                        const voidPush = (600 - r) * 0.1 * alpha;
+                    // Ultra-gentle Void Push: Prevent splattering against walls while pushing out of the center
+                    if (r < 800) {
+                        const voidPush = (800 - r) * 0.008 * alpha;
                         node.vx += (dx / r) * voidPush;
                         node.vy += (dy / r) * voidPush;
                     }
                     
-                    // Scatter hubs into distinct orbital rings across the solar system (1000px to 1800px)
-                    const hash = String(node.id).split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-                    const targetBand = 1000 + (hash % 800); 
-                    const pullForce = (targetBand - r) * 0.04 * alpha; 
+                    // Singular stable planetary track for all hubs, gentle pull to prevent parachute tearing
+                    const targetBand = 1400; 
+                    const pullForce = (targetBand - r) * 0.005 * alpha; 
                     node.vx += (dx / r) * pullForce;
                     node.vy += (dy / r) * pullForce;
                 } else {
                     // Leaves (deg 1 to 3) have NO hard orbital constraints! 
                     // They just smoothly revolve around their parent hub.
-                    // We only prevent them from visually clipping inside the Sun graphic.
                     if (r < 180) {
-                        const voidPush = (180 - r) * 0.05 * alpha;
+                        const voidPush = (180 - r) * 0.01 * alpha;
                         node.vx += (dx / r) * voidPush;
                         node.vy += (dy / r) * voidPush;
                     }
                 }
 
-                // Smooth galactic rotation (clockwise)
-                const speed = 0.0015 * alpha;
+                // Ultra-smooth galactic rotation to eliminate wind shear
+                const speed = 0.0005 * alpha;
                 node.vx += (-dy) * speed;
                 node.vy += (dx) * speed;
             });
