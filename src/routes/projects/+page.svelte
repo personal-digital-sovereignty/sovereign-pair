@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { globalState } from '$lib/state.svelte';
     import { Plus, ArrowLeft, Archive, FolderKanban, BarChart2, Edit2 } from 'lucide-svelte';
     import { projectState, fetchProjects, createProject, updateProjectAPI } from '$lib/projects.svelte';
     import KanbanBoard from '$lib/components/kanban/KanbanBoard.svelte';
@@ -61,12 +62,16 @@
         if (!activeProjectId) isEditingSettings = false;
     });
 
+    $effect(() => {
+        globalState.layout.isRightAuxPanelOpen = isProjectAssistantOpen || isHubAssistantOpen;
+    });
+
     onMount(() => {
         fetchProjects();
     });
 </script>
 
-<div class="flex flex-col h-full w-full bg-[#F4F7FA] font-sans transition-[padding] duration-300 ease-in-out" style="padding-right: {isProjectAssistantOpen || isHubAssistantOpen ? '420px' : '0'}">
+<div class="flex flex-col h-full w-full bg-[#F4F7FA] font-sans">
     
     {#if activeProject}
         <!-- ================= PROJECT DETAIL VIEW (KANBAN) ================= -->
