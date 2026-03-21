@@ -298,34 +298,66 @@ let res = match state
         return Sse::new(stream).into_response();
     },
     Err(e) => {
-        error!("🚨 Falha FATAL ao encontrar o motor LLM: {}", e);
-        let err_msg = if is_custom_cluster {
-            format!("*(Sovereign Core)* 🚨 **Severidade Máxima: A1 Oracle Offline**\nO cluster remoto mapeado em `{}` não respondeu. Certifique-se de que a VM está ligada e acessível na rede.\n\nDetalhe do Gateway: `{}`", endpoint, e)
-        } else {
-            format!("*(The Nurse Local)* ⚠️ Serviço de IA Local (Ollama) inacessível na porta 11434. O daemon está rodando?\n\nErro: `{}`", e)
-        };
-
-        let err_chunk = crate::models::OpenAIChatChunkResponse {
-            id: format!("chatcmpl-err-{}", uuid::Uuid::new_v4()),
-            object: "chat.completion.chunk".to_string(),
-            created: chrono::Utc::now().timestamp(),
-            model: ollama_model.clone(),
-            choices: vec![crate::models::OpenAIChatChunkChoice {
-                index: 0,
-                delta: crate::models::OpenAIChatChunkDelta {
-                    role: Some("assistant".to_string()),
-                    content: Some(err_msg),
-                    tool_calls: None,
+        if is_custom_cluster {
+            tracing::warn!("🔄 OCI/Mesh Node Offline ({}). Iniciando Autonomia de Fallback para Localhost (127.0.0.1:11434)...", e);
+            let local_endpoint = "http://127.0.0.1:11434/api/chat";
+            match state.http_client.post(local_endpoint).json(&ollama_payload).send().await {
+                Ok(fallback_r) if fallback_r.status().is_success() => {
+                    tracing::info!("✅ [Sovereign Core] Autonomia de Fallback ativada com sucesso. Servindo LLM Localmente!");
+                    fallback_r
                 },
-                finish_reason: Some("error".to_string()),
-            }],
-            usage: None,
-        };
-        let stream = futures_util::stream::iter(vec![
-            Ok::<Event, Infallible>(Event::default().data(serde_json::to_string(&err_chunk).unwrap_or_default())),
-            Ok::<Event, Infallible>(Event::default().data("[DONE]")),
-        ]);
-        return Sse::new(stream).into_response();
+                _ => {
+                    error!("🚨 Falha FATAL no nó mestre e no nó escravo.");
+                    let err_msg = format!("*(Sovereign Core)* 🚨 **Severidade Máxima: Abandono de Frota**\nO Cluster OCI Oracle não respondeu (`{}`) E o Fallback Autônomo Local (127.0.0.1:11434) também está offline! Impossível iniciar inferência.", e);
+                    let err_chunk = crate::models::OpenAIChatChunkResponse {
+                        id: format!("chatcmpl-err-{}", uuid::Uuid::new_v4()),
+                        object: "chat.completion.chunk".to_string(),
+                        created: chrono::Utc::now().timestamp(),
+                        model: ollama_model.clone(),
+                        choices: vec![crate::models::OpenAIChatChunkChoice {
+                            index: 0,
+                            delta: crate::models::OpenAIChatChunkDelta {
+                                role: Some("assistant".to_string()),
+                                content: Some(err_msg),
+                                tool_calls: None,
+                            },
+                            finish_reason: Some("error".to_string()),
+                        }],
+                        usage: None,
+                    };
+                    let stream = futures_util::stream::iter(vec![
+                        Ok::<Event, Infallible>(Event::default().data(serde_json::to_string(&err_chunk).unwrap_or_default())),
+                        Ok::<Event, Infallible>(Event::default().data("[DONE]")),
+                    ]);
+                    return Sse::new(stream).into_response();
+                }
+            }
+        } else {
+            error!("🚨 Falha FATAL ao encontrar o motor LLM Local: {}", e);
+            let err_msg = format!("*(The Nurse Local)* ⚠️ Serviço de IA Local (Ollama) inacessível na porta 11434. O daemon está rodando?\n\nErro: `{}`", e);
+
+            let err_chunk = crate::models::OpenAIChatChunkResponse {
+                id: format!("chatcmpl-err-{}", uuid::Uuid::new_v4()),
+                object: "chat.completion.chunk".to_string(),
+                created: chrono::Utc::now().timestamp(),
+                model: ollama_model.clone(),
+                choices: vec![crate::models::OpenAIChatChunkChoice {
+                    index: 0,
+                    delta: crate::models::OpenAIChatChunkDelta {
+                        role: Some("assistant".to_string()),
+                        content: Some(err_msg),
+                        tool_calls: None,
+                    },
+                    finish_reason: Some("error".to_string()),
+                }],
+                usage: None,
+            };
+            let stream = futures_util::stream::iter(vec![
+                Ok::<Event, Infallible>(Event::default().data(serde_json::to_string(&err_chunk).unwrap_or_default())),
+                Ok::<Event, Infallible>(Event::default().data("[DONE]")),
+            ]);
+            return Sse::new(stream).into_response();
+        }
     }
 };
 
