@@ -66,7 +66,9 @@
         try {
             const module = await import('force-graph');
             const ForceGraph = (module.default || module) as any;
-            graphInstance = ForceGraph()(graphContainer);
+            graphInstance = ForceGraph()(graphContainer)
+                .minZoom(0.5)
+                .maxZoom(3.5);
         } catch (err) {
             console.error("CRITICAL ERROR: Failed to instantiate ForceGraph engine", err);
             return;
@@ -335,7 +337,11 @@
 
         setTimeout(() => {
             graphInstance.centerAt(0, 0, 1000);
-            graphInstance.zoomToFit(1000, 50, () => true);
+            if ($state.snapshot(graphData).nodes.length > 2) {
+                graphInstance.zoomToFit(1000, 50, () => true);
+            } else {
+                graphInstance.zoom(1.5, 1000);
+            }
         }, 500);
 
         const animate = () => {
@@ -381,7 +387,7 @@
             
             if (graphInstance) {
                 graphInstance._destructor();
-                const canvasEl = graphContainer.querySelector('canvas');
+                const canvasEl = graphContainer?.querySelector('canvas');
                 if (canvasEl) canvasEl.remove();
             }
             initGraph();
@@ -397,11 +403,14 @@
     });
 
     // Re-fetch data instantly when Active Workspace changes
+    import { untrack } from 'svelte';
     $effect(() => {
         const _trigger = globalState.activeWorkspaceId;
-        if (!isLoading && graphContainer) {
-            fetchData();
-        }
+        untrack(() => {
+            if (!isLoading && graphContainer) {
+                fetchData();
+            }
+        });
     });
 
     onMount(() => {
@@ -415,7 +424,7 @@
 
 </script>
 
-<div class="relative w-full h-full bg-black overflow-hidden rounded-xl border border-white/5 shadow-2xl">
+<div bind:clientWidth={width} bind:clientHeight={height} class="relative w-full h-full bg-black overflow-hidden rounded-xl border border-white/5 shadow-2xl">
     
     <div bind:this={graphContainer} class="w-full h-full absolute inset-0"></div>
 
