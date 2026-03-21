@@ -1,6 +1,6 @@
 <script lang="ts">
     import { projectState } from '$lib/projects.svelte';
-    import { MessageSquare, Send, X } from 'lucide-svelte';
+    import { MessageSquare, Send, X, ThumbsUp, ThumbsDown, Copy, RotateCcw } from 'lucide-svelte';
 
     let { isOpen = $bindable(false) } = $props<{ isOpen?: boolean }>();
     let message = $state('');
@@ -121,31 +121,39 @@
         </span>
     </button>
 {:else}
-    <div class="fixed top-0 right-0 w-[420px] h-full bg-white border-l border-slate-200 shadow-2xl flex flex-col z-[999] transform transition-transform duration-300 translate-x-0">
-        <div class="h-16 bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-between px-6 shrink-0">
+    <div class="fixed top-0 right-0 w-[420px] h-full bg-slate-50/50 backdrop-blur-xl border-l border-slate-200 shadow-2xl flex flex-col z-[999] transform transition-transform duration-300 translate-x-0">
+        <div class="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shrink-0 shadow-sm">
             <div class="flex items-center gap-3">
-                <div class="bg-white/20 p-1.5 rounded-xl backdrop-blur-sm">
-                    <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none">
+                <div class="bg-emerald-50 border border-emerald-100 p-1.5 rounded-xl">
+                    <svg class="w-5 h-5 text-emerald-600" viewBox="0 0 24 24" fill="none">
                         <circle cx="12" cy="12" r="4.5" fill="currentColor"/>
                         <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-opacity="0.6"/>
                     </svg>
                 </div>
                 <div>
-                    <h3 class="font-bold text-white tracking-wide text-sm">Orchestration AI</h3>
-                    <p class="text-blue-100 text-[10px] font-bold uppercase tracking-wider">{activeCount} Projetos Ativos</p>
+                    <h3 class="font-bold text-slate-800 tracking-wide text-sm">Orchestration AI</h3>
+                    <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">{activeCount} Projetos Ativos</p>
                 </div>
             </div>
-            <button onclick={() => isOpen = false} class="p-1.5 text-blue-100 hover:bg-white/20 hover:text-white rounded-lg cursor-pointer transition">
+            <button onclick={() => isOpen = false} class="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-lg cursor-pointer transition">
                 <X class="w-5 h-5" />
             </button>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-5 space-y-5 bg-slate-50/30 custom-scrollbar">
+        <div class="flex-1 overflow-y-auto p-5 space-y-5 bg-transparent custom-scrollbar">
             {#each chatLog as msg}
                 <div class="flex flex-col {msg.role === 'user' ? 'items-end' : 'items-start'}">
-                    <div class="max-w-[85%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed {msg.role === 'user' ? 'bg-blue-600 text-white shadow-md rounded-br-none' : 'bg-white border border-slate-200 text-slate-700 shadow-sm rounded-bl-none'}">
+                    <div class="max-w-[85%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed shadow-sm {msg.role === 'user' ? 'bg-slate-800 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-700 rounded-bl-none'}">
                         {@html msg.content}
                     </div>
+                    {#if msg.role === 'assistant'}
+                    <div class="flex items-center gap-1 mt-1 ml-1 opacity-0 hover:opacity-100 transition-opacity">
+                        <button class="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-slate-100 transition"><ThumbsUp class="w-3 h-3"/></button>
+                        <button class="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-100 transition"><ThumbsDown class="w-3 h-3"/></button>
+                        <button class="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-slate-100 transition"><Copy class="w-3 h-3"/></button>
+                        <button class="p-1 text-slate-400 hover:text-amber-600 rounded hover:bg-slate-100 transition"><RotateCcw class="w-3 h-3"/></button>
+                    </div>
+                    {/if}
                 </div>
             {/each}
             {#if isTyping}
@@ -161,8 +169,8 @@
             {/if}
         </div>
 
-        <div class="p-4 bg-white border-t border-slate-100 shrink-0">
-            <div class="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-xl p-2 focus-within:ring-2 focus-within:ring-blue-500/50 focus-within:border-blue-500 transition-all shadow-sm">
+        <div class="p-4 bg-white border-t border-slate-200 shrink-0">
+            <div class="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-xl p-2 focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500 transition-all shadow-sm">
                 <textarea 
                     bind:value={message} 
                     onkeydown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
@@ -170,7 +178,7 @@
                     class="flex-1 bg-transparent border-none outline-none resize-none max-h-32 text-sm text-slate-700 px-2 py-1 custom-scrollbar" 
                     rows="1"
                 ></textarea>
-                <button onclick={sendMessage} class="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition cursor-pointer shrink-0 shadow-sm">
+                <button onclick={sendMessage} class="p-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition cursor-pointer shrink-0 shadow-sm">
                     <Send class="w-4 h-4" />
                 </button>
             </div>

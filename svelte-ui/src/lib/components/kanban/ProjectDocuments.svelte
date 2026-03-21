@@ -123,10 +123,12 @@
         <div class="flex flex-wrap gap-3 mt-1">
             {#each linkedDocs as doc}
                 <div class="group relative flex items-center gap-2 bg-blue-50 border border-blue-100/50 rounded-lg px-3 py-2 pr-8 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-colors hover:bg-blue-100/50 hover:border-blue-200">
-                    <FileText class="w-4 h-4 text-blue-600 shrink-0" />
-                    <span class="text-xs font-medium text-slate-700 truncate max-w-[200px]" title={doc.file_path}>
-                        {doc.file_path.split('/').pop()}
-                    </span>
+                    <a href="/vault?file={encodeURIComponent(doc.file_path)}&fromProject={project.id}" class="flex items-center gap-2 flex-1 hover:underline text-blue-700" title="Abrir no Vault: {doc.file_path}">
+                        <FileText class="w-4 h-4 shrink-0" />
+                        <span class="text-xs font-medium truncate max-w-[200px]">
+                            {doc.file_path.split('/').pop()}
+                        </span>
+                    </a>
                     <button onclick={() => removeLink(doc.file_path)} class="absolute right-2 text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Desvincular">
                         <X class="w-3.5 h-3.5" />
                     </button>

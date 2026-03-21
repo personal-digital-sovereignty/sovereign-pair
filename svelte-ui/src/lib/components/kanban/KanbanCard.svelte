@@ -6,16 +6,19 @@
     let isEditing = $state(false);
     let editTitle = $state('');
     let editDesc = $state('');
+    let editDeadline = $state('');
+    let formattedDate = $derived(task.deadline ? new Date(task.deadline).toLocaleDateString() : 'Sem Prazo');
 
     $effect(() => {
         if (!isEditing) {
             editTitle = task.title;
             editDesc = task.description || '';
+            editDeadline = task.deadline || '';
         }
     });
 
     async function saveCard() {
-        await updateTaskAPI(task.id, { title: editTitle, description: editDesc });
+        await updateTaskAPI(task.id, { title: editTitle, description: editDesc, deadline: editDeadline });
         isEditing = false;
     }
 </script>
@@ -24,6 +27,10 @@
     <div class="bg-white p-3 rounded-lg shadow-xl border border-blue-400 z-50 transform scale-[1.02] transition-all w-full flex flex-col gap-2">
         <input type="text" bind:value={editTitle} class="w-full text-sm font-bold border-b border-slate-200 text-slate-800 focus:outline-none pb-1" placeholder="Título da Tarefa" onkeydown={(e) => e.key === 'Enter' && saveCard()} />
         <textarea bind:value={editDesc} class="w-full text-xs text-slate-600 focus:outline-none mt-1 resize-none h-20 custom-scrollbar" placeholder="Detalhes da tarefa... (Markdown suportado opcional)"></textarea>
+        <div class="flex items-center gap-2 border-t border-slate-100 pt-2">
+            <Calendar class="w-3 h-3 text-slate-400" />
+            <input type="date" bind:value={editDeadline} class="text-[11px] text-slate-600 focus:outline-none bg-transparent" />
+        </div>
         <div class="flex items-center gap-2 mt-1">
             <button onclick={saveCard} class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold py-1.5 rounded-md cursor-pointer transition">Salvar</button>
             <button onclick={() => isEditing=false} class="bg-slate-100 hover:bg-slate-200 text-slate-500 px-3 py-1.5 rounded-md text-[11px] font-bold cursor-pointer transition">Cancelar</button>
@@ -45,8 +52,8 @@
             <p class="text-slate-500 text-xs mb-4 leading-relaxed line-clamp-3 break-words">{task.description}</p>
         {/if}
         <div class="flex items-center justify-between mt-auto pt-2 border-t border-slate-50">
-            <div class="text-[10px] text-slate-400 font-bold flex items-center gap-1 uppercase tracking-wide">
-                <Calendar class="w-3 h-3" /> Hoje
+            <div class="text-[10px] text-slate-400 font-bold flex items-center gap-1 uppercase tracking-wide truncate max-w-[60%]">
+                <Calendar class="w-3 h-3 shrink-0" /> <span class="truncate">{formattedDate}</span>
             </div>
             <div class="flex items-center gap-1">
                 <span class="{colStatus.toLowerCase() === 'done' || colStatus.toLowerCase().includes('conclu') ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'} text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider">
