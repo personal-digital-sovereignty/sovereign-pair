@@ -1,6 +1,6 @@
 <script lang="ts">
     import { projectState } from '$lib/projects.svelte';
-    import { MessageSquare, Send, Sparkles, X } from 'lucide-svelte';
+    import { MessageSquare, Send, BrainCircuit, X } from 'lucide-svelte';
 
     let isOpen = $state(false);
     let message = $state('');
@@ -69,7 +69,7 @@
 
 {#if !isOpen}
     <button onclick={() => isOpen = true} class="fixed bottom-6 right-8 bg-blue-600 text-white p-3.5 rounded-full shadow-lg hover:bg-blue-700 transition z-50 flex items-center justify-center cursor-pointer group hover:scale-110">
-        <Sparkles class="w-6 h-6" />
+        <BrainCircuit class="w-6 h-6" />
         <span class="absolute right-[110%] mr-2 max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 ease-in-out font-bold text-sm bg-blue-800 text-blue-50 rounded-lg group-hover:px-3 group-hover:py-1.5 opacity-0 group-hover:opacity-100 shadow-sm">
             Orchestration AI
         </span>
@@ -83,7 +83,7 @@
         <div class="h-16 bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-between px-6 shrink-0">
             <div class="flex items-center gap-3">
                 <div class="bg-white/20 p-1.5 rounded-xl backdrop-blur-sm">
-                    <Sparkles class="w-5 h-5 text-white" />
+                    <BrainCircuit class="w-5 h-5 text-white" />
                 </div>
                 <div>
                     <h3 class="font-bold text-white tracking-wide text-sm">Orchestration AI</h3>
