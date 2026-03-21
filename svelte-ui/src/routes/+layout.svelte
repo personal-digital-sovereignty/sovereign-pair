@@ -2,7 +2,7 @@
   import '../app.css';
   import { globalState } from '$lib/state.svelte.js';
   import { telemetryState, connectTelemetry, disconnectTelemetry } from '$lib/telemetry.svelte';
-  import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, Activity, Database, Bell } from 'lucide-svelte';
+  import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, Activity, Database, Bell, Network } from 'lucide-svelte';
   import { page } from '$app/state';
   import { onMount, onDestroy } from 'svelte';
   import InlineSpotlight from '$lib/components/InlineSpotlight.svelte';
@@ -86,14 +86,18 @@
       <div class="mt-8 mb-2 px-4">
         <h2 class="text-[11px] font-bold text-[#64748B] uppercase tracking-widest">System Modules</h2>
       </div>
-      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors text-[#94A3B8] hover:bg-white/5 hover:text-white" href="#">
-        <span class="font-medium text-sm">RAG Engine</span>
+      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors {routeId.includes('/graph') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/graph">
+        <Network class="w-4 h-4 mr-3" />
+        <span class="font-medium text-sm">Cognitive Graph</span>
       </a>
       <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors text-[#94A3B8] hover:bg-white/5 hover:text-white" href="#">
-        <span class="font-medium text-sm">Model Trainer</span>
+        <span class="font-medium text-sm pl-7">RAG Engine</span>
       </a>
       <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors text-[#94A3B8] hover:bg-white/5 hover:text-white" href="#">
-        <span class="font-medium text-sm">Analytics</span>
+        <span class="font-medium text-sm pl-7">Model Trainer</span>
+      </a>
+      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors text-[#94A3B8] hover:bg-white/5 hover:text-white" href="#">
+        <span class="font-medium text-sm pl-7">Analytics</span>
       </a>
       
       <!-- Sticky Settings Anchor -->
