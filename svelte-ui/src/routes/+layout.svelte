@@ -1,12 +1,10 @@
 <script lang="ts">
   import '../app.css';
-  import { globalState, toggleSidebar, setSidebarWidth } from '$lib/state.svelte.js';
+  import { globalState } from '$lib/state.svelte.js';
   import { telemetryState, connectTelemetry, disconnectTelemetry } from '$lib/telemetry.svelte';
-  import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, CloudOff, Activity, Database } from 'lucide-svelte';
-  import SidebarTree from '$lib/components/SidebarTree.svelte';
+  import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, Activity, Database, Bell } from 'lucide-svelte';
   import { page } from '$app/state';
   import { onMount, onDestroy } from 'svelte';
-  import ChatHistorySidebar from '$lib/components/ChatHistorySidebar.svelte';
   import InlineSpotlight from '$lib/components/InlineSpotlight.svelte';
 
   let { children } = $props();
@@ -25,7 +23,6 @@
               if (globalState.workspaces.length === 0) {
                   globalState.workspaces = [{ id: 'mesh_roaming', name: 'Sovereign Mesh Roaming' }];
               }
-              // If current mapped workspace isn't in list, select the first
               const exists = globalState.workspaces.find((w: any) => w.id === globalState.activeWorkspaceId);
               if (!exists) {
                   globalState.activeWorkspaceId = globalState.workspaces[0].id;
@@ -33,7 +30,7 @@
               }
           }
       } catch (e) {
-          console.error("Failed to load workspaces via Rust Mesh:", e);
+          console.error("Failed to load workspaces via Rust API:", e);
       }
   }
 
@@ -48,160 +45,171 @@
     disconnectTelemetry();
   });
 
-  let isResizing = $state(false);
-
-  function startResize(e: MouseEvent) {
-    e.preventDefault();
-    isResizing = true;
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', stopResize);
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  }
-
-  function handleMouseMove(e: MouseEvent) {
-    if (!isResizing) return;
-    const newWidth = e.clientX - 64; 
-    setSidebarWidth(newWidth);
-  }
-
-  function stopResize() {
-    isResizing = false;
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', stopResize);
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-  }
-
   let routeId = $derived(page.route.id || '');
 </script>
 
-<div class="flex w-full h-screen bg-surface-900 text-surface-200 overflow-hidden font-sans">
+<div class="h-screen w-full flex overflow-hidden antialiased text-slate-800 bg-[#F4F5F7] font-sans">
   
   <InlineSpotlight />
 
-  <!-- 1. Permanent Activity Bar (Using rem for scaling: w-16 = 4rem) -->
-  <nav class="w-16 bg-surface-900 border-r border-surface-700 flex flex-col h-full shrink-0 z-30 relative py-3">
-    <!-- Top Identity Logo -->
-    <div class="flex items-center justify-center border-b border-surface-700 pb-3 mb-3 shrink-0">
-      <button aria-label="Toggle Navigation" onclick={toggleSidebar} class="text-primary-500 hover:scale-110 transition-transform p-2 rounded-lg cursor-pointer">
-         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" class="shrink-0">
-           <circle cx="12" cy="12" r="4.5" fill="currentColor"/>
-           <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.3"/>
-         </svg>
-      </button>
+  <!-- BEGIN: Sidebar Master -->
+  <aside class="w-[280px] bg-[#2C3E50] text-[#CBD5E1] flex flex-col h-full flex-shrink-0 relative z-20 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)] m-2 rounded-2xl overflow-hidden transition-all duration-300">
+    <!-- Sidebar Header (Sovereign Origin Icon Preserved) -->
+    <div class="h-16 flex items-center px-6 border-b border-white/5 shrink-0">
+      <svg class="w-8 h-8 text-indigo-400 mr-3 shrink-0" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="4.5" fill="currentColor"/>
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.3"/>
+      </svg>
+      <h1 class="text-xl font-bold tracking-wide text-white">Control Hub</h1>
     </div>
 
-    <!-- Navigation Icons -->
-    <div class="flex flex-col gap-2 shrink-0 items-center px-2 flex-1">
-      <a href="/dashboard" class="flex items-center justify-center w-full aspect-square rounded-xl transition-all overflow-hidden {routeId.includes('/dashboard') ? 'text-primary-400 bg-surface-800 shadow-[inset_3px_0_0_0_currentColor]' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/50'}">
-        <Home class="w-6 h-6 shrink-0" />
+    <!-- Main Navigation Container -->
+    <nav class="flex-1 overflow-y-auto py-6 flex flex-col px-4 gap-1.5 pt-4">
+      <a class="flex items-center px-4 py-3 rounded-xl transition-colors {routeId.includes('/dashboard') || routeId === '/' ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/dashboard">
+        <Home class="w-5 h-5 mr-4" />
+        <span class="font-medium text-[15px]">Home</span>
       </a>
-      <a href="/chat" class="flex items-center justify-center w-full aspect-square rounded-xl transition-all overflow-hidden {routeId.includes('/chat') ? 'text-primary-400 bg-surface-800 shadow-[inset_3px_0_0_0_currentColor]' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/50'}">
-        <MessageCircle class="w-6 h-6 shrink-0" />
+      <a class="flex items-center px-4 py-3 rounded-xl transition-colors {routeId.includes('/chat') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/chat">
+        <MessageCircle class="w-5 h-5 mr-4" />
+        <span class="font-medium text-[15px]">Chat</span>
       </a>
-      <a href="/vault" class="flex items-center justify-center w-full aspect-square rounded-xl transition-all overflow-hidden {routeId.includes('/vault') ? 'text-primary-400 bg-surface-800 shadow-[inset_3px_0_0_0_currentColor]' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/50'}">
-        <Folder class="w-6 h-6 shrink-0" />
+      <a class="flex items-center px-4 py-3 rounded-xl transition-colors {routeId.includes('/vault') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/vault">
+        <Folder class="w-5 h-5 mr-4" />
+        <span class="font-medium text-[15px]">Vault</span>
       </a>
-      <a href="/projects" class="flex items-center justify-center w-full aspect-square rounded-xl transition-all overflow-hidden {routeId.includes('/projects') ? 'text-primary-400 bg-surface-800 shadow-[inset_3px_0_0_0_currentColor]' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/50'}">
-        <LayoutGrid class="w-6 h-6 shrink-0" />
+      <a class="flex items-center px-4 py-3 rounded-xl transition-colors {routeId.includes('/projects') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/projects">
+        <LayoutGrid class="w-5 h-5 mr-4" />
+        <span class="font-medium text-[15px]">Projects</span>
       </a>
-      <a href="/settings" class="flex items-center justify-center w-full aspect-square rounded-xl transition-all overflow-hidden mt-auto mb-2 {routeId.includes('/settings') ? 'text-primary-400 bg-surface-800 shadow-[inset_3px_0_0_0_currentColor]' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/50'}">
-        <Settings class="w-6 h-6 shrink-0" />
-      </a>
-    </div>
-  </nav>
 
-  <!-- 2. Sliding Context Panel -->
-  <aside 
-    class="bg-surface-800 flex flex-col h-full transition-all duration-300 relative z-20 shrink-0 overflow-x-hidden overflow-y-auto border-r border-surface-700"
-    class:border-r-0={!globalState.isSidebarOpen}
-    class:pointer-events-none={!globalState.isSidebarOpen}
-    class:opacity-0={!globalState.isSidebarOpen}
-    style="width: {globalState.isSidebarOpen ? `${globalState.sidebarWidth}px` : '0px'}"
-  >
-    <div class="flex flex-col h-full shrink-0" style="width: {globalState.sidebarWidth}px; min-width: {globalState.sidebarWidth}px">
-      <!-- Context Header -->
-      <div class="h-16 px-4 flex flex-col justify-center border-b border-surface-700 shrink-0 gap-1 bg-surface-800/80 backdrop-blur-sm z-10 sticky top-0">
-        <label for="workspace-selector" class="text-[9px] uppercase font-bold tracking-widest text-primary-500 flex items-center gap-1">
-          <Database class="w-3 h-3" />
-          Active Workspace
-        </label>
-        <select 
-          id="workspace-selector"
-          value={globalState.activeWorkspaceId}
-          onchange={handleWorkspaceChange}
-          class="bg-surface-900 border border-surface-600 text-surface-200 text-sm rounded-lg block w-full outline-none focus:border-primary-500 p-1 cursor-pointer appearance-none transition-colors"
-        >
-          {#each globalState.workspaces as ws}
-            <option value={ws.id}>{ws.name}</option>
-          {/each}
-        </select>
-        <!-- Custom invisible caret for pristine OS uniform looks -->
-        <div class="pointer-events-none absolute inset-y-0 right-6 bottom-0 flex items-center justify-center pt-4">
-           <svg class="w-3 h-3 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-        </div>
+      <!-- System Modules Category -->
+      <div class="mt-8 mb-2 px-4">
+        <h2 class="text-[11px] font-bold text-[#64748B] uppercase tracking-widest">System Modules</h2>
       </div>
-      <!-- Context Area (Dynamic Route Content + Telemetry Array) -->
-      <div class="flex-1 w-full overflow-hidden flex flex-col relative min-h-0">
-        
-        <div class="flex-1 overflow-x-hidden overflow-y-auto custom-scrollbar flex flex-col">
-           {#if routeId.includes('/vault')}
-               <SidebarTree />
-           {:else if routeId.includes('/chat')}
-               <ChatHistorySidebar />
-           {:else}
-               <div class="p-4 text-xs text-surface-400">
-                   <span class="block mb-4 tracking-widest uppercase opacity-50 font-bold">O.S Route: {routeId.replace('/', '') || 'ROOT'}</span>
-               </div>
-           {/if}
-        </div>
-
-        <!-- Sticky Telemetry Dashboard (Bottom of context panel) -->
-        <div class="p-4 border-t border-surface-700 bg-surface-900/50 flex flex-col gap-3 shrink-0">
-            <div class="text-[10px] font-bold uppercase tracking-widest text-surface-500 mb-1 flex items-center justify-between">
-                <span>Hardware Telemetry</span>
-                <Activity class="w-3 h-3 {telemetryState.connected ? 'text-primary-500 animate-pulse' : 'text-surface-600'}" />
-            </div>
-
-            <!-- T/s Speedometer -->
-            <div class="flex flex-col gap-1">
-                <div class="flex justify-between items-end">
-                    <span class="text-xs text-surface-400">Tokens/sec</span>
-                    <span class="text-lg font-mono font-bold {telemetryState.tokensPerSecond > 20 ? 'text-emerald-400' : 'text-primary-400'}">
-                        {telemetryState.tokensPerSecond.toFixed(1)} <span class="text-[10px] text-surface-500 uppercase">T/s</span>
-                    </span>
-                </div>
-                <div class="w-full h-1 bg-surface-800 rounded-full overflow-hidden">
-                    <div class="h-full bg-primary-500 transition-all duration-300" style="width: {Math.min(100, (telemetryState.tokensPerSecond / 80) * 100)}%"></div>
-                </div>
-            </div>
-
-            <!-- Memory Specs -->
-            <div class="flex justify-between items-center text-xs font-mono text-surface-400">
-                <span>VRAM</span>
-                <span class={telemetryState.vramUsageMB > 12000 ? 'text-amber-400 font-bold' : ''}>{telemetryState.vramUsageMB} MB</span>
-            </div>
-
-            <div class="text-[10px] text-surface-600 uppercase tracking-widest truncate" title={telemetryState.activeModel}>
-                {telemetryState.activeModel}
-            </div>
-        </div>
+      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors text-[#94A3B8] hover:bg-white/5 hover:text-white" href="#">
+        <span class="font-medium text-sm">RAG Engine</span>
+      </a>
+      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors text-[#94A3B8] hover:bg-white/5 hover:text-white" href="#">
+        <span class="font-medium text-sm">Model Trainer</span>
+      </a>
+      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors text-[#94A3B8] hover:bg-white/5 hover:text-white" href="#">
+        <span class="font-medium text-sm">Analytics</span>
+      </a>
+      
+      <!-- Sticky Settings Anchor -->
+      <div class="mt-auto pt-4 mb-2 border-t border-white/5">
+         <a class="flex items-center px-4 py-3 rounded-xl transition-colors {routeId.includes('/settings') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/settings">
+           <Settings class="w-5 h-5 mr-4 shrink-0" />
+           <span class="font-medium text-[15px]">System Settings</span>
+         </a>
       </div>
-    </div>
+    </nav>
   </aside>
+  <!-- END: Sidebar Master -->
 
-  <!-- Resizer Handle -->
-  {#if globalState.isSidebarOpen}
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div 
-      class="w-1.5 h-full cursor-col-resize hover:bg-primary-500/50 active:bg-primary-500 transition-colors z-40 relative flex-shrink-0 -ml-1.5"
-      onmousedown={startResize}
-    ></div>
-  {/if}
+  <!-- BEGIN: Hardware Telemetry Widget Overlay -->
+  <div class="absolute bottom-4 left-4 w-[264px] bg-white rounded-xl shadow-lg p-4 z-30 border border-slate-100">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Hardware Telemetry</h3>
+      <Activity class="w-3 h-3 {telemetryState.connected ? 'text-indigo-500 animate-pulse' : 'text-slate-400'}" />
+    </div>
 
-  <!-- Main Area -->
-  <main class="flex-1 flex flex-col overflow-hidden relative min-w-0 focus:outline-none bg-surface-900 shadow-[inset_10px_0_30px_rgba(0,0,0,0.5)]">
-    {@render children()}
-  </main>
+    <div class="space-y-4">
+      <!-- VRAM Component -->
+      <div>
+        <div class="flex justify-between items-end mb-1">
+          <div>
+            <div class="text-[10px] text-slate-500 font-medium">SYS RAM:</div>
+            <div class="text-lg font-bold leading-none text-slate-800">{telemetryState.vramUsageMB} MB <span class="text-sm font-normal text-slate-500">/ {telemetryState.ramTotalGB} GB</span></div>
+          </div>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+          <div class="bg-indigo-400 h-full rounded-full transition-all duration-300" style="width: {Math.min(100, (telemetryState.vramUsageMB / (telemetryState.ramTotalGB * 1024)) * 100)}%"></div>
+        </div>
+      </div>
+      
+      <!-- Tokens/Sec Simulated Bar -->
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] text-slate-500 font-medium">TOKENS/SEC:</div>
+          <div class="text-lg font-bold leading-none {telemetryState.tokensPerSecond > 20 ? 'text-emerald-500' : 'text-slate-800'}">
+            {telemetryState.tokensPerSecond.toFixed(1)} <span class="text-sm font-normal text-slate-500">T/s</span>
+          </div>
+        </div>
+        <div class="flex items-end h-6 gap-[2px]">
+            <div class="w-1.5 bg-slate-200 h-[30%] rounded-t-sm" class:!bg-indigo-300={telemetryState.tokensPerSecond > 2}></div>
+            <div class="w-1.5 bg-slate-200 h-[50%] rounded-t-sm" class:!bg-indigo-400={telemetryState.tokensPerSecond > 8}></div>
+            <div class="w-1.5 bg-slate-200 h-[80%] rounded-t-sm" class:!bg-indigo-500={telemetryState.tokensPerSecond > 15}></div>
+            <div class="w-1.5 bg-slate-200 h-[100%] rounded-t-sm" class:!bg-indigo-600={telemetryState.tokensPerSecond > 30}></div>
+            <div class="w-1.5 bg-slate-200 h-[60%] rounded-t-sm" class:!bg-indigo-400={telemetryState.tokensPerSecond > 45}></div>
+        </div>
+      </div>
+
+      <!-- GPU / Temp Mock with active model name -->
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] text-slate-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis w-[120px]">MODEL:</div>
+          <div class="text-sm font-bold leading-none text-slate-800 truncate max-w-[120px]" title={telemetryState.activeModel}>{telemetryState.activeModel || 'Idle'}</div>
+        </div>
+        <div class="flex items-end h-6 gap-[2px]">
+          <div class="w-1.5 bg-emerald-400 h-[40%] rounded-t-sm"></div>
+          <div class="w-1.5 bg-emerald-400 h-[50%] rounded-t-sm"></div>
+          <div class="w-1.5 bg-emerald-400 h-[60%] rounded-t-sm"></div>
+          <div class="w-1.5 bg-emerald-400 h-[65%] rounded-t-sm"></div>
+          <div class="w-1.5 bg-emerald-400 h-[68%] rounded-t-sm"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- END: Hardware Telemetry Widget -->
+
+  <!-- BEGIN: Main Viewport (Header + Route Children) -->
+  <div class="flex-1 flex flex-col h-full overflow-hidden relative min-w-0">
+    
+    <!-- Top Main Header -->
+    <header class="h-16 flex items-center justify-between px-6 shrink-0 mt-2 z-10">
+      <!-- Active Workspace Selector -->
+      <label for="workspace-select" class="flex items-center bg-white rounded-lg shadow-sm px-4 py-2 border border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors max-w-sm flex-shrink min-w-0">
+        <div class="flex flex-col mr-4 w-full">
+          <span class="text-[10px] text-slate-500 uppercase tracking-wide font-medium leading-none mb-1">Active Workspace</span>
+          <select 
+            id="workspace-select"
+            class="text-sm font-semibold text-slate-700 leading-none bg-transparent outline-none appearance-none cursor-pointer p-0 border-0 focus:ring-0 truncate w-full"
+            value={globalState.activeWorkspaceId}
+            onchange={handleWorkspaceChange}
+          >
+            {#each globalState.workspaces as ws}
+              <option value={ws.id}>{ws.name}</option>
+            {/each}
+          </select>
+        </div>
+        <Database class="w-4 h-4 text-slate-400 shrink-0 pointer-events-none" />
+      </label>
+
+      <!-- Account / Notifications Actions -->
+      <div class="flex items-center bg-white rounded-full shadow-sm pr-2 pl-4 py-1.5 border border-slate-100 h-12 flex-shrink-0">
+        <button class="text-slate-400 hover:text-indigo-500 mr-4 relative transition-colors focus:outline-none">
+          <Bell class="w-5 h-5" />
+          <span class="absolute top-0 right-0 w-2 h-2 rounded-full border-2 border-white {telemetryState.connected ? 'bg-emerald-400' : 'bg-red-400'}"></span>
+        </button>
+        <button class="text-slate-400 hover:text-slate-600 mr-4 transition-colors focus:outline-none">
+          <Settings class="w-5 h-5" />
+        </button>
+        <div class="h-6 w-px bg-slate-200 mr-4"></div>
+        <div class="flex items-center">
+          <!-- Fallback avatar if no live data -->
+          <img alt="System Operator" class="w-8 h-8 rounded-full object-cover border-2 border-slate-100 mr-3 hidden sm:block" src="https://ui-avatars.com/api/?name=Admin&background=e2e8f0&color=334155" />
+          <div class="flex flex-col pr-2">
+            <span class="text-sm font-bold text-slate-800 leading-none mb-1">Sovereign Admin</span>
+            <span class="text-[10px] text-slate-500 leading-none tracking-widest uppercase">System Active</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content (Slot Injection) -->
+    <main class="flex-1 pb-4 px-4 overflow-hidden flex flex-col relative z-0">
+         {@render children()}
+    </main>
+  </div>
 </div>
