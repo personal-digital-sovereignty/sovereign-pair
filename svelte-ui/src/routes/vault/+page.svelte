@@ -3,7 +3,7 @@
     import ChatPanel from '$lib/components/ChatPanel.svelte';
     import { globalState } from '$lib/state.svelte.js';
     import { untrack, onMount } from 'svelte';
-    import { ChevronLeft, ChevronRight, X, Search, FileText, Filter, BrainCircuit, Sparkles } from 'lucide-svelte';
+    import { ChevronLeft, ChevronRight, X, Search, FileText, Filter, BrainCircuit, Sparkles, Plus, Trash2, Edit2 } from 'lucide-svelte';
 
     let viewState = $state<'explorer' | 'editor'>('explorer');
 
@@ -118,6 +118,37 @@
         } catch(e) { console.error(e); } finally { isLoading = false; }
     }
 
+    async function createNewFile() {
+        const name = prompt("Nome do novo arquivo (ex: roteiro.md):");
+        if (!name) return;
+        const req = { workspace_id: Number(globalState.activeWorkspaceId), type: "file", name, path: "" };
+        try {
+            await fetch(`${API_BASE_URL}/v1/vault/fs/create`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` }, body: JSON.stringify(req) });
+            fetchFiles();
+        } catch(e) { console.error(e); }
+    }
+
+    async function renameFile(e: Event, file: any) {
+        e.stopPropagation();
+        const new_name = prompt("Novo nome:", file.name);
+        if (!new_name || new_name === file.name) return;
+        const req = { workspace_id: Number(globalState.activeWorkspaceId), path: file.path, new_name };
+        try {
+            await fetch(`${API_BASE_URL}/v1/vault/fs/rename`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` }, body: JSON.stringify(req) });
+            fetchFiles();
+        } catch(e) { console.error(e); }
+    }
+
+    async function deleteFile(e: Event, file: any) {
+        e.stopPropagation();
+        if (!confirm(`Remover definitivamente ${file.name}?`)) return;
+        const req = { workspace_id: Number(globalState.activeWorkspaceId), path: file.path };
+        try {
+            await fetch(`${API_BASE_URL}/v1/vault/fs/delete`, { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` }, body: JSON.stringify(req) });
+            fetchFiles();
+        } catch(e) { console.error(e); }
+    }
+
     $effect(() => {
         const ws_id = globalState.activeWorkspaceId;
         untrack(() => {
@@ -156,6 +187,9 @@
         <div class="flex-1 bg-white/90 backdrop-blur-md rounded-xl flex flex-col overflow-hidden p-6 shadow-sm border border-slate-200">
             <div class="flex justify-between items-center mb-6 shrink-0">
                 <h2 class="text-xl font-semibold text-slate-800">Vault Data Explorer</h2>
+                <button onclick={createNewFile} class="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+                    <Plus class="w-4 h-4" /> Novo Arquivo
+                </button>
             </div>
             
             <div class="flex flex-col gap-3 mb-6 shrink-0 w-full max-w-2xl">
@@ -190,11 +224,12 @@
                             <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors select-none" onclick={() => handleSort('wikilinks')}>Category (Wikilink) {sortColumn === 'wikilinks' ? (sortAscending ? '↑' : '↓') : ''}</th>
                             <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors select-none" onclick={() => handleSort('modified')}>Date {sortColumn === 'modified' ? (sortAscending ? '↑' : '↓') : ''}</th>
                             <th class="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors select-none" onclick={() => handleSort('status')}>Status {sortColumn === 'status' ? (sortAscending ? '↑' : '↓') : ''}</th>
+                            <th class="px-4 py-3 w-16">Ações</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-slate-700">
                         {#each filteredFiles as file}
-                            <tr class="hover:bg-slate-50 cursor-pointer transition-colors" onclick={() => openFile(file.path, file.name)}>
+                            <tr class="hover:bg-slate-50 cursor-pointer transition-colors group" onclick={() => openFile(file.path, file.name)}>
                                 <td class="px-4 py-2.5 font-medium flex items-center gap-2">
                                     <FileText class="w-4 h-4 text-blue-500 shrink-0" /> 
                                     <span class="truncate max-w-[200px]" title={file.name}>{file.name}</span>
@@ -212,10 +247,16 @@
                                 </td>
                                 <td class="px-4 py-2.5 text-slate-500 text-xs">{file.date}</td>
                                 <td class="px-4 py-2.5"><span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-md text-[10px] font-bold uppercase tracking-wider">Synced</span></td>
+                                <td class="px-4 py-2.5">
+                                    <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onclick={(e) => renameFile(e, file)} class="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors" title="Renomear"><Edit2 class="w-4 h-4"/></button>
+                                        <button onclick={(e) => deleteFile(e, file)} class="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors" title="Deletar"><Trash2 class="w-4 h-4"/></button>
+                                    </div>
+                                </td>
                             </tr>
                         {/each}
                         {#if filteredFiles.length === 0 && !isLoading}
-                            <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400 italic">{files.length > 0 ? 'Nenhum arquivo encontrado para esta categoria.' : 'No files found in Vault.'}</td></tr>
+                            <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400 italic">{files.length > 0 ? 'Nenhum arquivo encontrado para esta categoria.' : 'No files found in Vault.'}</td></tr>
                         {/if}
                     </tbody>
                 </table>

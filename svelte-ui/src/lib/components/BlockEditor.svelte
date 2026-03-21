@@ -16,7 +16,7 @@
     import { Decoration, DecorationSet } from '@tiptap/pm/view';
     import { Extension } from '@tiptap/core';
 
-    import { Code, Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, CheckSquare, Quote, Minus, Table as TableIcon } from 'lucide-svelte';
+    import { Code, Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, CheckSquare, Quote, Minus, Table as TableIcon, Copy, BrainCircuit } from 'lucide-svelte';
 
     export const ObsidianLinks = Extension.create({
         name: 'obsidianLinks',
@@ -137,6 +137,81 @@
         return DecorationSet.create(doc, decorations);
     }
 
+    export const TheAccountantMath = Extension.create({
+        name: 'theAccountantMath',
+        addProseMirrorPlugins() {
+            return [
+                new Plugin({
+                    key: new PluginKey('theAccountantMath'),
+                    state: {
+                        init(_, { doc }) { return getMathDecorations(doc); },
+                        apply(tr, old) { return tr.docChanged ? getMathDecorations(tr.doc) : old; },
+                    },
+                    props: {
+                        decorations(state) { return this.getState(state); },
+                    },
+                }),
+            ];
+        },
+    });
+
+    function getMathDecorations(doc: any) {
+        const decorations: Decoration[] = [];
+        doc.descendants((tableNode: any, tablePos: number) => {
+            if (tableNode.type.name === 'table') {
+                const rows: any[] = [];
+                const cellPositions: number[][] = [];
+                tableNode.descendants((node: any, pos: number) => {
+                    if (node.type.name === 'table_row') {
+                        rows.push([]);
+                        cellPositions.push([]);
+                    } else if (node.type.name === 'table_cell' || node.type.name === 'table_header') {
+                        rows[rows.length - 1].push(node.textContent.trim());
+                        cellPositions[cellPositions.length - 1].push(tablePos + 1 + pos);
+                        return false;
+                    }
+                });
+
+                const getVal = (r: number, c: number) => {
+                    if (r < 0 || r >= rows.length || c < 0 || c >= rows[r].length) return '0';
+                    let v = rows[r][c].replace(/\\\*/g, '*').replace(/\\_/g, '_');
+                    if (v.startsWith('=')) return '0';
+                    return isNaN(Number(v)) ? '0' : v;
+                };
+
+                for(let r=0; r<rows.length; r++) {
+                    for(let c=0; c<rows[r].length; c++) {
+                        let text = rows[r][c];
+                        if (text.startsWith('=')) {
+                            let formula = text.substring(1).toUpperCase().replace(/\\\*/g, '*').replace(/\\_/g, '_');
+                            for(let i=0; i<3; i++) {
+                                formula = formula.replace(/([A-Z])([0-9]+)/g, (m, colChar, rowStr) => {
+                                    const col = colChar.charCodeAt(0) - 65;
+                                    const rw = parseInt(rowStr, 10) - 1;
+                                    return getVal(rw, col);
+                                });
+                            }
+                            if (/^[0-9+\-*/(). ]+$/.test(formula)) {
+                                try {
+                                    const result = new Function('return ' + formula)();
+                                    const valStr = Number.isInteger(result) ? result.toString() : result.toFixed(2);
+                                    let absPos = cellPositions[r][c];
+                                    let nodeSize = doc.nodeAt(absPos).nodeSize;
+                                    decorations.push(Decoration.node(absPos, absPos + nodeSize, {
+                                        class: 'math-evaluated-cell relative',
+                                        'data-math-result': valStr
+                                    }));
+                                } catch(e) {}
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+        });
+        return DecorationSet.create(doc, decorations);
+    }
+
     let { documentId = '', onSave = (content: string) => {} } = $props();
 
     let editorElement: HTMLElement;
@@ -162,9 +237,40 @@
     }
 
     function sendToChat(text: string) {
+        if (!text || text.trim() === '') text = 'Por favor, analise a edição que estou fazendo agora.';
         globalState.chat.inputContext = text;
         selectionContext = null;
     }
+
+    let contextMenu = $state<{ x: number, y: number, show: boolean, isTable: boolean } | null>(null);
+
+    function handleContextMenu(e: MouseEvent) {
+        // only override inside editor bounding box
+        if (!editorElement || !editorElement.contains(e.target as Node)) return;
+        e.preventDefault();
+        
+        let isTable = false;
+        if (editor) {
+            isTable = editor.isActive('table');
+        }
+        
+        contextMenu = {
+            x: e.clientX,
+            y: e.clientY,
+            show: true,
+            isTable
+        };
+    }
+
+    $effect(() => {
+        const handleClickOutside = () => { if (contextMenu) contextMenu.show = false; };
+        document.addEventListener('click', handleClickOutside);
+        document.addEventListener('contextmenu', handleContextMenu);
+        return () => {
+            document.removeEventListener('click', handleClickOutside);
+            document.removeEventListener('contextmenu', handleContextMenu);
+        };
+    });
     let editor: Editor | null = $state(null);
     let rawMarkdown = $state('');
 
@@ -229,6 +335,7 @@
                 ObsidianLinks,
                 ObsidianImages,
                 ObsidianCallouts,
+                TheAccountantMath,
             ],
             content: contentMarkdown,
             editorProps: {
@@ -397,7 +504,30 @@
                 {displayName}
             </h1>
 
-            <div bind:this={editorElement} class="w-full pb-32"></div>
+            <div class="flex-1 overflow-auto custom-scrollbar p-12 pr-6" bind:this={editorElement}></div>
+
+            <!-- Right Click Context Menu -->
+            {#if contextMenu && contextMenu.show}
+                <div 
+                    class="fixed z-50 bg-white/95 backdrop-blur-xl border border-slate-200 shadow-xl rounded-xl w-64 flex flex-col py-2 text-sm text-slate-700"
+                    style="top: {contextMenu.y}px; left: {contextMenu.x}px;"
+                >
+                    <button class="px-4 py-2 text-left hover:bg-slate-100 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().toggleBold().run()}><Bold class="w-4 h-4 text-slate-400"/> Negrito</button>
+                    <button class="px-4 py-2 text-left hover:bg-slate-100 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().toggleItalic().run()}><Italic class="w-4 h-4 text-slate-400"/> Itálico</button>
+                    <button class="px-4 py-2 text-left hover:bg-slate-100 flex items-center gap-3 transition-colors" onclick={() => navigator.clipboard.writeText(editor?.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, ' ') || '')}><Copy class="w-4 h-4 text-slate-400"/> Copiar</button>
+                    <div class="h-px bg-slate-200 my-1 mx-2"></div>
+                    <button class="px-4 py-2 text-left hover:bg-blue-50 text-blue-700 font-medium flex items-center gap-3 transition-colors" onclick={() => sendToChat(editor?.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, ' ') || '')}><BrainCircuit class="w-4 h-4 text-blue-500"/> Consultar Theodora</button>
+                    
+                    {#if contextMenu.isTable}
+                        <div class="h-px bg-slate-200 my-1 mx-2"></div>
+                        <div class="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50/50">Ferramentas de Planilha</div>
+                        <button class="px-4 py-2 text-left hover:bg-slate-100 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().addColumnAfter().run()}>+ Inserir Coluna (Direita)</button>
+                        <button class="px-4 py-2 text-left hover:bg-slate-100 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().addRowAfter().run()}>+ Inserir Linha (Baixo)</button>
+                        <button class="px-4 py-2 text-left hover:bg-rose-50 text-rose-600 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().deleteRow().run()}>✖ Deletar Linha</button>
+                        <button class="px-4 py-2 text-left hover:bg-rose-50 text-rose-600 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().deleteColumn().run()}>✖ Deletar Coluna</button>
+                    {/if}
+                </div>
+            {/if}
         </div>
 
     </div>
@@ -438,4 +568,56 @@
     :global(.callout-warning) { border-left-color: #f59e0b !important; background-color: #fffbeb !important; color: #78350f !important; }
     :global(.callout-danger) { border-left-color: #ef4444 !important; background-color: #fef2f2 !important; color: #7f1d1d !important; }
     :global(.callout-success), :global(.callout-tip) { border-left-color: #10b981 !important; background-color: #ecfdf5 !important; color: #064e3b !important; }
+
+    /* TipTap Table Styles */
+    :global(.tiptap table) {
+        border-collapse: collapse;
+        table-layout: fixed;
+        width: 100%;
+        margin: 1rem 0;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border-radius: 6px;
+        border-style: hidden;
+    }
+    :global(.tiptap td), :global(.tiptap th) {
+        min-width: 1em;
+        border: 1px solid #e2e8f0;
+        padding: 8px 12px;
+        vertical-align: top;
+        box-sizing: border-box;
+        position: relative;
+    }
+    :global(.tiptap th) {
+        font-weight: bold;
+        text-align: left;
+        background-color: #f8fafc;
+    }
+    :global(.tiptap .selectedCell:after) {
+        z-index: 2;
+        position: absolute;
+        content: "";
+        left: 0; right: 0; top: 0; bottom: 0;
+        background: rgba(200, 200, 255, 0.4);
+        pointer-events: none;
+    }
+    :global(.tiptap .column-resize-handle) {
+        position: absolute;
+        right: -2px;
+        top: 0;
+        bottom: -2px;
+        width: 4px;
+        background-color: #3b82f6;
+        pointer-events: none;
+    }
+    :global(.tiptap td.math-evaluated-cell::after) {
+        content: "=\00A0" attr(data-math-result);
+        display: inline-block;
+        background: #d1fae5; color: #065f46;
+        font-family: monospace; font-size: 11px; font-weight: 800;
+        padding: 3px 6px; border-radius: 4px;
+        margin-left: 8px; vertical-align: top;
+        pointer-events: none;
+        box-shadow: inset 0 0 0 1px #a7f3d0;
+    }
 </style>
