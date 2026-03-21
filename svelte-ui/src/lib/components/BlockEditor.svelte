@@ -12,7 +12,7 @@
     import yaml from 'js-yaml';
     import { globalState } from '$lib/state.svelte.js';
 
-    import { Plugin, PluginKey } from '@tiptap/pm/state';
+    import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
     import { Decoration, DecorationSet } from '@tiptap/pm/view';
     import { Extension } from '@tiptap/core';
 
@@ -143,76 +143,148 @@
             return [
                 new Plugin({
                     key: new PluginKey('theAccountantMath'),
-                    state: {
-                        init(_, { doc }) { return getMathDecorations(doc); },
-                        apply(tr, old) { return tr.docChanged ? getMathDecorations(tr.doc) : old; },
-                    },
-                    props: {
-                        decorations(state) { return this.getState(state); },
-                    },
-                }),
-            ];
-        },
-    });
+                    appendTransaction(transactions, oldState, newState) {
+                        if (!transactions.some(tr => tr.docChanged || tr.selectionSet)) return;
 
-    function getMathDecorations(doc: any) {
-        const decorations: Decoration[] = [];
-        doc.descendants((tableNode: any, tablePos: number) => {
-            if (tableNode.type.name === 'table') {
-                const rows: any[] = [];
-                const cellPositions: number[][] = [];
-                tableNode.descendants((node: any, pos: number) => {
-                    if (node.type.name === 'table_row') {
-                        rows.push([]);
-                        cellPositions.push([]);
-                    } else if (node.type.name === 'table_cell' || node.type.name === 'table_header') {
-                        rows[rows.length - 1].push(node.textContent.trim());
-                        cellPositions[cellPositions.length - 1].push(tablePos + 1 + pos);
-                        return false;
-                    }
-                });
+                        let tr = newState.tr;
+                        let modified = false;
 
-                const getVal = (r: number, c: number) => {
-                    if (r < 0 || r >= rows.length || c < 0 || c >= rows[r].length) return '0';
-                    let v = rows[r][c].replace(/\\\*/g, '*').replace(/\\_/g, '_');
-                    if (v.startsWith('=')) return '0';
-                    return isNaN(Number(v)) ? '0' : v;
-                };
+                        const tables: any[] = [];
+                        newState.doc.descendants((node, pos) => {
+                            if (node.type.name === 'table') tables.push({ node, pos });
+                            return false;
+                        });
 
-                for(let r=0; r<rows.length; r++) {
-                    for(let c=0; c<rows[r].length; c++) {
-                        let text = rows[r][c];
-                        if (text.startsWith('=')) {
-                            let formula = text.substring(1).toUpperCase().replace(/\\\*/g, '*').replace(/\\_/g, '_');
-                            for(let i=0; i<3; i++) {
-                                formula = formula.replace(/([A-Z])([0-9]+)/g, (m, colChar, rowStr) => {
-                                    const col = colChar.charCodeAt(0) - 65;
-                                    const rw = parseInt(rowStr, 10) - 1;
-                                    return getVal(rw, col);
-                                });
+                        const head = newState.selection.$head.pos;
+
+                        tables.forEach(({node: tableNode, pos: tablePos}) => {
+                            const rows: any[] = [];
+                            const cellData: any[] = [];
+                            
+                            tableNode.descendants((node: any, pos: number) => {
+                                if (node.type.name === 'tableRow') {
+                                    rows.push([]);
+                                } else if (node.type.name === 'tableCell' || node.type.name === 'tableHeader') {
+                                    const absPos = tablePos + 1 + pos;
+                                    let text = '';
+                                    let mathHref = null;
+                                    
+                                    node.descendants((child: any) => {
+                                        if (child.isText) {
+                                            text += child.text;
+                                            child.marks.forEach((m: any) => {
+                                                if (m.type.name === 'link' && m.attrs.href && m.attrs.href.startsWith('=')) {
+                                                    mathHref = m.attrs.href;
+                                                }
+                                            });
+                                        }
+                                    });
+
+                                    text = text.trim();
+                                    rows[rows.length - 1].push(mathHref ? mathHref : text);
+                                    
+                                    const isFocused = head > absPos && head < absPos + node.nodeSize;
+
+                                    cellData.push({ 
+                                        pos: absPos, 
+                                        nodeSize: node.nodeSize,
+                                        text: text,
+                                        mathHref: mathHref,
+                                        isFocused: isFocused
+                                    });
+                                    return false;
+                                }
+                            });
+
+                            const getVal = (r: number, c: number) => {
+                                if (r < 0 || r >= rows.length || c < 0 || c >= rows[r].length) return '0';
+                                let v = rows[r][c].replace(/\\\*/g, '*').replace(/\\_/g, '_').trim();
+                                if (v === '') return '0';
+                                if (v.startsWith('=')) return '(' + v.substring(1).toUpperCase() + ')';
+                                return isNaN(Number(v)) ? '0' : v;
+                            };
+
+                            let cellIndex = 0;
+                            for(let r=0; r<rows.length; r++) {
+                                for(let c=0; c<rows[r].length; c++) {
+                                    const cell = cellData[cellIndex++];
+                                    
+                                    if (cell.isFocused && cell.mathHref) {
+                                        const from = cell.pos + 1;
+                                        const to = cell.pos + cell.nodeSize - 1;
+                                        const pNode = newState.schema.nodes.paragraph.create({}, newState.schema.text(cell.mathHref));
+                                        tr.replaceWith(from, to, pNode);
+                                        tr.setSelection(TextSelection.create(tr.doc, from + 1 + cell.mathHref.length));
+                                        modified = true;
+                                    } 
+                                    else if (!cell.isFocused) {
+                                        let formula = null;
+                                        if (cell.mathHref) {
+                                            formula = cell.mathHref;
+                                        } else if (cell.text.startsWith('=')) {
+                                            formula = cell.text;
+                                        }
+
+                                        if (formula) {
+                                            let evalFormula = formula.substring(1).toUpperCase().replace(/\\\*/g, '*').replace(/\\_/g, '_');
+                                            let depth = 0;
+                                            while(depth < 10 && /[A-Z][0-9]+/.test(evalFormula)) {
+                                                evalFormula = evalFormula.replace(/([A-Z])([0-9]+)/g, (m: string, colChar: string, rowStr: string) => {
+                                                    const col = colChar.charCodeAt(0) - 65;
+                                                    const rw = parseInt(rowStr, 10) - 1;
+                                                    return getVal(rw, col);
+                                                });
+                                                depth++;
+                                            }
+
+                                            if (/^[0-9+\-*/(). ]+$/.test(evalFormula)) {
+                                                try {
+                                                    let resNum = Number(new Function('return ' + evalFormula)());
+                                                    if (!isNaN(resNum) && isFinite(resNum)) {
+                                                        const valStr = Number.isInteger(resNum) ? resNum.toString() : parseFloat(resNum.toFixed(5)).toString();
+                                                        
+                                                        if (!cell.mathHref || valStr !== cell.text) {
+                                                            const from = cell.pos + 1;
+                                                            const to = cell.pos + cell.nodeSize - 1;
+                                                            const linkMark = newState.schema.marks.link.create({ href: formula });
+                                                            const pNode = newState.schema.nodes.paragraph.create({}, newState.schema.text(valStr, [linkMark]));
+                                                            tr.replaceWith(from, to, pNode);
+                                                            modified = true;
+                                                        }
+                                                    }
+                                                } catch(e) {}
+                                            }
+                                        }
+                                    }
+                                }
                             }
-                            if (/^[0-9+\-*/(). ]+$/.test(formula)) {
-                                try {
-                                    const result = new Function('return ' + formula)();
-                                    const valStr = Number.isInteger(result) ? result.toString() : result.toFixed(2);
-                                    let absPos = cellPositions[r][c];
-                                    let nodeSize = doc.nodeAt(absPos).nodeSize;
-                                    decorations.push(Decoration.node(absPos, absPos + nodeSize, {
-                                        class: 'math-evaluated-cell relative',
-                                        'data-math-result': valStr
-                                    }));
-                                } catch(e) {}
-                            }
+                        });
+
+                        if (modified) {
+                            tr.setMeta('addToHistory', false);
+                            return tr;
                         }
                     }
-                }
-                return false;
-            }
-        });
-        return DecorationSet.create(doc, decorations);
-    }
+                })
+            ];
+        }
+    });
 
     let { documentId = '', onSave = (content: string) => {} } = $props();
+
+    const API_BASE_URL = 'http://localhost:38001';
+
+    async function saveDocument(content: string) {
+        if (!documentId) return;
+        try {
+            await fetch(`${API_BASE_URL}/v1/vault/document/${encodeURIComponent(documentId)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` },
+                body: JSON.stringify({ workspace_id: Number(globalState.activeWorkspaceId) || null, content })
+            });
+            onSave(content);
+        } catch(e) { console.error('Failed to save via API', e); }
+    }
 
     let editorElement: HTMLElement;
     let selectionContext = $state<{ text: string, top: number, left: number } | null>(null);
@@ -388,18 +460,7 @@
         } catch(e) { console.error("Could not fetch doc:", e); }
     }
 
-    async function saveDocument(fullMarkdown: string) {
-        try {
-            const token = localStorage.getItem('sovereign_token') || '';
-            const ws_id = globalState.activeWorkspaceId || 'default';
-            await fetch(`http://localhost:38001/v1/vault/document/${encodeURIComponent(documentId)}?workspace_id=${ws_id}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content_raw: fullMarkdown })
-            });
-            onSave(fullMarkdown);
-        } catch(e) { console.error("Save failed:", e); }
-    }
+
 
     onMount(() => {
         fetchDocument();
@@ -516,7 +577,7 @@
                     <button class="px-4 py-2 text-left hover:bg-slate-100 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().toggleItalic().run()}><Italic class="w-4 h-4 text-slate-400"/> Itálico</button>
                     <button class="px-4 py-2 text-left hover:bg-slate-100 flex items-center gap-3 transition-colors" onclick={() => navigator.clipboard.writeText(editor?.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, ' ') || '')}><Copy class="w-4 h-4 text-slate-400"/> Copiar</button>
                     <div class="h-px bg-slate-200 my-1 mx-2"></div>
-                    <button class="px-4 py-2 text-left hover:bg-blue-50 text-blue-700 font-medium flex items-center gap-3 transition-colors" onclick={() => sendToChat(editor?.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, ' ') || '')}><BrainCircuit class="w-4 h-4 text-blue-500"/> Consultar Theodora</button>
+                    <button class="px-4 py-2 text-left hover:bg-blue-50 text-blue-700 font-medium flex items-center gap-3 transition-colors" onclick={() => sendToChat(editor?.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, ' ') || '')}><BrainCircuit class="w-4 h-4 text-blue-500"/> Consultar IA</button>
                     
                     {#if contextMenu.isTable}
                         <div class="h-px bg-slate-200 my-1 mx-2"></div>
@@ -610,14 +671,23 @@
         background-color: #3b82f6;
         pointer-events: none;
     }
-    :global(.tiptap td.math-evaluated-cell::after) {
-        content: "=\00A0" attr(data-math-result);
-        display: inline-block;
-        background: #d1fae5; color: #065f46;
-        font-family: monospace; font-size: 11px; font-weight: 800;
-        padding: 3px 6px; border-radius: 4px;
-        margin-left: 8px; vertical-align: top;
+    :global(.tiptap td a[href^="="]) {
+        text-decoration: none !important;
+        color: #1e293b !important;
+        cursor: text;
         pointer-events: none;
-        box-shadow: inset 0 0 0 1px #a7f3d0;
+    }
+    :global(.tiptap td a[href^="="]::after) {
+        content: attr(href);
+        background-color: #d1fae5;
+        color: #047857;
+        font-family: monospace;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 700;
+        margin-left: 8px;
+        display: inline-block;
+        vertical-align: middle;
     }
 </style>

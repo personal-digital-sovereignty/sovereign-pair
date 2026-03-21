@@ -1,225 +1,217 @@
 <script lang="ts">
-    import { onMount, tick } from 'svelte';
-    import { globalState } from '$lib/state.svelte';
-    import { Plus, GripVertical, Trash2, Calendar, Settings, CheckCircle, ArrowRight, Folder } from 'lucide-svelte';
+    import { onMount } from 'svelte';
+    import { Plus, ArrowLeft, Archive, FolderKanban, BarChart2, Edit2 } from 'lucide-svelte';
+    import { projectState, fetchProjects, createProject, updateProjectAPI } from '$lib/projects.svelte';
+    import KanbanBoard from '$lib/components/kanban/KanbanBoard.svelte';
+    import ProjectDocuments from '$lib/components/kanban/ProjectDocuments.svelte';
+    import HubTelemetry from '$lib/components/kanban/HubTelemetry.svelte';
+    import ProjectTelemetry from '$lib/components/kanban/ProjectTelemetry.svelte';
+    import ProjectAssistant from '$lib/components/kanban/ProjectAssistant.svelte';
+    import HubAssistant from '$lib/components/kanban/HubAssistant.svelte';
 
-    type Task = { id: string, title: string, content: string, status: string };
-    type Project = { id: string, name: string, tasks: Task[] };
+    let isAddingProject = $state(false);
+    let newProjectName = $state('');
+    let activeProjectId = $state<string | null>(null);
+    let activeTab = $state<'active' | 'archived'>('active');
 
-    let projects = $state<Project[]>([]);
-    let isLoading = $state(true);
-    let draggingTaskId = $state<string | null>(null);
+    let isEditingSettings = $state(false);
+    let editName = $state('');
+    let editPurpose = $state('');
 
-    const API_BASE_URL = 'http://localhost:38001';
+    let filteredProjects = $derived(
+        projectState.projects.filter(p => activeTab === 'active' ? !p.is_archived : p.is_archived)
+    );
 
-    async function fetchProjects() {
-        isLoading = true;
-        try {
-            const token = localStorage.getItem('sovereign_token') || '';
-            const res = await fetch(`${API_BASE_URL}/v1/projects`, { headers: { 'Authorization': `Bearer ${token}` }});
-            if (res.ok) {
-                const data = await res.json();
-                if (data && Array.isArray(data) && data.length > 0) {
-                    projects = data;
-                }
-            }
-        } catch (e) {
-            console.error("Falha ao buscar projetos", e);
-        } finally {
-            isLoading = false;
+    let activeProject = $derived(
+        projectState.projects.find(p => p.id === activeProjectId)
+    );
+
+    async function submitProject() {
+        await createProject(newProjectName);
+        isAddingProject = false;
+        newProjectName = '';
+    }
+
+    async function toggleArchive(proj: import('$lib/projects.svelte').Project) {
+        await updateProjectAPI(proj.id, { is_archived: !proj.is_archived });
+    }
+
+    function startEditing() {
+        if (activeProject) {
+            editName = activeProject.name;
+            editPurpose = activeProject.purpose || '';
+            isEditingSettings = true;
         }
     }
 
-    onMount(() => {
-        // Fallback mockup
-        projects = [
-            { id: '1', name: 'Sovereign Core', tasks: [
-                { id: 't1', title: 'Implement neural network core', content: 'Develop and integrate...', status: 'To Do' },
-                { id: 't2', title: 'Refine RAG query optimizer', content: 'Optimize retrieval-augmented...', status: 'In Progress' },
-                { id: 't3', title: 'Deploy initial agent swarm', content: 'Successfully deployed...', status: 'Done' }
-            ]}
-        ];
-        fetchProjects();
+    async function saveSettings() {
+        if (activeProject && editName.trim()) {
+            await updateProjectAPI(activeProject.id, { 
+                name: editName.trim(), 
+                purpose: editPurpose.trim() 
+            });
+            // Optionally refresh or trust local reactivity
+            isEditingSettings = false;
+        }
+    }
+
+    $effect(() => {
+        if (!activeProjectId) isEditingSettings = false;
     });
 
-    // Drag and Drop Logic
-    function handleDragStart(e: DragEvent, taskId: string) {
-        if (e.dataTransfer) {
-            e.dataTransfer.setData('text/plain', taskId);
-            draggingTaskId = taskId;
-            setTimeout(() => e.target && (e.target as HTMLElement).classList.add('opacity-50'), 0);
-        }
-    }
-
-    function handleDragEnd(e: DragEvent) {
-        draggingTaskId = null;
-        if (e.target) (e.target as HTMLElement).classList.remove('opacity-50');
-    }
-
-    function handleDragOver(e: DragEvent, status: string, projectId: string) {
-        e.preventDefault();
-        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-    }
-
-    async function handleDrop(e: DragEvent, newStatus: string, projectId: string) {
-        e.preventDefault();
-        const taskId = e.dataTransfer?.getData('text/plain');
-        if (!taskId) return;
-
-        let taskToMove: Task | undefined;
-        let sourceProjectIndex = -1;
-        let taskIndex = -1;
-
-        projects.forEach((p, pIdx) => {
-            const tIdx = p.tasks.findIndex(t => t.id === taskId);
-            if (tIdx > -1) {
-                taskToMove = p.tasks[tIdx];
-                sourceProjectIndex = pIdx;
-                taskIndex = tIdx;
-            }
-        });
-
-        if (taskToMove && sourceProjectIndex > -1) {
-            projects[sourceProjectIndex].tasks.splice(taskIndex, 1);
-            taskToMove.status = newStatus;
-            const targetProjectIndex = projects.findIndex(p => p.id === projectId);
-            
-            if (targetProjectIndex > -1) {
-                projects[targetProjectIndex].tasks.push(taskToMove);
-                projects = [...projects]; 
-            }
-        }
-    }
+    onMount(() => {
+        fetchProjects();
+    });
 </script>
 
 <div class="flex flex-col h-full w-full bg-[#F4F7FA] font-sans">
     
-    <!-- Top Header -->
-    <header class="h-20 px-8 flex items-center justify-between bg-transparent shrink-0">
-        <h1 class="font-bold text-slate-800 text-3xl tracking-wide">Project Kanban Workspace</h1>
-        <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center transition-colors shadow-sm cursor-pointer">
-            <Plus class="w-4 h-4 mr-2" />
-            New Project
-        </button>
-    </header>
-
-    <main class="flex-1 overflow-x-auto overflow-y-hidden px-8 pb-8 custom-scrollbar">
-        {#if isLoading && projects.length === 0}
-            <div class="w-full flex justify-center py-20 text-slate-500 text-sm animate-pulse">
-                Carregando Projetos e Tarefas...
-            </div>
-        {:else}
-            <!-- Render a horizontal board for each project (if multiple, they stack vertically or horizontally) -->
-            <div class="flex flex-col gap-12 h-full">
-                {#each projects as project}
-                    <div class="flex flex-col h-full shrink-0">
-                        {#if projects.length > 1}
-                            <div class="flex items-center justify-between mb-4 px-2">
-                                <h2 class="text-xl font-bold text-slate-700 flex items-center gap-2">
-                                    <Folder class="w-5 h-5 text-blue-500" />
-                                    {project.name}
-                                </h2>
-                                <button class="text-rose-400 hover:text-rose-600 p-2 cursor-pointer"><Trash2 class="w-4 h-4"/></button>
-                            </div>
-                        {/if}
-                        
-                        <div class="flex h-full gap-6 items-start min-w-max pb-4">
-                            {#each ['To Do', 'In Progress', 'Done'] as colStatus}
-                                <!-- Column -->
-                                <section class="w-80 flex flex-col rounded-xl border border-slate-200 shadow-sm max-h-full bg-slate-50 shrink-0">
-                                    <!-- Column Header -->
-                                    <div class="p-4 flex items-center justify-between border-b border-slate-200/60 bg-white/50 rounded-t-xl shrink-0">
-                                        <h2 class="font-semibold text-slate-800 text-lg">{colStatus}</h2>
-                                        <div class="flex items-center gap-2">
-                                            <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                                                {project.tasks.filter(t => t.status === colStatus).length}
-                                            </span>
-                                            <button class="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"><Settings class="w-4 h-4" /></button>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Column Cards Dropzone -->
-                                    <div 
-                                        class="p-3 flex-1 overflow-y-auto space-y-3 custom-scrollbar {draggingTaskId ? 'bg-blue-50/50' : ''} transition-colors min-h-[150px] rounded-b-xl"
-                                        ondragover={(e) => handleDragOver(e, colStatus, project.id)}
-                                        ondrop={(e) => handleDrop(e, colStatus, project.id)}
-                                    >
-                                        {#each project.tasks.filter(t => t.status === colStatus) as task}
-                                            <!-- Task Card -->
-                                            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-                                            <article 
-                                                class="bg-white p-4 rounded-lg shadow-md border border-slate-100 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing group"
-                                                draggable="true"
-                                                ondragstart={(e) => handleDragStart(e, task.id)}
-                                                ondragend={handleDragEnd}
-                                            >
-                                                <div class="flex items-start justify-between gap-3 mb-3">
-                                                    <h3 class="font-semibold text-slate-800 text-sm leading-tight pr-4">{task.title}</h3>
-                                                    <GripVertical class="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                                                </div>
-                                                {#if task.content}
-                                                    <p class="text-slate-500 text-xs mb-4 leading-relaxed line-clamp-3">{task.content}</p>
-                                                {/if}
-                                                <div class="flex items-center justify-between mt-auto pt-2 border-t border-slate-50">
-                                                    <div class="text-xs text-slate-500 font-medium flex items-center gap-1">
-                                                        <Calendar class="w-3 h-3" /> Hoje
-                                                    </div>
-                                                    {#if colStatus === 'Done'}
-                                                        <div class="flex items-center gap-1">
-                                                            <span class="bg-green-100 text-green-800 text-[10px] font-bold px-2 py-1 rounded border border-green-200">Completed</span>
-                                                            <CheckCircle class="text-emerald-600 w-3 h-3" />
-                                                        </div>
-                                                    {:else if colStatus === 'In Progress'}
-                                                        <div class="flex items-center gap-1">
-                                                            <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-1 rounded border border-blue-200">Active</span>
-                                                            <ArrowRight class="text-blue-500 w-3 h-3" />
-                                                        </div>
-                                                    {:else}
-                                                        <div class="flex items-center gap-1">
-                                                            <span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-1 rounded border border-slate-200">Pending</span>
-                                                        </div>
-                                                    {/if}
-                                                </div>
-                                            </article>
-                                        {/each}
-                                    </div>
-                                    
-                                    <!-- Add Task Button -->
-                                    <div class="p-3 border-t border-slate-200/60 bg-white/50 rounded-b-xl shrink-0 flex justify-center">
-                                        <button class="bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded-md text-sm font-medium flex items-center justify-center transition-colors shadow-sm px-6 w-full cursor-pointer">
-                                            <Plus class="w-4 h-4 mr-2" /> Add Task
-                                        </button>
-                                    </div>
-                                </section>
-                            {/each}
+    {#if activeProject}
+        <!-- ================= PROJECT DETAIL VIEW (KANBAN) ================= -->
+        <header class="min-h-[140px] px-8 py-5 flex items-start justify-between bg-transparent shrink-0 border-b border-slate-200/60">
+            <div class="flex items-start gap-6 w-full max-w-3xl">
+                <button onclick={() => activeProjectId = null} class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200 rounded-full transition-colors cursor-pointer mt-1">
+                    <ArrowLeft class="w-5 h-5" />
+                </button>
+                <div class="flex flex-col w-full">
+                    {#if isEditingSettings}
+                        <input type="text" bind:value={editName} onkeydown={(e) => e.key === 'Enter' && saveSettings()} class="font-bold text-slate-800 text-2xl tracking-wide bg-white border border-blue-300 rounded px-3 py-1 outline-none shadow-sm focus:ring-2 focus:ring-blue-500 w-full mb-2" placeholder="Nome do Projeto..."/>
+                        <textarea bind:value={editPurpose} class="text-sm text-slate-600 bg-white border border-blue-300 rounded px-3 py-2 outline-none shadow-sm focus:ring-2 focus:ring-blue-500 resize-none custom-scrollbar w-full" rows="2" placeholder="Descreva qual o propósito ou métrica de sucesso deste projeto..."></textarea>
+                        <div class="flex gap-2 mt-3">
+                            <button onclick={saveSettings} class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-1.5 rounded shadow-sm transition cursor-pointer">Salvar Alterações</button>
+                            <button onclick={() => isEditingSettings = false} class="bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-bold px-4 py-1.5 rounded shadow-sm transition cursor-pointer">Cancelar</button>
                         </div>
+                    {:else}
+                        <div 
+                            role="button"
+                            tabindex="0"
+                            onkeydown={(e) => e.key === 'Enter' && startEditing()}
+                            onclick={startEditing} 
+                            class="group flex flex-col items-start cursor-text hover:bg-white hover:shadow-sm px-3 py-1.5 rounded-xl transition -ml-3 w-fit border border-transparent hover:border-blue-100" 
+                            title="Editar Título/Propósito">
+                            <h1 class="font-bold text-slate-800 text-3xl tracking-wide flex items-center gap-3">
+                                {activeProject.name}
+                                <Edit2 class="w-4 h-4 text-slate-300 group-hover:text-blue-500 opacity-0 group-hover:opacity-100 transition" />
+                            </h1>
+                            <p class="text-sm font-medium text-slate-500 mt-1 w-full max-w-xl group-hover:text-slate-600">
+                                {activeProject.purpose || '💡 Clique aqui para definir o propósito raiz deste projeto...'}
+                            </p>
+                        </div>
+                    {/if}
+                    <div class="mt-4 w-full pr-8">
+                        <ProjectTelemetry project={activeProject} />
                     </div>
-                {/each}
+                </div>
             </div>
-        {/if}
-    </main>
+            <div class="flex flex-col items-end gap-3 mt-1">
+                <button onclick={() => toggleArchive(activeProject!)} class="text-sm font-bold px-4 py-2 rounded-lg {activeProject.is_archived ? 'bg-emerald-100 text-emerald-700 hover:opacity-80' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'} transition cursor-pointer flex items-center gap-2">
+                    <Archive class="w-4 h-4" />
+                    {activeProject.is_archived ? 'Desarquivar Projeto' : 'Arquivar Projeto'}
+                </button>
+                <span class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+                    {activeProject.tasks.length} {activeProject.tasks.length === 1 ? 'Tarefa' : 'Tarefas'} no Fluxo
+                </span>
+            </div>
+        </header>
 
-    <!-- BEGIN: System Status Widget (Absolute bottom right) -->
-    <div class="fixed bottom-6 right-8 bg-white/90 backdrop-blur-sm border border-slate-200 p-4 rounded-xl shadow-lg flex items-center gap-4 z-20 pointer-events-none">
-        <div class="w-24 h-12 bg-slate-50 border border-slate-100 rounded flex items-end overflow-hidden relative">
-            <div class="absolute inset-0 flex flex-col justify-between py-1 px-1 opacity-30">
-                <div class="w-full border-b border-slate-400 border-dashed"></div>
-                <div class="w-full border-b border-slate-400 border-dashed"></div>
-                <div class="w-full border-b border-slate-400 border-dashed"></div>
+        <main class="flex-1 overflow-x-auto overflow-y-hidden px-8 pt-6 pb-8 custom-scrollbar relative flex flex-col">
+            <ProjectDocuments project={activeProject} />
+            <div class="flex-1 overflow-y-hidden min-h-0">
+                <KanbanBoard project={activeProject} />
             </div>
-            <svg class="w-full h-full text-blue-500 fill-blue-100/50 relative z-10" preserveAspectRatio="none" viewBox="0 0 100 40">
-                <path d="M0 40 L0 30 L10 25 L20 28 L30 15 L40 20 L50 10 L60 15 L70 5 L80 12 L90 8 L100 2 L100 40 Z" stroke="currentColor" stroke-width="1.5"></path>
-            </svg>
-        </div>
-        <div class="text-xs font-medium space-y-1">
-            <div class="flex justify-between gap-4">
-                <span class="text-slate-500">System Status:</span>
-                <span class="text-emerald-600 font-semibold">Online</span>
+        </main>
+        
+    {:else}
+        <!-- ================= PROJECTS OVERVIEW HUB ================= -->
+        <header class="h-32 px-10 flex flex-col justify-center bg-transparent shrink-0 space-y-4 border-b border-slate-200/50">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="font-bold text-slate-800 text-3xl tracking-wide flex items-center gap-3">
+                        <FolderKanban class="w-8 h-8 text-blue-600"/>
+                        Hub de Orquestração
+                    </h1>
+                    <p class="text-sm text-slate-500 mt-1 font-medium">Gerencie e orquestre todas as suas iniciativas Cíbridas num só local.</p>
+                </div>
+                
+                {#if isAddingProject}
+                    <div class="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm">
+                        <input type="text" bind:value={newProjectName} class="px-3 py-1.5 text-sm font-bold bg-transparent focus:outline-none min-w-[200px]" placeholder="Nome do Novo Projeto..." onkeydown={(e) => e.key === 'Enter' && submitProject()} />
+                        <button onclick={submitProject} class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition">Lançar</button>
+                        <button onclick={() => {isAddingProject = false; newProjectName = '';}} class="bg-slate-100 hover:bg-slate-200 text-slate-500 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition">X</button>
+                    </div>
+                {:else}
+                    <button onclick={() => isAddingProject = true} class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center transition-colors shadow-md cursor-pointer">
+                        <Plus class="w-5 h-5 mr-2" />
+                        Novo Projeto
+                    </button>
+                {/if}
             </div>
-            <div class="flex justify-between gap-4">
-                <span class="text-slate-500">Nodes Connected:</span>
-                <span class="text-slate-800">42</span>
+            
+            <!-- Tabs -->
+            <div class="flex gap-6 pb-0.5 mt-2">
+                <button onclick={() => activeTab = 'active'} class="text-sm font-bold pb-2 border-b-2 {activeTab === 'active' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-400 hover:text-slate-800'} transition cursor-pointer">
+                    Projetos Ativos ({projectState.projects.filter(p => !p.is_archived).length})
+                </button>
+                <button onclick={() => activeTab = 'archived'} class="text-sm font-bold pb-2 border-b-2 {activeTab === 'archived' ? 'border-amber-500 text-amber-700' : 'border-transparent text-slate-400 hover:text-slate-800'} transition cursor-pointer">
+                    Gaveta de Arquivos ({projectState.projects.filter(p => p.is_archived).length})
+                </button>
             </div>
-        </div>
-    </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto px-10 pt-6 pb-8 custom-scrollbar">
+            <HubTelemetry />
+            
+            <div class="flex gap-8 items-start">
+                <div class="flex-1">
+                    {#if projectState.isLoading}
+                        <div class="w-full flex justify-center py-20 text-slate-500 text-sm font-bold animate-pulse uppercase tracking-wider">
+                            Lendo Matrizes de Dados...
+                        </div>
+                    {:else if filteredProjects.length === 0}
+                <div class="flex flex-col items-center justify-center py-32 text-slate-400">
+                    <FolderKanban class="w-16 h-16 mb-4 opacity-30 text-slate-400" />
+                    <p class="font-medium">Nenhum projeto encontrado nesta visão.</p>
+                </div>
+            {:else}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {#each filteredProjects as project (project.id)}
+                        <!-- Project Card Overview -->
+                        <div onclick={() => activeProjectId = project.id} class="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-xl hover:border-blue-300 hover:-translate-y-1 transition-all cursor-pointer group flex flex-col h-48">
+                            <div class="flex justify-between items-start mb-2 gap-4">
+                                <h3 class="font-bold text-lg text-slate-800 group-hover:text-blue-600 transition truncate flex-1">{project.name}</h3>
+                                <div role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); toggleArchive(project); } }} class="p-1.5 bg-slate-50 hover:bg-rose-50 rounded border border-slate-100 text-slate-400 group-hover:text-rose-500 transition cursor-pointer" onclick={(e) => { e.stopPropagation(); toggleArchive(project); }} title="Mover para gaveta">
+                                    <Archive class="w-3.5 h-3.5" />
+                                </div>
+                            </div>
+                            
+                            <p class="text-xs text-slate-500 flex-1 line-clamp-3 leading-relaxed mt-1 font-medium">
+                                {project.purpose || 'Nenhum propósito definido ainda. Entre no Quadro para editar as propriedades.'}
+                            </p>
+                            
+                            <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-bold">
+                                <div class="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded">
+                                    <BarChart2 class="w-3.5 h-3.5 text-blue-500" />
+                                    <span>{project.tasks.length} {project.tasks.length === 1 ? 'Tarefa' : 'Tarefas'}</span>
+                                </div>
+                                
+                                <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-[4px] font-bold uppercase tracking-wider text-[10px]">
+                                    {project.traction_status || 'Ideação'}
+                                </span>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+                    {/if}
+                </div>
+                
+                <div class="w-[380px] shrink-0 sticky top-0">
+                    <HubAssistant />
+                </div>
+            </div>
+        </main>
+    {/if}
+
+    {#if activeProject && !activeProject.is_archived}
+        <ProjectAssistant project={activeProject} />
+    {/if}
 </div>
