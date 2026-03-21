@@ -12,7 +12,19 @@ export const globalState = $state({
     // Global Workspaces
     activeWorkspaceId: 'mesh_roaming',
     activeWorkspaceName: 'Sovereign Mesh Roaming',
-    workspaces: [] as any[]
+    workspaces: [] as any[],
+
+    // Vault Teleport State
+    vault: {
+        activeDocumentId: '',
+        workspaceFiles: [] as any[]
+    },
+    
+    // Chat History State
+    chat: {
+        activeSessionId: null as number | null,
+        activeSessionTitle: 'Nova Sessão'
+    }
 });
 
 export const toggleSidebar = () => {
