@@ -10,14 +10,15 @@
     import TableCell from '@tiptap/extension-table-cell';
     import { Markdown } from 'tiptap-markdown';
     import yaml from 'js-yaml';
+    import { globalState } from '$lib/state.svelte.js';
 
     import { Code, Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, CheckSquare, Quote, Minus, Table as TableIcon } from 'lucide-svelte';
 
-    let { documentId = '', initialContent = '', onSave = (content: string) => {} } = $props();
+    let { documentId = '', onSave = (content: string) => {} } = $props();
 
     let editorElement: HTMLElement;
     let editor: Editor | null = $state(null);
-    let rawMarkdown = $state(initialContent);
+    let rawMarkdown = $state('');
 
     // Document Properties (Frontmatter)
     let documentProperties = $state<Record<string, any>>({});
@@ -57,13 +58,49 @@
         const currentContent = editor.storage.markdown.getMarkdown();
         const fullMarkdown = buildMarkdown(currentContent, documentProperties);
         rawMarkdown = fullMarkdown;
-        onSave(fullMarkdown);
+        saveDocument(fullMarkdown);
+    }
+
+    async function fetchDocument() {
+        try {
+            const token = localStorage.getItem('sovereign_token') || '';
+            const ws_id = globalState.activeWorkspaceId || 'default';
+            // The UUID or File Path is sent as documentId
+            const res = await fetch(`http://localhost:38001/v1/vault/document/${encodeURIComponent(documentId)}?workspace_id=${ws_id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const content = data.content_raw || '';
+                const parsed = parseFrontmatter(content);
+                documentProperties = parsed.frontmatter as Record<string, any>;
+                rawMarkdown = buildMarkdown(parsed.content, $state.snapshot(documentProperties));
+                if (editor) editor.commands.setContent(parsed.content, { emitUpdate: false });
+            } else {
+                console.warn(`Doc ${documentId} fetch failed. Using template.`);
+                const template = `---\ntitle: ${documentId}\n---\n# ${documentId}\n\nInicie sua documentação.`;
+                const parsed = parseFrontmatter(template);
+                documentProperties = parsed.frontmatter as Record<string, any>;
+                rawMarkdown = template;
+                if (editor) editor.commands.setContent(parsed.content, { emitUpdate: false });
+            }
+        } catch(e) { console.error("Could not fetch doc:", e); }
+    }
+
+    async function saveDocument(fullMarkdown: string) {
+        try {
+            const token = localStorage.getItem('sovereign_token') || '';
+            const ws_id = globalState.activeWorkspaceId || 'default';
+            await fetch(`http://localhost:38001/v1/vault/document/${encodeURIComponent(documentId)}?workspace_id=${ws_id}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content_raw: fullMarkdown })
+            });
+            onSave(fullMarkdown);
+        } catch(e) { console.error("Save failed:", e); }
     }
 
     onMount(() => {
-        const parsed = parseFrontmatter(initialContent);
-        documentProperties = parsed.frontmatter as Record<string, any>;
-        
         editor = new Editor({
             element: editorElement,
             extensions: [
@@ -76,7 +113,7 @@
                 TableHeader,
                 TableCell,
             ],
-            content: parsed.content,
+            content: '', // Initialized empty, immediately hydrated
             editorProps: {
                 attributes: {
                     class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px] text-surface-200'
@@ -87,7 +124,7 @@
                 const currentContent = e.storage.markdown.getMarkdown();
                 const fullMarkdown = buildMarkdown(currentContent, $state.snapshot(documentProperties));
                 rawMarkdown = fullMarkdown;
-                onSave(fullMarkdown);
+                saveDocument(fullMarkdown);
                 
                 // Triggers Svelte reactivity for the floating menus
                 editor = editor; 
@@ -96,6 +133,8 @@
                 editor = editor;
             }
         });
+
+        fetchDocument();
 
         return () => {
             if (editor) {
@@ -161,6 +200,7 @@
                         if (editor && viewMode === 'split') {
                             editor.commands.setContent(parsed.content, { emitUpdate: false });
                         }
+                        saveDocument(rawMarkdown);
                     }}
                     class="flex-1 w-full bg-transparent text-primary-400 font-mono text-sm leading-relaxed resize-none outline-none" 
                     spellcheck="false" 
