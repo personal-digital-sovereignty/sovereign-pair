@@ -128,10 +128,8 @@
         nodeDegrees.forEach(val => { if (val > maxConnections) maxConnections = val; });
         const effectiveMax = Math.min(maxConnections, 20); 
 
-        graphInstance.d3Force('center', d3.forceCenter()); 
         graphInstance.d3Force('charge').strength(-120).distanceMax(800); 
         graphInstance.d3Force('link').distance((link: any) => link.type === 'hierarchy' ? 60 : 20).strength(0.8); 
-        graphInstance.d3Force('collide', d3.forceCollide(8));
 
         if (graphInstance.onRenderFramePre) {
             graphInstance.onRenderFramePre((ctx: CanvasRenderingContext2D, globalScale: number) => {
