@@ -147,18 +147,23 @@
                 const dy = node.y - centerY;
                 const r = Math.sqrt(dx*dx + dy*dy) || 1;
                 
+                // Impenetrable Inner Void: No cluster can enter the 800px radius of the Sun
+                if (r < 800) {
+                    const voidPush = (800 - r) * 0.1 * alpha;
+                    node.vx += (dx / r) * voidPush;
+                    node.vy += (dy / r) * voidPush;
+                }
+
                 const deg = nodeDegrees.get(node.id) || 0;
 
                 if (deg === 0) {
-                    // Isolated dust floats to the deep outer rims, loosely held (2000px keeps it inside the wall)
                     const pullForce = (2000 - r) * 0.01 * alpha;
                     node.vx += (dx / r) * pullForce;
                     node.vy += (dy / r) * pullForce;
                 } else {
-                    // Synaptic clusters stratify based on mass (degree). 
-                    // Hubs pull closer, leaves follow organically via the strong link force.
-                    const targetBand = 1200 - Math.min(deg, 20) * 15;
-                    const pullForce = (targetBand - r) * 0.04 * alpha; 
+                    // Massive hubs organically locked onto the 1400px orbit (between layers)
+                    const targetBand = 1400;
+                    const pullForce = (targetBand - r) * 0.05 * alpha; 
                     node.vx += (dx / r) * pullForce;
                     node.vy += (dy / r) * pullForce;
                 }
@@ -212,8 +217,8 @@
                 const pulseFrequency = 0.008; 
                 const ringCount = 4;
 
-                const currentNodes = $state.snapshot(graphData).nodes;
-                const rootNode = currentNodes.find((n: any) => n.id === 'root');
+                const runtimeNodes = graphInstance.graphData().nodes;
+                const rootNode = runtimeNodes.find((n: any) => n.id === 'root');
                 const centerX = rootNode ? (rootNode.x || 0) : 0;
                 const centerY = rootNode ? (rootNode.y || 0) : 0;
 
@@ -277,12 +282,12 @@
                 ctx.fill();
 
                 ctx.beginPath();
-                ctx.arc(0, 0, CORE_RADIUS, 0, 2 * Math.PI, false);
+                ctx.arc(centerX, centerY, CORE_RADIUS, 0, 2 * Math.PI, false);
                 ctx.fillStyle = `rgb(${rgbStr})`; 
                 ctx.fill();
 
                 ctx.beginPath();
-                ctx.arc(0, 0, CORE_RADIUS * 0.4, 0, 2 * Math.PI, false);
+                ctx.arc(centerX, centerY, CORE_RADIUS * 0.4, 0, 2 * Math.PI, false);
                 ctx.fillStyle = '#ffffff'; 
                 ctx.fill();
 
