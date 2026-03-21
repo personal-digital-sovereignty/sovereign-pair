@@ -26,6 +26,11 @@ export const globalState = $state({
         activeSessionId: null as number | null,
         activeSessionTitle: 'Nova Sessão',
         inputContext: ''
+    },
+
+    // Layout State
+    layout: {
+        isRightAuxPanelOpen: false
     }
 });
 
