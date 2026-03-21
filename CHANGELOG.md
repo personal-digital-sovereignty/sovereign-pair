@@ -2,6 +2,19 @@
 
 All notable changes to the Sovereign Pair project will be documented in this file.
 
+## [0.8.2] - 2026-03-21
+
+### 🚀 Vault Explorer, Svelte UI & Performance Cíbrida
+
+### Adicionado
+- **Integração Real-Time Hardware Telemetry (Memória OS)**: O motor Axum agora lê nativamente `/proc/meminfo` para injetar no dashboard do *Control Hub* a volumetria exata do Hardware (RAM) do hospedeiro atual, neutralizando o limite mockado de 24GB do layout antigo.
+- **Vault Data Explorer UI Refinada**: Implementada uma barra de *Command Line Search* unificada, expurgando as inconsistências das antigas interfaces de filtragem e empoderando o grid de arquivos via tags (ex: `tag:projeto`), *paths* e clique dinâmico (sort) nos cabeçalhos transversais.
+- **Componente Props Escalado (BlockEditor)**: O Popover Flutuante de edição Frontmatter YAML (`Props`) sofreu um recálculo profundo nas diretivas Tailwind, adquirindo a robustez necessária (`w-[450px]`) para não estrangular chaves e arrays longos e sobrepor as engrenagens de refração visual.
+
+### Corrigido
+- **Context-Bombing & ReWOO Engine Latency**: Refatorado o roteador híbrido Rust (`HybridRouter::dispatch_planner`) que estava disparando uma varredura completa (`VaultSearch`) em cada interação mínima do usuário no Chat nativo. A lógica reconfigurada aguarda agora condicionalmente por instruções com `@vault`. Essa mudança resgatou instantaneamente o LLM do estado comatoso (onde demorava minutos lendo 16k tokens).
+- **Integração de LLM (The Doctor) e Svelte Typings (HTTP 422)**: Erradicado o travamento bruto onde objetos numéricos (Integers) vazavam do Estado (`globalState.activeWorkspaceId`) e implodiam a desserialização do Endpoint Axum. Conversões blindadas em String asseguraram a consistência dos requests do chat intra-arquivos.
+
 ## [0.8.1] - 2026-03-20
 
 🚨 **A Atualização Estabilizadora**
