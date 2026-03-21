@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Project } from '$lib/projects.svelte';
-    import { MessageSquare, X, Send } from 'lucide-svelte';
+    import { MessageSquare, X, Send, ThumbsUp, ThumbsDown, Copy, RotateCcw } from 'lucide-svelte';
 
     let { project, isOpen = $bindable(false) }: { project: Project; isOpen?: boolean } = $props();
     let message = $state('');
@@ -80,8 +80,8 @@
     </button>
 {:else}
     <!-- Aumentado z-index para 999 para passar por cima do menu Sovereign Admin -->
-    <div class="fixed top-0 right-0 w-[420px] h-full bg-white border-l border-slate-200 shadow-2xl flex flex-col z-[999] transform transition-transform duration-300 translate-x-0">
-        <div class="h-16 border-b border-emerald-100 flex items-center justify-between px-6 bg-emerald-50/50 shrink-0">
+    <div class="fixed top-0 right-0 w-[420px] h-full bg-slate-50/50 backdrop-blur-xl border-l border-slate-200 shadow-2xl flex flex-col z-[999] transform transition-transform duration-300 translate-x-0">
+        <div class="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shrink-0 shadow-sm">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center shadow-sm">
                     <MessageSquare class="w-4 h-4 text-emerald-600" />
@@ -96,18 +96,26 @@
             </button>
         </div>
         
-        <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 custom-scrollbar">
+        <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-transparent custom-scrollbar">
             {#each chatLog as msg}
                 <div class="flex flex-col {msg.role === 'user' ? 'items-end' : 'items-start'}">
-                    <div class="max-w-[85%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed {msg.role === 'user' ? 'bg-emerald-600 text-white shadow-md rounded-br-none' : 'bg-white border border-slate-200 text-slate-700 shadow-sm rounded-bl-none'}">
-                        {msg.content}
+                    <div class="max-w-[85%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed shadow-sm {msg.role === 'user' ? 'bg-slate-800 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-700 rounded-bl-none'}">
+                        {@html msg.content}
                     </div>
+                    {#if msg.role === 'assistant'}
+                    <div class="flex items-center gap-1 mt-1 ml-1 opacity-0 hover:opacity-100 transition-opacity">
+                        <button class="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-slate-100 transition"><ThumbsUp class="w-3 h-3"/></button>
+                        <button class="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-100 transition"><ThumbsDown class="w-3 h-3"/></button>
+                        <button class="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-slate-100 transition"><Copy class="w-3 h-3"/></button>
+                        <button class="p-1 text-slate-400 hover:text-amber-600 rounded hover:bg-slate-100 transition"><RotateCcw class="w-3 h-3"/></button>
+                    </div>
+                    {/if}
                 </div>
             {/each}
         </div>
         
-        <div class="p-4 bg-white border-t border-slate-100 shrink-0">
-            <div class="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-xl p-2 focus-within:ring-2 focus-within:ring-emerald-500/50 focus-within:border-emerald-500 transition-all shadow-sm">
+        <div class="p-4 bg-white border-t border-slate-200 shrink-0">
+            <div class="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-xl p-2 focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500 transition-all shadow-sm">
                 <textarea 
                     bind:value={message} 
                     onkeydown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}

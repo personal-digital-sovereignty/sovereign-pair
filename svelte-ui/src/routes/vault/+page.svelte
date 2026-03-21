@@ -3,9 +3,22 @@
     import ChatPanel from '$lib/components/ChatPanel.svelte';
     import { globalState } from '$lib/state.svelte.js';
     import { untrack, onMount } from 'svelte';
-    import { ChevronLeft, ChevronRight, X, Search, FileText, Filter, BrainCircuit, Sparkles, Plus, Trash2, Edit2 } from 'lucide-svelte';
+    import { ChevronLeft, ChevronRight, X, Search, FileText, Filter, BrainCircuit, Sparkles, Plus, Trash2, Edit2, Rocket } from 'lucide-svelte';
+    import { page } from '$app/stores';
 
     let viewState = $state<'explorer' | 'editor'>('explorer');
+    let fromProject = $derived($page.url.searchParams.get('fromProject'));
+    let fileParam = $derived($page.url.searchParams.get('file'));
+
+    $effect(() => {
+        if (fileParam && !tabs.find(t => t.id === fileParam)) {
+            openFile(fileParam, fileParam.split('/').pop() || 'Arquivo');
+            // Remove o params logico da url sem recarregar a pagina para nao ficar abrindo sempre se o cara fechar a aba
+            const url = new URL(window.location.href);
+            url.searchParams.delete('file');
+            window.history.replaceState({}, '', url);
+        }
+    });
 
     type Tab = { id: string; name: string; type?: string };
     let tabs = $state<Tab[]>([]);
@@ -322,6 +335,11 @@
                 <button onclick={() => viewState = 'explorer'} class="p-2 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors cursor-pointer" title="Back to Explorer">
                     <ChevronLeft class="w-5 h-5" />
                 </button>
+                {#if fromProject}
+                    <a href="/projects" class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition-colors shadow-sm ml-1">
+                        <Rocket class="w-3 h-3" /> Voltar ao Projeto
+                    </a>
+                {/if}
                 
                 <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar flex-1 px-2 pb-1 pt-1">
                     {#each tabs as tab}
