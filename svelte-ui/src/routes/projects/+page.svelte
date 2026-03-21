@@ -19,7 +19,9 @@
             const res = await fetch(`${API_BASE_URL}/v1/projects`, { headers: { 'Authorization': `Bearer ${token}` }});
             if (res.ok) {
                 const data = await res.json();
-                projects = data || [];
+                if (data && Array.isArray(data) && data.length > 0) {
+                    projects = data;
+                }
             }
         } catch (e) {
             console.error("Falha ao buscar projetos", e);
