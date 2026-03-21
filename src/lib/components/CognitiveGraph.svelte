@@ -287,7 +287,6 @@
             .backgroundColor('rgba(0,0,0,0)')
             .nodeId('id')
             .nodeVal('val')
-            .nodeLabel('name')
             .linkColor(() => {
                 const c = getInterpolatedColor(time);
                 return `rgba(${c.r}, ${c.g}, ${c.b}, 0.22)`;

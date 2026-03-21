@@ -2,8 +2,8 @@
     import CognitiveGraph from '$lib/components/CognitiveGraph.svelte';
 </script>
 
-<div class="flex flex-col h-full w-full items-center justify-center text-surface-400 p-4">
-    <div class="w-full h-full max-w-7xl relative bg-black/20 rounded-2xl overflow-hidden p-2">
+<div class="h-full w-full text-surface-400 p-4 pb-0">
+    <div class="w-full h-full relative bg-black/20 rounded-t-2xl overflow-hidden border border-surface-800 border-b-0 shadow-2xl">
         <CognitiveGraph />
     </div>
 </div>
