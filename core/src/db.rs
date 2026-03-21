@@ -43,8 +43,9 @@ pub async fn init_pool() -> SqlitePool {
         );
     ").execute(&pool).await;
 
-    // Seção de HIGIENIZAÇÃO e RE-ARQUITETURA (Drop Legacy Tables autorizado na V0.6.0)
+    // Seção de HIGIENIZAÇÃO (Drop Legacy Tables do Python Migration)
     let _ = sqlx::query("DROP TABLE IF EXISTS sensus_documents;").execute(&pool).await;
+    let _ = sqlx::query("DROP TABLE IF EXISTS sovereign_chunks;").execute(&pool).await;
 
     // Garante a existência da Multi-Drive Tabela
     let _ = sqlx::query("
@@ -56,7 +57,7 @@ pub async fn init_pool() -> SqlitePool {
         );
     ").execute(&pool).await;
 
-    // Nova Tabela Mestre de Documentos (O.S Indexing) mapeada ao Workspace
+    // Nova Tabela Mestre de Documentos (Cíbrida Rust) mapeada ao Workspace
     let _ = sqlx::query("
         CREATE TABLE IF NOT EXISTS sensus_documents (
             id TEXT PRIMARY KEY,
@@ -64,15 +65,45 @@ pub async fn init_pool() -> SqlitePool {
             file_path TEXT NOT NULL UNIQUE,
             content_raw TEXT,
             summary TEXT,
-            extracted_tags TEXT,
-            extracted_links TEXT,
-            metadata_json TEXT,
-            last_modified TIMESTAMP,
-            FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+            last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-    ").execute(&pool).await;
+        CREATE TABLE IF NOT EXISTS sovereign_chunks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            uuid_reference TEXT NOT NULL,
+            workspace_id TEXT NOT NULL,
+            file_path TEXT NOT NULL,
+            text_content TEXT NOT NULL,
+            metadata_json TEXT
+        );
+        CREATE TABLE IF NOT EXISTS rlhf_feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            agent_role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            thumbs_up BOOLEAN NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS chat_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            folder_name TEXT,
+            tags_json TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            thumbs_up BOOLEAN DEFAULT 0,
+            thumbs_down BOOLEAN DEFAULT 0,
+            is_hidden BOOLEAN DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
+        );
+                 "
+    ).execute(&pool).await;
 
-    // Se o banco estiver vazio, engolimos a V1 Retrocompatível como 'Workspace Origin'
     let path_str = env::var("RAG_VAULT_PATH").unwrap_or_else(|_| {
         let mut path = env::current_dir().expect("Hostile Environment");
         if path.ends_with("core") { path.pop(); }
@@ -80,11 +111,10 @@ pub async fn init_pool() -> SqlitePool {
         path.to_string_lossy().into_owned()
     });
 
-    let _ = sqlx::query("
-        INSERT INTO workspaces (id, name, path)
-        SELECT 1, 'Origin Vault', ?
-        WHERE NOT EXISTS (SELECT 1 FROM workspaces WHERE id = 1)
-    ").bind(&path_str).execute(&pool).await;
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM workspaces").fetch_one(&pool).await.unwrap_or(0);
+    if count == 0 {
+        let _ = sqlx::query("INSERT INTO workspaces (id, name, path) VALUES (1, 'Origin Vault', ?)").bind(&path_str).execute(&pool).await;
+    }
 
     pool
 }

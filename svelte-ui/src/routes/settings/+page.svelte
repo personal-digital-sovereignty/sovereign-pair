@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { ChevronDown, Server, Cpu, Shield, User, GlobeLock, Cloud, Download, Upload } from 'lucide-svelte';
+    import { ChevronDown, Server, Cpu, Shield, User, GlobeLock, Cloud, Download, Upload, Brain, SlidersHorizontal, Loader2 } from 'lucide-svelte';
+    import { onMount } from 'svelte';
 
     let expandedCard = $state<string | null>('mesh');
 
@@ -12,6 +13,86 @@
         { id: '1', hostname: 'oracle-a1-max', role: 'The Doctor', hardware: '24GB RAM, ARM64', location: 'Cloud' },
         { id: '2', hostname: 'ryzen-local-alpha', role: 'The Coder (Sandbox)', hardware: '32GB RAM, Ryzen 9', location: 'Local Network' }
     ];
+
+    let aiSettings = $state({
+        nurse_model: "qwen2.5:3b",
+        doctor_model: "qwen2.5:3b",
+        coder_model: "qwen2.5:3b",
+        temperature: 0.7,
+        top_k: 40,
+        system_prompt: ""
+    });
+
+    let availableModels = $state<{name: string, size: number}[]>([]);
+    let isLoadingModels = $state(true);
+
+    const PREDEFINED_PERSONAS = [
+        { label: "1. The Sovereign Practitioner (Padrão)", prompt: "" },
+        { label: "2. The Code Architect (Engenheiro Sênior)", prompt: "Você é O Arquiteto de Código. Forneça código impecável, idiomático e altamente documentado. Otimize para complexidade de tempo O(1) quando possível. Recuse-se a escrever algoritmos inseguros ou com bugs." },
+        { label: "3. The Security Auditor (DevSecOps)", prompt: "Você é um Auditor de Segurança implacável. Analise todas as consultas em busca de falhas de injeção, condições de corrida, vazamentos de memória e riscos de dependência. Assuma que tudo é vulnerável até prova em contrário." },
+        { label: "4. The Financial Analyst (Quant)", prompt: "Você é um analista financeiro quantitativo. Foco estritamente em margens, taxas de juros compostos, distribuições estatísticas e análise de P/L. Formate as respostas em tabelas rigorosas e conclusões em tópicos." },
+        { label: "5. The Visual Engineer (UX/UI)", prompt: "Você é um maestro de UX/UI especializado em TailwindCSS V4, Svelte 5 e Vue 3. Priorize uma estética com precisão de pixels, micro-animações, glassmorfismo e acessibilidade responsiva." },
+        { label: "6. The DevOps General (Cloud Arch)", prompt: "Você é um General DevOps. Fale em termos de YAMLs do Kubernetes, estados do Terraform, redes Docker, pipelines de CI/CD e clusters de alta disponibilidade. Mantenha a latência fora da equação." },
+        { label: "7. The Creative Mind (Copywriter)", prompt: "Você é uma Mente Criativa lendária. Teça palavras como mágica. Use metáforas, narrativas atraentes e ganchos profundamente emotivos para capturar a atenção absoluta do leitor." },
+        { label: "8. The Legal Counsel (Compliance)", prompt: "Você é O Consultor Jurídico. Elabore contratos, revise os termos de serviço e navegue pelas leis de conformidade (GDPR, LGPD) com absoluta rigidez e taxonomia formal." },
+        { label: "9. The Maestro (Musician/Audio Eng)", prompt: "Você é o Maestro. Especialista em teoria musical, mixagem de áudio, masterização, engenharia de som e composição. Entende de formações harmônicas complexas e equipamentos de áudio profissionais." }
+    ];
+
+    onMount(async () => {
+        // Fetch Settings
+        try {
+            const res = await fetch('http://localhost:38001/v1/settings');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.nurse_model) aiSettings.nurse_model = data.nurse_model;
+                if (data.doctor_model) aiSettings.doctor_model = data.doctor_model;
+                if (data.coder_model) aiSettings.coder_model = data.coder_model;
+                if (data.temperature !== undefined) aiSettings.temperature = data.temperature;
+                if (data.top_k !== undefined) aiSettings.top_k = data.top_k;
+                if (data.system_prompt) aiSettings.system_prompt = data.system_prompt;
+            }
+        } catch(e) { console.error("Agent offline:", e); }
+
+        // Fetch Dynamic Models from Mesh Target
+        try {
+            const mRes = await fetch('http://localhost:38001/v1/system/available_models');
+            if (mRes.ok) {
+                const data = await mRes.json();
+                if (data.models) {
+                    availableModels = data.models.map((m: any) => ({ name: m.name, size: m.size }));
+                }
+            }
+        } catch(e) { console.error("Ollama Daemon unreachable:", e); } finally {
+            isLoadingModels = false;
+        }
+    });
+
+    async function saveAiSettings() {
+        try {
+            const res = await fetch('http://localhost:38001/v1/settings');
+            let data = res.ok ? await res.json() : {};
+            
+            data.nurse_model = aiSettings.nurse_model;
+            data.doctor_model = aiSettings.doctor_model;
+            data.coder_model = aiSettings.coder_model;
+            data.temperature = Number(aiSettings.temperature);
+            data.top_k = Number(aiSettings.top_k);
+            data.system_prompt = aiSettings.system_prompt;
+            
+            const postRes = await fetch('http://localhost:38001/v1/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            if (postRes.ok) {
+                alert('AI Core Settings Synchronized!');
+            }
+        } catch(e) { 
+            console.error(e);
+            alert('Failed to reach Sovereign Core.');
+        }
+    }
 
     let fileInput: HTMLInputElement | undefined = $state(undefined);
 
@@ -164,6 +245,105 @@
                     <input type="text" placeholder="OCI Public IP" class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2 text-surface-200 outline-none focus:border-primary-500 transition-colors">
                     <input type="password" placeholder="OCI Secret Key Path" class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2 text-surface-200 outline-none focus:border-primary-500 transition-colors">
                 </div>
+            </div>
+            {/if}
+        </section>
+
+        <!-- CARD 4: Sovereign Core (AI Engine) -->
+        <section class="bg-surface-800/80 backdrop-blur-md rounded-2xl border border-surface-700/50 overflow-hidden shadow-lg transition-all duration-300">
+            <button class="w-full flex items-center justify-between p-5 text-left hover:bg-surface-700/30 cursor-pointer" onclick={() => toggleCard('ai')}>
+                <div class="flex items-center gap-4">
+                    <div class="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg">
+                        <Brain class="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h2 class="font-semibold text-surface-100 text-lg">Sovereign Core (AI Engine)</h2>
+                        <p class="text-sm text-surface-400">LLM Strategy, System Prompts, Inference Limits</p>
+                    </div>
+                </div>
+                <ChevronDown class="w-5 h-5 text-surface-500 transition-transform duration-300 transform {expandedCard === 'ai' ? 'rotate-180' : ''}" />
+            </button>
+            {#if expandedCard === 'ai'}
+            <div class="p-5 border-t border-surface-700/50 bg-surface-900/30 flex flex-col gap-5">
+                
+                <div class="bg-surface-800 p-4 rounded-xl border border-surface-700 flex flex-col gap-4">
+                    <h3 class="text-surface-200 font-bold text-sm tracking-widest uppercase flex justify-between items-center">
+                        Tri-Agent Hierarchy (Mesh Target)
+                        {#if isLoadingModels}<Loader2 class="w-4 h-4 animate-spin text-primary-500"/>{/if}
+                    </h3>
+
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <div class="flex flex-col gap-1.5 flex-1">
+                            <label class="text-xs font-semibold text-primary-400">The Nurse (Scraping/Triage)</label>
+                            <select bind:value={aiSettings.nurse_model} class="w-full bg-surface-900 border border-surface-600 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-primary-500 transition-colors">
+                                {#each availableModels as model}
+                                    <option value={model.name}>{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
+                                {:else}
+                                    <option value={aiSettings.nurse_model}>{aiSettings.nurse_model}</option>
+                                {/each}
+                            </select>
+                        </div>
+
+                        <div class="flex flex-col gap-1.5 flex-1">
+                            <label class="text-xs font-semibold text-sky-400">The Doctor (Planning/Chat)</label>
+                            <select bind:value={aiSettings.doctor_model} class="w-full bg-surface-900 border border-surface-600 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-primary-500 transition-colors">
+                                {#each availableModels as model}
+                                    <option value={model.name}>{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
+                                {:else}
+                                    <option value={aiSettings.doctor_model}>{aiSettings.doctor_model}</option>
+                                {/each}
+                            </select>
+                        </div>
+
+                        <div class="flex flex-col gap-1.5 flex-1">
+                            <label class="text-xs font-semibold text-rose-400">The Coder (Execution/Scripting)</label>
+                            <select bind:value={aiSettings.coder_model} class="w-full bg-surface-900 border border-surface-600 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-primary-500 transition-colors">
+                                {#each availableModels as model}
+                                    <option value={model.name}>{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
+                                {:else}
+                                    <option value={aiSettings.coder_model}>{aiSettings.coder_model}</option>
+                                {/each}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-semibold text-surface-300 flex justify-between">
+                            <span>Temperature</span>
+                            <span class="text-primary-400">{aiSettings.temperature}</span>
+                        </label>
+                        <input type="range" min="0" max="1" step="0.1" bind:value={aiSettings.temperature} class="w-full accent-primary-500">
+                    </div>
+                    
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-semibold text-surface-300 flex justify-between">
+                            <span>Top-K Sampling</span>
+                            <span class="text-primary-400">{aiSettings.top_k}</span>
+                        </label>
+                        <input type="range" min="1" max="100" step="1" bind:value={aiSettings.top_k} class="w-full accent-primary-500">
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2 relative">
+                    <label class="text-sm font-semibold text-surface-300 flex justify-between items-center">
+                        Global System Prompt (Persona Override)
+                        <select onchange={(e) => aiSettings.system_prompt = (e.target as HTMLSelectElement).value} class="bg-surface-800 border-none text-xs text-primary-400 focus:outline-none cursor-pointer p-1">
+                            <option value="">Load Template...</option>
+                            {#each PREDEFINED_PERSONAS as tpl}
+                                <option value={tpl.prompt}>{tpl.label}</option>
+                            {/each}
+                        </select>
+                    </label>
+                    <textarea bind:value={aiSettings.system_prompt} placeholder="Leave empty for generic The Nurse system logic..." rows="3" class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2 text-surface-200 outline-none focus:border-primary-500 transition-colors resize-none"></textarea>
+                </div>
+
+                <button onclick={saveAiSettings} class="mt-2 flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-500 text-white py-2 rounded-lg transition-colors shadow-lg shadow-primary-500/20 font-medium cursor-pointer">
+                    <SlidersHorizontal class="w-4 h-4" />
+                    <span>Apply Core Variables</span>
+                </button>
+
             </div>
             {/if}
         </section>

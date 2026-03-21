@@ -56,6 +56,40 @@ impl SyncEngine {
                 for row in rows {
                     let ws_path = Path::new(&row.path);
                     if ws_path.exists() && ws_path.is_dir() {
+                        info!("🚀 [Sensus Sync] Varrida Cíbrida Inicial do Workspace: {:?}", ws_path);
+                        for entry in walkdir::WalkDir::new(ws_path).into_iter().filter_map(|e| e.ok()) {
+                            let path = entry.path();
+                            if path.is_file() {
+                                let filename = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+                                let path_str = path.to_string_lossy().to_string();
+                                
+                                if path_str.contains("node_modules") || path_str.contains(".git") || path_str.contains(".venv") || filename.starts_with('.') {
+                                    continue;
+                                }
+                                
+                                let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM sensus_documents WHERE file_path = ?)")
+                                    .bind(&path_str)
+                                    .fetch_one(&db).await.unwrap_or(false);
+                                
+                                if !exists {
+                                    let job = IngestionJob {
+                                        id: Uuid::new_v4().to_string(),
+                                        filename: filename.clone(),
+                                        status: "queued".to_string(),
+                                        current_step: 0,
+                                        progress_ms: 0,
+                                    };
+                                    let _ = current_tx.send(job.clone());
+                                    let process_tx = current_tx.clone();
+                                    let process_db = db.clone();
+                                    let file_path_clone = path_str;
+                                    tokio::spawn(async move {
+                                        Self::process_ingestion_pipeline(job, file_path_clone, process_tx, process_db).await;
+                                    });
+                                }
+                            }
+                        }
+
                         // 2. Proteção de Polling Limitado (Config)
                         // A crate notify resolve internamente se precisa fazer fallback p/ Polling (em NFS/Network Drives).
                         // Setamos explicitly o poll_interval para ser gentil com o IO IOPS do Hardware!
