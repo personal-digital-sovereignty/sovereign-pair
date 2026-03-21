@@ -132,12 +132,13 @@
         graphInstance.d3Force('link').distance(0).strength(0); // Zero link pull to let orbital forces take over
 
         graphInstance.d3Force('orbital', (alpha: number) => {
-            $state.snapshot(graphData).nodes.forEach((node: any) => {
-                if (node.id === 'root') {
-                    node.fx = 0;
-                    node.fy = 0;
-                    return;
-                }
+            const currentNodes = $state.snapshot(graphData).nodes;
+            const rootNode = currentNodes.find((n: any) => n.id === 'root');
+            const centerX = rootNode ? (rootNode.x || 0) : 0;
+            const centerY = rootNode ? (rootNode.y || 0) : 0;
+
+            currentNodes.forEach((node: any) => {
+                if (node.id === 'root') return;
 
                 if (!node.targetOrbit) {
                     const connections = nodeDegrees.get(node.id) || 0;
@@ -155,14 +156,16 @@
                     node.orbitSpeed = 0.001 + ((1.0 - orbitFactor) * 0.005);
                 }
 
-                const r = Math.sqrt(node.x*node.x + node.y*node.y) || 1;
+                const dx = node.x - centerX;
+                const dy = node.y - centerY;
+                const r = Math.sqrt(dx*dx + dy*dy) || 1;
                 const radialForce = (node.targetOrbit - r) * 0.5 * alpha;
-                node.vx += (node.x / r) * radialForce;
-                node.vy += (node.y / r) * radialForce;
+                node.vx += (dx / r) * radialForce;
+                node.vy += (dy / r) * radialForce;
 
                 const speed = node.orbitSpeed * alpha;
-                node.vx += (-node.y / r) * (r * speed);
-                node.vy += (node.x / r) * (r * speed);
+                node.vx += (-dy / r) * (r * speed);
+                node.vy += (dx / r) * (r * speed);
             });
         });
 
@@ -174,6 +177,11 @@
                 const maxPulseRadius = VISUAL_OUTER_BOUND - CORE_RADIUS; 
                 const pulseFrequency = 0.008; 
                 const ringCount = 4;
+
+                const currentNodes = $state.snapshot(graphData).nodes;
+                const rootNode = currentNodes.find((n: any) => n.id === 'root');
+                const centerX = rootNode ? (rootNode.x || 0) : 0;
+                const centerY = rootNode ? (rootNode.y || 0) : 0;
 
                 ctx.save();
                 cosmicDust.forEach(dust => {
@@ -192,20 +200,22 @@
                         dustColor = rgbStr;
                     }
                     ctx.beginPath();
-                    ctx.arc(dust.x, dust.y, dust.size / globalScale, 0, 2 * Math.PI);
+                    // dust moves with the scene naturally, we can anchor it to centerX for consistency if needed, 
+                    // but for organic look, static cosmic dust is fine. Let's make it follow center.
+                    ctx.arc(centerX + dust.x, centerY + dust.y, dust.size / globalScale, 0, 2 * Math.PI);
                     ctx.fillStyle = `rgba(${dustColor}, ${dustAlpha})`;
                     ctx.fill();
                 });
                 ctx.restore();
 
                 ctx.beginPath();
-                ctx.arc(0, 0, VISUAL_OUTER_BOUND, 0, 2 * Math.PI, false);
+                ctx.arc(centerX, centerY, VISUAL_OUTER_BOUND, 0, 2 * Math.PI, false);
                 ctx.lineWidth = 80 / globalScale; 
                 ctx.strokeStyle = `rgba(${rgbStr}, 0.08)`; 
                 ctx.stroke();
 
                 ctx.beginPath();
-                ctx.arc(0, 0, VISUAL_OUTER_BOUND, 0, 2 * Math.PI, false);
+                ctx.arc(centerX, centerY, VISUAL_OUTER_BOUND, 0, 2 * Math.PI, false);
                 ctx.lineWidth = 12 / globalScale; 
                 ctx.strokeStyle = `rgba(${rgbStr}, 0.5)`; 
                 ctx.stroke();
@@ -215,20 +225,20 @@
                     const expandedRadius = CORE_RADIUS + (phase * maxPulseRadius); 
                     const ringAlpha = 0.5 * (Math.pow(1.0 - phase, 1.2)); 
                     ctx.beginPath();
-                    ctx.arc(0, 0, expandedRadius, 0, 2 * Math.PI, false);
+                    ctx.arc(centerX, centerY, expandedRadius, 0, 2 * Math.PI, false);
                     ctx.lineWidth = 2 / globalScale; 
                     ctx.strokeStyle = `rgba(${rgbStr}, ${ringAlpha})`; 
                     ctx.stroke();
                 }
 
                 ctx.beginPath();
-                ctx.arc(0, 0, CORE_RADIUS + 6, 0, 2 * Math.PI, false);
+                ctx.arc(centerX, centerY, CORE_RADIUS + 6, 0, 2 * Math.PI, false);
                 ctx.lineWidth = 4 / globalScale;
                 ctx.strokeStyle = `rgba(${rgbStr}, 0.3)`; 
                 ctx.stroke();
 
                 ctx.beginPath();
-                ctx.arc(0, 0, CORE_BORDER, 0, 2 * Math.PI, false);
+                ctx.arc(centerX, centerY, CORE_BORDER, 0, 2 * Math.PI, false);
                 ctx.fillStyle = '#021a0c'; 
                 ctx.fill();
 
