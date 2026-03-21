@@ -137,6 +137,9 @@
             const centerX = rootNode ? (rootNode.x || 0) : 0;
             const centerY = rootNode ? (rootNode.y || 0) : 0;
 
+            const VISUAL_OUTER_BOUND = 2200;
+            const maxAllowedRadius = VISUAL_OUTER_BOUND - 40;
+
             currentNodes.forEach((node: any) => {
                 if (node.id === 'root') return;
 
@@ -147,8 +150,8 @@
                 const deg = nodeDegrees.get(node.id) || 0;
 
                 if (deg === 0) {
-                    // Isolated dust floats to the deep outer rims, loosely held
-                    const pullForce = (2200 - r) * 0.01 * alpha;
+                    // Isolated dust floats to the deep outer rims, loosely held (2000px keeps it inside the wall)
+                    const pullForce = (2000 - r) * 0.01 * alpha;
                     node.vx += (dx / r) * pullForce;
                     node.vy += (dy / r) * pullForce;
                 } else {
@@ -164,6 +167,14 @@
                 const speed = 0.0015 * alpha;
                 node.vx += (-dy) * speed;
                 node.vy += (dx) * speed;
+
+                // ABSOLUTE SENSUS PERIMETER: Sovereign data cannot escape the system bounds
+                if (r > maxAllowedRadius) {
+                    node.x = centerX + (dx / r) * maxAllowedRadius;
+                    node.y = centerY + (dy / r) * maxAllowedRadius;
+                    node.vx *= -0.5;
+                    node.vy *= -0.5;
+                }
             });
         });
 
