@@ -21,7 +21,7 @@
           const res = await fetch('http://localhost:38001/v1/workspaces', { headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` } });
           if (res.ok) {
               const data = await res.json();
-              globalState.workspaces = data.workspaces || [];
+              globalState.workspaces = Array.isArray(data) ? data : (data.workspaces || []);
               if (globalState.workspaces.length === 0) {
                   globalState.workspaces = [{ id: 'mesh_roaming', name: 'Sovereign Mesh Roaming' }];
               }
