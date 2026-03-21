@@ -35,7 +35,14 @@
             systemContext += `RESUMO NUMÉRICO:\n- Total de Projetos: ${projectState.projects.length}\n- Projetos ATIVOS: ${ativos.length}\n- Projetos ARQUIVADOS: ${arquivados.length}\n\n`;
             
             if (ativos.length > 0) {
-                systemContext += `LISTA DE PROJETOS ATIVOS:\n` + ativos.map(p => `- "${p.name}" (Propósito: ${p.purpose || 'N/A'}, Tarefas Pendentes: ${p.tasks ? p.tasks.length : 0})`).join('\n') + `\n\n`;
+                systemContext += `LISTA DE PROJETOS ATIVOS:\n` + ativos.map(p => {
+                    const created = p.created_at ? p.created_at.split(' ')[0] : 'Desconhecida';
+                    const deadline = p.deadline || 'Sem prazo';
+                    const tasksSummary = p.tasks && p.tasks.length > 0 
+                        ? p.tasks.map(t => `    * [${t.status}] ${t.title} (Criada: ${t.created_at ? t.created_at.split(' ')[0] : '?'})`).join('\n')
+                        : '    * (Nenhuma tarefa)';
+                    return `- "${p.name}"\n  Criado em: ${created} | Prazo: ${deadline}\n  Propósito: ${p.purpose || 'N/A'}\n  Tarefas:\n${tasksSummary}`;
+                }).join('\n\n') + `\n\n`;
             }
             if (arquivados.length > 0) {
                 systemContext += `LISTA DE PROJETOS ARQUIVADOS:\n` + arquivados.map(p => `- "${p.name}"`).join('\n') + `\n\n`;

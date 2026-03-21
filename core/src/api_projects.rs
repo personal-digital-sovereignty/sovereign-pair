@@ -23,7 +23,7 @@ pub struct ProjectRow {
     pub deadline: Option<String>,
     pub is_archived: Option<bool>,
     pub columns_json: Option<String>,
-    // Omitimos links e logs do frontend por performance bruta, Front aceita vazio.
+    pub created_at: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, sqlx::FromRow)]
@@ -37,6 +37,7 @@ pub struct TaskRow {
     pub priority: Option<String>,
     pub order_index: Option<i64>,
     pub deadline: Option<String>,
+    pub created_at: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -50,7 +51,7 @@ pub struct CreateProjectRequest {
 
 pub async fn get_projects_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let rows = sqlx::query_as::<_, ProjectRow>(
-        "SELECT id, tenant_id, name, purpose, traction_status, next_action, energy_level, progress_percent, friction_radar, deadline, is_archived, columns_json FROM projects ORDER BY created_at DESC"
+        "SELECT id, tenant_id, name, purpose, traction_status, next_action, energy_level, progress_percent, friction_radar, deadline, is_archived, columns_json, created_at FROM projects ORDER BY created_at DESC"
     )
     .fetch_all(&state.db)
     .await;
@@ -97,7 +98,8 @@ pub async fn create_project_handler(
         "energy_level": "Med",
         "progress_percent": 0,
         "is_archived": false,
-        "columns_json": "[\"To Do\", \"In Progress\", \"Done\"]"
+        "columns_json": "[\"To Do\", \"In Progress\", \"Done\"]",
+        "created_at": chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string()
     })).into_response()
 }
 
@@ -128,7 +130,7 @@ pub async fn update_project_handler(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<UpdateProjectRequest>,
 ) -> impl IntoResponse {
-    let old_proj = sqlx::query_as::<_, ProjectRow>("SELECT id, tenant_id, name, purpose, traction_status, next_action, energy_level, progress_percent, friction_radar, deadline, is_archived, columns_json FROM projects WHERE id = ?")
+    let old_proj = sqlx::query_as::<_, ProjectRow>("SELECT id, tenant_id, name, purpose, traction_status, next_action, energy_level, progress_percent, friction_radar, deadline, is_archived, columns_json, created_at FROM projects WHERE id = ?")
         .bind(&id)
         .fetch_optional(&state.db)
         .await;
@@ -174,7 +176,8 @@ pub async fn update_project_handler(
             "friction_radar": final_friction,
             "deadline": final_deadline,
             "is_archived": final_archived,
-            "columns_json": final_columns
+            "columns_json": final_columns,
+            "created_at": proj.created_at
         })).into_response()
     }
     
@@ -247,7 +250,7 @@ pub async fn get_project_tasks_handler(
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
     let rows = sqlx::query_as::<_, TaskRow>(
-        "SELECT id, project_id, tenant_id, title, description, status, priority, order_index, deadline FROM tasks WHERE project_id = ? ORDER BY order_index ASC"
+        "SELECT id, project_id, tenant_id, title, description, status, priority, order_index, deadline, created_at FROM tasks WHERE project_id = ? ORDER BY order_index ASC"
     )
     .bind(project_id)
     .fetch_all(&state.db)
@@ -286,7 +289,7 @@ pub async fn update_task_handler(
     Json(payload): Json<UpdateTaskRequest>,
 ) -> impl IntoResponse {
     // Busca os dados antigos como baseline para update parcial
-    let old_task = sqlx::query_as::<_, TaskRow>("SELECT id, project_id, tenant_id, title, description, status, priority, order_index, deadline FROM tasks WHERE id = ?")
+    let old_task = sqlx::query_as::<_, TaskRow>("SELECT id, project_id, tenant_id, title, description, status, priority, order_index, deadline, created_at FROM tasks WHERE id = ?")
         .bind(&id)
         .fetch_optional(&state.db)
         .await;
