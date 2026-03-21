@@ -70,16 +70,8 @@
         }
     });
 
-    $effect(() => {
-        globalState.layout.isRightAuxPanelOpen = isProjectAssistantOpen || isHubAssistantOpen;
-    });
-
     onMount(() => {
         fetchProjects();
-    });
-
-    onDestroy(() => {
-        globalState.layout.isRightAuxPanelOpen = false;
     });
 </script>
 
@@ -133,13 +125,21 @@
             </div>
         </header>
 
-        <main class="flex-1 overflow-x-auto overflow-y-hidden px-8 pt-6 pb-8 custom-scrollbar relative flex flex-col">
-            <ProjectDocuments project={activeProject} />
-            <div class="flex-1 overflow-y-hidden min-h-0">
-                <KanbanBoard project={activeProject} />
-            </div>
-        </main>
-        
+        <div class="flex-1 flex overflow-hidden relative min-h-0">
+            <main class="flex-1 overflow-auto px-8 pt-6 relative flex flex-col min-w-0 custom-scrollbar">
+                <div class="w-max min-w-full h-full flex flex-col pb-4 pr-4">
+                    <div class="min-w-[900px] shrink-0">
+                        <ProjectDocuments project={activeProject} />
+                    </div>
+                    <div class="flex-1 min-h-0 mt-4">
+                        <KanbanBoard project={activeProject} />
+                    </div>
+                </div>
+            </main>
+            {#if !activeProject.is_archived}
+                <ProjectAssistant project={activeProject} bind:isOpen={isProjectAssistantOpen} />
+            {/if}
+        </div>
     {:else}
         <!-- ================= PROJECTS OVERVIEW HUB ================= -->
         <header class="h-32 px-10 flex flex-col justify-center bg-transparent shrink-0 space-y-4 border-b border-slate-200/50">
@@ -177,23 +177,28 @@
             </div>
         </header>
 
-        <main class="flex-1 overflow-y-auto px-10 pt-6 pb-8 custom-scrollbar">
-            <HubTelemetry />
-            
-            {#if projectState.isLoading}
+        <div class="flex-1 flex overflow-hidden relative min-h-0">
+            <main class="flex-1 overflow-auto px-8 pt-6 relative flex flex-col min-w-0 custom-scrollbar">
+                <div class="w-max min-w-full h-full flex flex-col pb-4 pr-4">
+                    <div class="min-w-[960px] shrink-0">
+                        <HubTelemetry />
+                    </div>
+                    
+                    {#if projectState.isLoading}
                         <div class="w-full flex justify-center py-20 text-slate-500 text-sm font-bold animate-pulse uppercase tracking-wider">
                             Lendo Matrizes de Dados...
                         </div>
                     {:else if filteredProjects.length === 0}
-                <div class="flex flex-col items-center justify-center py-32 text-slate-400">
-                    <FolderKanban class="w-16 h-16 mb-4 opacity-30 text-slate-400" />
-                    <p class="font-medium">Nenhum projeto encontrado nesta visão.</p>
-                </div>
-            {:else}
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {#each filteredProjects as project (project.id)}
-                        <!-- Project Card Overview -->
-                        <div onclick={() => activeProjectId = project.id} class="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-xl hover:border-blue-300 hover:-translate-y-1 transition-all cursor-pointer group flex flex-col h-48">
+                        <div class="flex flex-col items-center justify-center py-32 text-slate-400">
+                            <FolderKanban class="w-16 h-16 mb-4 opacity-30 text-slate-400" />
+                            <p class="font-medium">Nenhum projeto encontrado nesta visão.</p>
+                        </div>
+                    {:else}
+                        <div class="flex-1 min-h-0 pt-2 mt-4">
+                            <div class="flex gap-6 w-max h-full px-2 pb-6">
+                                {#each filteredProjects as project (project.id)}
+                                <!-- Project Card Overview -->
+                                <div onclick={() => activeProjectId = project.id} class="w-[320px] shrink-0 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-xl hover:border-blue-300 hover:-translate-y-1 transition-all cursor-pointer group flex flex-col h-48">
                             <div class="flex justify-between items-start mb-2 gap-4">
                                 <h3 class="font-bold text-lg text-slate-800 group-hover:text-blue-600 transition truncate flex-1">{project.name}</h3>
                                 <div role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); toggleArchive(project); } }} class="p-1.5 bg-slate-50 hover:bg-rose-50 rounded border border-slate-100 text-slate-400 group-hover:text-rose-500 transition cursor-pointer" onclick={(e) => { e.stopPropagation(); toggleArchive(project); }} title="Mover para gaveta">
@@ -214,16 +219,15 @@
                                 <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-[4px] font-bold uppercase tracking-wider text-[10px]">
                                     {project.traction_status || 'Ideação'}
                                 </span>
+                                </div>
+                            </div>
+                            {/each}
                             </div>
                         </div>
-                    {/each}
+                    {/if}
                 </div>
-            {/if}
-        </main>
-        <HubAssistant bind:isOpen={isHubAssistantOpen} />
-    {/if}
-
-    {#if activeProject && !activeProject.is_archived}
-        <ProjectAssistant project={activeProject} bind:isOpen={isProjectAssistantOpen} />
+            </main>
+            <HubAssistant bind:isOpen={isHubAssistantOpen} />
+        </div>
     {/if}
 </div>
