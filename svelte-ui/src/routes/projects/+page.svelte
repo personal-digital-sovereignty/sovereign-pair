@@ -161,9 +161,7 @@
         <main class="flex-1 overflow-y-auto px-10 pt-6 pb-8 custom-scrollbar">
             <HubTelemetry />
             
-            <div class="flex gap-8 items-start">
-                <div class="flex-1">
-                    {#if projectState.isLoading}
+            {#if projectState.isLoading}
                         <div class="w-full flex justify-center py-20 text-slate-500 text-sm font-bold animate-pulse uppercase tracking-wider">
                             Lendo Matrizes de Dados...
                         </div>
@@ -201,14 +199,9 @@
                         </div>
                     {/each}
                 </div>
-                    {/if}
-                </div>
-                
-                <div class="w-[380px] shrink-0 sticky top-0">
-                    <HubAssistant />
-                </div>
-            </div>
+            {/if}
         </main>
+        <HubAssistant />
     {/if}
 
     {#if activeProject && !activeProject.is_archived}
