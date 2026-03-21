@@ -132,13 +132,10 @@
         graphInstance.d3Force('link').distance(25).strength(1.5); // High strength & low distance creates tight natural Galaxies from synapses
 
         graphInstance.d3Force('gentle_orbit', (alpha: number) => {
-            const currentNodes = $state.snapshot(graphData).nodes;
+            const currentNodes = graphInstance.graphData().nodes;
             const rootNode = currentNodes.find((n: any) => n.id === 'root');
             const centerX = rootNode ? (rootNode.x || 0) : 0;
             const centerY = rootNode ? (rootNode.y || 0) : 0;
-
-            const VISUAL_OUTER_BOUND = 2200;
-            const maxAllowedRadius = VISUAL_OUTER_BOUND - 40;
 
             currentNodes.forEach((node: any) => {
                 if (node.id === 'root') return;
@@ -167,8 +164,28 @@
                 const speed = 0.0015 * alpha;
                 node.vx += (-dy) * speed;
                 node.vy += (dx) * speed;
+            });
+        });
 
-                // ABSOLUTE SENSUS PERIMETER: Sovereign data cannot escape the system bounds
+        // ==========================================
+        // ABSOLUTE SENSUS PERIMETER (POST-TICK)
+        // ==========================================
+        graphInstance.onEngineTick(() => {
+            const VISUAL_OUTER_BOUND = 2200;
+            const maxAllowedRadius = VISUAL_OUTER_BOUND - 40;
+            
+            const nodes = graphInstance.graphData().nodes;
+            const rootNode = nodes.find((n: any) => n.id === 'root');
+            const centerX = rootNode ? (rootNode.x || 0) : 0;
+            const centerY = rootNode ? (rootNode.y || 0) : 0;
+
+            nodes.forEach((node: any) => {
+                if (node.id === 'root') return;
+                
+                const dx = node.x - centerX;
+                const dy = node.y - centerY;
+                const r = Math.sqrt(dx*dx + dy*dy) || 1;
+
                 if (r > maxAllowedRadius) {
                     node.x = centerX + (dx / r) * maxAllowedRadius;
                     node.y = centerY + (dy / r) * maxAllowedRadius;
