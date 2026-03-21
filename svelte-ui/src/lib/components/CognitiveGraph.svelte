@@ -187,10 +187,15 @@
                 const r = Math.sqrt(dx*dx + dy*dy) || 1;
 
                 if (r > maxAllowedRadius) {
-                    node.x = centerX + (dx / r) * maxAllowedRadius;
-                    node.y = centerY + (dy / r) * maxAllowedRadius;
+                    const nx = centerX + (dx / r) * maxAllowedRadius;
+                    const ny = centerY + (dy / r) * maxAllowedRadius;
+                    node.x = nx;
+                    node.y = ny;
                     node.vx *= -0.5;
                     node.vy *= -0.5;
+                    // Mathematically override static UI pins if they breached the absolute border
+                    if (node.fx !== undefined) node.fx = nx;
+                    if (node.fy !== undefined) node.fy = ny;
                 }
             });
         });
@@ -366,6 +371,29 @@
                     contextMenu.y = event.clientY - rect.top;
                     contextMenu.node = node;
                  }
+            })
+            .onNodeDrag((node: any) => {
+                // UI Level Clamp: Resists the user dragging it completely out
+                if (node.id === 'root') return;
+                const nodes = graphInstance.graphData().nodes;
+                const rootNode = nodes.find((n: any) => n.id === 'root');
+                const centerX = rootNode ? (rootNode.x || 0) : 0;
+                const centerY = rootNode ? (rootNode.y || 0) : 0;
+                const dx = node.x - centerX;
+                const dy = node.y - centerY;
+                const r = Math.sqrt(dx*dx + dy*dy) || 1;
+                const maxAllowedRadius = 2200 - 40;
+                if (r > maxAllowedRadius) {
+                    node.fx = centerX + (dx / r) * maxAllowedRadius;
+                    node.fy = centerY + (dy / r) * maxAllowedRadius;
+                }
+            })
+            .onNodeDragEnd((node: any) => {
+                // Unpin nodes on drop to restore gorgeous fluid dynamics!
+                if (node.id !== 'root') {
+                    node.fx = undefined;
+                    node.fy = undefined;
+                }
             });
 
         setTimeout(() => {
