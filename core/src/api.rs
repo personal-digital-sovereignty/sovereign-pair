@@ -279,17 +279,23 @@ if let Some(pid) = payload.project_id {
             project_context.push_str(&format!("🎯 O PROPÓSITO raiz desse projeto é: '{}'. Seu comportamento deve orbitar este propósito.\n", purp));
         }
 
-        if let Ok(tasks) = sqlx::query("SELECT title, status FROM tasks WHERE project_id = ? AND status != 'Done'")
+        if let Ok(tasks) = sqlx::query("SELECT title, status, created_at, deadline FROM tasks WHERE project_id = ? AND status != 'Done'")
             .bind(&pid)
             .fetch_all(&state.db)
             .await
         {
             if !tasks.is_empty() {
-                project_context.push_str("\n📌 TAREFAS ATIVAS NO KANBAN:\n");
+                project_context.push_str("\n📌 TAREFAS ATIVAS NO KANBAN (Com Cronologia):\n");
                 for row in tasks {
                     let t_title: String = sqlx::Row::get(&row, "title");
                     let t_status: String = sqlx::Row::get(&row, "status");
-                    project_context.push_str(&format!("- [{}] {}\n", t_status, t_title));
+                    let t_created: Option<String> = sqlx::Row::get(&row, "created_at");
+                    let t_deadline: Option<String> = sqlx::Row::get(&row, "deadline");
+                    
+                    let c = t_created.unwrap_or_else(|| "Desconhecida".to_string());
+                    let d = t_deadline.unwrap_or_else(|| "Sem prazo".to_string());
+                    
+                    project_context.push_str(&format!("- [{}] {} (Criada: {} | Prazo: {})\n", t_status, t_title, c, d));
                 }
             }
         }
