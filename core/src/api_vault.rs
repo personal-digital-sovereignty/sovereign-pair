@@ -609,12 +609,8 @@ pub async fn vault_graph_handler(
             tags: vec![],
         });
 
-        // Hierarchy links (The thin structural tethers in the background)
-        links.push(GraphLink {
-            source: "root".to_string(),
-            target: node_id.clone(),
-            r#type: "hierarchy".to_string(),
-        });
+        // The hierarchy links (The thin structural tethers in the background)
+        // have been DELETED to prevent the "Dandelion" collapse, allowing true Constellations.
     }
 
     // Dynamic Obsidian Synapse Extraction (Memory Regex-less Split)
