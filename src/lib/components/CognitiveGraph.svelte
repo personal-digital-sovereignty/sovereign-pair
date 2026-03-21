@@ -130,9 +130,9 @@
 
         graphInstance.d3Force('charge').strength((node: any) => {
             const d = nodeDegrees.get(node.id) || 0;
-            return d > 3 ? -400 : -20;
-        }).distanceMax(800); 
-        graphInstance.d3Force('link').distance(25).strength(1.5); // High strength & low distance creates tight natural Galaxies from synapses
+            return d > 3 ? -500 : -15;
+        }).distanceMax(1000); 
+        graphInstance.d3Force('link').distance(20).strength(1.5); 
 
         graphInstance.d3Force('gentle_orbit', (alpha: number) => {
             const currentNodes = graphInstance.graphData().nodes;
@@ -147,25 +147,35 @@
                 const dy = node.y - centerY;
                 const r = Math.sqrt(dx*dx + dy*dy) || 1;
                 
-                // Impenetrable Inner Void: No cluster can enter the 800px radius of the Sun
-                if (r < 800) {
-                    const voidPush = (800 - r) * 0.1 * alpha;
-                    node.vx += (dx / r) * voidPush;
-                    node.vy += (dy / r) * voidPush;
-                }
-
                 const deg = nodeDegrees.get(node.id) || 0;
 
                 if (deg === 0) {
                     const pullForce = (2000 - r) * 0.01 * alpha;
                     node.vx += (dx / r) * pullForce;
                     node.vy += (dy / r) * pullForce;
-                } else {
-                    // Massive hubs organically locked onto the 1400px orbit (between layers)
-                    const targetBand = 1400;
-                    const pullForce = (targetBand - r) * 0.05 * alpha; 
+                } else if (deg > 3) {
+                    // Impenetrable Inner Void ONLY applied to Hubs to avoid crushing leaves
+                    if (r < 600) {
+                        const voidPush = (600 - r) * 0.1 * alpha;
+                        node.vx += (dx / r) * voidPush;
+                        node.vy += (dy / r) * voidPush;
+                    }
+                    
+                    // Scatter hubs into distinct orbital rings across the solar system (1000px to 1800px)
+                    const hash = String(node.id).split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+                    const targetBand = 1000 + (hash % 800); 
+                    const pullForce = (targetBand - r) * 0.04 * alpha; 
                     node.vx += (dx / r) * pullForce;
                     node.vy += (dy / r) * pullForce;
+                } else {
+                    // Leaves (deg 1 to 3) have NO hard orbital constraints! 
+                    // They just smoothly revolve around their parent hub.
+                    // We only prevent them from visually clipping inside the Sun graphic.
+                    if (r < 180) {
+                        const voidPush = (180 - r) * 0.05 * alpha;
+                        node.vx += (dx / r) * voidPush;
+                        node.vy += (dy / r) * voidPush;
+                    }
                 }
 
                 // Smooth galactic rotation (clockwise)
