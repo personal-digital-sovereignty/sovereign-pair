@@ -13,6 +13,8 @@
     let newProjectName = $state('');
     let activeProjectId = $state<string | null>(null);
     let activeTab = $state<'active' | 'archived'>('active');
+    let isProjectAssistantOpen = $state(false);
+    let isHubAssistantOpen = $state(false);
 
     let isEditingSettings = $state(false);
     let editName = $state('');
@@ -64,7 +66,7 @@
     });
 </script>
 
-<div class="flex flex-col h-full w-full bg-[#F4F7FA] font-sans">
+<div class="flex flex-col h-full w-full bg-[#F4F7FA] font-sans transition-[padding] duration-300 ease-in-out" style="padding-right: {isProjectAssistantOpen || isHubAssistantOpen ? '420px' : '0'}">
     
     {#if activeProject}
         <!-- ================= PROJECT DETAIL VIEW (KANBAN) ================= -->
@@ -201,10 +203,10 @@
                 </div>
             {/if}
         </main>
-        <HubAssistant />
+        <HubAssistant bind:isOpen={isHubAssistantOpen} />
     {/if}
 
     {#if activeProject && !activeProject.is_archived}
-        <ProjectAssistant project={activeProject} />
+        <ProjectAssistant project={activeProject} bind:isOpen={isProjectAssistantOpen} />
     {/if}
 </div>
