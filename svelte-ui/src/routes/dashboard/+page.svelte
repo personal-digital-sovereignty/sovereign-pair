@@ -2,20 +2,44 @@
     import { Activity, Cpu, Network, Zap, Timer, CheckCircle2, AlertTriangle, AlertCircle, Power, ShieldCheck, Database } from 'lucide-svelte';
 </script>
 
-<div class="p-6 max-w-[1600px] mx-auto space-y-6 h-full overflow-y-auto custom-scrollbar">
-    <!-- Headline & Kill Switch Section -->
-    <div class="flex justify-between items-end shrink-0">
-        <div>
-            <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight mb-2">Hardware Telemetry</h1>
-            <p class="text-slate-500 max-w-lg text-sm">System-wide monitor for physical resources and real-time intelligence routing overview.</p>
+<div class="flex flex-col h-full w-full bg-white rounded-2xl border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
+    <!-- Sovereign Standard Sub-Header -->
+    <header class="h-20 border-b border-slate-100 bg-white flex items-center px-6 shrink-0 justify-between z-10 w-full">
+        <div class="flex items-center gap-4">
+            <div class="bg-indigo-600/10 p-2.5 rounded-xl border border-indigo-100/50">
+                <Activity class="w-6 h-6 text-indigo-600" />
+            </div>
+            <div class="flex flex-col">
+                <div class="flex items-center gap-2">
+                    <h1 class="text-lg font-bold tracking-tight text-slate-800">Hardware Telemetry</h1>
+                    <span class="px-2 py-0.5 bg-blue-100/50 text-blue-700 text-[9px] uppercase tracking-widest font-bold rounded-full border border-blue-200/50">System Wide</span>
+                </div>
+                <span class="text-xs text-slate-500 font-medium">Real-time physical resource monitor & intelligence routing overview.</span>
+            </div>
         </div>
-        <div class="flex gap-3">
-            <button class="flex items-center gap-2 px-6 py-2.5 bg-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-[0_4px_14px_rgba(225,29,72,0.3)] hover:bg-rose-700 hover:shadow-[0_6px_20px_rgba(225,29,72,0.4)] transition-all cursor-pointer group">
-                <Power class="w-4 h-4 group-hover:animate-pulse" /> System Kill Switch
+        
+        <div class="flex items-center gap-6">
+            <div class="flex flex-col items-end">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5">Local Cibrid Core</span>
+                <div class="flex items-center gap-1.5">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+                    <span class="text-xs font-semibold text-emerald-600">Online</span>
+                </div>
+            </div>
+            <div class="h-8 w-px bg-slate-200/80"></div>
+            <!-- Kill Switch Button -->
+            <button class="flex items-center gap-2 px-4 py-2 bg-white border border-rose-200 text-rose-600 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm hover:bg-rose-50 hover:border-rose-300 hover:text-rose-700 transition-all cursor-pointer group" title="🔥 STOP TODOS OS MODELOS
+• Corta imediatamente a inferência LLM
+• Mantém o banco de dados online
+• Salva estado atual na memória">
+                <Power class="w-4 h-4 group-hover:animate-pulse" /> Kill Switch
             </button>
         </div>
-    </div>
+    </header>
 
+    <!-- Scrollable Content Viewport -->
+    <div class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50/50">
+        <div class="max-w-[1600px] mx-auto space-y-6">
     <!-- KDE-Style Wide System Monitor -->
     <div class="bg-[#1e293b] rounded-3xl border border-slate-700 p-6 shadow-xl flex flex-col gap-6">
         <!-- CPU Matrix -->
@@ -155,6 +179,7 @@ Bloqueios feitos por políticas de segurança. Inclui tentativas de vazamento PI
             <div class="flex items-center gap-1.5 text-xs font-bold text-slate-500 mt-2">
                 <ShieldCheck class="w-3.5 h-3.5 text-slate-400" /> Secured by Guardrails
             </div>
+        </div>
         </div>
     </div>
 </div>
