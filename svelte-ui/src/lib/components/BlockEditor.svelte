@@ -61,47 +61,7 @@
         saveDocument(fullMarkdown);
     }
 
-    async function fetchDocument() {
-        try {
-            const token = localStorage.getItem('sovereign_token') || '';
-            const ws_id = globalState.activeWorkspaceId || 'default';
-            // The UUID or File Path is sent as documentId
-            const res = await fetch(`http://localhost:38001/v1/vault/document/${encodeURIComponent(documentId)}?workspace_id=${ws_id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                // The native OS reader endpoint returns 'content', DB endpoints return 'content_raw'
-                const content = data.content || data.content_raw || '';
-                const parsed = parseFrontmatter(content);
-                documentProperties = parsed.frontmatter as Record<string, any>;
-                rawMarkdown = buildMarkdown(parsed.content, $state.snapshot(documentProperties));
-                if (editor) editor.commands.setContent(parsed.content, { emitUpdate: false });
-            } else {
-                console.warn(`Doc ${documentId} fetch failed. Using template.`);
-                const template = `---\ntitle: ${documentId}\n---\n# ${documentId}\n\nInicie sua documentação.`;
-                const parsed = parseFrontmatter(template);
-                documentProperties = parsed.frontmatter as Record<string, any>;
-                rawMarkdown = template;
-                if (editor) editor.commands.setContent(parsed.content, { emitUpdate: false });
-            }
-        } catch(e) { console.error("Could not fetch doc:", e); }
-    }
-
-    async function saveDocument(fullMarkdown: string) {
-        try {
-            const token = localStorage.getItem('sovereign_token') || '';
-            const ws_id = globalState.activeWorkspaceId || 'default';
-            await fetch(`http://localhost:38001/v1/vault/document/${encodeURIComponent(documentId)}?workspace_id=${ws_id}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content_raw: fullMarkdown })
-            });
-            onSave(fullMarkdown);
-        } catch(e) { console.error("Save failed:", e); }
-    }
-
-    onMount(() => {
+    function bootEditor(contentMarkdown: string) {
         editor = new Editor({
             element: editorElement,
             extensions: [
@@ -114,7 +74,7 @@
                 TableHeader,
                 TableCell,
             ],
-            content: '', // Initialized empty, immediately hydrated
+            content: contentMarkdown, // Boot safely! tiptap-markdown will gracefully intercept this!
             editorProps: {
                 attributes: {
                     class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px] text-surface-200'
@@ -134,7 +94,47 @@
                 editor = editor;
             }
         });
+    }
 
+    async function fetchDocument() {
+        try {
+            const token = localStorage.getItem('sovereign_token') || '';
+            const ws_id = globalState.activeWorkspaceId || 'default';
+            const res = await fetch(`http://localhost:38001/v1/vault/document/${encodeURIComponent(documentId)}?workspace_id=${ws_id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const content = data.content || data.content_raw || '';
+                const parsed = parseFrontmatter(content);
+                documentProperties = parsed.frontmatter as Record<string, any>;
+                rawMarkdown = buildMarkdown(parsed.content, $state.snapshot(documentProperties));
+                bootEditor(parsed.content);
+            } else {
+                console.warn(`Doc ${documentId} fetch failed. Using template.`);
+                const template = `---\ntitle: ${documentId}\n---\n# ${documentId}\n\nInicie sua documentação.`;
+                const parsed = parseFrontmatter(template);
+                documentProperties = parsed.frontmatter as Record<string, any>;
+                rawMarkdown = template;
+                bootEditor(parsed.content);
+            }
+        } catch(e) { console.error("Could not fetch doc:", e); }
+    }
+
+    async function saveDocument(fullMarkdown: string) {
+        try {
+            const token = localStorage.getItem('sovereign_token') || '';
+            const ws_id = globalState.activeWorkspaceId || 'default';
+            await fetch(`http://localhost:38001/v1/vault/document/${encodeURIComponent(documentId)}?workspace_id=${ws_id}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content_raw: fullMarkdown })
+            });
+            onSave(fullMarkdown);
+        } catch(e) { console.error("Save failed:", e); }
+    }
+
+    onMount(() => {
         fetchDocument();
 
         return () => {
