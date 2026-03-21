@@ -128,45 +128,10 @@
         nodeDegrees.forEach(val => { if (val > maxConnections) maxConnections = val; });
         const effectiveMax = Math.min(maxConnections, 20); 
 
-        graphInstance.d3Force('center', null); 
-        graphInstance.d3Force('charge').strength(-300).distanceMax(600); 
-        graphInstance.d3Force('link').distance((link: any) => link.type === 'hierarchy' ? 40 : 15).strength(1.2); 
-
-        graphInstance.d3Force('orbital', (alpha: number) => {
-            $state.snapshot(graphData).nodes.forEach((node: any) => {
-                if (!node.targetOrbit) {
-                    const connections = nodeDegrees.get(node.id) || 0;
-                    const connRatio = Math.min(connections / effectiveMax, 1.0);
-                    const distanceScore = 1.0 - Math.pow(connRatio, 0.7); 
-                    
-                    let hash = 0;
-                    const nid = node.id || '';
-                    for (let i = 0; i < nid.length; i++) hash = nid.charCodeAt(i) + ((hash << 5) - hash);
-                    const normalizedHash = Math.abs(hash) / 2147483647; 
-                    
-                    const orbitFactor = (distanceScore * 0.85) + (normalizedHash * 0.15);
-                    node.targetOrbit = INNER_BOUND + (orbitFactor * (OUTER_BOUND - INNER_BOUND));
-                    node.orbitSpeed = 0.005 + ((1.0 - orbitFactor) * 0.015);
-                }
-
-                const r = Math.sqrt(node.x*node.x + node.y*node.y) || 1;
-                const radialForce = (node.targetOrbit - r) * 0.3 * alpha;
-                node.vx += (node.x / r) * radialForce;
-                node.vy += (node.y / r) * radialForce;
-
-                const speed = node.orbitSpeed * alpha;
-                node.vx += (-node.y / r) * (r * speed);
-                node.vy += (node.x / r) * (r * speed);
-
-                const maxAllowedRadius = VISUAL_OUTER_BOUND - 30;
-                if (r > maxAllowedRadius) {
-                    node.x = (node.x / r) * maxAllowedRadius;
-                    node.y = (node.y / r) * maxAllowedRadius;
-                    node.vx *= -0.8;
-                    node.vy *= -0.8;
-                }
-            });
-        });
+        graphInstance.d3Force('center', d3.forceCenter()); 
+        graphInstance.d3Force('charge').strength(-120).distanceMax(800); 
+        graphInstance.d3Force('link').distance((link: any) => link.type === 'hierarchy' ? 60 : 20).strength(0.8); 
+        graphInstance.d3Force('collide', d3.forceCollide(8));
 
         if (graphInstance.onRenderFramePre) {
             graphInstance.onRenderFramePre((ctx: CanvasRenderingContext2D, globalScale: number) => {
@@ -429,11 +394,11 @@
     <div bind:this={graphContainer} class="w-full h-full absolute inset-0"></div>
 
     <div class="absolute top-4 left-4 z-10 pointer-events-none flex flex-col gap-1">
-      <h2 class="text-white/80 font-medium text-sm flex items-center gap-2">
-        <div class="w-4 h-4 border-2 border-primary-500 rounded-full animate-pulse"></div>
+      <h2 class="text-white/60 font-medium text-xs flex items-center gap-2">
+        <ShieldAlert size={14} class="opacity-60" />
         Sovereign Cognitive Graph
       </h2>
-      <p class="text-xs text-white/40 font-mono tracking-wider">
+      <p class="text-[10px] text-white/40 font-mono tracking-widest uppercase pl-5">
         {graphData.nodes.length} NODES · {graphData.links.length} EDGES
       </p>
     </div>
