@@ -143,7 +143,8 @@
         </div>
 
         <!-- Security Alerts -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col group">
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:border-rose-200 transition-all flex flex-col group cursor-help" title="🛡️ FIREWALL BLOCKS
+Bloqueios feitos por políticas de segurança. Inclui tentativas de vazamento PII ou injeções nocivas.">
             <div class="flex justify-between items-start mb-4">
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Firewall Blocks</span>
                 <div class="p-1.5 bg-rose-50 rounded-lg">
