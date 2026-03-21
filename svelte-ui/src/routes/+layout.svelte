@@ -212,7 +212,7 @@
     </header>
 
     <!-- Page Content (Slot Injection) -->
-    <main class="flex-1 pb-4 px-4 overflow-hidden flex flex-col relative z-0">
+    <main class="flex-1 pb-4 px-4 overflow-hidden flex flex-col relative z-20">
          {@render children()}
     </main>
   </div>
