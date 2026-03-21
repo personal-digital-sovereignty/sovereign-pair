@@ -128,8 +128,43 @@
         nodeDegrees.forEach(val => { if (val > maxConnections) maxConnections = val; });
         const effectiveMax = Math.min(maxConnections, 20); 
 
-        graphInstance.d3Force('charge').strength(-120).distanceMax(800); 
-        graphInstance.d3Force('link').distance((link: any) => link.type === 'hierarchy' ? 60 : 20).strength(0.8); 
+        graphInstance.d3Force('charge').strength(-40).distanceMax(200); 
+        graphInstance.d3Force('link').distance(0).strength(0); // Zero link pull to let orbital forces take over
+
+        graphInstance.d3Force('orbital', (alpha: number) => {
+            $state.snapshot(graphData).nodes.forEach((node: any) => {
+                if (node.id === 'root') {
+                    node.fx = 0;
+                    node.fy = 0;
+                    return;
+                }
+
+                if (!node.targetOrbit) {
+                    const connections = nodeDegrees.get(node.id) || 0;
+                    const connRatio = Math.min(connections / effectiveMax, 1.0);
+                    const distanceScore = 1.0 - Math.pow(connRatio, 0.7); 
+                    
+                    let hash = 0;
+                    const nid = String(node.id) || '';
+                    for (let i = 0; i < nid.length; i++) hash = nid.charCodeAt(i) + ((hash << 5) - hash);
+                    const normalizedHash = Math.abs(hash) / 2147483647; 
+                    
+                    // Push nodes OUT into the rings. (200 to 1600 radius)
+                    const orbitFactor = (distanceScore * 0.6) + (normalizedHash * 0.4);
+                    node.targetOrbit = 200 + (orbitFactor * 1400);
+                    node.orbitSpeed = 0.001 + ((1.0 - orbitFactor) * 0.005);
+                }
+
+                const r = Math.sqrt(node.x*node.x + node.y*node.y) || 1;
+                const radialForce = (node.targetOrbit - r) * 0.5 * alpha;
+                node.vx += (node.x / r) * radialForce;
+                node.vy += (node.y / r) * radialForce;
+
+                const speed = node.orbitSpeed * alpha;
+                node.vx += (-node.y / r) * (r * speed);
+                node.vy += (node.x / r) * (r * speed);
+            });
+        });
 
         if (graphInstance.onRenderFramePre) {
             graphInstance.onRenderFramePre((ctx: CanvasRenderingContext2D, globalScale: number) => {
