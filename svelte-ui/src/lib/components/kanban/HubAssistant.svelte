@@ -31,7 +31,7 @@
             const ativos = projectState.projects.filter(p => !p.is_archived);
             const arquivados = projectState.projects.filter(p => p.is_archived);
             
-            let systemContext = `INSTRUÇÃO MÁXIMA (SOVEREIGN ORCHESTRATION AI): Você é o assistente global do Hub de Controle. Responda de forma direta, executiva e puramente analítica. NUNCA INVENTE DADOS.\n\n`;
+            let systemContext = `INSTRUÇÃO MÁXIMA (SOVEREIGN ORCHESTRATION AI): Você é o assistente global do Hub de Controle. VOCÊ POSSUI ACESSO TOTAL A TODAS AS TAREFAS E PROJETOS. Leia os dados abaixo linha por linha. NUNCA diga que não tem uma informação se ela estiver listada abaixo! Responda de forma executiva.\n\n`;
             systemContext += `RESUMO NUMÉRICO:\n- Total de Projetos: ${projectState.projects.length}\n- Projetos ATIVOS: ${ativos.length}\n- Projetos ARQUIVADOS: ${arquivados.length}\n\n`;
             
             if (ativos.length > 0) {
@@ -52,8 +52,8 @@
                         ? p.tasks.map(t => `    * [${t.status}] ${t.title} (Criada: ${t.created_at ? t.created_at.split(' ')[0] : '?'})`).join('\n')
                         : '    * Nenhuma tarefa no fluxo';
                     
-                    return `- "${p.name}"\n  Criado: ${created} | Prazo: ${deadline}\n  Propósito: ${p.purpose || 'N/A'}\n  Resumo de Status: ${countsStr}\n  Lista de Tarefas:\n${tasksSummary}`;
-                }).join('\n\n') + `\n\n`;
+                    return `\n[PROJETO: ${p.name}]\n- Criado: ${created} | Prazo: ${deadline}\n- Propósito: ${p.purpose || 'N/A'}\n- Resumo Geral: ${countsStr}\n--- TAREFAS DETALHADAS DESTE PROJETO ---\n${tasksSummary}\n----------------------------------------`;
+                }).join('\n') + `\n\n`;
             }
             if (arquivados.length > 0) {
                 systemContext += `LISTA DE PROJETOS ARQUIVADOS:\n` + arquivados.map(p => `- "${p.name}"`).join('\n') + `\n\n`;
