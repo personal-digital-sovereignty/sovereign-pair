@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import { globalState } from '$lib/state.svelte';
     import { Plus, ArrowLeft, Archive, FolderKanban, BarChart2, Edit2 } from 'lucide-svelte';
     import { projectState, fetchProjects, createProject, updateProjectAPI } from '$lib/projects.svelte';
@@ -63,11 +63,23 @@
     });
 
     $effect(() => {
+        if (activeProjectId) {
+            isHubAssistantOpen = false;
+        } else {
+            isProjectAssistantOpen = false;
+        }
+    });
+
+    $effect(() => {
         globalState.layout.isRightAuxPanelOpen = isProjectAssistantOpen || isHubAssistantOpen;
     });
 
     onMount(() => {
         fetchProjects();
+    });
+
+    onDestroy(() => {
+        globalState.layout.isRightAuxPanelOpen = false;
     });
 </script>
 
