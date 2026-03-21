@@ -130,9 +130,10 @@
 
         graphInstance.d3Force('charge').strength((node: any) => {
             const d = nodeDegrees.get(node.id) || 0;
-            return d > 3 ? -500 : -15;
-        }).distanceMax(1000); 
-        graphInstance.d3Force('link').distance(20).strength(1.5); 
+            // Gently repel hubs to avoid overlap, but don't blast leaf nodes thousands of pixels away!
+            return d > 3 ? -80 : -10;
+        }).distanceMax(600); 
+        graphInstance.d3Force('link').distance(20).strength(1.0); 
 
         graphInstance.d3Force('gentle_orbit', (alpha: number) => {
             const currentNodes = graphInstance.graphData().nodes;
@@ -162,7 +163,7 @@
                     }
                     
                     // Singular stable planetary track for all hubs, gentle pull to prevent parachute tearing
-                    const targetBand = 1400; 
+                    const targetBand = 1100; 
                     const pullForce = (targetBand - r) * 0.005 * alpha; 
                     node.vx += (dx / r) * pullForce;
                     node.vy += (dy / r) * pullForce;
