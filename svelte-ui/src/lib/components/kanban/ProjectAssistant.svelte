@@ -68,7 +68,10 @@
 
 {#if !isOpen}
     <button onclick={() => isOpen = true} class="fixed bottom-6 right-8 bg-emerald-600 text-white p-3.5 rounded-full shadow-lg hover:bg-emerald-700 transition z-50 flex items-center justify-center cursor-pointer group hover:scale-110">
-        <MessageSquare class="w-6 h-6" />
+        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="4.5" fill="currentColor"/>
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-opacity="0.6"/>
+        </svg>
         <span class="absolute right-[110%] mr-2 max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 ease-in-out font-bold text-sm bg-emerald-800 text-emerald-50 rounded-lg group-hover:px-3 group-hover:py-1.5 opacity-0 group-hover:opacity-100 shadow-sm">
             Falar com Sovereign AI
         </span>
