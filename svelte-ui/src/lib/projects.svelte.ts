@@ -1,4 +1,4 @@
-export type Task = { id: string, title: string, description?: string, status: string, priority?: string, deadline?: string };
+export type Task = { id: string, title: string, description?: string, status: string, priority?: string, deadline?: string, created_at?: string };
 export type Project = { 
     id: string, 
     name: string, 
