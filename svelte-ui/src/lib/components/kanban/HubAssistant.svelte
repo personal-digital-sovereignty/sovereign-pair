@@ -27,12 +27,20 @@
             const token = localStorage.getItem('sovereign_token') || '';
             const origin = window.location.origin.includes('5173') ? 'http://127.0.0.1:38001' : window.location.origin;
             
-            // Construir o Contexto Dinâmico Soberano para o Hub
-            let systemContext = `INSTRUÇÃO MÁXIMA (SOVEREIGN ORCHESTRATION AI): Você é o assistente global do Hub de Controle. Responda de forma direta, executiva e analítica. NÃO invente, não seja poético em excesso.\nATUALMENTE, NO BANCO DE DADOS CÍBRIDO O USUÁRIO POSSUI EXATAMENTE ESTES PROJETOS:\n`;
-            systemContext += projectState.projects.filter(p => !p.is_archived).map(p => `- PROJETO ATIVO: "${p.name}" | Propósito: ${p.purpose || 'N/A'} | Tarefas Ativas: ${p.tasks ? p.tasks.length : 0}`).join('\n');
-            systemContext += '\n\n';
-            systemContext += projectState.projects.filter(p => p.is_archived).map(p => `- PROJETO ARQUIVADO: "${p.name}"`).join('\n');
-            systemContext += `\n\nBaseie 100% de sua resposta apenas nesses dados concretos. Responda a pergunta do usuário a seguir.`;
+            // Construir o Contexto Dinâmico Soberano para o Hub (Otimizado para LLMs menores)
+            const ativos = projectState.projects.filter(p => !p.is_archived);
+            const arquivados = projectState.projects.filter(p => p.is_archived);
+            
+            let systemContext = `INSTRUÇÃO MÁXIMA (SOVEREIGN ORCHESTRATION AI): Você é o assistente global do Hub de Controle. Responda de forma direta, executiva e puramente analítica. NUNCA INVENTE DADOS.\n\n`;
+            systemContext += `RESUMO NUMÉRICO:\n- Total de Projetos: ${projectState.projects.length}\n- Projetos ATIVOS: ${ativos.length}\n- Projetos ARQUIVADOS: ${arquivados.length}\n\n`;
+            
+            if (ativos.length > 0) {
+                systemContext += `LISTA DE PROJETOS ATIVOS:\n` + ativos.map(p => `- "${p.name}" (Propósito: ${p.purpose || 'N/A'}, Tarefas Pendentes: ${p.tasks ? p.tasks.length : 0})`).join('\n') + `\n\n`;
+            }
+            if (arquivados.length > 0) {
+                systemContext += `LISTA DE PROJETOS ARQUIVADOS:\n` + arquivados.map(p => `- "${p.name}"`).join('\n') + `\n\n`;
+            }
+            systemContext += `Sua resposta deve ser estritamente baseada nos dados acima. Não assuma nada que não esteja nesta lista. Responda à pergunta do usuário a seguir:`;
             
             const apiMessages = [
                 { role: 'system', content: systemContext },
