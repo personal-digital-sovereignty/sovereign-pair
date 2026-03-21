@@ -3,8 +3,11 @@
   import { globalState, toggleSidebar, setSidebarWidth } from '$lib/state.svelte.js';
   import { telemetryState, connectTelemetry, disconnectTelemetry } from '$lib/telemetry.svelte';
   import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, CloudOff, Activity, Database } from 'lucide-svelte';
+  import SidebarTree from '$lib/components/SidebarTree.svelte';
   import { page } from '$app/state';
   import { onMount, onDestroy } from 'svelte';
+  import ChatHistorySidebar from '$lib/components/ChatHistorySidebar.svelte';
+  import InlineSpotlight from '$lib/components/InlineSpotlight.svelte';
 
   let { children } = $props();
 
@@ -74,6 +77,9 @@
 </script>
 
 <div class="flex w-full h-screen bg-surface-900 text-surface-200 overflow-hidden font-sans">
+  
+  <InlineSpotlight />
+
   <!-- 1. Permanent Activity Bar (Using rem for scaling: w-16 = 4rem) -->
   <nav class="w-16 bg-surface-900 border-r border-surface-700 flex flex-col h-full shrink-0 z-30 relative py-3">
     <!-- Top Identity Logo -->
@@ -96,6 +102,9 @@
       </a>
       <a href="/vault" class="flex items-center justify-center w-full aspect-square rounded-xl transition-all overflow-hidden {routeId.includes('/vault') ? 'text-primary-400 bg-surface-800 shadow-[inset_3px_0_0_0_currentColor]' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/50'}">
         <Folder class="w-6 h-6 shrink-0" />
+      </a>
+      <a href="/projects" class="flex items-center justify-center w-full aspect-square rounded-xl transition-all overflow-hidden {routeId.includes('/projects') ? 'text-primary-400 bg-surface-800 shadow-[inset_3px_0_0_0_currentColor]' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/50'}">
+        <LayoutGrid class="w-6 h-6 shrink-0" />
       </a>
       <a href="/settings" class="flex items-center justify-center w-full aspect-square rounded-xl transition-all overflow-hidden mt-auto mb-2 {routeId.includes('/settings') ? 'text-primary-400 bg-surface-800 shadow-[inset_3px_0_0_0_currentColor]' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-800/50'}">
         <Settings class="w-6 h-6 shrink-0" />
@@ -136,9 +145,16 @@
       <!-- Context Area (Dynamic Route Content + Telemetry Array) -->
       <div class="flex-1 w-full overflow-hidden flex flex-col relative min-h-0">
         
-        <div class="flex-1 p-4 text-xs text-surface-400 overflow-y-auto custom-scrollbar">
-           <!-- Render sub-navigation or specific route tree here later -->
-           <span class="block mb-4 tracking-widest uppercase opacity-50 font-bold">O.S Route: {routeId.replace('/', '') || 'ROOT'}</span>
+        <div class="flex-1 overflow-x-hidden overflow-y-auto custom-scrollbar flex flex-col">
+           {#if routeId.includes('/vault')}
+               <SidebarTree />
+           {:else if routeId.includes('/chat')}
+               <ChatHistorySidebar />
+           {:else}
+               <div class="p-4 text-xs text-surface-400">
+                   <span class="block mb-4 tracking-widest uppercase opacity-50 font-bold">O.S Route: {routeId.replace('/', '') || 'ROOT'}</span>
+               </div>
+           {/if}
         </div>
 
         <!-- Sticky Telemetry Dashboard (Bottom of context panel) -->

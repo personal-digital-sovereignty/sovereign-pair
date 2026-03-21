@@ -137,6 +137,7 @@ async fn main() {
         // ------------------ Historical Chat API (Sovereign O.S) ------
         .route("/v1/sessions", axum::routing::get(api_chat::get_sessions_handler))
         .route("/v1/sessions/:id", axum::routing::get(api_chat::get_session_by_id_handler)
+            .put(api_chat::update_session_handler)
             .delete(api_chat::delete_session_handler))
         // ------------------ P2P Sovereign Mesh Router ----------------
         .route("/v1/mesh/handshake", axum::routing::get(api_mesh::mesh_handshake_handler))
@@ -157,11 +158,13 @@ async fn main() {
             .post(api_settings::set_ollama_clusters_handler))
         .route("/v1/system/export_config", axum::routing::get(api_settings::export_config_handler))
         .route("/v1/system/import_config", axum::routing::post(api_settings::import_config_handler))
+        .route("/v1/system/available_models", axum::routing::get(api_settings::get_available_models_handler))
         // ------------------ Chat Endpoints ------------------
         .route("/opencode/v1/chat/completions", post(api::chat_completions_handler))
         .route("/v1/chat/completions", post(api::chat_completions_handler))
         .route("/chat/completions", post(api::chat_completions_handler))
         .route("/v1/responses", post(realtime::realtime_responses_handler))
+        .route("/v1/feedback", post(api::feedback_handler))
         // ------------------ Tools & Agentic Capabilities ----
         .route("/v1/tools/read_vault_file", post(api_tools::read_vault_file_handler))
         .route("/v1/tools/create_kanban_task", post(api_tools::create_kanban_task_handler))

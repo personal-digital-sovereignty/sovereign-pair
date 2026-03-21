@@ -109,12 +109,50 @@ pub async fn delete_session_handler(
     Path(id): Path<i64>,
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
-    let _ = sqlx::query("DELETE FROM chat_sessions WHERE id = ?")
+    tracing::info!("♻️ Lixeira: Tentando Obliterar Sessão {}", id);
+    
+    // Purga agressiva das mensagens atreladas (Foreign Key Safety Drop)
+    if let Err(e) = sqlx::query("DELETE FROM chat_messages WHERE session_id = ?")
+        .bind(id)
+        .execute(&state.db)
+        .await 
+    {
+        tracing::error!("🚨 Falha do lado SQLite ao deletar chat_messages: {}", e);
+    }
+
+    // Remove o Container Cíbrido Pai
+    if let Err(e) = sqlx::query("DELETE FROM chat_sessions WHERE id = ?")
+        .bind(id)
+        .execute(&state.db)
+        .await 
+    {
+        tracing::error!("🚨 Falha do lado SQLite ao deletar chat_sessions pai: {}", e);
+    }
+
+    tracing::info!("✅ Sessão {} completamente evaporada via Node Mesh.", id);
+
+    Json(serde_json::json!({ "status": "deleted" })).into_response()
+}
+
+#[derive(Deserialize)]
+pub struct UpdateSessionRequest {
+    pub title: String,
+    pub folder_name: Option<String>,
+}
+
+pub async fn update_session_handler(
+    Path(id): Path<i64>,
+    State(state): State<Arc<AppState>>,
+    axum::Json(payload): axum::Json<UpdateSessionRequest>,
+) -> impl IntoResponse {
+    let _ = sqlx::query("UPDATE chat_sessions SET title = ?, folder_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+        .bind(&payload.title)
+        .bind(&payload.folder_name)
         .bind(id)
         .execute(&state.db)
         .await;
 
-    Json(serde_json::json!({ "status": "deleted" })).into_response()
+    Json(serde_json::json!({ "status": "updated" })).into_response()
 }
 
 // -------------------------------------------------------------

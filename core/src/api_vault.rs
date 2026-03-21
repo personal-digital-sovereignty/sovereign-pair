@@ -550,94 +550,56 @@ pub async fn vault_graph_handler(
     State(state): State<Arc<AppState>>,
     axum::extract::Query(query): axum::extract::Query<VaultGraphQuery>
 ) -> impl IntoResponse {
-    let workspace_id = query.workspace_id.unwrap_or_else(|| "default".to_string());
+    let ws_id_str = query.workspace_id.unwrap_or_else(|| "1".to_string());
+    let ws_id: i64 = ws_id_str.parse().unwrap_or(1);
+    
+    // Catch real workspace name
+    use sqlx::Row;
+    let ws_name = sqlx::query("SELECT name FROM workspaces WHERE id = ?")
+        .bind(ws_id)
+        .fetch_one(&state.db)
+        .await
+        .map(|r| r.get::<String, _>("name"))
+        .unwrap_or_else(|_| "Local Vault".to_string());
 
-    let rows_res = sqlx::query_as::<_, SensusDocRow>(
-        "SELECT id, file_path, extracted_tags, extracted_links FROM sensus_documents WHERE workspace_id = ?"
-    )
-    .bind(&workspace_id)
-    .fetch_all(&state.db)
-    .await;
-
-    let rows = match rows_res {
-        Ok(r) => r,
-        Err(e) => return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"detail": format!("DB Error: {}", e)}))).into_response(),
-    };
+    let docs = sqlx::query("SELECT id, file_path FROM sensus_documents WHERE workspace_id = ?")
+        .bind(&ws_id_str)
+        .fetch_all(&state.db)
+        .await
+        .unwrap_or_default();
 
     let mut nodes = Vec::new();
     let mut links = Vec::new();
-    let mut folder_nodes = std::collections::HashSet::new();
 
-    let mut basename_to_id = std::collections::HashMap::new();
+    // Central Cybrid Node
+    nodes.push(GraphNode {
+        id: "root".to_string(),
+        name: format!("Sovereign System ({})", ws_name),
+        path: None,
+        val: 15.0,
+        r#type: "folder".to_string(),
+        tags: vec![],
+    });
 
-    for doc in &rows {
-        let node_id = doc.id.clone();
-        let path = Path::new(&doc.file_path);
-        let basename = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-        let basename_without_ext = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
-
-        basename_to_id.insert(basename.clone(), node_id.clone());
-        basename_to_id.insert(basename_without_ext.clone(), node_id.clone());
-
-        let tags: Vec<String> = doc.extracted_tags.as_deref()
-            .and_then(|t| serde_json::from_str(t).ok())
-            .unwrap_or_default();
-
+    for doc in docs {
+        let doc_id: String = doc.get("id");
+        let doc_path: String = doc.get("file_path");
+        let node_id = format!("doc_{}", doc_id);
+        
         nodes.push(GraphNode {
             id: node_id.clone(),
-            name: basename.clone(),
-            path: Some(doc.file_path.clone()),
-            val: 1.5,
+            name: doc_path.split('/').last().unwrap_or(&doc_path).to_string(), // Better visual: just the filename instead of giant absolute path
+            path: Some(doc_path.clone()),
+            val: 3.0,
             r#type: "file".to_string(),
-            tags,
+            tags: vec![],
         });
 
-        if let Some(parent) = path.parent() {
-            let dirname = parent.file_name().unwrap_or_default().to_string_lossy().to_string();
-            if !dirname.is_empty() && dirname != "data" && dirname != "RAW_DOCS_DIR" {
-                let folder_id = format!("folder_{}", dirname);
-                if !folder_nodes.contains(&folder_id) {
-                    folder_nodes.insert(folder_id.clone());
-                    nodes.push(GraphNode {
-                        id: folder_id.clone(),
-                        name: dirname,
-                        path: None,
-                        val: 3.0,
-                        r#type: "folder".to_string(),
-                        tags: vec![],
-                    });
-                }
-                links.push(GraphLink {
-                    source: node_id.clone(),
-                    target: folder_id,
-                    r#type: "hierarchy".to_string(),
-                });
-            }
-        }
-    }
-
-    for doc in rows {
-        let source_id = doc.id;
-        let ext_links: Vec<String> = doc.extracted_links.as_deref()
-            .and_then(|l| serde_json::from_str(l).ok())
-            .unwrap_or_default();
-
-        for raw_link in ext_links {
-            let link_target = raw_link.replace("[[", "").replace("]]", "").trim().to_string();
-            let link_target_with_ext = format!("{}.md", link_target);
-
-            let target_id = basename_to_id.get(&link_target)
-                .or_else(|| basename_to_id.get(&link_target_with_ext));
-
-            if let Some(t_id) = target_id
-                && *t_id != source_id {
-                    links.push(GraphLink {
-                        source: source_id.clone(),
-                        target: t_id.clone(),
-                        r#type: "semantic".to_string(),
-                    });
-                }
-        }
+        links.push(GraphLink {
+            source: "root".to_string(),
+            target: node_id,
+            r#type: "hierarchy".to_string(),
+        });
     }
 
     let res = GraphResponse { nodes, links };
