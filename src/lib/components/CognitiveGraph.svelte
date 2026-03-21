@@ -67,8 +67,8 @@
             const module = await import('force-graph');
             const ForceGraph = (module.default || module) as any;
             graphInstance = ForceGraph()(graphContainer)
-                .minZoom(0.5)
-                .maxZoom(3.5);
+                .minZoom(0.05)
+                .maxZoom(8.0);
         } catch (err) {
             console.error("CRITICAL ERROR: Failed to instantiate ForceGraph engine", err);
             return;
@@ -128,7 +128,10 @@
         nodeDegrees.forEach(val => { if (val > maxConnections) maxConnections = val; });
         const effectiveMax = Math.min(maxConnections, 20); 
 
-        graphInstance.d3Force('charge').strength(-300).distanceMax(800); 
+        graphInstance.d3Force('charge').strength((node: any) => {
+            const d = nodeDegrees.get(node.id) || 0;
+            return d > 3 ? -400 : -20;
+        }).distanceMax(800); 
         graphInstance.d3Force('link').distance(25).strength(1.5); // High strength & low distance creates tight natural Galaxies from synapses
 
         graphInstance.d3Force('gentle_orbit', (alpha: number) => {
