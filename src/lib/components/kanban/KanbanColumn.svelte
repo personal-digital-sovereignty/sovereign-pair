@@ -66,7 +66,10 @@
             <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">
                 {columnTasks.filter((t: any) => !t.isDndShadowItem).length}
             </span>
-            <button onclick={() => isMenuOpen = !isMenuOpen} class="text-slate-400 hover:text-slate-800 transition-colors cursor-pointer p-1 rounded hover:bg-slate-200">
+            <button onclick={() => isAddingTask = !isAddingTask} class="text-slate-400 hover:text-blue-600 transition-colors cursor-pointer p-1 rounded hover:bg-blue-50" title="Nova Tarefa">
+                <Plus class="w-4 h-4" />
+            </button>
+            <button onclick={() => isMenuOpen = !isMenuOpen} class="text-slate-400 hover:text-slate-800 transition-colors cursor-pointer p-1 rounded hover:bg-slate-200" title="Configurações da Categoria">
                 <Settings class="w-4 h-4" />
             </button>
 
@@ -84,6 +87,17 @@
         </div>
     </div>
     
+    <!-- Add Task Inline Input -->
+    {#if isAddingTask}
+        <div class="p-3 pb-0 bg-slate-50 shrink-0 flex flex-col gap-2 animate-in slide-in-from-top-2">
+            <input type="text" bind:value={newTaskTitle} placeholder="Título da nova tarefa..." class="w-full text-sm p-2.5 rounded-lg border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-white shadow-sm" onkeydown={(e) => { if(e.key === 'Enter') submitTask(); else if(e.key === 'Escape') isAddingTask = false; }} autofocus />
+            <div class="flex gap-2">
+                <button onclick={submitTask} class="flex-1 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold py-1.5 rounded-md shadow-sm transition-colors cursor-pointer">Salvar</button>
+                <button onclick={() => isAddingTask = false} class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-[11px] font-bold py-1.5 rounded-md shadow-sm transition-colors cursor-pointer">Cancelar</button>
+            </div>
+        </div>
+    {/if}
+
     <!-- Column Cards Dropzone -->
     <div 
         class="p-3 flex-1 overflow-y-auto space-y-3 custom-scrollbar transition-colors min-h-[150px] rounded-b-xl"
@@ -96,20 +110,5 @@
                 <KanbanCard {task} {colStatus} />
             </div>
         {/each}
-    </div>
-    
-    <!-- Add Task Button -->
-    <div class="p-3 border-t border-slate-200/60 bg-white/50 rounded-b-xl shrink-0 flex flex-col gap-2 justify-center">
-        {#if isAddingTask}
-            <input type="text" bind:value={newTaskTitle} placeholder="Ex: Write endpoint..." class="w-full text-sm p-2 rounded-md border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-white shadow-inner" onkeydown={(e) => e.key === 'Enter' && submitTask()} />
-            <div class="flex gap-2">
-                <button onclick={submitTask} class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-md shadow-sm transition-colors cursor-pointer">Save</button>
-                <button onclick={() => isAddingTask = false} class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold py-2 rounded-md shadow-sm transition-colors cursor-pointer">Cancel</button>
-            </div>
-        {:else}
-            <button onclick={() => isAddingTask = true} class="bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded-md text-sm font-medium flex items-center justify-center transition-colors shadow-sm px-6 w-full cursor-pointer">
-                <Plus class="w-4 h-4 mr-2" /> Nova Tarefa
-            </button>
-        {/if}
     </div>
 </section>
