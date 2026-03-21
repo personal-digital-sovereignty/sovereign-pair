@@ -128,8 +128,8 @@
         nodeDegrees.forEach(val => { if (val > maxConnections) maxConnections = val; });
         const effectiveMax = Math.min(maxConnections, 20); 
 
-        graphInstance.d3Force('charge').strength(-200).distanceMax(800); 
-        graphInstance.d3Force('link').distance(60).strength(0.8); // Enable strong local synapses!
+        graphInstance.d3Force('charge').strength(-300).distanceMax(800); 
+        graphInstance.d3Force('link').distance(25).strength(1.5); // High strength & low distance creates tight natural Galaxies from synapses
 
         graphInstance.d3Force('gentle_orbit', (alpha: number) => {
             const currentNodes = $state.snapshot(graphData).nodes;
@@ -144,26 +144,26 @@
                 const dy = node.y - centerY;
                 const r = Math.sqrt(dx*dx + dy*dy) || 1;
                 
-                // AGGRESSIVE repulsion from the exact center (The Sun). 
-                // The rings in the background are drawn at ~542, ~1084, ~1626.
-                // We force nodes to spawn and orbit at MINIMUM the 2nd ring (Radius 1000+).
-                if (r < 1100) {
-                    const pushForce = (1100 - r) * 0.15 * alpha;
-                    node.vx += (dx / r) * pushForce;
-                    node.vy += (dy / r) * pushForce;
+                const deg = nodeDegrees.get(node.id) || 0;
+
+                if (deg === 0) {
+                    // Isolated dust floats to the deep outer rims, loosely held
+                    const pullForce = (2200 - r) * 0.01 * alpha;
+                    node.vx += (dx / r) * pullForce;
+                    node.vy += (dy / r) * pullForce;
+                } else {
+                    // Synaptic clusters stratify based on mass (degree). 
+                    // Hubs pull closer, leaves follow organically via the strong link force.
+                    const targetBand = 1200 - Math.min(deg, 20) * 15;
+                    const pullForce = (targetBand - r) * 0.04 * alpha; 
+                    node.vx += (dx / r) * pullForce;
+                    node.vy += (dy / r) * pullForce;
                 }
 
                 // Smooth galactic rotation (clockwise)
-                const speed = 0.002 * alpha;
+                const speed = 0.0015 * alpha;
                 node.vx += (-dy) * speed;
                 node.vy += (dx) * speed;
-                
-                // Gravity wall to prevent them from drifting into infinite deep space
-                if (r > 2000) {
-                    const pullForce = (r - 2000) * 0.05 * alpha;
-                    node.vx -= (dx / r) * pullForce;
-                    node.vy -= (dy / r) * pullForce;
-                }
             });
         });
 
