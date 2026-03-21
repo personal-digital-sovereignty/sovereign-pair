@@ -38,10 +38,21 @@
                 systemContext += `LISTA DE PROJETOS ATIVOS:\n` + ativos.map(p => {
                     const created = p.created_at ? p.created_at.split(' ')[0] : 'Desconhecida';
                     const deadline = p.deadline || 'Sem prazo';
+                    
+                    // Pré-processar a contagem por status para blindar Modelos pequenos (3B/8B) de alucinação matemática
+                    const statusCounts: Record<string, number> = {};
+                    if (p.tasks) {
+                        for (const t of p.tasks) {
+                            statusCounts[t.status] = (statusCounts[t.status] || 0) + 1;
+                        }
+                    }
+                    const countsStr = Object.entries(statusCounts).map(([k, v]) => `${v} em '${k}'`).join(', ') || '0 tarefas';
+
                     const tasksSummary = p.tasks && p.tasks.length > 0 
                         ? p.tasks.map(t => `    * [${t.status}] ${t.title} (Criada: ${t.created_at ? t.created_at.split(' ')[0] : '?'})`).join('\n')
-                        : '    * (Nenhuma tarefa)';
-                    return `- "${p.name}"\n  Criado em: ${created} | Prazo: ${deadline}\n  Propósito: ${p.purpose || 'N/A'}\n  Tarefas:\n${tasksSummary}`;
+                        : '    * Nenhuma tarefa no fluxo';
+                    
+                    return `- "${p.name}"\n  Criado: ${created} | Prazo: ${deadline}\n  Propósito: ${p.purpose || 'N/A'}\n  Resumo de Status: ${countsStr}\n  Lista de Tarefas:\n${tasksSummary}`;
                 }).join('\n\n') + `\n\n`;
             }
             if (arquivados.length > 0) {
