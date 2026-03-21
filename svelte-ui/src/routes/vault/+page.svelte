@@ -118,6 +118,19 @@
         return arr;
     }
 
+    let folders = $state<{path: string, name: string}[]>([{path: '', name: 'Raiz do Vault'}]);
+    
+    function extractFolders(nodes: any[]) {
+        for (const n of nodes) {
+            if (n.is_dir) {
+                if (n.id !== 'root') {
+                    folders.push({ path: n.id, name: `📁 ${n.id}` });
+                }
+                extractFolders(n.children || []);
+            }
+        }
+    }
+
     async function fetchFiles() {
         isLoading = true;
         try {
@@ -127,16 +140,29 @@
             if (res.ok) {
                 const treeNodes = await res.json();
                 files = flatten(treeNodes);
+                folders = [{path: '', name: 'Raiz do Vault'}];
+                extractFolders(treeNodes);
             }
         } catch(e) { console.error(e); } finally { isLoading = false; }
     }
 
-    async function createNewFile() {
-        const name = prompt("Nome do novo arquivo (ex: roteiro.md):");
-        if (!name) return;
-        const req = { workspace_id: Number(globalState.activeWorkspaceId), type: "file", name, path: "" };
+    let showCreateModal = $state(false);
+    let newFileName = $state('');
+    let newFileFolder = $state('');
+
+    function createNewFile() {
+        newFileName = '';
+        newFileFolder = '';
+        showCreateModal = true;
+    }
+
+    async function confirmCreateFile() {
+        if (!newFileName.trim()) return;
+        const name = newFileName.trim();
+        const req = { workspace_id: Number(globalState.activeWorkspaceId), type: "file", name, path: newFileFolder };
         try {
             await fetch(`${API_BASE_URL}/v1/vault/fs/create`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` }, body: JSON.stringify(req) });
+            showCreateModal = false;
             fetchFiles();
         } catch(e) { console.error(e); }
     }
@@ -281,7 +307,7 @@
             <div class="bg-white/90 backdrop-blur-md rounded-xl border border-slate-200 p-6 flex flex-col gap-6 shadow-sm">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center">
-                        <Sparkles class="w-5 h-5 text-teal-600" />
+                        <BrainCircuit class="w-5 h-5 text-teal-600" />
                     </div>
                     <h3 class="text-xl font-semibold text-slate-800">AI Core</h3>
                 </div>
@@ -400,6 +426,34 @@
             <aside class="w-[450px] bg-white flex flex-col h-full overflow-hidden shrink-0 z-10 hidden xl:flex">
                  <ChatPanel />
             </aside>
+        </div>
+    </div>
+{/if}
+
+{#if showCreateModal}
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2"><Plus class="w-4 h-4 text-blue-500"/> Criar Novo Arquivo</h3>
+                <button onclick={() => showCreateModal = false} class="p-1 hover:bg-slate-200 text-slate-400 rounded transition-colors cursor-pointer"><X class="w-4 h-4"/></button>
+            </div>
+            <div class="p-6 flex flex-col gap-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nome e Extensão</label>
+                    <input type="text" bind:value={newFileName} placeholder="ex: manifesto_arquitetura.md" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Pasta de Destino (Vault Index)</label>
+                    <select bind:value={newFileFolder} class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow bg-white text-sm text-slate-700">
+                        {#each folders as folder}
+                            <option value={folder.path}>{folder.name}</option>
+                        {/each}
+                    </select>
+                </div>
+                <button onclick={confirmCreateFile} disabled={!newFileName.trim()} class="mt-2 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+                    Criar Arquivo
+                </button>
+            </div>
         </div>
     </div>
 {/if}
