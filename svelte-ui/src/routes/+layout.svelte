@@ -168,7 +168,7 @@
   <!-- END: Hardware Telemetry Widget -->
 
   <!-- BEGIN: Main Viewport (Header + Route Children) -->
-  <div class="flex-1 flex flex-col h-full overflow-hidden relative min-w-0">
+  <div class="flex-1 flex flex-col h-full overflow-hidden relative min-w-0 transition-all duration-300 ease-in-out" style="padding-right: {globalState?.layout?.isRightAuxPanelOpen ? '420px' : '0'}">
     
     <!-- Top Main Header -->
     <header class="h-16 flex items-center justify-between px-6 shrink-0 mt-2 z-10">
