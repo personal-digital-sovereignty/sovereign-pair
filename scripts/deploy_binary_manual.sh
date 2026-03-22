@@ -42,10 +42,8 @@ ssh -o StrictHostKeyChecking=no ubuntu@$SERVER_IP << EOF
     chmod +x sovereign-core
     sudo mv sovereign-core /usr/local/bin/sovereign-core
     
-    echo "🔄 Reiniciando SystemD..."
-    sudo systemctl daemon-reload
-    sudo systemctl enable sovereign
-    sudo systemctl start sovereign
+    echo "🔄 Invocando Magic Setup Universal do Rust..."
+    sudo /usr/local/bin/sovereign-core --setup
     
     echo "✅ Binário Injetado e Serviço Iniciado Manualmente!"
 EOF

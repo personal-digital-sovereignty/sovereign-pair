@@ -12,7 +12,31 @@ export const globalState = $state({
     // Global Workspaces
     activeWorkspaceId: 'mesh_roaming',
     activeWorkspaceName: 'Sovereign Mesh Roaming',
-    workspaces: [] as any[]
+    workspaces: [] as any[],
+
+    // Vault Teleport State
+    vault: {
+        activeDocumentId: '',
+        activeDocumentContent: null as string | null,
+        workspaceFiles: [] as any[]
+    },
+    
+    // Chat History State (Global Execution Context)
+    chat: {
+        activeSessionId: null as number | null,
+        activeSessionTitle: 'Nova Sessão',
+        inputContext: '',
+        messages: [] as any[],
+        isTyping: false
+    },
+
+    // Notification Center
+    notifications: [] as { id: number, title: string, text: string, time: string, read: boolean, link?: string }[],
+
+    // Layout State
+    layout: {
+        isRightAuxPanelOpen: false
+    }
 });
 
 export const toggleSidebar = () => {
@@ -21,4 +45,134 @@ export const toggleSidebar = () => {
 
 export const setSidebarWidth = (width: number) => {
     globalState.sidebarWidth = Math.max(200, Math.min(600, width));
+};
+
+// ==========================================
+// NOTIFICATION SYSTEM ENGINE
+// ==========================================
+export const addNotification = (title: string, text: string, link?: string) => {
+    globalState.notifications.unshift({
+        id: Date.now(),
+        title,
+        text,
+        time: new Date().toLocaleTimeString(),
+        read: false,
+        link
+    });
+};
+
+export const markNotificationsRead = () => {
+    globalState.notifications.forEach(n => n.read = true);
+};
+
+// ==========================================
+// BACKGROUND CHAT PROCESSOR (Sensus Engine)
+// ==========================================
+export const loadGlobalSession = async (id: number | null) => {
+    if (!id) {
+        globalState.chat.messages = [{ id: Date.now(), role: 'assistant', agent: 'Sovereign Coder', text: 'Sensus Synchronized. Ready for prompt ingestion.', time: new Date().toLocaleTimeString() }];
+        return;
+    }
+    try {
+        const token = localStorage.getItem('sovereign_token') || '';
+        const res = await fetch(`http://localhost:38001/v1/sessions/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.messages && data.messages.length > 0) {
+                globalState.chat.messages = data.messages.map((m: any) => ({
+                    id: m.id,
+                    role: m.role,
+                    agent: m.role === 'user' ? 'Commander' : 'Sovereign Evaluator',
+                    text: m.content,
+                    time: new Date(m.created_at).toLocaleTimeString()
+                }));
+            }
+        }
+    } catch(e) { console.error('Error loading session globally', e); }
+};
+
+export const sendGlobalChatMessage = async (userText: string) => {
+    if (!userText.trim() || globalState.chat.isTyping) return;
+    
+    // 1. Injeta Pergunta na UI
+    globalState.chat.messages.push({ id: Date.now(), role: 'user', agent: 'Commander', text: userText, time: new Date().toLocaleTimeString() });
+    globalState.chat.isTyping = true;
+    
+    const newMsgId = Date.now() + 1;
+    globalState.chat.messages.push({ id: newMsgId, role: 'assistant', agent: 'Sovereign Evaluator', text: '', time: new Date().toLocaleTimeString() });
+    const assistantIdx = globalState.chat.messages.length - 1;
+
+    try {
+        let finalUserMsg = userText;
+        if (globalState.chat.inputContext) {
+            finalUserMsg = `[Contexto Destacado]: "${globalState.chat.inputContext}"\n\n[Pergunta]: ${userText}`;
+            globalState.chat.inputContext = ''; // Limpa pra n explodir os próximos
+        } else if (globalState.vault.activeDocumentId && globalState.vault.activeDocumentContent) {
+            // Se o usuário está focado em um PDF/Markdown no modo FileViewer
+            finalUserMsg = `[Documento Atual: ${globalState.vault.activeDocumentId.split('/').pop()}]\n${globalState.vault.activeDocumentContent.substring(0, 1500)}\n\n[Instrução]: ${userText}`;
+        }
+
+        const contextPayload = [{ role: 'user', content: finalUserMsg }];
+        const ws_id = String(globalState.activeWorkspaceId || 'default');
+        const token = localStorage.getItem('sovereign_token') || '';
+
+        const payload = {
+            model: 'gpt-4o', // O RAG Router ignora e avalia localmente
+            messages: contextPayload,
+            workspace_id: ws_id,
+            session_id: globalState.chat.activeSessionId,
+            stream: true
+        };
+
+        const response = await fetch('http://localhost:38001/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.body) throw new Error("No readable stream");
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+                if (line.trim() === '') continue;
+                if (line.includes('[DONE]')) break;
+                
+                if (line.startsWith('data: ')) {
+                    try {
+                        const data = JSON.parse(line.substring(6));
+                        
+                        if (data.id && data.id.startsWith('session_')) {
+                            const sid = parseInt(data.id.split('_')[1], 10);
+                            if (!isNaN(sid) && sid > 0) globalState.chat.activeSessionId = sid;
+                        }
+
+                        if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
+                            globalState.chat.messages[assistantIdx].text += data.choices[0].delta.content;
+                        }
+                    } catch(e) { }
+                }
+            }
+        }
+        
+        // Dispara a Notificacão com Link Garantido caso o processamento finalize com sucesso
+        addNotification("Análise Concluída", "Sovereign Evaluator encerrou o raciocínio estratégico.", "/chat");
+
+    } catch (error: any) {
+        console.error("Global Inference Engine Error:", error);
+        globalState.chat.messages[assistantIdx].text += `\n\n[SYSTEM ERROR]\nDetalhes Técnicos: ${error?.message}\nFalha Sensus Node Loss.`;
+    } finally {
+        globalState.chat.isTyping = false;
+    }
 };

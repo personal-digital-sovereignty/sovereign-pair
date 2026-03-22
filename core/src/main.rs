@@ -10,7 +10,11 @@ mod api_vault;
 mod api_projects;
 mod api_settings;
 mod api_tools;
+mod api_rag;
+mod api_trainer;
+mod auto_evaluator;
 mod api_mesh;
+mod api_mcp;
 pub mod kms;
 pub mod network;
 pub mod rewoo;
@@ -20,6 +24,8 @@ pub mod mcp;
 pub mod ssh_mesh_connector;
 pub mod mesh_installer;
 pub mod mesh_router;
+pub mod os_installer;
+pub mod guardrails;
 
 use axum::{routing::post, Router, response::IntoResponse, http::{header, StatusCode, Uri}};
 use reqwest::Client;
@@ -117,6 +123,9 @@ async fn main() {
         db: db_pool,
     });
 
+    // Boot the Auto-Evaluator (LLM-as-a-Judge Mesh Loop)
+    auto_evaluator::start_evaluator_loop(state.clone()).await;
+
     let app = Router::new()
         // ------------------ LLMOps Telemetry & Logs ------------------
         .route("/v1/analytics/telemetry", axum::routing::get(api::telemetry_snapshot_handler))
@@ -129,13 +138,17 @@ async fn main() {
         .route("/v1/vault/graph", axum::routing::get(api_vault::vault_graph_handler))
         .route("/v1/vault/document/*id", axum::routing::get(api_vault::vault_document_read)
             .put(api_vault::vault_document_write))
+        .route("/v1/vault/media", axum::routing::get(api_vault::vault_media_handler))
         .route("/v1/vault/fs/create", axum::routing::post(api_vault::vault_fs_create_handler))
         .route("/v1/vault/fs/rename", axum::routing::put(api_vault::vault_fs_rename_handler))
         .route("/v1/vault/fs/move", axum::routing::put(api_vault::vault_fs_move_handler))
         .route("/v1/vault/fs/delete", axum::routing::delete(api_vault::vault_fs_delete_handler))
+        .route("/v1/vault/documents", axum::routing::get(api_vault::vault_documents_handler))
+        .route("/v1/vault/search", axum::routing::get(api_vault::vault_documents_search_handler))
         // ------------------ Historical Chat API (Sovereign O.S) ------
         .route("/v1/sessions", axum::routing::get(api_chat::get_sessions_handler))
         .route("/v1/sessions/:id", axum::routing::get(api_chat::get_session_by_id_handler)
+            .put(api_chat::update_session_handler)
             .delete(api_chat::delete_session_handler))
         // ------------------ P2P Sovereign Mesh Router ----------------
         .route("/v1/mesh/handshake", axum::routing::get(api_mesh::mesh_handshake_handler))
@@ -145,8 +158,10 @@ async fn main() {
         // ------------------ Projects & Tasks (Kanban O.S) ------------
         .route("/v1/projects", axum::routing::get(api_projects::get_projects_handler)
             .post(api_projects::create_project_handler))
-        .route("/v1/projects/:id", axum::routing::delete(api_projects::delete_project_handler))
+        .route("/v1/projects/:id", axum::routing::delete(api_projects::delete_project_handler).put(api_projects::update_project_handler))
         .route("/v1/projects/:project_id/tasks", axum::routing::get(api_projects::get_project_tasks_handler).post(api_projects::create_task_handler))
+        .route("/v1/projects/:project_id/documents", axum::routing::get(api_projects::get_project_documents_handler).post(api_projects::link_project_document_handler))
+        .route("/v1/projects/:project_id/documents/:encoded_path", axum::routing::delete(api_projects::unlink_project_document_handler))
         .route("/v1/tasks/:id", axum::routing::delete(api_projects::delete_task_handler)
             .put(api_projects::update_task_handler))
         // ------------------ Settings & Identity O.S -----------
@@ -156,14 +171,32 @@ async fn main() {
             .post(api_settings::set_ollama_clusters_handler))
         .route("/v1/system/export_config", axum::routing::get(api_settings::export_config_handler))
         .route("/v1/system/import_config", axum::routing::post(api_settings::import_config_handler))
+        .route("/v1/system/available_models", axum::routing::get(api_settings::get_available_models_handler))
+        // ------------------ RAG Engine Command Center ----------
+        .route("/v1/rag-engine/rules", axum::routing::get(api_rag::get_routing_rules_handler)
+            .post(api_rag::create_routing_rule_handler))
+        .route("/v1/rag-engine/rules/:id", axum::routing::delete(api_rag::delete_routing_rule_handler))
+        .route("/v1/rag-engine/models", axum::routing::get(api_rag::get_remote_models_handler)
+            .post(api_rag::create_remote_model_handler))
+        .route("/v1/rag-engine/models/:id", axum::routing::delete(api_rag::delete_remote_model_handler))
+        .route("/v1/rag-engine/gaps", axum::routing::get(api_rag::get_knowledge_gaps_handler))
+        .route("/v1/rag-engine/radar", axum::routing::get(api_rag::get_radar_metrics_handler))
+        // ------------------ Model Trainer Engine ----------------
+        .route("/v1/trainer/distillation", axum::routing::post(api_trainer::run_distillation_handler))
+        .route("/v1/trainer/finetuning", axum::routing::post(api_trainer::run_finetuning_handler))
+        .route("/v1/trainer/unsloth-monitor", axum::routing::get(api_trainer::unsloth_monitor_sse_handler))
         // ------------------ Chat Endpoints ------------------
         .route("/opencode/v1/chat/completions", post(api::chat_completions_handler))
         .route("/v1/chat/completions", post(api::chat_completions_handler))
         .route("/chat/completions", post(api::chat_completions_handler))
         .route("/v1/responses", post(realtime::realtime_responses_handler))
+        .route("/v1/feedback", post(api::feedback_handler))
         // ------------------ Tools & Agentic Capabilities ----
         .route("/v1/tools/read_vault_file", post(api_tools::read_vault_file_handler))
         .route("/v1/tools/create_kanban_task", post(api_tools::create_kanban_task_handler))
+        // ------------------ Master Control Program (MCP Server) -------
+        .route("/v1/mcp/sse", axum::routing::get(api_mcp::mcp_sse_handler))
+        .route("/v1/mcp/message", axum::routing::post(api_mcp::mcp_message_handler))
         // Bypass pacificador para TUI que tenta carregar modelos disponíveis antes da call
         .route("/v1/models", axum::routing::get(|| async {
             axum::Json(serde_json::json!({
@@ -182,8 +215,15 @@ async fn main() {
         .layer(axum::middleware::from_fn(network::lan_auth_guard))
         .with_state(state);
 
-    // Parsing CLI arguments to allow dynamic Host binding (Desktop vs Hub Mode)
+    // Parsing CLI arguments to allow dynamic Host binding or Headless Installation
     let args: Vec<String> = std::env::args().collect();
+    
+    if args.iter().any(|a| a == "--setup") {
+        tracing::info!("🛠️ [Headless Wizard] Iniciando rotina nativa de instalação OS/Daemons...");
+        os_installer::run_headless_setup().await;
+        std::process::exit(0);
+    }
+
     let mut host_address = "127.0.0.1:38001".to_string(); // Default to secure localhost
 
     let mut i = 1;

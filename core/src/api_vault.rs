@@ -9,7 +9,7 @@ use crate::AppState;
 use std::path::{Path, PathBuf};
 use tokio::fs;
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct VaultNode {
     pub id: String,
     pub name: String,
@@ -17,6 +17,8 @@ pub struct VaultNode {
     pub is_dir: bool,
     pub r#type: String, // "file" or "directory"
     pub path: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub wikilinks: Vec<String>,
     pub children: Vec<VaultNode>,
 }
 
@@ -37,7 +39,7 @@ async fn scan_directory(path: &Path, root_path: &Path) -> Vec<VaultNode> {
             if filename.starts_with('.') || filename.ends_with('~') { continue; }
 
             let abs_path = entry.path();
-            // Id relativo para a navegação do Vue
+            // Id relativo para a navegação do Svelte
             let rel_id = abs_path.strip_prefix(root_path).unwrap_or(&abs_path).to_string_lossy().to_string();
 
             if metadata.is_dir() {
@@ -48,15 +50,32 @@ async fn scan_directory(path: &Path, root_path: &Path) -> Vec<VaultNode> {
                     is_dir: true,
                     r#type: "directory".to_string(),
                     path: abs_path.to_string_lossy().to_string(),
+                    wikilinks: vec![],
                     children,
                 });
             } else {
+                let mut wikilinks = vec![];
+                if filename.ends_with(".md") {
+                    if let Ok(content) = fs::read_to_string(&abs_path).await {
+                        // Extração Simples de Obsidian Synapses/Tags [[...]]
+                        for chunk in content.split("[[").skip(1) {
+                            if let Some(end_idx) = chunk.find("]]") {
+                                let link_content = &chunk[..end_idx];
+                                let target_name = link_content.split('|').next().unwrap_or("").trim().to_string();
+                                if !target_name.is_empty() && !wikilinks.contains(&target_name) {
+                                    wikilinks.push(target_name);
+                                }
+                            }
+                        }
+                    }
+                }
                 nodes.push(VaultNode {
                     id: rel_id.clone(),
                     name: filename.clone(),
                     is_dir: false,
                     r#type: "file".to_string(),
                     path: abs_path.to_string_lossy().to_string(),
+                    wikilinks,
                     children: vec![],
                 });
             }
@@ -143,12 +162,23 @@ pub async fn create_workspace_handler(
     }
 }
 
-/// Rota DELETE /v1/workspaces/:id - Desatrela um Workspace e Invoca O.S RAG Flush (Fase 33)
+/// Rota DELETE /v1/workspaces/:id - Desatrela um Workspace e limpa Cíbrido Localmente
 pub async fn delete_workspace_handler(
     AxumPath(workspace_id): AxumPath<i64>,
     State(state): State<Arc<AppState>>
 ) -> impl IntoResponse {
-    // 1. Remove Fisicamente da Tabela Workspaces do Banco de Dados
+    // 1. Clean up child documents and chunks (Native Rust Engine Cascade)
+    let _ = sqlx::query("DELETE FROM sensus_documents WHERE workspace_id = ?")
+        .bind(workspace_id.to_string())
+        .execute(&state.db)
+        .await;
+
+    let _ = sqlx::query("DELETE FROM sovereign_chunks WHERE workspace_id = ?")
+        .bind(workspace_id.to_string())
+        .execute(&state.db)
+        .await;
+
+    // 2. Remove Fisicamente da Tabela Workspaces do Banco de Dados
     let res = sqlx::query("DELETE FROM workspaces WHERE id = ?")
         .bind(workspace_id)
         .execute(&state.db)
@@ -156,25 +186,7 @@ pub async fn delete_workspace_handler(
 
     match res {
         Ok(exec) if exec.rows_affected() > 0 => {
-            // 2. Dispara o Míssil Assíncrono para o Backend Python (FastAPI porta 8001) para executar o Flush Vetorial
-            // Isso previne alucinações fantasmagóricas no LlamaIndex de Arquivos do Workspace que sumiram!
-            tokio::spawn(async move {
-                let client = reqwest::Client::new();
-                match client.delete("http://127.0.0.1:8000/v1/chroma/flush")
-                    .timeout(std::time::Duration::from_secs(10))
-                    .send()
-                    .await {
-                    Ok(resp) => {
-                        if !resp.status().is_success() {
-                            tracing::error!("🚨 [Sovereign Core] O RAG Flush falhou no Backend Python. Vetores Fantasmas podem estar ativos! HTTP {}", resp.status());
-                        } else {
-                            tracing::info!("💥 [Sovereign Core] RAG Flush Vectorial executado com SUCESSO via The Gateway (Python API Destruiu Coleção).");
-                        }
-                    },
-                    Err(e) => tracing::error!("🚨 [Sovereign Core] Conexão com Backend Python Perdida ao Erradicar Workspace: {}", e),
-                }
-            });
-
+            tracing::info!("💥 [Sovereign Core] Workspace {} aniquilado com sucesso.", workspace_id);
             (axum::http::StatusCode::OK, Json(serde_json::json!({"status": "deleted"}))).into_response()
         },
         Ok(_) => (axum::http::StatusCode::NOT_FOUND, Json(serde_json::json!({"error": true, "message": "Workspace não encontrado"}))).into_response(),
@@ -203,17 +215,69 @@ pub async fn workspace_tree_handler(
     // Constrói a Arvore Assincronamente ancorada SOMENTE na raiz aprovada
     let children = scan_directory(&root, &root).await;
 
-    // A raiz do diretório pro Front Vue
+    // A raiz do diretório pro Svelte
     let root_node = VaultNode {
         id: "root".to_string(), // Manteve root pro UI n quebrar
         name: target_name,
         is_dir: true,
         r#type: "directory".to_string(),
         path: root.to_string_lossy().to_string(),
+        wikilinks: vec![],
         children,
     };
 
     Json(vec![root_node]).into_response()
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct SensusDocumentRow {
+    pub id: String,
+    pub workspace_id: String,
+    pub file_path: String,
+    pub content_raw: Option<String>,
+    pub summary: Option<String>,
+    pub last_modified: Option<chrono::NaiveDateTime>,
+}
+
+/// Rota GET /v1/vault/documents - Lista todos os documentos indexados pelo Sensus Sync
+pub async fn vault_documents_handler(
+    State(state): State<Arc<AppState>>
+) -> impl IntoResponse {
+    let rows = sqlx::query_as::<_, SensusDocumentRow>(
+        "SELECT id, workspace_id, file_path, content_raw, summary, last_modified FROM sensus_documents ORDER BY last_modified DESC"
+    )
+    .fetch_all(&state.db)
+    .await;
+
+    match rows {
+        Ok(docs) => Json(docs).into_response(),
+        Err(e) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true, "message": format!("Database Error: {}", e)}))).into_response()
+    }
+}
+
+#[derive(Deserialize)]
+pub struct DocumentSearchQuery {
+    pub q: String,
+}
+
+/// Rota GET /v1/vault/search - Pesquisa no banco Sensus Cíbrido
+pub async fn vault_documents_search_handler(
+    Query(query): Query<DocumentSearchQuery>,
+    State(state): State<Arc<AppState>>
+) -> impl IntoResponse {
+    let search_term = format!("%{}%", query.q);
+    let rows = sqlx::query_as::<_, SensusDocumentRow>(
+        "SELECT id, workspace_id, file_path, content_raw, summary, last_modified FROM sensus_documents WHERE file_path LIKE ? OR content_raw LIKE ? ORDER BY last_modified DESC"
+    )
+    .bind(&search_term)
+    .bind(&search_term)
+    .fetch_all(&state.db)
+    .await;
+
+    match rows {
+        Ok(docs) => Json(docs).into_response(),
+        Err(e) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true, "message": format!("Database Error: {}", e)}))).into_response()
+    }
 }
 
 #[derive(Deserialize)]
@@ -328,7 +392,7 @@ pub async fn vault_fs_create_handler(
 #[derive(Deserialize)]
 pub struct FsRenameReq {
     pub workspace_id: i64,
-    pub path: String, // String Relativa do Componente Vue `folder/file.txt`
+    pub path: String, // String Relativa do Componente Svelte `folder/file.txt`
     pub new_name: String,
 }
 
@@ -366,7 +430,7 @@ pub async fn vault_fs_rename_handler(
 #[derive(Deserialize)]
 pub struct FsDeleteReq {
     pub workspace_id: i64,
-    pub path: String, // Relativo (`node.id`) provido pela TreeVue
+    pub path: String, // Relativo (`node.id`) provido pela UI
 }
 
 pub async fn vault_fs_delete_handler(
@@ -411,7 +475,7 @@ pub async fn vault_fs_delete_handler(
 #[derive(Deserialize)]
 pub struct FsMoveReq {
     pub workspace_id: i64,
-    pub path: String, // String Relativa do Componente Vue `folder/file.txt` da ORIGEM
+    pub path: String, // String Relativa do Componente Svelte `folder/file.txt` da ORIGEM
     pub target_path: String, // Destino relativo `folder/nova_pasta`
 }
 
@@ -550,98 +614,141 @@ pub async fn vault_graph_handler(
     State(state): State<Arc<AppState>>,
     axum::extract::Query(query): axum::extract::Query<VaultGraphQuery>
 ) -> impl IntoResponse {
-    let workspace_id = query.workspace_id.unwrap_or_else(|| "default".to_string());
+    let ws_id_str = query.workspace_id.unwrap_or_else(|| "1".to_string());
+    let ws_id: i64 = ws_id_str.parse().unwrap_or(1);
+    
+    // Catch real workspace name
+    use sqlx::Row;
+    let ws_name = sqlx::query("SELECT name FROM workspaces WHERE id = ?")
+        .bind(ws_id)
+        .fetch_one(&state.db)
+        .await
+        .map(|r| r.get::<String, _>("name"))
+        .unwrap_or_else(|_| "Local Vault".to_string());
 
-    let rows_res = sqlx::query_as::<_, SensusDocRow>(
-        "SELECT id, file_path, extracted_tags, extracted_links FROM sensus_documents WHERE workspace_id = ?"
-    )
-    .bind(&workspace_id)
-    .fetch_all(&state.db)
-    .await;
-
-    let rows = match rows_res {
-        Ok(r) => r,
-        Err(e) => return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"detail": format!("DB Error: {}", e)}))).into_response(),
-    };
+    let docs = sqlx::query("SELECT id, file_path, content_raw FROM sensus_documents WHERE workspace_id = ?")
+        .bind(&ws_id_str)
+        .fetch_all(&state.db)
+        .await
+        .unwrap_or_default();
 
     let mut nodes = Vec::new();
     let mut links = Vec::new();
-    let mut folder_nodes = std::collections::HashSet::new();
 
-    let mut basename_to_id = std::collections::HashMap::new();
+    // Central Cybrid Node
+    nodes.push(GraphNode {
+        id: "root".to_string(),
+        name: format!("Sovereign System ({})", ws_name),
+        path: None,
+        val: 15.0,
+        r#type: "folder".to_string(),
+        tags: vec![],
+    });
 
-    for doc in &rows {
-        let node_id = doc.id.clone();
-        let path = Path::new(&doc.file_path);
-        let basename = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-        let basename_without_ext = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
+    use std::collections::HashMap;
+    let mut name_to_id = HashMap::new();
+    let mut doc_contents = HashMap::new();
 
-        basename_to_id.insert(basename.clone(), node_id.clone());
-        basename_to_id.insert(basename_without_ext.clone(), node_id.clone());
-
-        let tags: Vec<String> = doc.extracted_tags.as_deref()
-            .and_then(|t| serde_json::from_str(t).ok())
-            .unwrap_or_default();
-
+    for doc in &docs {
+        use sqlx::Row;
+        let doc_id: String = doc.get("id");
+        let doc_path: String = doc.get("file_path");
+        let content_raw: Option<String> = doc.try_get("content_raw").ok();
+        
+        let node_id = format!("doc_{}", doc_id);
+        let filename = doc_path.split('/').last().unwrap_or(&doc_path).to_string();
+        let doc_basename = filename.strip_suffix(".md").unwrap_or(&filename).to_string();
+        
+        name_to_id.insert(doc_basename.clone(), node_id.clone());
+        if let Some(c) = content_raw {
+            doc_contents.insert(node_id.clone(), c);
+        }
+        
         nodes.push(GraphNode {
             id: node_id.clone(),
-            name: basename.clone(),
-            path: Some(doc.file_path.clone()),
-            val: 1.5,
+            name: filename,
+            path: Some(doc_path.clone()),
+            val: 3.0,
             r#type: "file".to_string(),
-            tags,
+            tags: vec![],
         });
 
-        if let Some(parent) = path.parent() {
-            let dirname = parent.file_name().unwrap_or_default().to_string_lossy().to_string();
-            if !dirname.is_empty() && dirname != "data" && dirname != "RAW_DOCS_DIR" {
-                let folder_id = format!("folder_{}", dirname);
-                if !folder_nodes.contains(&folder_id) {
-                    folder_nodes.insert(folder_id.clone());
-                    nodes.push(GraphNode {
-                        id: folder_id.clone(),
-                        name: dirname,
-                        path: None,
-                        val: 3.0,
-                        r#type: "folder".to_string(),
-                        tags: vec![],
-                    });
-                }
-                links.push(GraphLink {
-                    source: node_id.clone(),
-                    target: folder_id,
-                    r#type: "hierarchy".to_string(),
-                });
-            }
-        }
+        // The hierarchy links (The thin structural tethers in the background)
+        // have been DELETED to prevent the "Dandelion" collapse, allowing true Constellations.
     }
 
-    for doc in rows {
-        let source_id = doc.id;
-        let ext_links: Vec<String> = doc.extracted_links.as_deref()
-            .and_then(|l| serde_json::from_str(l).ok())
-            .unwrap_or_default();
-
-        for raw_link in ext_links {
-            let link_target = raw_link.replace("[[", "").replace("]]", "").trim().to_string();
-            let link_target_with_ext = format!("{}.md", link_target);
-
-            let target_id = basename_to_id.get(&link_target)
-                .or_else(|| basename_to_id.get(&link_target_with_ext));
-
-            if let Some(t_id) = target_id
-                && *t_id != source_id {
+    // Dynamic Obsidian Synapse Extraction (Memory Regex-less Split)
+    for (node_id, content) in &doc_contents {
+        for chunk in content.split("[[").skip(1) {
+            if let Some(end_idx) = chunk.find("]]") {
+                let link_content = &chunk[..end_idx];
+                let target_name = link_content.split('|').next().unwrap_or("").trim().to_string();
+                
+                if let Some(target_id) = name_to_id.get(&target_name) {
                     links.push(GraphLink {
-                        source: source_id.clone(),
-                        target: t_id.clone(),
-                        r#type: "semantic".to_string(),
+                        source: node_id.clone(),
+                        target: target_id.clone(),
+                        r#type: "synapse".to_string(),
                     });
                 }
+            }
         }
     }
 
     let res = GraphResponse { nodes, links };
     (axum::http::StatusCode::OK, Json(res)).into_response()
+}
+
+#[derive(Deserialize)]
+pub struct MediaQuery {
+    pub path: String,
+    pub workspace_id: Option<i64>,
+}
+
+pub async fn vault_media_handler(
+    Query(query): Query<MediaQuery>,
+    State(state): State<Arc<AppState>>
+) -> impl IntoResponse {
+    let mut ws_root = state.vault_path.clone();
+    if let Some(w_id) = query.workspace_id {
+        let ws = sqlx::query_as::<_, WorkspaceRow>("SELECT id, name, path, created_at FROM workspaces WHERE id = ?")
+            .bind(w_id)
+            .fetch_optional(&state.db)
+            .await;
+        if let Ok(Some(row)) = ws {
+            ws_root = PathBuf::from(row.path);
+        }
+    }
+
+    let decoded_path = urlencoding::decode(&query.path).unwrap_or(std::borrow::Cow::Borrowed(&query.path)).to_string();
+    let abs_path = if Path::new(&decoded_path).is_absolute() {
+        PathBuf::from(&decoded_path)
+    } else {
+        ws_root.join::<PathBuf>(decoded_path.strip_prefix('/').unwrap_or(&decoded_path).into())
+    };
+
+    if !abs_path.starts_with(&ws_root) {
+        return (axum::http::StatusCode::FORBIDDEN, "Forbidden").into_response();
+    }
+
+    match fs::read(&abs_path).await {
+        Ok(bytes) => {
+            let mut headers = axum::http::header::HeaderMap::new();
+            let ext = abs_path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+            let content_type = match ext.as_str() {
+                "png" => "image/png",
+                "jpg" | "jpeg" => "image/jpeg",
+                "gif" => "image/gif",
+                "webp" => "image/webp",
+                "svg" => "image/svg+xml",
+                "pdf" => "application/pdf",
+                _ => "application/octet-stream",
+            };
+            headers.insert(axum::http::header::CONTENT_TYPE, content_type.parse().unwrap());
+            (headers, bytes).into_response()
+        },
+        Err(_) => (axum::http::StatusCode::NOT_FOUND, "Not Found").into_response(),
+    }
 }
 
 #[cfg(test)]
