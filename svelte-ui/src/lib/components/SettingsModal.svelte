@@ -13,6 +13,11 @@
   let newWsPath = $state('');
   let isAddingWs = $state(false);
 
+  // SearxNG state
+  let searxngNodes = $state<string[]>([]);
+  let newSearxngNode = $state('');
+  let isLoadingSearxng = $state(false);
+
   onMount(async () => {
       try {
           const res = await fetch('http://localhost:38001/v1/system/available_models');
@@ -23,6 +28,7 @@
       } catch(e) { console.error("Could not fetch models", e); }
       
       loadWorkspaces();
+      loadSearxng();
   });
   
   async function loadWorkspaces() {
@@ -69,6 +75,36 @@
   
   function closeModal() {
       settingsState.isOpen = false;
+  }
+
+  async function loadSearxng() {
+      isLoadingSearxng = true;
+      try {
+          const res = await fetch('http://localhost:38001/v1/settings/searxng');
+          if (res.ok) searxngNodes = await res.json();
+      } catch(e) { console.error("Could not fetch searxng nodes", e); }
+      isLoadingSearxng = false;
+  }
+
+  async function addSearxngNode() {
+      if (!newSearxngNode) return;
+      if (!newSearxngNode.startsWith('http')) newSearxngNode = 'https://' + newSearxngNode;
+      searxngNodes.push(newSearxngNode);
+      newSearxngNode = '';
+      await saveSearxng();
+  }
+
+  async function removeSearxngNode(index: number) {
+      searxngNodes.splice(index, 1);
+      await saveSearxng();
+  }
+  
+  async function saveSearxng() {
+      try {
+          await fetch('http://localhost:38001/v1/settings/searxng', {
+              method: 'POST', body: JSON.stringify(searxngNodes), headers: {'Content-Type': 'application/json'}
+          });
+      } catch(e) { console.error(e); }
   }
 
   const PERSONA_PRESETS = [
@@ -230,6 +266,46 @@
                         <span>Balanced</span>
                         <span>Creative</span>
                     </div>
+                </section>
+                
+                <!-- SearxNG Deep Research Configuration -->
+                <section class="space-y-4 pt-6 border-t border-slate-100">
+                    <div class="space-y-1">
+                        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Deep Research (WAG) SearxNG Network</div>
+                        <p class="text-xs text-slate-500 max-w-lg leading-relaxed">The Sovereign mesh utilizes these public P2P nodes to execute web scraping anonymously when search engines block direct traffic.</p>
+                    </div>
+                    
+                    <div class="flex items-end gap-3 bg-slate-50 border border-slate-100 p-4 rounded-xl">
+                        <div class="flex-1 space-y-1">
+                            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Instance Domain / IP</label>
+                            <input bind:value={newSearxngNode} 
+                                onkeypress={(e) => e.key === 'Enter' && addSearxngNode()}
+                                class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 font-mono transition-shadow placeholder:text-slate-300" 
+                                placeholder="https://paulgo.io" />
+                        </div>
+                        <button onclick={addSearxngNode} disabled={!newSearxngNode} class="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 border border-slate-800 text-white font-bold text-sm rounded-lg shadow-sm transition-colors flex items-center shrink-0 disabled:opacity-50">
+                            <Plus class="w-4 h-4 mr-1.5"/> Add Node
+                        </button>
+                    </div>
+
+                    {#if isLoadingSearxng}
+                        <div class="py-2 text-left text-[11px] text-slate-400 font-bold animate-pulse uppercase tracking-wider">Scanning Internal SQLite DB...</div>
+                    {:else if searxngNodes.length === 0}
+                        <div class="py-3 px-4 text-xs font-semibold text-rose-500 bg-rose-50/50 rounded-xl border border-rose-100 border-dashed">
+                            Empty Table! The sovereign agent will fallback to <span class="underline">Hardcoded Default Engines</span>.
+                        </div>
+                    {:else}
+                        <div class="flex flex-wrap gap-2">
+                            {#each searxngNodes as node, i}
+                                <div class="flex items-center gap-2 bg-indigo-50/50 border border-indigo-100 pl-3 pr-1 py-1 rounded-lg hover:border-indigo-300 transition-colors">
+                                    <span class="text-[13px] font-medium text-indigo-700 font-mono select-all truncate max-w-[200px]">{node}</span>
+                                    <button onclick={() => removeSearxngNode(i)} class="p-1.5 hover:bg-rose-100 rounded-md text-slate-400 hover:text-rose-600 transition-colors" title="Remove SearxNG Engine">
+                                        <X class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
                 </section>
             {/if}
 
