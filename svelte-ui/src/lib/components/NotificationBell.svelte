@@ -14,8 +14,9 @@
         isOpen = !isOpen;
         if (isOpen && unreadCount > 0) {
             // Mark as read immediately when opening, or have a button for it.
-            // markNotificationsRead(); 
         }
+    }
+
     function removeNotification(id: number) {
         globalState.notifications = globalState.notifications.filter(n => n.id !== id);
     }
