@@ -70,26 +70,26 @@
             <div class="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/10 shadow-sm flex-1">
                 <div class="flex items-center justify-between mb-8">
                     <h3 class=" text-on-surface-variant text-[11px] font-extrabold uppercase tracking-widest">Active Resource</h3>
-                    <span class="text-[10px] bg-tertiary-container/10 text-on-tertiary-fixed-variant px-2.5 py-1 rounded-md font-bold border border-tertiary-container/20">NVIDIA H100</span>
+                    <span class="text-[10px] bg-tertiary-container/10 text-on-tertiary-fixed-variant px-2.5 py-1 rounded-md font-bold border border-tertiary-container/20">Local Sovereign Compute</span>
                 </div>
                 
                 <div class="space-y-6">
                     <div>
                         <div class="flex justify-between text-[13px] mb-2">
-                            <span class="font-bold text-on-surface">VRAM Usage</span>
-                            <span class="text-primary font-bold">12.4GB / 24GB</span>
+                            <span class="font-bold text-on-surface">VRAM / Memory Allocation</span>
+                            <span class="text-primary font-bold">Waiting telemetry...</span>
                         </div>
                         <div class="h-2.5 bg-surface-variant rounded-full overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-primary to-primary-container" style="width: 51.6%"></div>
+                            <div class="h-full bg-gradient-to-r from-primary to-primary-container" style="width: 0%"></div>
                         </div>
                     </div>
                     <div>
                         <div class="flex justify-between text-[13px] mb-2">
                             <span class="font-bold text-on-surface">Compute Load</span>
-                            <span class="text-[#50606f] font-bold">88%</span>
+                            <span class="text-[#50606f] font-bold">Idle</span>
                         </div>
                         <div class="h-2.5 bg-surface-variant rounded-full overflow-hidden">
-                            <div class="h-full bg-[#50606f]" style="width: 88%"></div>
+                            <div class="h-full bg-[#50606f]" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>

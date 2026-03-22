@@ -2,6 +2,7 @@
     import ChatPanel from '$lib/components/ChatPanel.svelte';
     import ChatHistorySidebar from '$lib/components/ChatHistorySidebar.svelte';
     import { MessageSquare, Settings, Plus } from 'lucide-svelte';
+    import { settingsState } from '$lib/settings.svelte';
 </script>
 
 <div class="flex flex-col h-full w-full bg-[#F4F7FA] font-sans">
@@ -14,7 +15,7 @@
             <button class="flex items-center gap-2 px-4 py-2 bg-surface-container-lowest text-primary font-bold text-xs rounded-lg shadow-sm cursor-pointer">
                 <Plus class="w-4 h-4"/> Nova Sessão
             </button>
-            <button class="flex items-center gap-2 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors font-bold text-xs rounded-lg cursor-pointer">
+            <button onclick={() => settingsState.isOpen = true} class="flex items-center gap-2 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors font-bold text-xs rounded-lg cursor-pointer">
                 <Settings class="w-4 h-4"/> Parâmetros do Modelo
             </button>
         </div>

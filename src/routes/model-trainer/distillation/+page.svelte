@@ -216,19 +216,16 @@
                     </div>
                 </div>
                 <div class="p-6 font-mono text-[11px] overflow-y-auto h-[220px] bg-[#1a1b1e] text-slate-300 custom-scrollbar leading-relaxed">
-                    <div class="space-y-1.5">
-                        <p class="text-slate-500">[14:22:01] Initializing prompt template: "Scientific Reasoning v4"</p>
-                        <p class="text-slate-500">[14:22:05] Professor generating 500 CoT samples...</p>
-                        <p><span class="text-[#4faf6e] font-bold mr-2">SUCCESS</span> Prompt 0x44: "Explain Quantum Entanglement to a CEO"</p>
-                        <p class="ml-6 text-slate-500 border-l border-slate-700 pl-2">-> logic_steps: 14 | tokens: 842 | entropy: 0.12</p>
-                        <p><span class="text-[#4faf6e] font-bold mr-2">SUCCESS</span> Prompt 0x45: "Derivative strategy for market volatility"</p>
-                        <p class="ml-6 text-slate-500 border-l border-slate-700 pl-2">-> logic_steps: 09 | tokens: 512 | entropy: 0.08</p>
-                        <p class="text-[#8094ff] font-bold mt-3 mb-2">[14:23:44] Injecting latent constraints into Student weights...</p>
-                        <p><span class="text-[#ffdad6] font-bold mr-2 bg-[#ba1a1a]/20 px-1 rounded">WARNING</span> Cluster 0x09 showed higher divergence (0.22)</p>
-                        <p><span class="text-[#4faf6e] font-bold mr-2">SUCCESS</span> Prompt 0x46: "Summarize legal risk in tech acquisitions"</p>
-                        <p class="ml-6 text-slate-500 border-l border-slate-700 pl-2">-> logic_steps: 11 | tokens: 620 | entropy: 0.05</p>
-                        <div class="flex items-center gap-2 mt-3">
-                            <div class="animate-pulse bg-slate-700 h-3 w-48 rounded"></div>
+                    <div class="flex flex-col h-full">
+                        <div class="flex items-center justify-between text-[11px] text-on-surface-variant font-mono border-b border-surface-container-highest pb-2 shrink-0">
+                            <span class="uppercase tracking-widest font-bold text-on-surface-variant/70">Agent Node Trace</span>
+                            <span class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-primary/20 animate-pulse"></div> Async Watchdog Active</span>
+                        </div>
+                        <div class="font-mono text-[11px] leading-relaxed flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pb-2">
+                            <div class="text-on-surface-variant/50 flex">
+                                <span class="text-primary/70 mr-2 w-20 shrink-0 text-right select-none">[System]</span>
+                                <span>Awaiting compilation loop for dataset distillation...</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -250,13 +247,7 @@
                                 <p class="text-xs font-bold text-on-surface">1.2M Samples</p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <span class="material-symbols-outlined text-on-surface-variant text-[20px]">memory</span>
-                            <div>
-                                <p class="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">VRAM Usg</p>
-                                <p class="text-xs font-bold text-on-surface">12.4 / 40 GB</p>
-                            </div>
-                        </div>
+                        <!-- VRAM USG removed due to actual pipeline not exposing hardware telemetry locally -->
                     </div>
                 </div>
             </div>
