@@ -1,10 +1,17 @@
 <script lang="ts">
   import { settingsState, saveSettings } from '$lib/settings.svelte';
-  import { Settings, ChevronDown, ChevronsUpDown, X, Plus, Trash2 } from 'lucide-svelte';
+  import { Settings, ChevronDown, ChevronsUpDown, X, Plus, Trash2, Database } from 'lucide-svelte';
   import { onMount } from 'svelte';
   
-  let activeTab = $state('Engine'); // Engine, Persona, Guardrails, Profile
+  let activeTab = $state('Workspaces'); // Engine, Workspaces, Persona, Guardrails, Profile
   let availableModels = $state<{name: string}[]>([]);
+  
+  // Workspaces state
+  let workspaces = $state<{id: number, name: string, path: string}[]>([]);
+  let isLoadingWs = $state(false);
+  let newWsName = $state('');
+  let newWsPath = $state('');
+  let isAddingWs = $state(false);
 
   onMount(async () => {
       try {
@@ -14,7 +21,51 @@
               if (data.models) availableModels = data.models;
           }
       } catch(e) { console.error("Could not fetch models", e); }
+      
+      loadWorkspaces();
   });
+  
+  async function loadWorkspaces() {
+      isLoadingWs = true;
+      try {
+          const res = await fetch('http://localhost:38001/v1/workspaces');
+          if (res.ok) {
+              workspaces = await res.json();
+          }
+      } catch(e) { console.error("Could not fetch workspaces", e); }
+      isLoadingWs = false;
+  }
+
+  async function addWorkspace() {
+      if (!newWsName || !newWsPath) return;
+      isAddingWs = true;
+      try {
+          const res = await fetch('http://localhost:38001/v1/workspaces', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: newWsName, path: newWsPath })
+          });
+          if (res.ok) {
+              newWsName = '';
+              newWsPath = '';
+              await loadWorkspaces();
+          } else {
+              const data = await res.json();
+              alert(data.message || "Error adding workspace");
+          }
+      } catch(e) { console.error("Error adding workspace", e); }
+      isAddingWs = false;
+  }
+
+  async function deleteWorkspace(id: number) {
+      if(!confirm("Are you sure? This will unmap the directory from the Sovereign Engine!")) return;
+      try {
+          const res = await fetch(`http://localhost:38001/v1/workspaces/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+              workspaces = workspaces.filter(w => w.id !== id);
+          }
+      } catch(e) { console.error("Error deleting workspace", e); }
+  }
   
   function closeModal() {
       settingsState.isOpen = false;
@@ -63,7 +114,7 @@
 
         <!-- Tabs -->
         <div class="flex px-8 border-b border-slate-200 bg-slate-50/50">
-            {#each ['Engine', 'Persona', 'Profile', 'Guardrails'] as tab}
+            {#each ['Workspaces', 'Engine', 'Persona', 'Profile', 'Guardrails'] as tab}
                 <button 
                     class="px-6 py-3 text-sm font-bold border-b-2 transition-colors {activeTab === tab ? 'border-indigo-700 text-indigo-800' : 'border-transparent text-slate-500 hover:text-slate-800'}"
                     onclick={() => activeTab = tab}
@@ -76,6 +127,60 @@
         <!-- Modal Content -->
         <div class="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
             
+            {#if activeTab === 'Workspaces'}
+                <section class="space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800">Global Knowledge Workspaces</h3>
+                            <p class="text-xs text-slate-500 mt-1">Sovereign Core will index, vectorise, and monitor all directories listed below.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Form to add new workspace -->
+                    <div class="flex items-end gap-4 p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                        <div class="flex-1 space-y-1">
+                            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Nickname</label>
+                            <input bind:value={newWsName} class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500" placeholder="e.g. Legal Docs" />
+                        </div>
+                        <div class="flex-[2] space-y-1">
+                            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Absolute OS Path</label>
+                            <input bind:value={newWsPath} class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 font-mono" placeholder="/home/user/Documents/Legal" />
+                        </div>
+                        <button onclick={addWorkspace} disabled={!newWsName || !newWsPath || isAddingWs} class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-lg transition-colors flex items-center shadow-sm disabled:opacity-50">
+                            {#if isAddingWs} <span class="animate-pulse">Adding...</span> {:else} <Plus class="w-4 h-4 mr-1"/> Add {/if}
+                        </button>
+                    </div>
+
+                    <!-- List of current workspaces -->
+                    <div class="space-y-3">
+                        {#if isLoadingWs}
+                            <div class="py-4 text-center text-xs text-slate-400">Loading workspaces...</div>
+                        {:else if workspaces.length === 0}
+                            <div class="py-6 text-center text-xs font-semibold text-slate-400 bg-slate-50 rounded-xl border border-slate-100 border-dashed">
+                                No workspaces defined. RAG Engine is dormant.
+                            </div>
+                        {:else}
+                            {#each workspaces as ws}
+                                <div class="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl shadow-sm group hover:border-indigo-200 transition-colors">
+                                    <div class="flex items-start gap-4">
+                                        <div class="mt-0.5 w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                                            <Database class="w-4 h-4 text-indigo-500"/>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-bold text-slate-800">{ws.name}</p>
+                                            <p class="text-[11px] text-slate-500 font-mono mt-0.5 select-all">{ws.path}</p>
+                                        </div>
+                                    </div>
+                                    <button onclick={() => deleteWorkspace(ws.id)} class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100" title="Unmap Workspace">
+                                        <Trash2 class="w-4 h-4" />
+                                    </button>
+                                </div>
+                            {/each}
+                        {/if}
+                    </div>
+                </section>
+            {/if}
+
             {#if activeTab === 'Engine'}
                 <!-- Provider & Model Selection -->
                 <section class="grid grid-cols-2 gap-6">
@@ -175,22 +280,22 @@
                 <section class="space-y-6">
                     <div class="grid grid-cols-2 gap-6">
                         <div class="space-y-2">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Nickname / User Name</label>
-                            <input bind:value={settingsState.userName} class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" type="text" />
+                            <label for="userNameInput" class="text-xs font-semibold uppercase tracking-wider text-slate-500">Nickname / User Name</label>
+                            <input id="userNameInput" bind:value={settingsState.userName} class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" type="text" />
                         </div>
                         <div class="space-y-2">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Profession / Role</label>
-                            <input bind:value={settingsState.userProfession} class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" type="text" />
+                            <label for="userProfessionInput" class="text-xs font-semibold uppercase tracking-wider text-slate-500">Profession / Role</label>
+                            <input id="userProfessionInput" bind:value={settingsState.userProfession} class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" type="text" />
                         </div>
                     </div>
                     
                     <div class="space-y-2 pt-2 border-t border-slate-100">
-                        <label class="text-xs font-semibold tracking-wide text-indigo-700">Como você deseja chamar a sua IA?</label>
-                        <input bind:value={settingsState.aiName} placeholder="Ex: Sophy, Jarvis, Sovereign..." class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-700" type="text" />
+                        <label for="aiNameInput" class="text-xs font-semibold tracking-wide text-indigo-700">Como você deseja chamar a sua IA?</label>
+                        <input id="aiNameInput" bind:value={settingsState.aiName} placeholder="Ex: Sophy, Jarvis, Sovereign..." class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold text-slate-700" type="text" />
                     </div>
 
                     <div class="space-y-4 pt-4 border-t border-slate-100">
-                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Appearance (Theme Selection)</label>
+                        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Appearance (Theme Selection)</div>
                         <div class="grid grid-cols-2 gap-4">
                             <!-- Light Mode -->
                             <button onclick={() => settingsState.theme = 'Light Mode'} class="text-left relative group border-2 {settingsState.theme === 'Light Mode' ? 'border-indigo-600' : 'border-slate-200'} rounded-xl p-3 bg-slate-50 transition-all hover:shadow-md">
@@ -223,7 +328,7 @@
                 <section class="space-y-4">
                     <div class="flex items-center justify-between">
                         <div class="space-y-1">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Security Filters</label>
+                            <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Security Filters</div>
                             <p class="text-xs text-slate-500">Regular expressions and keywords blocked locally by the Rust DevSecOps pipeline.</p>
                         </div>
                         <button onclick={() => settingsState.guardrails.push({type: 'keyword', value: '', description: ''})} class="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-bold transition-colors">
