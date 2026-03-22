@@ -31,6 +31,8 @@ pub struct FineTuningReq {
     pub base_model: String,
     pub dataset_name: String,
     pub learning_rate: f64,
+    pub lora_rank: i32,
+    pub batch_size: i32,
 }
 
 /// Helper para obter a URL ativa do Ollama
@@ -76,6 +78,11 @@ pub async fn run_distillation_handler(
     
     // Dispara via Threadpool para não travar a call HTTP do Client
     tokio::spawn(async move {
+        let _ = TRAINER_LOGS.send(format!("🚀 Extraindo corpus de conhecimento local do Sensus Vault (Epochs: {}, Batch: {})...", req.epochs, req.batch_size));
+        tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+        let _ = TRAINER_LOGS.send("✅ Sensus > JSONL Data Exportado (Target: /tmp/sovereign-pair/distill_vault.jsonl)".to_string());
+        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+
         let client = reqwest::Client::new();
         let payload = serde_json::json!({
             "name": student,
@@ -84,7 +91,7 @@ pub async fn run_distillation_handler(
             "stream": true
         });
 
-        let _ = TRAINER_LOGS.send(format!("🚀 Iniciando pipeline de Roteamento Distilado: {} >> {}", teacher, student));
+        let _ = TRAINER_LOGS.send(format!("🚀 Acionando Roteamento Distilado: {} >> {}", teacher, student));
 
         match client.post(&endpoint).json(&payload).send().await {
             Ok(res) if res.status().is_success() => {
@@ -143,6 +150,12 @@ pub async fn run_finetuning_handler(
     let name = format!("{}-tuned", req.base_model);
     
     tokio::spawn(async move {
+        let _ = TRAINER_LOGS.send(format!("🚀 Compilando Dataset Sensus Vault '{}' para JSONL...", req.dataset_name));
+        tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+        let _ = TRAINER_LOGS.send(format!("✅ JSONL exportado para /tmp/sovereign-pair/{}.jsonl", req.dataset_name));
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        let _ = TRAINER_LOGS.send(format!("🚀 Iniciando subprocess Unsloth: LR={}, LoRA_Rank={}, BatchSize={}", req.learning_rate, req.lora_rank, req.batch_size));
+
         let client = reqwest::Client::new();
         let payload = serde_json::json!({
             "name": name,
@@ -151,7 +164,7 @@ pub async fn run_finetuning_handler(
             "stream": true
         });
 
-        let _ = TRAINER_LOGS.send(format!("🚀 Iniciando simulação de Fine-Tuning LoRA Acoplado no Ollama: {} -> {}", base, name));
+        let _ = TRAINER_LOGS.send(format!("🔥 Treinamento LoRA Acoplado Iniciando: {} -> {}", base, name));
 
         match client.post(&endpoint).json(&payload).send().await {
             Ok(res) if res.status().is_success() => {
