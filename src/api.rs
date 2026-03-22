@@ -1,6 +1,52 @@
 use axum::{ extract::{Json, State}, response::{ sse::{Event, Sse}, IntoResponse, Response, }, }; use futures_util::StreamExt;  use serde_json::{json, Value}; use std::convert::Infallible; use std::sync::Arc; use tracing::{error, info};
 
 use crate::models::{ OpenAIChatChunkChoice, OpenAIChatChunkDelta, OpenAIChatChunkResponse, OpenAIChatRequest, }; use crate::AppState;
+use std::path::Path;
+// removed unused explicit scraper import
+
+// -------------------------------------------------------------
+// Autonomous Multi-Scraper Helperc
+// -------------------------------------------------------------
+async fn scrape_engine(client: &reqwest::Client, name: &str, url: &str, jitter_base: u64) -> String {
+    let jitter = jitter_base + (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_micros() % 2500) as u64;
+    tokio::time::sleep(tokio::time::Duration::from_millis(jitter)).await;
+
+    tracing::info!("🕵️ [The Nurse | Squad {}] Infiltrando (Jitter Biológico: {}ms)...", name, jitter);
+    
+    if let Ok(resp) = client.get(url).send().await {
+        if resp.status().is_success() {
+            if let Ok(html) = resp.text().await {
+                let document = scraper::Html::parse_document(&html);
+                if let Ok(text_sel) = scraper::Selector::parse("p, span, h1, h2, h3, h4, h5, h6, a, li, div.BNeawe, div.snippet") {
+                    let mut texts = Vec::new();
+                    for node in document.select(&text_sel) {
+                        let t = node.text().collect::<Vec<_>>().join(" ").trim().to_string();
+                        // Ignore residual JS/CSS by rejecting heavily bracketed strings and short meaningless noise
+                        if t.len() > 10 && !t.contains("function(") && !t.contains("window.") && t.chars().filter(|c| *c == '{').count() < 2 {
+                            texts.push(t);
+                        }
+                    }
+                    
+                    let condensed = texts.join(" ").split_whitespace().collect::<Vec<_>>().join(" ");
+                    let truncated: String = condensed.chars().take(3500).collect();
+                    
+                    let lower = truncated.to_lowercase();
+                    if truncated.len() > 150 && !lower.contains("recaptcha") && !lower.contains("are you a human") && !lower.contains("bot detection") && !lower.contains("verificação de segurança") {
+                        tracing::info!("✅ [The Nurse | Squad {}] Extração Pura: {} bytes", name, truncated.len());
+                        return format!("📌 FONTE DE DADOS [{}]:\n{}", name, truncated);
+                    } else {
+                        tracing::info!("⚠️ [The Nurse | Squad {}] Extrator detectou página de CAPTCHA/WAF! Abortando snippet.", name);
+                    }
+                }
+            }
+        } else {
+            tracing::info!("🚫 [The Nurse | Squad {}] Bloqueado pelo WAF HTTP Status: {}", name, resp.status());
+        }
+    } else {
+        tracing::info!("❌ [The Nurse | Squad {}] Timeout de Rede.", name);
+    }
+    String::new()
+}
 
 /// O Primeiro Controlador Cíbrido: Recebendo os Pensamentos do VS Code.
 pub async fn chat_completions_handler(
@@ -21,23 +67,6 @@ let _ = state.log_sender.send(crate::models::LogEntry {
 });
 
 // O Roteamento de Conversão (OpenAI -> Ollama)
-// 1. Transpilar Nomes de Modelos Proprietários para Modelos Locais
-let ollama_model = if requested_model.to_lowercase().contains("gpt") {
-    let mut resolved_model = "qwen2.5:3b".to_string(); // Fallback de segurança
-    if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'system_settings'").fetch_optional(&state.db).await {
-        let val: String = sqlx::Row::get(&row, "value_json");
-        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&val)
-            && let Some(model_str) = parsed.get("llm_model").and_then(|v| v.as_str())
-                && !model_str.is_empty() {
-                    resolved_model = model_str.to_string();
-                }
-    }
-    tracing::info!("🔄 Proxy OpenCode/Desktop enviou {}. Remapeando para o modelo local SQLite: {}", requested_model, resolved_model);
-    resolved_model
-} else {
-    requested_model.clone()
-};
-
 let human_prompt = payload.messages.last()
     .map(|msg| match &msg.content {
         Some(crate::models::MessageContent::Text(t)) => t.clone(),
@@ -53,6 +82,96 @@ let human_prompt = payload.messages.last()
         None => "".to_string(),
     })
     .unwrap_or_else(|| "Interação O.S".to_string());
+
+// ======= DevSecOps Guardrails (Phase 17) =======
+if let Err(security_alert) = crate::guardrails::evaluate_prompt(&human_prompt, &state.db).await {
+    tracing::warn!("🛡️ [Sovereign Guardrails] Ameaça Bloqueada: {}", security_alert.message);
+    
+    let db_clone = state.db.clone();
+    let alert_clone = security_alert.clone();
+    tokio::spawn(async move {
+        let _ = sqlx::query("INSERT INTO security_logs (event_type, severity, blocked, message, source) VALUES (?, ?, ?, ?, ?)")
+            .bind(alert_clone.event_type)
+            .bind(alert_clone.severity)
+            .bind(alert_clone.blocked)
+            .bind(alert_clone.message)
+            .bind(alert_clone.source)
+            .execute(&db_clone)
+            .await;
+    });
+
+    let _ = state.log_sender.send(crate::models::LogEntry {
+        timestamp: "".to_string(),
+        level: "security".to_string(),
+        message: format!("Threat Intel Blocked: {}", security_alert.message),
+    });
+
+    let chunk = crate::models::OpenAIChatChunkResponse {
+        id: format!("chatcmpl-sec-{}", uuid::Uuid::new_v4()),
+        object: "chat.completion.chunk".to_string(),
+        created: chrono::Utc::now().timestamp(),
+        model: requested_model.clone(),
+        choices: vec![crate::models::OpenAIChatChunkChoice {
+            index: 0,
+            delta: crate::models::OpenAIChatChunkDelta {
+                role: Some("assistant".to_string()),
+                content: Some(format!("🚨 **Sovereign Guardrails Interception**\n\nSua requisição feriu as políticas do Nexus Command Center.\n\n- **Tipo:** {}\n- **Severidade:** {}\n- **Motivo:** {}", security_alert.event_type, security_alert.severity, security_alert.message)),
+                tool_calls: None,
+            },
+            finish_reason: Some("stop".to_string()),
+        }],
+        usage: None,
+    };
+    
+    let stream = futures_util::stream::iter(vec![
+        Ok::<axum::response::sse::Event, std::convert::Infallible>(axum::response::sse::Event::default().data(serde_json::to_string(&chunk).unwrap_or_default())),
+        Ok::<axum::response::sse::Event, std::convert::Infallible>(axum::response::sse::Event::default().data("[DONE]")),
+    ]);
+    return axum::response::Sse::new(stream).into_response();
+}
+
+let mut sys_temperature: Option<f64> = None;
+let mut sys_top_k: Option<i64> = None;
+let mut global_system_prompt: Option<String> = None;
+let mut resolved_model = requested_model.clone();
+
+if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'system_settings'").fetch_optional(&state.db).await {
+    let val: String = sqlx::Row::get(&row, "value_json");
+    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&val) {
+        
+        // --- Tri-Agent Sovereign Router ---
+        let prompt_lower = human_prompt.to_lowercase();
+        let target_key = if prompt_lower.starts_with("/web") || prompt_lower.starts_with("/sys") {
+            "nurse_model"
+        } else if prompt_lower.starts_with("/plan") || prompt_lower.starts_with("/code") || prompt_lower.starts_with("/test") {
+            "coder_model"
+        } else {
+            "doctor_model" // Default Conversational Agent
+        };
+
+        if let Some(specific_model) = parsed.get(target_key).and_then(|v| v.as_str()) {
+            if !specific_model.is_empty() { 
+                resolved_model = specific_model.to_string(); 
+                tracing::info!("🧠 [Sovereign Router] Roteando intenção '{}' para o Agente Dedicado: {}", target_key, resolved_model);
+            }
+        } else if requested_model.to_lowercase().contains("gpt") {
+            // Fallback Legacy
+            if let Some(model_str) = parsed.get("llm_model").and_then(|v| v.as_str()) {
+                if !model_str.is_empty() { resolved_model = model_str.to_string(); }
+            } else {
+                resolved_model = "qwen2.5:3b".to_string(); // Fallback de segurança
+            }
+            tracing::info!("🔄 Proxy OpenCode/Desktop enviou {}. Remapeando via Router para: {}", requested_model, resolved_model);
+        }
+        
+        if let Some(t) = parsed.get("temperature").and_then(|v| v.as_f64()) { sys_temperature = Some(t); }
+        if let Some(k) = parsed.get("top_k").and_then(|v| v.as_i64()) { sys_top_k = Some(k); }
+        if let Some(p) = parsed.get("system_prompt").and_then(|v| v.as_str()) {
+            if !p.is_empty() { global_system_prompt = Some(p.to_string()); }
+        }
+    }
+}
+let ollama_model = resolved_model;
 
 // ===== THE PLANNER (MACRO ORCHESTRATION BYPASS) =====
 if human_prompt.to_lowercase().starts_with("/plan") {
@@ -101,48 +220,85 @@ let is_sys = human_prompt.to_lowercase().starts_with("/sys");
 
 if is_web {
     let query = human_prompt[4..].trim();
-    info!("🌐 [The Nurse - Sovereign Core] Agentic Task detectada: /web -> Buscando '{}' na World Wide Web nativamente...", query);
     
-    let ddg_url = format!("https://html.duckduckgo.com/html/?q={}", urlencoding::encode(query));
+    // Detecção Inteligente de URLs passadas diretamente no prompt
+    let mut url_to_scrape = String::new();
+    let mut user_question = query.to_string();
+    for word in query.split_whitespace() {
+        if word.starts_with("http://") || word.starts_with("https://") {
+            url_to_scrape = word.to_string();
+            user_question = user_question.replace(word, "").trim().to_string();
+            break;
+        }
+    }
+
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(10))
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Sovereign/1.0")
         .build()
         .unwrap_or_default();
-        
-    if let Ok(resp) = client.get(&ddg_url).send().await {
-        if let Ok(html) = resp.text().await {
-            let document = scraper::Html::parse_document(&html);
-            let result_sel = scraper::Selector::parse(".result").unwrap();
-            let title_sel = scraper::Selector::parse(".result__title").unwrap();
-            let link_sel = scraper::Selector::parse(".result__url").unwrap();
-            let snippet_sel = scraper::Selector::parse(".result__snippet").unwrap();
-            
-            let mut results = Vec::new();
-            for node in document.select(&result_sel).take(5) {
-                let title = node.select(&title_sel).next().map(|el| el.text().collect::<Vec<_>>().join("").trim().to_string()).unwrap_or_default();
-                let link = node.select(&link_sel).next().map(|el| el.text().collect::<Vec<_>>().join("").trim().to_string()).unwrap_or_default();
-                let snippet = node.select(&snippet_sel).next().map(|el| el.text().collect::<Vec<_>>().join("").trim().to_string()).unwrap_or_default();
+
+    if !url_to_scrape.is_empty() {
+        let jitter = 1200 + (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_micros() % 3000) as u64;
+        info!("🔗 [The Nurse] (Human Jitter: {}ms) Extração de URL Direta: Lendo DOM de {}", jitter, url_to_scrape);
+        tokio::time::sleep(tokio::time::Duration::from_millis(jitter)).await;
+
+        if let Ok(resp) = client.get(&url_to_scrape).send().await {
+            if let Ok(html) = resp.text().await {
+                let document = scraper::Html::parse_document(&html);
+                let body_sel = scraper::Selector::parse("body").unwrap();
+                let raw_text = document.select(&body_sel).next()
+                    .map(|b| b.text().collect::<Vec<_>>().join(" "))
+                    .unwrap_or_else(|| document.root_element().text().collect::<Vec<_>>().join(" "));
                 
-                if !title.is_empty() && !snippet.is_empty() {
-                    results.push(format!("- **{}** ({}): {}", title, link, snippet));
+                let condensed = raw_text.split_whitespace().collect::<Vec<_>>().join(" ");
+                let truncated: String = condensed.chars().take(15000).collect(); // 15K chars context
+                
+                if !truncated.is_empty() {
+                    web_context = format!("INSTRUÇÃO SISTÊMICA (THE NURSE): O usuário anexou a URL ({}). A proxy extraiu o texto bruto do site:\n\n{}\n\nAGENTE, RESPONDA A ISSO: '{}' (Foque nos dados!).", url_to_scrape, truncated, user_question);
+                    info!("✅ [The Nurse] Sucesso! {} bytes lidos da URL direta.", truncated.len());
+                } else {
+                    web_context = "A proxy alcançou o site, mas a extração DOM de texto falhou (talvez Client-Side Rendering pesado).".to_string();
                 }
             }
-            
-            if !results.is_empty() {
-                web_context = format!("INSTRUÇÃO SISTÊMICA (THE NURSE): O usuário solicitou uma pesquisa Web em tempo real. Você está operando como proxy. Seguem os últimos resultados mais quentes do motor de busca sobre o assunto:\n\n{}\n\nRESPONDA À PERGUNTA INICIAL DO USUÁRIO BASEANDO-SE EXCLUSIVAMENTE NOS FATOS ACIMA. FOQUE NOS FATOS.", results.join("\n"));
-                info!("✅ [The Nurse] Sucesso! {} resultados extraídos da Web e injetados no Pipeline RAG.", results.len());
-            } else {
-                web_context = "A busca web falhou em extrair dados dos seletores DOM ou foi bloqueada pelo firewall do motor de busca.".to_string();
-            }
+        } else {
+            web_context = "Gateway Timeout ou Firewall na URL especificada.".to_string();
         }
     } else {
-        web_context = "Timeout de Rede: Não foi possível alcançar os nós de busca da Web externa.".to_string();
+        info!("🌐 [The Nurse] Agentic Task: /web -> Engatilhando Infiltração Simultânea nos 4 Motores de Busca...");
+        
+        let q_encoded = urlencoding::encode(query);
+        let u_google = format!("https://www.google.com/search?q={}", q_encoded);
+        let u_bing = format!("https://www.bing.com/search?q={}", q_encoded);
+        let u_yahoo = format!("https://br.search.yahoo.com/search?p={}", q_encoded);
+        let u_ddg = format!("https://html.duckduckgo.com/html/?q={}", q_encoded);
+
+        // Dispara os 4 agentes simultaneamente na Memória
+        let (res_google, res_bing, res_yahoo, res_ddg) = tokio::join!(
+            scrape_engine(&client, "Google", &u_google, 500),
+            scrape_engine(&client, "Bing", &u_bing, 1000),
+            scrape_engine(&client, "Yahoo", &u_yahoo, 1500),
+            scrape_engine(&client, "DuckDuckGo", &u_ddg, 2000)
+        );
+
+        let mut combined_data = String::new();
+        if !res_google.is_empty() { combined_data.push_str(&res_google); combined_data.push_str("\n\n"); }
+        if !res_bing.is_empty() { combined_data.push_str(&res_bing); combined_data.push_str("\n\n"); }
+        if !res_yahoo.is_empty() { combined_data.push_str(&res_yahoo); combined_data.push_str("\n\n"); }
+        if !res_ddg.is_empty() { combined_data.push_str(&res_ddg); combined_data.push_str("\n\n"); }
+
+        if !combined_data.trim().is_empty() {
+            let current_time = chrono::Local::now().format("%d/%m/%Y %H:%M:%S").to_string();
+            web_context = format!("INSTRUÇÃO SISTÊMICA (THE NURSE): Missão Quad-Scraper Finalizada.\n[RELOGIO BIOLOGICO DO SISTEMA CIBRIDO: {}]\n\nAbaixo estão os dados dos Motores de Busca (se o resultado citar 'Hoje', 'Amanhã' ou 'Next Days', você DEVE traduzir mentalmente essas palavras para a data exata usando nosso Relógio Biológico informado acima):\n\n{}\n\nAGENTE, RESPONDA À PERGUNTA SOLICITADA ABAIXO OBRIGATORIAMENTE EM PORTUGUÊS DO BRASIL. SINTETIZE A VERDADE COM BASE EM TODOS OS VETORES ACIMA:\n'{}'", current_time, combined_data, query);
+            info!("🎯 [The Nurse] Missão Cumprida: Combinados {} bytes de puro conhecimento Cíbrido.", combined_data.len());
+        } else {
+            web_context = "A infiltração falhou em TODOS OS 4 SISTEMAS. Cloudflare/WAF bloqueou totalmente o cluster de Sovereign Node. Peça desculpas ao comandante e inferencie sobre os dados que tem.".to_string();
+        }
     }
 } else if is_sys {
     let query = human_prompt[4..].trim();
     info!("⚙️ [The Nurse] Agentic Task detectada: /sys -> Analisando '{}'", query);
-    sys_context = format!("INSTRUÇÃO SISTÊMICA (THE NURSE): O usuário solicitou análise profunda sobre a arquitetura 'Sovereign Pair'. Somos um sistema Cíbrido. Usamos Rust (The Nurse/Axum), Vue 3 + Tailwind (UI), LLMs Locais (Ollama), Python API. Foque em responder a seguinte dúvida de Engenharia: '{}'", query);
+    sys_context = format!("INSTRUÇÃO SISTÊMICA (THE NURSE): O usuário solicitou análise profunda sobre a arquitetura 'Sovereign Pair'. Somos um sistema Cíbrido puramente em Rust (The Nurse/Axum) e Svelte 5 + Tailwind na UI. Usamos LLMs Locais (Ollama) mapeados via SQL. Foque em responder a seguinte dúvida de Engenharia: '{}'", query);
 }
 // =========================================================
 
@@ -153,6 +309,75 @@ crate::api_chat::save_message(&state.db, active_session_id, "user", &human_promp
 
 // 2. Transcrever Mensagens Complexas (Multimodal/Arrays) para Strict Strings + Injeção de RAG Nativo
 let mut purified_messages: Vec<Value> = Vec::new();
+
+// --- SOVEREIGN CONTEXT INJECTOR (RAG V2 - KANBAN) ---
+let mut project_context = String::new();
+if let Some(pid) = payload.project_id {
+    if let Ok(Some(proj_info)) = sqlx::query("SELECT name, purpose FROM projects WHERE id = ?")
+        .bind(&pid)
+        .fetch_optional(&state.db)
+        .await
+    {
+        let p_name: String = sqlx::Row::get(&proj_info, "name");
+        let p_purpose: Option<String> = sqlx::Row::get(&proj_info, "purpose");
+        
+        project_context.push_str(&format!("INSTRUÇÃO SISTÊMICA MÁXIMA (SOVEREIGN PROJECT ASSISTANT): 🧠 O usuário está focando absolutamente no Projeto Kanban: '{}'.\n", p_name));
+        if let Some(purp) = p_purpose {
+            project_context.push_str(&format!("🎯 O PROPÓSITO raiz desse projeto é: '{}'. Seu comportamento deve orbitar este propósito.\n", purp));
+        }
+
+        if let Ok(tasks) = sqlx::query("SELECT title, status, created_at, deadline FROM tasks WHERE project_id = ? AND status != 'Done'")
+            .bind(&pid)
+            .fetch_all(&state.db)
+            .await
+        {
+            if !tasks.is_empty() {
+                project_context.push_str("\n📌 TAREFAS ATIVAS NO KANBAN (Com Cronologia):\n");
+                for row in tasks {
+                    let t_title: String = sqlx::Row::get(&row, "title");
+                    let t_status: String = sqlx::Row::get(&row, "status");
+                    let t_created: Option<String> = sqlx::Row::get(&row, "created_at");
+                    let t_deadline: Option<String> = sqlx::Row::get(&row, "deadline");
+                    
+                    let c = t_created.unwrap_or_else(|| "Desconhecida".to_string());
+                    let d = t_deadline.unwrap_or_else(|| "Sem prazo".to_string());
+                    
+                    project_context.push_str(&format!("- [{}] {} (Criada: {} | Prazo: {})\n", t_status, t_title, c, d));
+                }
+            }
+        }
+
+        if let Ok(docs) = sqlx::query("SELECT file_path FROM project_documents WHERE project_id = ?")
+            .bind(&pid)
+            .fetch_all(&state.db)
+            .await
+        {
+            if !docs.is_empty() {
+                project_context.push_str("\n📚 DOCUMENTOS CÍBRIDOS VINCULADOS AO PROJETO (RAG NATIVO ABSOLUTO):\n");
+                for row in docs {
+                    let mut doc_path: String = sqlx::Row::get(&row, "file_path");
+                    if !doc_path.starts_with('/') {
+                        doc_path = format!("{}/{}", state.vault_path.display(), doc_path);
+                    }
+                    
+                    if let Ok(content) = std::fs::read_to_string(&doc_path) {
+                        let truncated: String = content.chars().take(6000).collect(); // 6K ch limit to spare VRAM
+                        project_context.push_str(&format!("\n--- Arquivo: {} ---\n{}\n---\n", doc_path, truncated));
+                    }
+                }
+            }
+        }
+    }
+}
+
+if !project_context.is_empty() {
+    purified_messages.push(json!({
+        "role": "system",
+        "content": project_context
+    }));
+}
+// --- FIM DO PROJECT CONTEXT ---
+
 
 // Injeta o Contexto Web ou Sys gerados nativamente pelo Rust The Nurse (Agent Tasks)
 if !web_context.is_empty() {
@@ -166,6 +391,12 @@ if !sys_context.is_empty() {
     purified_messages.push(json!({
         "role": "system",
         "content": sys_context
+    }));
+} else if let Some(global_prompt) = global_system_prompt {
+    // Injeta a Persona Customizada definida na UI se não for uma Agentic Task Restrita
+    purified_messages.push(json!({
+        "role": "system",
+        "content": global_prompt
     }));
 }
 
@@ -201,14 +432,19 @@ purified_messages.extend(payload.messages.into_iter().map(|msg| {
 }));
 
 // 3. Empacotar para o Servidor Local com Controle Rigoroso de VRAM (Sovereign Enterprise - B2B)
+let mut ollama_options = json!({
+    "num_keep": 4, // Forçar Lock do System Prompt na VRAM
+    "num_ctx": 8192 // Desidratação do Nurse (16GB RAM overhead fix resolvido pra RPI/OracleA1)
+});
+
+if let Some(t) = sys_temperature { ollama_options["temperature"] = json!(t); }
+if let Some(k) = sys_top_k { ollama_options["top_k"] = json!(k); }
+
 let mut ollama_payload = json!({
     "model": ollama_model,
     "messages": purified_messages,
     "stream": true,
-    "options": {
-        "num_keep": 4, // Forçar Lock do System Prompt na VRAM
-        "num_ctx": 8192 // Desidratação do Nurse (16GB RAM overhead fix resolvido pra RPI/OracleA1)
-    }
+    "options": ollama_options
 });
 
 // Injeção de Tools Requisitadas pelo Frontend (Vercel AI SDK JSON Schema)
@@ -298,34 +534,66 @@ let res = match state
         return Sse::new(stream).into_response();
     },
     Err(e) => {
-        error!("🚨 Falha FATAL ao encontrar o motor LLM: {}", e);
-        let err_msg = if is_custom_cluster {
-            format!("*(Sovereign Core)* 🚨 **Severidade Máxima: A1 Oracle Offline**\nO cluster remoto mapeado em `{}` não respondeu. Certifique-se de que a VM está ligada e acessível na rede.\n\nDetalhe do Gateway: `{}`", endpoint, e)
-        } else {
-            format!("*(The Nurse Local)* ⚠️ Serviço de IA Local (Ollama) inacessível na porta 11434. O daemon está rodando?\n\nErro: `{}`", e)
-        };
-
-        let err_chunk = crate::models::OpenAIChatChunkResponse {
-            id: format!("chatcmpl-err-{}", uuid::Uuid::new_v4()),
-            object: "chat.completion.chunk".to_string(),
-            created: chrono::Utc::now().timestamp(),
-            model: ollama_model.clone(),
-            choices: vec![crate::models::OpenAIChatChunkChoice {
-                index: 0,
-                delta: crate::models::OpenAIChatChunkDelta {
-                    role: Some("assistant".to_string()),
-                    content: Some(err_msg),
-                    tool_calls: None,
+        if is_custom_cluster {
+            tracing::warn!("🔄 OCI/Mesh Node Offline ({}). Iniciando Autonomia de Fallback para Localhost (127.0.0.1:11434)...", e);
+            let local_endpoint = "http://127.0.0.1:11434/api/chat";
+            match state.http_client.post(local_endpoint).json(&ollama_payload).send().await {
+                Ok(fallback_r) if fallback_r.status().is_success() => {
+                    tracing::info!("✅ [Sovereign Core] Autonomia de Fallback ativada com sucesso. Servindo LLM Localmente!");
+                    fallback_r
                 },
-                finish_reason: Some("error".to_string()),
-            }],
-            usage: None,
-        };
-        let stream = futures_util::stream::iter(vec![
-            Ok::<Event, Infallible>(Event::default().data(serde_json::to_string(&err_chunk).unwrap_or_default())),
-            Ok::<Event, Infallible>(Event::default().data("[DONE]")),
-        ]);
-        return Sse::new(stream).into_response();
+                _ => {
+                    error!("🚨 Falha FATAL no nó mestre e no nó escravo.");
+                    let err_msg = format!("*(Sovereign Core)* 🚨 **Severidade Máxima: Abandono de Frota**\nO Cluster OCI Oracle não respondeu (`{}`) E o Fallback Autônomo Local (127.0.0.1:11434) também está offline! Impossível iniciar inferência.", e);
+                    let err_chunk = crate::models::OpenAIChatChunkResponse {
+                        id: format!("chatcmpl-err-{}", uuid::Uuid::new_v4()),
+                        object: "chat.completion.chunk".to_string(),
+                        created: chrono::Utc::now().timestamp(),
+                        model: ollama_model.clone(),
+                        choices: vec![crate::models::OpenAIChatChunkChoice {
+                            index: 0,
+                            delta: crate::models::OpenAIChatChunkDelta {
+                                role: Some("assistant".to_string()),
+                                content: Some(err_msg),
+                                tool_calls: None,
+                            },
+                            finish_reason: Some("error".to_string()),
+                        }],
+                        usage: None,
+                    };
+                    let stream = futures_util::stream::iter(vec![
+                        Ok::<Event, Infallible>(Event::default().data(serde_json::to_string(&err_chunk).unwrap_or_default())),
+                        Ok::<Event, Infallible>(Event::default().data("[DONE]")),
+                    ]);
+                    return Sse::new(stream).into_response();
+                }
+            }
+        } else {
+            error!("🚨 Falha FATAL ao encontrar o motor LLM Local: {}", e);
+            let err_msg = format!("*(The Nurse Local)* ⚠️ Serviço de IA Local (Ollama) inacessível na porta 11434. O daemon está rodando?\n\nErro: `{}`", e);
+
+            let err_chunk = crate::models::OpenAIChatChunkResponse {
+                id: format!("chatcmpl-err-{}", uuid::Uuid::new_v4()),
+                object: "chat.completion.chunk".to_string(),
+                created: chrono::Utc::now().timestamp(),
+                model: ollama_model.clone(),
+                choices: vec![crate::models::OpenAIChatChunkChoice {
+                    index: 0,
+                    delta: crate::models::OpenAIChatChunkDelta {
+                        role: Some("assistant".to_string()),
+                        content: Some(err_msg),
+                        tool_calls: None,
+                    },
+                    finish_reason: Some("error".to_string()),
+                }],
+                usage: None,
+            };
+            let stream = futures_util::stream::iter(vec![
+                Ok::<Event, Infallible>(Event::default().data(serde_json::to_string(&err_chunk).unwrap_or_default())),
+                Ok::<Event, Infallible>(Event::default().data("[DONE]")),
+            ]);
+            return Sse::new(stream).into_response();
+        }
     }
 };
 
@@ -400,7 +668,7 @@ let stream = res.bytes_stream().map(move |result| {
 
                             if has_content_or_tools {
                                 let chunk_response = OpenAIChatChunkResponse {
-                                    id: format!("chatcmpl-{}", uuid::Uuid::new_v4().to_string().replace("-", "").chars().take(12).collect::<String>()),
+                                    id: format!("session_{}", tracking_session),
                                     object: "chat.completion.chunk".to_string(),
                                     created: 1234567890,
                                     model: requested_model.clone(),
@@ -494,34 +762,51 @@ Sse::new(stream)
     .into_response()
 }
 
-#[derive(serde::Serialize, sqlx::FromRow)]
-struct QuarantineItem {
-    id: i64,
-    file_path: String,
-    reason: String,
-}
-
 pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let snapshot = match state.telemetry.read() {
-        Ok(t) => t.get_snapshot(),
+    let snapshot = match state.telemetry.write() {
+        Ok(mut t) => {
+            t.refresh_hardware();
+            t.get_snapshot()
+        },
         Err(_) => crate::telemetry::TelemetrySnapshot {
             total_tokens: 0,
             avg_tps: 0.0,
+            avg_latency_ms: 0,
             estimated_cost: 0.0,
+            models_usage: std::collections::HashMap::new(),
+            hardware: crate::telemetry::HardwareSnapshot {
+                cpu_cores: vec![],
+                ram_usage_mb: 0.0,
+                ram_total_gb: 24.0,
+                io_rx_bytes: 0,
+                io_tx_bytes: 0,
+                gpu_name: "GPU Compute".to_string(),
+                gpu_vram_total_mb: 0,
+            }
         },
     };
 
-    let quarantine_count = sqlx::query_scalar::<_, i32>("SELECT COUNT(*) FROM quarantine_logs WHERE status = 'QUARANTINED'")
+    let security_logs = sqlx::query("SELECT event_type, severity, blocked, message, source, strftime('%Y-%m-%d %H:%M:%S', created_at) as created_at FROM security_logs ORDER BY id DESC LIMIT 5")
+        .fetch_all(&state.db)
+        .await
+        .map(|rows| {
+            rows.into_iter().map(|row| {
+                serde_json::json!({
+                    "event_type": sqlx::Row::get::<String, _>(&row, "event_type"),
+                    "severity": sqlx::Row::get::<String, _>(&row, "severity"),
+                    "blocked": sqlx::Row::get::<bool, _>(&row, "blocked"),
+                    "message": sqlx::Row::get::<String, _>(&row, "message"),
+                    "source": sqlx::Row::get::<String, _>(&row, "source"),
+                    "created_at": sqlx::Row::get::<String, _>(&row, "created_at"),
+                })
+            }).collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    let security_blocks_count = sqlx::query_scalar::<_, i32>("SELECT COUNT(*) FROM security_logs")
         .fetch_one(&state.db)
         .await
         .unwrap_or(0);
-
-    let quarantined_files = sqlx::query_as::<_, QuarantineItem>(
-        "SELECT id, file_path, reason FROM quarantine_logs WHERE status = 'QUARANTINED' ORDER BY created_at DESC LIMIT 5"
-    )
-    .fetch_all(&state.db)
-    .await
-    .unwrap_or_default();
 
     let pending_tasks = sqlx::query_scalar::<_, i32>("SELECT COUNT(*) FROM tasks WHERE status != 'completed'")
         .fetch_one(&state.db)
@@ -540,22 +825,48 @@ pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> i
         0
     };
 
-    // Devolve formatado igualzinho ao Node Python antigo pra Vue absorver sem refactor!
+    let vaults_count = sqlx::query_scalar::<_, i32>("SELECT COUNT(*) FROM workspaces").fetch_one(&state.db).await.unwrap_or(1);
+    let synced_files = sqlx::query_scalar::<_, i32>("SELECT COUNT(*) FROM sensus_documents").fetch_one(&state.db).await.unwrap_or(0);
+    
+    let mut vault_categories = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(&state.vault_path) {
+        for entry in entries.flatten() {
+            if let Ok(file_type) = entry.file_type() {
+                if file_type.is_dir() {
+                    let name = entry.file_name().to_string_lossy().to_string();
+                    if !name.starts_with('.') {
+                        vault_categories.push(name);
+                    }
+                }
+            }
+        }
+    }
+
+    // Devolve formatado para o Dashboard Svelte
     Json(serde_json::json!({
         "total_tokens": snapshot.total_tokens,
         "avg_tps": snapshot.avg_tps,
+        "avg_latency_ms": snapshot.avg_latency_ms,
         "estimated_cost": snapshot.estimated_cost,
-        "active_models": 1, 
+        "models_usage": snapshot.models_usage,
+        "active_models": snapshot.models_usage.keys().len(), 
+        "security_blocks": security_blocks_count,
+        "security_logs": security_logs,
         "hardware": {
-            "cpu": 0.0, // Preenchidos mockados ou simulados no JS (ou Rust Sysinfo futuro)
-            "ram": 0.0,
-            "io": 0.0
+            "cpu_cores": snapshot.hardware.cpu_cores,
+            "ram": snapshot.hardware.ram_usage_mb,
+            "ram_total_gb": snapshot.hardware.ram_total_gb,
+            "io_rx": snapshot.hardware.io_rx_bytes,
+            "io_tx": snapshot.hardware.io_tx_bytes,
+            "gpu_name": snapshot.hardware.gpu_name,
+            "gpu_vram_total_mb": snapshot.hardware.gpu_vram_total_mb
         },
         "cronos": {
-            "gaps": quarantine_count,
-            "gaps_list": quarantined_files,
             "tasks_today": pending_tasks,
-            "progress": progress
+            "progress": progress,
+            "vaults_count": vaults_count,
+            "synced_files": synced_files,
+            "vault_categories": vault_categories
         }
     }))
 }
@@ -599,4 +910,88 @@ pub async fn rag_sync_handler(State(state): State<Arc<AppState>>) -> impl IntoRe
     });
 
     Sse::new(stream).keep_alive(axum::response::sse::KeepAlive::new())
+}
+
+#[derive(serde::Deserialize)]
+pub struct FeedbackRequest {
+    pub text: String,
+    pub agent: String,
+    pub thumbs_up: bool,
+}
+
+/// Registra Telemetria RLHF (Feedback Positivo/Negativo) dos Modelos Locais
+pub async fn feedback_handler(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<FeedbackRequest>,
+) -> impl IntoResponse {
+    let result = sqlx::query("INSERT INTO rlhf_feedback (agent_role, content, thumbs_up) VALUES (?, ?, ?)")
+        .bind(payload.agent)
+        .bind(payload.text)
+        .bind(payload.thumbs_up)
+        .execute(&state.db)
+        .await;
+
+    match result {
+        Ok(_) => (axum::http::StatusCode::OK, axum::Json(serde_json::json!({"status": "success"}))).into_response(),
+        Err(e) => {
+            tracing::error!("Failed to save RLHF feedback: {}", e);
+            (axum::http::StatusCode::INTERNAL_SERVER_ERROR, axum::Json(serde_json::json!({"error": e.to_string()}))).into_response()
+        }
+    }
+}
+
+#[derive(serde::Deserialize)]
+pub struct VaultGraphQuery {
+    pub workspace_id: Option<String>,
+}
+
+/// Sensus Document Topology Builder (Vault Hub & Dashboard Graph Engine)
+pub async fn vault_graph_handler(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Query(query): axum::extract::Query<VaultGraphQuery>,
+) -> impl IntoResponse {
+    let ws_identifier = query.workspace_id.unwrap_or_else(|| "default".to_string());
+    
+    // Attempt logical relational mapping (from workspaces.name to sensus_documents)
+    use sqlx::Row;
+    let docs = sqlx::query("SELECT id, relative_path FROM sensus_documents WHERE workspace_id = (SELECT id FROM workspaces WHERE name = ? LIMIT 1)")
+        .bind(ws_identifier.clone())
+        .fetch_all(&state.db)
+        .await
+        .unwrap_or_default();
+
+    let mut nodes = Vec::new();
+    let mut links = Vec::new();
+
+    // Central Cybrid Node
+    nodes.push(serde_json::json!({
+        "id": "root",
+        "name": format!("Local Vault ({})", ws_identifier),
+        "type": "folder",
+        "val": 15
+    }));
+
+    for doc in docs {
+        let doc_id: i32 = doc.get("id");
+        let doc_path: String = doc.get("relative_path");
+        let node_id = format!("doc_{}", doc_id);
+        
+        nodes.push(serde_json::json!({
+            "id": node_id.clone(),
+            "name": doc_path,
+            "type": "file",
+            "val": 3
+        }));
+
+        links.push(serde_json::json!({
+            "source": "root",
+            "target": node_id,
+            "type": "hierarchy"
+        }));
+    }
+
+    (axum::http::StatusCode::OK, axum::Json(serde_json::json!({
+        "nodes": nodes,
+        "links": links
+    }))).into_response()
 }
