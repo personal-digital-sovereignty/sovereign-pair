@@ -229,6 +229,57 @@ pub async fn workspace_tree_handler(
     Json(vec![root_node]).into_response()
 }
 
+#[derive(Serialize, sqlx::FromRow)]
+pub struct SensusDocumentRow {
+    pub id: String,
+    pub workspace_id: String,
+    pub file_path: String,
+    pub content_raw: Option<String>,
+    pub summary: Option<String>,
+    pub last_modified: Option<chrono::NaiveDateTime>,
+}
+
+/// Rota GET /v1/vault/documents - Lista todos os documentos indexados pelo Sensus Sync
+pub async fn vault_documents_handler(
+    State(state): State<Arc<AppState>>
+) -> impl IntoResponse {
+    let rows = sqlx::query_as::<_, SensusDocumentRow>(
+        "SELECT id, workspace_id, file_path, content_raw, summary, last_modified FROM sensus_documents ORDER BY last_modified DESC"
+    )
+    .fetch_all(&state.db)
+    .await;
+
+    match rows {
+        Ok(docs) => Json(docs).into_response(),
+        Err(e) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true, "message": format!("Database Error: {}", e)}))).into_response()
+    }
+}
+
+#[derive(Deserialize)]
+pub struct DocumentSearchQuery {
+    pub q: String,
+}
+
+/// Rota GET /v1/vault/search - Pesquisa no banco Sensus Cíbrido
+pub async fn vault_documents_search_handler(
+    Query(query): Query<DocumentSearchQuery>,
+    State(state): State<Arc<AppState>>
+) -> impl IntoResponse {
+    let search_term = format!("%{}%", query.q);
+    let rows = sqlx::query_as::<_, SensusDocumentRow>(
+        "SELECT id, workspace_id, file_path, content_raw, summary, last_modified FROM sensus_documents WHERE file_path LIKE ? OR content_raw LIKE ? ORDER BY last_modified DESC"
+    )
+    .bind(&search_term)
+    .bind(&search_term)
+    .fetch_all(&state.db)
+    .await;
+
+    match rows {
+        Ok(docs) => Json(docs).into_response(),
+        Err(e) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true, "message": format!("Database Error: {}", e)}))).into_response()
+    }
+}
+
 #[derive(Deserialize)]
 pub struct ReadDocQuery {
     pub workspace_id: Option<i64>,
