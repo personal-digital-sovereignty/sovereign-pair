@@ -170,10 +170,17 @@
                 <Paperclip class="w-5 h-5" />
             </button>
 
+            <button type="button" 
+                onclick={() => globalState.chat.isDeepResearchEnabled = !globalState.chat.isDeepResearchEnabled}
+                class={`absolute left-12 bottom-2 p-2.5 rounded-lg transition-colors cursor-pointer ${globalState.chat.isDeepResearchEnabled ? 'text-indigo-600 bg-indigo-100 shadow-inner border border-indigo-200' : 'text-slate-400 hover:text-indigo-500 hover:bg-slate-50 border border-transparent'}`} 
+                title="Ativar Web-Augmented Generation (Deep Research)">
+                <Bot class="w-5 h-5" />
+            </button>
+
             <textarea 
                 bind:value={message}
                 placeholder="Ask the Global Cybrid Council..." 
-                class="flex-1 bg-transparent border-none text-slate-800 text-sm p-4 pl-14 h-14 resize-none outline-none custom-scrollbar placeholder:text-slate-400"
+                class="flex-1 bg-transparent border-none text-slate-800 text-sm p-4 pl-24 h-14 resize-none outline-none custom-scrollbar placeholder:text-slate-400"
                 onkeydown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
