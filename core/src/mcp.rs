@@ -47,6 +47,20 @@ pub fn get_mcp_tools() -> Vec<serde_json::Value> {
                     "required": ["path", "content"]
                 }
             }
+        }),
+        json!({
+            "type": "function",
+            "function": {
+                "name": "mcp_deep_research",
+                "description": "[MCP] Faz a varredura profunda de uma URL HTTP/HTTPS (Deep Research), limpa anúncios e devolve o artigo em sintaxe semântica Markdown pura.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url": { "type": "string", "description": "URL pública do site/livro a ser extraído." }
+                    },
+                    "required": ["url"]
+                }
+            }
         })
     ]
 }
@@ -127,6 +141,32 @@ pub async fn execute_mcp_tool(vault_root: &Path, tool_name: &str, args: &serde_j
                     }
                 },
                 Err(e) => format!("MCP Access Error: {}", e)
+            }
+        },
+        "mcp_deep_research" => {
+            let url_str = args.get("url").and_then(|v| v.as_str()).unwrap_or("");
+            if url_str.is_empty() {
+                return "MCP Error: URL param is strictly required for Web Augmented Generation.".to_string();
+            }
+            let engine = crate::research::DeepResearchEngine::new();
+            match engine.scrape_url(url_str).await {
+                Ok(markdown) => {
+                    let slug = url_str.replace("https://", "").replace("http://", "").replace("/", "_");
+                    let safe_slug = format!("{}.md", slug.chars().take(50).collect::<String>());
+                    
+                    let research_dir = vault_root.join("DeepResearch");
+                    let _ = std::fs::create_dir_all(&research_dir);
+                    let file_path = research_dir.join(safe_slug);
+                    
+                    match std::fs::write(&file_path, &markdown) {
+                        Ok(_) => {
+                            let preview: String = markdown.chars().take(1500).collect();
+                            format!("Deep Research Extracted for [{}] and saved to Sensus Vault as {:?}.\n\n--- PREVIEW ---\n{}...\n\n(SUCCESS: The full {} byte document was securely saved to your disk for future RAG Retrieval.)", url_str, file_path, preview, markdown.len())
+                        },
+                        Err(e) => format!("MCP Error saving Deep Research file to disk: {}", e)
+                    }
+                },
+                Err(e) => format!("MCP Web Scraping Error: {}", e)
             }
         },
         _ => format!("MCP Tool unrecognized by Engine: {}", tool_name)
