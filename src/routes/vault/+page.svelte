@@ -136,12 +136,43 @@
         try {
             const token = localStorage.getItem('sovereign_token') || '';
             const ws_id = globalState.activeWorkspaceId || 'default';
-            const res = await fetch(`${API_BASE_URL}/v1/workspaces/${ws_id}/tree`, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (res.ok) {
-                const treeNodes = await res.json();
-                files = flatten(treeNodes);
+            
+            // 1. Fetch FileSystem Folders (for the "New File" Modal)
+            const resTree = await fetch(`${API_BASE_URL}/v1/workspaces/${ws_id}/tree`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (resTree.ok) {
+                const treeNodes = await resTree.json();
                 folders = [{path: '', name: 'Raiz do Vault'}];
                 extractFolders(treeNodes);
+            }
+
+            // 2. Fetch the true Cibrid Sensus Documents from SQLite Engine
+            const resDocs = await fetch(`${API_BASE_URL}/v1/vault/documents`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (resDocs.ok) {
+                const docRows = await resDocs.json();
+                files = docRows.map((doc: any) => {
+                    const name = doc.file_path.split('/').pop() || 'Unknown';
+                    const path_dir = doc.file_path.substring(0, doc.file_path.length - name.length) || '/';
+                    
+                    // Extract Obsidian wikilinks locally on frontend from the raw DB content
+                    let wikilinks: string[] = [];
+                    if (doc.content_raw) {
+                        const matches = doc.content_raw.match(/\[\[(.*?)\]\]/g);
+                        if (matches) {
+                            wikilinks = Array.from(new Set(matches.map((m: string) => m.replace('[[', '').replace(']]', '').split('|')[0]))) as string[];
+                        }
+                    }
+
+                    return {
+                        id: doc.id,
+                        name,
+                        path: doc.file_path,
+                        path_dir,
+                        wikilinks,
+                        date: doc.last_modified ? new Date(doc.last_modified).toLocaleDateString() : 'Desconhecido',
+                        summary: doc.summary,
+                        size: doc.content_raw ? `${(doc.content_raw.length / 1024).toFixed(1)} KB` : '0 KB'
+                    };
+                });
             }
         } catch(e) { console.error(e); } finally { isLoading = false; }
     }
@@ -454,12 +485,12 @@
             </div>
             <div class="p-6 flex flex-col gap-5">
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nome e Extensão</label>
-                    <input type="text" bind:value={newFileName} placeholder="ex: manifesto_arquitetura.md" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                    <label for="new_file_name_input" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nome e Extensão</label>
+                    <input id="new_file_name_input" type="text" bind:value={newFileName} placeholder="ex: manifesto_arquitetura.md" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Pasta de Destino (Vault Index)</label>
-                    <select bind:value={newFileFolder} class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow bg-white text-sm text-slate-700">
+                    <label for="new_file_folder_select" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Pasta de Destino (Vault Index)</label>
+                    <select id="new_file_folder_select" bind:value={newFileFolder} class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow bg-white text-sm text-slate-700">
                         {#each folders as folder}
                             <option value={folder.path}>{folder.name}</option>
                         {/each}

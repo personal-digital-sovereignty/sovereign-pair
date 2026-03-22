@@ -1,4 +1,28 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
+
+    let isSubmitting = false;
+
+    async function runDistillation() {
+        if(isSubmitting) return;
+        isSubmitting = true;
+        try {
+            await fetch('http://localhost:38001/v1/trainer/distillation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    teacher_model: 'GPT-4 (Omni)',
+                    student_model: 'Llama-3.2-3B',
+                    epochs: 3,
+                    batch_size: 4
+                })
+            });
+            goto('/model-trainer/unsloth');
+        } catch(e) {
+            console.error(e);
+            isSubmitting = false;
+        }
+    }
 </script>
 
 <div class="p-8 h-full flex flex-col">
@@ -30,9 +54,9 @@
                 <button class="px-5 py-2.5 rounded-xl border border-outline-variant/30 text-on-surface-variant font-bold text-xs hover:bg-surface-container-high transition-colors">
                     Export Logs
                 </button>
-                <button class="px-5 py-2.5 rounded-xl bg-gradient-to-br from-primary to-primary-container text-white font-bold text-xs shadow-md shadow-primary/20 active:scale-95 transition-transform flex items-center gap-2">
+                <button disabled={isSubmitting} onclick={runDistillation} class="px-5 py-2.5 rounded-xl bg-gradient-to-br from-primary to-primary-container text-white font-bold text-xs shadow-md shadow-primary/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer disabled:opacity-50">
                     <span class="material-symbols-outlined text-[18px]">model_training</span>
-                    Run Distillation
+                    {isSubmitting ? 'Iniciando...' : 'Run Distillation'}
                 </button>
             </div>
         </section>

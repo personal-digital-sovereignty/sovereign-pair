@@ -1,5 +1,28 @@
 <script lang="ts">
     import { page } from '$app/state';
+    import { goto } from '$app/navigation';
+
+    let isSubmitting = false;
+
+    async function runFineTuning() {
+        if(isSubmitting) return;
+        isSubmitting = true;
+        try {
+            await fetch('http://localhost:38001/v1/trainer/finetuning', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    base_model: 'Llama-3-8B-Instruct-v0.1',
+                    dataset_name: 'sovereign-hq-rag-dataset-v1',
+                    learning_rate: 0.0002
+                })
+            });
+            goto('/model-trainer/unsloth');
+        } catch(e) {
+            console.error(e);
+            isSubmitting = false;
+        }
+    }
 </script>
 
 <div class="p-8 h-full">
@@ -26,7 +49,13 @@
                 <h1 class="font-extrabold text-3xl tracking-tight text-on-surface">Fine-Tuning Engine</h1>
             </div>
             <div class="flex gap-3">
-                <!-- Additional fine-tuning page buttons can go here if needed later -->
+                <button class="px-5 py-2.5 rounded-xl border border-outline-variant/30 text-on-surface-variant font-bold text-xs hover:bg-surface-container-high transition-colors">
+                    Export Configuration
+                </button>
+                <button disabled={isSubmitting} onclick={runFineTuning} class="px-5 py-2.5 rounded-xl bg-gradient-to-br from-[#001360] to-[#002395] text-white font-bold text-xs shadow-md shadow-primary/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[18px]">play_arrow</span>
+                    {isSubmitting ? 'Iniciando...' : 'Start Fine-Tuning'}
+                </button>
             </div>
         </section>
 
@@ -224,7 +253,7 @@
                                 <p class="text-[10px] text-on-surface-variant mt-0.5">Force factual matching in RAG</p>
                             </div>
                         </div>
-                        <button class="w-12 h-6 bg-primary rounded-full relative cursor-pointer ring-4 ring-primary-fixed transition-colors">
+                        <button title="Toggle Strict Grounding AI" class="w-12 h-6 bg-primary rounded-full relative cursor-pointer ring-4 ring-primary-fixed transition-colors">
                             <div class="absolute right-1 top-1.5 w-3 h-3 bg-white rounded-full shadow-sm"></div>
                         </button>
                     </div>
@@ -258,7 +287,7 @@
                                 <span class="material-symbols-outlined text-[16px] text-on-surface-variant">psychology</span>
                                 <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Internal Monologue</p>
                             </div>
-                            <button class="w-8 h-4 bg-outline-variant rounded-full relative">
+                            <button title="Toggle Internal Monologue" class="w-8 h-4 bg-outline-variant rounded-full relative">
                                 <div class="absolute left-1 top-0.5 w-3 h-3 bg-white rounded-full"></div>
                             </button>
                         </div>
