@@ -1,20 +1,25 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
 
-    let isSubmitting = false;
+    let isSubmitting = $state(false);
+
+    let teacherModel = $state('GPT-4o');
+    let studentModel = $state('llama3.2:3b');
+    let distillationEpochs = $state(3);
+    let distillationBatch = $state(4);
 
     async function runDistillation() {
         if(isSubmitting) return;
         isSubmitting = true;
         try {
-            await fetch('http://localhost:38001/v1/trainer/distillation', {
+            await fetch('http://localhost:38001/v1/trainer/distill', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    teacher_model: 'GPT-4 (Omni)',
-                    student_model: 'Llama-3.2-3B',
-                    epochs: 3,
-                    batch_size: 4
+                    teacher_model: teacherModel,
+                    student_model: studentModel,
+                    epochs: distillationEpochs,
+                    batch_size: distillationBatch
                 })
             });
             goto('/model-trainer/unsloth');
@@ -75,9 +80,18 @@
                                 <div class="w-12 h-12 rounded-xl bg-secondary-container flex items-center justify-center shadow-inner">
                                     <span class="material-symbols-outlined text-secondary text-[24px]">school</span>
                                 </div>
-                                <div>
-                                    <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-0.5">Professor Model</p>
-                                    <h4 class=" font-extrabold text-on-surface text-lg">GPT-4 (Omni)</h4>
+                                <div class="flex-1 w-full">
+                                    <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Professor Model</p>
+                                    <select bind:value={teacherModel} class="w-full bg-surface-container-high border border-outline-variant/30 rounded-lg px-2 py-1.5 text-sm font-extrabold text-on-surface focus:ring-1 focus:ring-primary outline-none">
+                                        <optgroup label="Sovereign Mesh Nodes">
+                                            <option value="Nexus-70B">Nexus-70B (Oracle Cloud GPU)</option>
+                                            <option value="Dionysus-14B">Dionysus-14B (Local Edge Pi)</option>
+                                        </optgroup>
+                                        <optgroup label="External Providers">
+                                            <option value="GPT-4o">GPT-4o (OpenAI)</option>
+                                            <option value="Claude-3.5-Sonnet">Claude 3.5 Sonnet (Anthropic)</option>
+                                        </optgroup>
+                                    </select>
                                 </div>
                             </div>
                             <div class="space-y-3">
@@ -105,9 +119,15 @@
                                 <div class="w-12 h-12 rounded-xl bg-primary-fixed/50 flex items-center justify-center shadow-inner">
                                     <span class="material-symbols-outlined text-primary text-[24px]">child_care</span>
                                 </div>
-                                <div>
-                                    <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-0.5">Student Model</p>
-                                    <h4 class=" font-extrabold text-on-surface text-lg">Llama 3.2 3B</h4>
+                                <div class="flex-1 w-full">
+                                    <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Student Model</p>
+                                    <select bind:value={studentModel} class="w-full bg-surface-container-high border border-outline-variant/30 rounded-lg px-2 py-1.5 text-sm font-extrabold text-on-surface focus:ring-1 focus:ring-primary outline-none">
+                                        <optgroup label="Local Edge (Ollama)">
+                                            <option value="llama3.2:3b">Llama 3.2 3B</option>
+                                            <option value="phi3.5">Phi-3.5 Mini</option>
+                                            <option value="qwen2.5:1.5b">Qwen 2.5 1.5B</option>
+                                        </optgroup>
+                                    </select>
                                 </div>
                             </div>
                             <div class="space-y-3">
@@ -150,27 +170,37 @@
                 </div>
             </div>
 
-            <!-- Quality Metrics -->
-            <div class="col-span-12 md:col-span-6 xl:col-span-4 bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/10 shadow-sm">
-                <h3 class=" font-bold text-lg mb-8 text-on-surface">CoT Quality Metrics</h3>
+            <!-- Hyperparameters -->
+            <div class="col-span-12 md:col-span-6 xl:col-span-4 bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/10 shadow-sm flex flex-col justify-center">
+                <div class="flex items-center gap-3 mb-8">
+                    <span class="material-symbols-outlined text-on-surface-variant">tune</span>
+                    <h3 class="font-bold text-lg text-on-surface">Hyperparameters</h3>
+                </div>
+                
                 <div class="space-y-8">
-                    <div class="flex items-center gap-5">
-                        <div class="w-14 h-14 rounded-full border-4 border-on-tertiary-container/30 border-t-on-tertiary-container flex items-center justify-center shrink-0">
-                            <span class="text-sm font-bold text-on-tertiary-container">94%</span>
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Distillation Epochs</span>
+                            <span class="px-2 py-1 bg-primary/10 text-primary font-extrabold text-xs rounded-lg">{distillationEpochs}</span>
                         </div>
-                        <div>
-                            <h4 class="text-[13px] font-bold text-on-surface mb-0.5">Logic Fidelity</h4>
-                            <p class="text-[11px] text-on-surface-variant leading-tight">Step-by-step reasoning accuracy match</p>
+                        <input type="range" min="1" max="10" bind:value={distillationEpochs} class="w-full accent-primary h-1.5 bg-surface-variant rounded-full appearance-none outline-none" />
+                        <div class="flex justify-between text-[10px] text-on-surface-variant mt-2">
+                            <span>1 Epoch</span>
+                            <span>10 Epochs</span>
                         </div>
                     </div>
-                    <div class="w-full h-[1px] bg-slate-100"></div>
-                    <div class="flex items-center gap-5">
-                        <div class="w-14 h-14 rounded-full border-4 border-primary/20 border-t-primary flex items-center justify-center shrink-0">
-                            <span class="text-sm font-bold text-primary">82%</span>
+                    
+                    <div class="w-full h-[1px] bg-outline-variant/20"></div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Batch Size</span>
+                            <span class="px-2 py-1 bg-secondary/10 text-secondary font-extrabold text-xs rounded-lg">{distillationBatch}</span>
                         </div>
-                        <div>
-                            <h4 class="text-[13px] font-bold text-on-surface mb-0.5">Syntactic Nuance</h4>
-                            <p class="text-[11px] text-on-surface-variant leading-tight">Tone and structural mimicry scoring</p>
+                        <input type="range" min="1" max="32" step="1" bind:value={distillationBatch} class="w-full accent-secondary h-1.5 bg-surface-variant rounded-full appearance-none outline-none" />
+                        <div class="flex justify-between text-[10px] text-on-surface-variant mt-2">
+                            <span>Micro-batching</span>
+                            <span>High VRAM</span>
                         </div>
                     </div>
                 </div>

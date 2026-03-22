@@ -1,4 +1,27 @@
 <script lang="ts">
+    let isReflecting = $state(false);
+    let thinkBeforeResponse = $state(true);
+    let reasoningDepth = $state(80);
+    let auditIntensity = $state(65);
+
+    async function launchSimulation() {
+        if (isReflecting) return;
+        isReflecting = true;
+        try {
+            await fetch('http://localhost:38001/v1/trainer/reflection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    think_before_response: thinkBeforeResponse,
+                    reasoning_depth: reasoningDepth,
+                    audit_intensity: auditIntensity
+                })
+            }).catch(() => {});
+        } finally {
+            // Simulated delay for UI feedback
+            setTimeout(() => { isReflecting = false; }, 2500);
+        }
+    }
 </script>
 
 <div class="p-8 h-full flex flex-col">
@@ -37,9 +60,9 @@
                 <button class="px-5 py-2.5 rounded-xl border border-outline-variant/30 text-on-surface font-bold text-xs hover:bg-surface-container-low transition-colors">
                     Export Logs
                 </button>
-                <button class="px-5 py-2.5 rounded-xl bg-gradient-to-br from-[#001360] to-[#002395] text-white font-bold text-xs shadow-md shadow-primary/20 active:scale-95 transition-transform flex items-center gap-2">
+                <button onclick={launchSimulation} disabled={isReflecting} class="px-5 py-2.5 rounded-xl bg-gradient-to-br from-[#001360] to-[#002395] text-white font-bold text-xs shadow-md shadow-primary/20 active:scale-95 transition-transform flex items-center gap-2 disabled:opacity-50">
                     <span class="material-symbols-outlined text-[18px]">science</span>
-                    Launch Simulation
+                    {isReflecting ? 'Simulating...' : 'Launch Simulation'}
                 </button>
             </div>
         </div>
@@ -65,25 +88,25 @@
                                 <p class="text-xs font-bold text-on-surface">Think-Before-Response</p>
                                 <p class="text-[10px] text-on-surface-variant mt-0.5">Force 500ms latent reasoning loop</p>
                             </div>
-                            <button class="w-12 h-6 bg-primary rounded-full relative transition-colors cursor-pointer ring-4 ring-primary-fixed/50">
-                                <span class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm"></span>
+                            <button aria-label="Toggle Think Before Response" onclick={() => thinkBeforeResponse = !thinkBeforeResponse} class="w-12 h-6 {thinkBeforeResponse ? 'bg-primary ring-4 ring-primary-fixed/50' : 'bg-surface-variant'} rounded-full relative transition-colors cursor-pointer outline-none">
+                                <span class="absolute {thinkBeforeResponse ? 'right-1' : 'left-1'} top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all"></span>
                             </button>
                         </div>
                         
                         <div class="space-y-4 px-1">
                             <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                                 <span>Reasoning Depth</span>
-                                <span class="text-primary font-mono bg-primary-fixed/30 px-2 py-0.5 rounded">Level 8</span>
+                                <span class="text-primary font-mono bg-primary-fixed/30 px-2 py-0.5 rounded">Level {Math.floor(reasoningDepth / 10)}</span>
                             </div>
-                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" value="80" />
+                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" bind:value={reasoningDepth} />
                         </div>
                         
                         <div class="space-y-4 px-1">
                             <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                                 <span>Audit Intensity</span>
-                                <span class="text-primary font-mono bg-primary-fixed/30 px-2 py-0.5 rounded">High (0.85)</span>
+                                <span class="text-primary font-mono bg-primary-fixed/30 px-2 py-0.5 rounded">High ({(auditIntensity / 100).toFixed(2)})</span>
                             </div>
-                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" value="65" />
+                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" bind:value={auditIntensity} />
                         </div>
                     </div>
                 </div>
@@ -202,11 +225,13 @@
     
     <!-- Floating Action Button -->
     <div class="fixed bottom-10 right-10 z-50">
-        <button class="w-16 h-16 rounded-full bg-gradient-to-br from-[#001360] to-[#002395] text-white shadow-[0_10px_25px_rgba(0,19,96,0.4)] flex items-center justify-center active:scale-90 transition-transform group hover:shadow-[0_15px_35px_rgba(0,19,96,0.6)]">
-            <span class="material-symbols-outlined text-[28px] group-hover:rotate-12 transition-transform">auto_awesome</span>
+        <button onclick={launchSimulation} disabled={isReflecting} class="w-16 h-16 rounded-full bg-gradient-to-br from-[#001360] to-[#002395] text-white shadow-[0_10px_25px_rgba(0,19,96,0.4)] flex items-center justify-center active:scale-90 transition-transform group hover:shadow-[0_15px_35px_rgba(0,19,96,0.6)] disabled:opacity-50 disabled:active:scale-100 disabled:hover:rotate-0">
+            <span class="material-symbols-outlined text-[28px] group-hover:rotate-12 transition-transform">{isReflecting ? 'sync' : 'auto_awesome'}</span>
+            {#if !isReflecting}
             <div class="absolute right-20 bg-inverse-surface text-inverse-on-surface text-[12px] px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-bold pointer-events-none shadow-xl border border-white/10">
                 Start Bulk Reflection Test
             </div>
+            {/if}
         </button>
     </div>
 </div>
@@ -218,11 +243,13 @@
     
     input[type=range] {
         -webkit-appearance: none;
+        appearance: none;
         width: 100%;
         background: transparent;
     }
     input[type=range]::-webkit-slider-thumb {
         -webkit-appearance: none;
+        appearance: none;
         height: 18px;
         width: 18px;
         border-radius: 50%;
@@ -236,6 +263,13 @@
         transform: scale(1.1);
     }
     input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 6px;
+        cursor: pointer;
+        background: var(--color-surface-variant);
+        border-radius: 3px;
+    }
+    input[type=range]::-moz-range-track {
         width: 100%;
         height: 6px;
         cursor: pointer;
