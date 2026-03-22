@@ -2,19 +2,25 @@
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
 
-    let isSubmitting = false;
+    let isSubmitting = $state(false);
+
+    let loraRank = $state(16);
+    let batchSize = $state(4);
+    let learningRate = $state(0.0002);
 
     async function runFineTuning() {
         if(isSubmitting) return;
         isSubmitting = true;
         try {
-            await fetch('http://localhost:38001/v1/trainer/finetuning', {
+            await fetch('http://localhost:38001/v1/trainer/finetune', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     base_model: 'Llama-3-8B-Instruct-v0.1',
                     dataset_name: 'sovereign-hq-rag-dataset-v1',
-                    learning_rate: 0.0002
+                    learning_rate: learningRate,
+                    lora_rank: loraRank,
+                    batch_size: batchSize
                 })
             });
             goto('/model-trainer/unsloth');
@@ -199,40 +205,38 @@
         <div class="xl:col-span-5 space-y-8">
             
             <!-- Alignment Metrics -->
+            <!-- Unsloth Native Configuration -->
             <section class="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/10 shadow-sm">
-                <h2 class="text-sm font-bold text-on-surface uppercase tracking-widest mb-6 ">Distillation: Alignment</h2>
-                <div class="flex items-center justify-between mb-8">
-                    <div class="text-center w-20">
-                        <div class="w-14 h-14 rounded-2xl bg-secondary-container flex items-center justify-center mx-auto mb-3 shadow-[0_4px_12px_rgba(209,226,243,0.5)]">
-                            <span class="material-symbols-outlined text-secondary text-[24px]">school</span>
-                        </div>
-                        <p class="text-[11px] font-extrabold text-on-surface">GPT-4</p>
-                        <p class="text-[9px] text-on-surface-variant font-medium uppercase tracking-wider mt-0.5">Teacher</p>
-                    </div>
-                    <div class="flex-1 px-4 relative">
-                        <div class="h-[2px] w-full bg-surface-container-high rounded-full overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-secondary-container to-primary-fixed w-[88%]"></div>
-                        </div>
-                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-container-lowest border-2 border-primary w-12 h-12 rounded-full flex flex-col items-center justify-center shadow-sm">
-                            <p class="text-xs font-extrabold text-primary leading-none">0.88</p>
-                            <p class="text-[6px] text-primary uppercase font-bold mt-1 tracking-widest">Similar</p>
-                        </div>
-                    </div>
-                    <div class="text-center w-20">
-                        <div class="w-14 h-14 rounded-2xl bg-primary-fixed flex items-center justify-center mx-auto mb-3 shadow-[0_4px_12px_rgba(222,225,255,0.5)]">
-                            <span class="material-symbols-outlined text-primary text-[24px]">person_search</span>
-                        </div>
-                        <p class="text-[11px] font-extrabold text-on-surface">Llama 3.2</p>
-                        <p class="text-[9px] text-on-surface-variant font-medium uppercase tracking-wider mt-0.5">Student</p>
-                    </div>
+                <div class="flex items-center gap-3 mb-8">
+                    <span class="material-symbols-outlined text-secondary text-[24px]">memory</span>
+                    <h2 class="text-sm font-bold text-on-surface uppercase tracking-widest ">Unsloth LoRA Engine</h2>
                 </div>
-                <div class="space-y-3 bg-surface-container-low p-4 rounded-xl border border-outline-variant/10">
-                    <div class="flex justify-between items-center text-xs">
-                        <span class="text-on-surface-variant font-medium text-[11px]">CoT Samples Quality</span>
-                        <span class="font-bold text-on-tertiary-container text-[11px]">High (Excellent)</span>
+                
+                <div class="space-y-8">
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">LoRA Rank (r)</span>
+                            <span class="px-2 py-1 bg-primary/10 text-primary font-extrabold text-xs rounded-lg">{loraRank}</span>
+                        </div>
+                        <input type="range" class="w-full accent-primary h-1.5 bg-surface-variant rounded-full appearance-none outline-none" min="8" max="128" step="8" bind:value={loraRank} />
+                        <div class="flex justify-between text-[10px] text-on-surface-variant mt-2 font-mono">
+                            <span>r=8 (Fast)</span>
+                            <span>r=128 (Detailed)</span>
+                        </div>
                     </div>
-                    <div class="h-2 w-full bg-surface-variant rounded-full overflow-hidden">
-                        <div class="h-full bg-on-tertiary-container w-[92%] rounded-full"></div>
+
+                    <div class="w-full h-[1px] bg-outline-variant/20"></div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Batch Size</span>
+                            <span class="px-2 py-1 bg-secondary/10 text-secondary font-extrabold text-xs rounded-lg">{batchSize}</span>
+                        </div>
+                        <input type="range" class="w-full accent-secondary h-1.5 bg-surface-variant rounded-full appearance-none outline-none" min="1" max="32" step="1" bind:value={batchSize} />
+                        <div class="flex justify-between text-[10px] text-on-surface-variant mt-2 font-mono">
+                            <span>1 (Slow / Precise)</span>
+                            <span>32 (High VRAM)</span>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -325,11 +329,13 @@
     
     input[type=range] {
         -webkit-appearance: none;
+        appearance: none;
         width: 100%;
         background: transparent;
     }
     input[type=range]::-webkit-slider-thumb {
         -webkit-appearance: none;
+        appearance: none;
         height: 18px;
         width: 18px;
         border-radius: 50%;
@@ -337,6 +343,13 @@
         cursor: pointer;
         margin-top: -6px;
         box-shadow: 0 0 10px rgba(0, 19, 96, 0.3);
+    }
+    input[type=range]::-moz-range-track {
+        width: 100%;
+        height: 6px;
+        cursor: pointer;
+        background: var(--color-surface-variant);
+        border-radius: 3px;
     }
     input[type=range]::-webkit-slider-thumb:hover {
         background: var(--color-primary-container);
