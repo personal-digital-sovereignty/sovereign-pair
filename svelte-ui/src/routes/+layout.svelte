@@ -96,7 +96,7 @@
       <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors text-[#94A3B8] hover:bg-white/5 hover:text-white" href="#">
         <span class="font-medium text-sm pl-7">Model Trainer</span>
       </a>
-      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors text-[#94A3B8] hover:bg-white/5 hover:text-white" href="#">
+      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors {routeId.includes('/analytics') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/analytics">
         <span class="font-medium text-sm pl-7">Analytics</span>
       </a>
       
