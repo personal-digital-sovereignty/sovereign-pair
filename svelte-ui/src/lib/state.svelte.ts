@@ -27,7 +27,8 @@ export const globalState = $state({
         activeSessionTitle: 'Nova Sessão',
         inputContext: '',
         messages: [] as any[],
-        isTyping: false
+        isTyping: false,
+        isDeepResearchEnabled: false
     },
 
     // Notification Center
@@ -121,7 +122,8 @@ export const sendGlobalChatMessage = async (userText: string) => {
             messages: contextPayload,
             workspace_id: ws_id,
             session_id: globalState.chat.activeSessionId,
-            stream: true
+            stream: true,
+            deep_research: globalState.chat.isDeepResearchEnabled
         };
 
         const response = await fetch('http://localhost:38001/v1/chat/completions', {

@@ -130,6 +130,9 @@ pub struct OpenAIChatRequest {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub project_id: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deep_research: Option<bool>,
 }
 
 // ==========================================
