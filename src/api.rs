@@ -216,7 +216,28 @@ let mut sys_context = String::new();
 let is_web = human_prompt.to_lowercase().starts_with("/web");
 let is_sys = human_prompt.to_lowercase().starts_with("/sys");
 
-if is_web {
+if payload.deep_research.unwrap_or(false) {
+    let mut url_to_scrape = String::new();
+    let mut user_question = human_prompt.clone();
+    
+    for word in human_prompt.split_whitespace() {
+        if word.starts_with("http://") || word.starts_with("https://") {
+            url_to_scrape = word.to_string();
+            user_question = user_question.replace(word, "").trim().to_string();
+            break;
+        }
+    }
+
+    if !url_to_scrape.is_empty() {
+        tracing::info!("🕸️ [WAG Native] O botão 'Deep Research' estava ATIVO na UI. Acionando raspagem perene p/ {}", url_to_scrape);
+        let wag_args = serde_json::json!({ "url": url_to_scrape });
+        let wag_result = crate::mcp::execute_mcp_tool(&state.vault_path, "mcp_deep_research", &wag_args).await;
+        
+        web_context = format!("INSTRUÇÃO SISTÊMICA (DEEP RESEARCH/WAG): O motor de Agentic Web-Scraping leu a URL solicitada ({}) e a salvou fisicamente na Sensus Database Vault local do usuário.\n\nEis o PREVIEW direto (Truncado) dos dados limpos recém-extraídos da internet:\n\n{}\n\nAGENTE: Baseado estritamente nestes dados in-locus, responda/analise de forma soberba a: '{}'", url_to_scrape, wag_result, user_question);
+    } else {
+        web_context = "SENSUS ENGINE ALERTA: O Comandante ativou o modo The Nurse (Deep Research) usando o botão da User Interface Web, mas esqueceu de fornecer uma URL válida (`http://` ou `https://`) na sua frase. Instrua-o cordialmente que para pesquisa profunda atuar, ele precisa citar o endereço.".to_string();
+    }
+} else if is_web {
     let query = human_prompt[4..].trim();
     
     // Detecção Inteligente de URLs passadas diretamente no prompt
