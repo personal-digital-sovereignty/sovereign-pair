@@ -3,6 +3,7 @@ export const telemetryState = $state({
     connected: false,
     tokensPerSecond: 0.0,
     avgLatencyMs: 0,
+    estimatedCost: 0,
     activeModel: 'Not Loaded',
     cpuCores: [] as number[],
     ramUsageMB: 0,
@@ -17,6 +18,7 @@ export const telemetryState = $state({
     vaultsCount: 0,
     syncedFiles: 0,
     vaultCategories: [] as string[],
+    modelsUsage: {} as Record<string, number>,
     logs: [] as string[]
 });
 
@@ -38,6 +40,8 @@ export function connectTelemetry() {
                 telemetryState.connected = true;
                 telemetryState.tokensPerSecond = data.avg_tps || 0;
                 telemetryState.avgLatencyMs = data.avg_latency_ms || 0;
+                telemetryState.estimatedCost = data.estimated_cost || 0;
+                telemetryState.modelsUsage = data.models_usage || {};
                 telemetryState.cpuCores = data.hardware?.cpu_cores || [];
                 telemetryState.ramUsageMB = data.hardware?.ram || 0;
                 telemetryState.ramTotalGB = data.hardware?.ram_total_gb || 24;

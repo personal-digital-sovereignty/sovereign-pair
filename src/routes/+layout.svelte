@@ -124,11 +124,11 @@
         <div class="flex justify-between items-end mb-1">
           <div>
             <div class="text-[10px] text-slate-500 font-medium">SYS RAM:</div>
-            <div class="text-lg font-bold leading-none text-slate-800">{telemetryState.vramUsageMB} MB <span class="text-sm font-normal text-slate-500">/ {telemetryState.ramTotalGB} GB</span></div>
+            <div class="text-lg font-bold leading-none text-slate-800">{telemetryState.ramUsageMB.toFixed(0)} MB <span class="text-sm font-normal text-slate-500">/ {telemetryState.ramTotalGB} GB</span></div>
           </div>
         </div>
         <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-          <div class="bg-indigo-400 h-full rounded-full transition-all duration-300" style="width: {Math.min(100, (telemetryState.vramUsageMB / (telemetryState.ramTotalGB * 1024)) * 100)}%"></div>
+          <div class="bg-indigo-400 h-full rounded-full transition-all duration-300" style="width: {Math.min(100, (telemetryState.ramUsageMB / (telemetryState.ramTotalGB * 1024)) * 100)}%"></div>
         </div>
       </div>
       
