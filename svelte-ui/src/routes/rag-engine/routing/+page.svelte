@@ -89,9 +89,19 @@
 </script>
 
 <!-- Header Section -->
-<header class="mb-10">
-    <h1 class="text-3xl font-extrabold tracking-tight text-on-surface mb-2 font-manrope">Model Router & Resilience</h1>
-    <p class="text-on-surface-variant text-lg max-w-2xl font-inter">Gerencie o tráfego de IA com roteamento inteligente entre modelos locais e em nuvem para otimizar custo e latência.</p>
+<header class="h-20 border-b border-slate-200/60 bg-white flex items-center px-6 shrink-0 justify-between mb-8 rounded-2xl shadow-sm border">
+    <div class="flex items-center gap-4">
+        <div class="bg-indigo-600/10 p-2.5 rounded-xl border border-indigo-100/50">
+            <svg class="w-6 h-6 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.5" r="2.5"/><path d="m10.2 6.3-3.9 3.9"/><circle cx="4.5" cy="12" r="2.5"/><path d="M7 12h10"/><circle cx="19.5" cy="12" r="2.5"/><path d="m13.8 17.7 3.9-3.9"/><circle cx="12" cy="19.5" r="2.5"/></svg>
+        </div>
+        <div class="flex flex-col">
+            <div class="flex items-center gap-2">
+                <h1 class="text-lg font-bold tracking-tight text-slate-800">Model Router & Resilience</h1>
+                <span class="px-2 py-0.5 bg-emerald-100/50 text-emerald-700 text-[9px] uppercase tracking-widest font-bold rounded-full border border-emerald-200/50">ACTIVE</span>
+            </div>
+            <span class="text-xs text-slate-500 font-medium">Gerencie o tráfego de IA com roteamento inteligente entre modelos locais e em nuvem para otimizar custo e latência.</span>
+        </div>
+    </div>
 </header>
 
 <!-- Top Grid: Routing Rules & Real-time Monitor -->
@@ -122,7 +132,7 @@
                 <div class="bg-surface-container-lowest p-5 rounded-xl flex items-center justify-between group hover:shadow-sm transition-all border border-outline-variant/10">
                     <div class="flex items-center gap-4">
                         <div class="p-3 bg-primary-container/10 text-primary rounded-lg">
-                            <span class="material-symbols-outlined">{rule.icon}</span>
+                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="16" y1="16" x2="16.01" y2="16"/></svg>
                         </div>
                         <div>
                             <p class="font-bold text-on-surface">{rule.name}</p>
@@ -130,9 +140,14 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span class="text-xs font-semibold px-2 py-1 bg-primary-fixed text-on-primary-fixed-variant rounded uppercase tracking-wider">{rule.latency_badge}</span>
-                        <button aria-label="Delete" class="material-symbols-outlined text-rose-400 hover:text-rose-600 transition-colors cursor-pointer px-1 py-1 rounded hover:bg-rose-50" onclick={() => deleteRule(rule.id)}>delete</button>
-                        <span class="material-symbols-outlined text-on-surface-variant cursor-grab active:cursor-grabbing">drag_indicator</span>
+                        <span class="text-xs font-semibold px-2 py-1 bg-primary-fixed text-on-primary-fixed-variant rounded uppercase tracking-wider mr-2">{rule.latency_badge}</span>
+                        <button aria-label="Edit" class="text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer px-1 py-1 rounded hover:bg-indigo-50" onclick={() => alert('Edição em breve')} title="Editar Regra">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
+                        <button aria-label="Delete" class="text-rose-400 hover:text-rose-600 transition-colors cursor-pointer px-1 py-1 rounded hover:bg-rose-50" onclick={() => deleteRule(rule.id)} title="Remover Regra">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        </button>
+                        <svg class="w-5 h-5 text-slate-400 cursor-grab active:cursor-grabbing ml-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"></circle><circle cx="9" cy="5" r="1"></circle><circle cx="9" cy="19" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="15" cy="5" r="1"></circle><circle cx="15" cy="19" r="1"></circle></svg>
                     </div>
                 </div>
                 {/each}
@@ -149,11 +164,11 @@
         <h3 class="text-xl font-bold text-indigo-900 mb-6 font-manrope">Monitor de Auto-Fallback</h3>
         
         <!-- Fallback Alert Card -->
-        <div class="bg-gradient-to-r from-rose-50 to-rose-100/50 border border-rose-200/60 p-5 rounded-xl mb-6 flex items-start gap-4 shadow-sm">
-            <span class="material-symbols-outlined text-rose-500 mt-0.5 animate-pulse">warning</span>
+        <div class="bg-gradient-to-r from-slate-50 to-slate-100/50 border border-slate-200/60 p-5 rounded-xl mb-6 flex items-start gap-4 shadow-sm">
+            <svg class="w-6 h-6 text-slate-400 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             <div>
-                <p class="text-sm font-bold text-rose-900">Atividade de Resiliência Detectada</p>
-                <p class="text-xs text-rose-700/80 mt-0.5">ChatGPT API Down → Redirecting to Google Gemini (Active Fallback)</p>
+                <p class="text-sm font-bold text-slate-700">All Systems Stable</p>
+                <p class="text-xs text-slate-500 mt-0.5">No automatic fallback actions detected in the last 24 hours.</p>
             </div>
         </div>
 
@@ -181,14 +196,14 @@
         <!-- Traffic Visualizer -->
         <div class="mt-8 pt-6 border-t border-slate-200/60">
             <p class="text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-widest">Tráfego em Tempo Real</p>
-            <div class="flex items-end gap-2 h-16">
-                <div class="w-full bg-indigo-200 h-[40%] rounded pointer-events-none transition-all duration-500 hover:bg-indigo-300"></div>
-                <div class="w-full bg-indigo-300 h-[60%] rounded pointer-events-none transition-all duration-500 hover:bg-indigo-400"></div>
-                <div class="w-full bg-rose-400 h-[90%] rounded pointer-events-none transition-all duration-500 opacity-80 shadow-[0_0_8px_rgba(2fb,113,133,0.4)]"></div>
-                <div class="w-full bg-indigo-500 h-[75%] rounded pointer-events-none transition-all duration-500 hover:bg-indigo-600"></div>
-                <div class="w-full bg-indigo-600 h-[85%] rounded pointer-events-none transition-all duration-500 hover:bg-indigo-700 shadow-sm"></div>
-                <div class="w-full bg-indigo-200 h-[30%] rounded pointer-events-none transition-all duration-500"></div>
-                <div class="w-full bg-indigo-400 h-[50%] rounded pointer-events-none transition-all duration-500"></div>
+            <div class="flex items-end gap-2 h-16 opacity-30 grayscale">
+                <div class="w-full bg-slate-200 h-[10%] rounded pointer-events-none transition-all duration-500"></div>
+                <div class="w-full bg-slate-200 h-[20%] rounded pointer-events-none transition-all duration-500"></div>
+                <div class="w-full bg-slate-200 h-[15%] rounded pointer-events-none transition-all duration-500"></div>
+                <div class="w-full bg-slate-200 h-[5%] rounded pointer-events-none transition-all duration-500"></div>
+                <div class="w-full bg-slate-200 h-[10%] rounded pointer-events-none transition-all duration-500"></div>
+                <div class="w-full bg-slate-200 h-[25%] rounded pointer-events-none transition-all duration-500"></div>
+                <div class="w-full bg-slate-200 h-[10%] rounded pointer-events-none transition-all duration-500"></div>
             </div>
         </div>
     </section>
@@ -202,7 +217,6 @@
             <p class="text-slate-500 text-sm mt-1">Controle custos, performance e disponibilidade de endpoints externos.</p>
         </div>
         <button onclick={() => isNewModelModalOpen = true} class="bg-indigo-50 text-indigo-700 px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-indigo-100 hover:text-indigo-800 transition-all border border-indigo-100/50 cursor-pointer">
-            <span class="material-symbols-outlined text-[20px]">add_link</span>
             Novo Modelo / API Key
         </button>
     </div>
@@ -257,7 +271,12 @@
                             <span class="px-3 py-1 bg-tertiary-container/20 text-on-tertiary-fixed-variant rounded-full text-xs font-bold uppercase mr-2">
                                 {model.status}
                             </span>
-                            <button aria-label="Delete" class="material-symbols-outlined text-rose-400 hover:text-rose-600 transition-colors cursor-pointer px-1 py-1 rounded hover:bg-rose-50 align-middle" onclick={() => deleteModel(model.id)}>delete</button>
+                            <button aria-label="Edit" class="text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer px-2 py-2 rounded hover:bg-indigo-50 align-middle" onclick={() => alert('Edição em breve')} title="Editar Modelo">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </button>
+                            <button aria-label="Delete" class="text-rose-400 hover:text-rose-600 transition-colors cursor-pointer px-2 py-2 rounded hover:bg-rose-50 align-middle" onclick={() => deleteModel(model.id)} title="Remover Modelo">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            </button>
                         </td>
                     </tr>
                     {/each}
@@ -267,13 +286,7 @@
     </div>
 </section>
 
-<!-- FAB for Command Access -->
-<div class="fixed bottom-8 right-8">
-    <button class="bg-primary text-white p-4 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-transform group">
-        <span class="material-symbols-outlined text-2xl">terminal</span>
-        <span class="max-w-0 overflow-hidden group-hover:max-w-xs group-hover:ml-3 transition-all duration-300 font-bold whitespace-nowrap">CLI Command</span>
-    </button>
-</div>
+
 
 <!-- Modals -->
 {#if isNewRuleModalOpen}
