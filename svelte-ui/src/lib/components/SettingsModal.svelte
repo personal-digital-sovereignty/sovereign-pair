@@ -15,7 +15,7 @@
 
   onMount(async () => {
       try {
-          const res = await fetch('http://localhost:38001/v1/settings/models');
+          const res = await fetch('http://localhost:38001/v1/system/available_models');
           if (res.ok) {
               const data = await res.json();
               if (data.models) availableModels = data.models;
@@ -240,7 +240,7 @@
                         <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center justify-between">
                             <span>Personality Name</span>
                             <select 
-                                onchange={(e) => applyPreset(e.target.value)}
+                                onchange={(e) => applyPreset((e.target as HTMLSelectElement).value)}
                                 class="bg-transparent border-none text-xs text-indigo-600 font-bold p-0 cursor-pointer outline-none hover:text-indigo-800 transition-colors"
                             >
                                 <option value="" disabled selected>Load Preset...</option>
