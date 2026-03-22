@@ -221,38 +221,52 @@
 
 {#if viewState === 'explorer'}
     <!-- EXPLORER VIEW (Blueprint 2) -->
-    <div class="flex-1 flex gap-4 overflow-hidden h-full">
-        <!-- Main Table Area -->
-        <div class="flex-1 bg-white/90 backdrop-blur-md rounded-xl flex flex-col overflow-hidden p-6 shadow-sm border border-slate-200">
-            <div class="flex justify-between items-center mb-6 shrink-0">
-                <h2 class="text-xl font-semibold text-slate-800">Vault Data Explorer</h2>
-                <button onclick={createNewFile} class="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+    <div class="flex flex-col h-full w-full bg-[#F4F7FA] font-sans">
+        
+        <header class="mb-6 px-10 pt-10 w-full flex items-center justify-between shrink-0">
+            <h1 class="font-extrabold text-2xl text-[#191c1d] tracking-tight flex items-center gap-3">
+                <FileText class="w-6 h-6 text-primary" />
+                Sovereign Knowledge Vault
+            </h1>
+            
+            <div class="flex items-center gap-4">
+                <!-- Search Bar -->
+                <div class="relative flex items-center bg-surface-container-low rounded-full px-4 py-2 border border-outline-variant/10 shadow-sm w-[400px]">
+                    <Search class="w-4 h-4 text-on-surface-variant mr-3" />
+                    <input type="text" placeholder="Search Sovereign Network (Names & Cmds)..." class="bg-transparent border-none text-sm font-medium text-on-surface w-full focus:outline-none placeholder:text-on-surface-variant/50" bind:value={searchQuery}>
+                    {#if searchQuery}
+                        <button onclick={() => searchQuery = ''} class="text-on-surface-variant hover:text-on-surface transition"><X class="w-4 h-4"/></button>
+                    {/if}
+                </div>
+                
+                <!-- Filter Button -->
+                <button class="flex items-center gap-2 px-4 py-2 {showAdvancedFilters ? 'bg-surface-container-lowest text-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'} rounded-xl border border-outline-variant/10 font-bold text-xs transition-colors cursor-pointer" onclick={() => showAdvancedFilters = !showAdvancedFilters}>
+                    <Filter class="w-4 h-4" /> Filter
+                </button>
+                
+                <!-- New File Action -->
+                <button onclick={createNewFile} class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors shadow-sm cursor-pointer ml-2">
                     <Plus class="w-4 h-4" /> Novo Arquivo
                 </button>
             </div>
-            
-            <div class="flex flex-col gap-3 mb-6 shrink-0 w-full max-w-2xl">
-                <div class="flex gap-3 w-full">
-                    <div class="relative flex-1 group">
-                        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                        <input type="text" placeholder="Search Sovereign Network (Names & Cmds)..." class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 shadow-sm" bind:value={searchQuery}>
-                    </div>
-                    <button class="flex items-center gap-2 px-4 py-2 {showAdvancedFilters ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-700 border-slate-200'} border rounded-md text-sm font-medium hover:bg-slate-50 shadow-sm transition-colors cursor-pointer shrink-0" onclick={() => showAdvancedFilters = !showAdvancedFilters}>
-                        <Filter class="w-4 h-4 {showAdvancedFilters ? 'text-indigo-500' : 'text-slate-400'}" /> Filter
-                    </button>
-                </div>
+        </header>
 
-                {#if showAdvancedFilters}
-                    <div class="p-3 bg-slate-50/80 border border-slate-200 rounded-lg flex items-center gap-2 text-xs overflow-x-auto shadow-inner">
-                        <span class="font-bold text-slate-500 mr-2 tracking-wide uppercase">Comandos CMD:</span>
-                        <button class="px-2.5 py-1.5 bg-white font-mono font-medium border border-slate-200 rounded-md shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors cursor-pointer" onclick={() => appendFilterCmd('tag:')}>tag:</button>
-                        <button class="px-2.5 py-1.5 bg-white font-mono font-medium border border-slate-200 rounded-md shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors cursor-pointer" onclick={() => appendFilterCmd('path:')}>path:</button>
-                        <button class="px-2.5 py-1.5 bg-white font-mono font-medium border border-slate-200 rounded-md shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors cursor-pointer" onclick={() => appendFilterCmd('status:')}>status:</button>
-                        <button class="px-2.5 py-1.5 bg-white font-mono font-medium border border-slate-200 rounded-md shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors cursor-pointer" onclick={() => appendFilterCmd('name:')}>name:</button>
-                        <div class="ml-auto text-slate-400 italic">Ex: "tag:linux path:projects/linux"</div>
-                    </div>
-                {/if}
-            </div>
+        <div class="px-10 mb-4">
+            {#if showAdvancedFilters}
+                <div class="p-3 bg-white/80 backdrop-blur-md border border-slate-200/60 rounded-xl flex items-center gap-2 text-xs overflow-x-auto shadow-sm">
+                    <span class="font-bold text-slate-500 mr-2 tracking-wide uppercase">Comandos CMD:</span>
+                    <button class="px-2.5 py-1.5 bg-white font-mono font-medium border border-slate-200 rounded-md shadow-sm hover:bg-blue-50 flex items-center hover:text-blue-600 hover:border-blue-200 transition-colors cursor-pointer" onclick={() => appendFilterCmd('tag:')}>tag:</button>
+                    <button class="px-2.5 py-1.5 bg-white font-mono font-medium border border-slate-200 rounded-md shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors cursor-pointer" onclick={() => appendFilterCmd('path:')}>path:</button>
+                    <button class="px-2.5 py-1.5 bg-white font-mono font-medium border border-slate-200 rounded-md shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors cursor-pointer" onclick={() => appendFilterCmd('status:')}>status:</button>
+                    <button class="px-2.5 py-1.5 bg-white font-mono font-medium border border-slate-200 rounded-md shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors cursor-pointer" onclick={() => appendFilterCmd('name:')}>name:</button>
+                    <div class="ml-auto text-slate-400 italic">Ex: "tag:linux path:projects/linux"</div>
+                </div>
+            {/if}
+        </div>
+
+        <div class="flex-1 flex gap-4 overflow-hidden px-10 pb-6 w-full relative">
+            <!-- Main Table Area -->
+            <div class="flex-1 bg-white/90 backdrop-blur-md rounded-xl flex flex-col overflow-hidden shadow-sm border border-slate-200/60">
 
             <div class="flex-1 overflow-auto border border-slate-100 rounded-lg shadow-inner bg-white custom-scrollbar">
                 <table class="w-full text-left text-sm whitespace-nowrap">
@@ -352,6 +366,7 @@
             </div>
         </div>
     </div>
+</div>
 {:else}
     <!-- EDITOR VIEW (Blueprint 1) with Tabs -->
     <div class="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden h-full">
