@@ -274,8 +274,8 @@
 
                     <div class="flex flex-col md:flex-row gap-4">
                         <div class="flex flex-col gap-1.5 flex-1">
-                            <label class="text-xs font-semibold text-primary-400">The Nurse (Scraping/Triage)</label>
-                            <select bind:value={aiSettings.nurse_model} class="w-full bg-surface-900 border border-surface-600 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-primary-500 transition-colors">
+                            <label for="nurse_model" class="text-xs font-semibold text-primary-400">The Nurse (Scraping/Triage)</label>
+                            <select id="nurse_model" bind:value={aiSettings.nurse_model} class="w-full bg-surface-900 border border-surface-600 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-primary-500 transition-colors">
                                 {#each availableModels as model}
                                     <option value={model.name}>{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
                                 {:else}
@@ -285,8 +285,8 @@
                         </div>
 
                         <div class="flex flex-col gap-1.5 flex-1">
-                            <label class="text-xs font-semibold text-sky-400">The Doctor (Planning/Chat)</label>
-                            <select bind:value={aiSettings.doctor_model} class="w-full bg-surface-900 border border-surface-600 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-primary-500 transition-colors">
+                            <label for="doctor_model" class="text-xs font-semibold text-sky-400">The Doctor (Planning/Chat)</label>
+                            <select id="doctor_model" bind:value={aiSettings.doctor_model} class="w-full bg-surface-900 border border-surface-600 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-primary-500 transition-colors">
                                 {#each availableModels as model}
                                     <option value={model.name}>{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
                                 {:else}
@@ -296,8 +296,8 @@
                         </div>
 
                         <div class="flex flex-col gap-1.5 flex-1">
-                            <label class="text-xs font-semibold text-rose-400">The Coder (Execution/Scripting)</label>
-                            <select bind:value={aiSettings.coder_model} class="w-full bg-surface-900 border border-surface-600 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-primary-500 transition-colors">
+                            <label for="coder_model" class="text-xs font-semibold text-rose-400">The Coder (Execution/Scripting)</label>
+                            <select id="coder_model" bind:value={aiSettings.coder_model} class="w-full bg-surface-900 border border-surface-600 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-primary-500 transition-colors">
                                 {#each availableModels as model}
                                     <option value={model.name}>{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
                                 {:else}
@@ -310,24 +310,24 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="flex flex-col gap-2">
-                        <label class="text-sm font-semibold text-surface-300 flex justify-between">
+                        <label for="temperature" class="text-sm font-semibold text-surface-300 flex justify-between">
                             <span>Temperature</span>
                             <span class="text-primary-400">{aiSettings.temperature}</span>
                         </label>
-                        <input type="range" min="0" max="1" step="0.1" bind:value={aiSettings.temperature} class="w-full accent-primary-500">
+                        <input id="temperature" type="range" min="0" max="1" step="0.1" bind:value={aiSettings.temperature} class="w-full accent-primary-500">
                     </div>
                     
                     <div class="flex flex-col gap-2">
-                        <label class="text-sm font-semibold text-surface-300 flex justify-between">
+                        <label for="top_k" class="text-sm font-semibold text-surface-300 flex justify-between">
                             <span>Top-K Sampling</span>
                             <span class="text-primary-400">{aiSettings.top_k}</span>
                         </label>
-                        <input type="range" min="1" max="100" step="1" bind:value={aiSettings.top_k} class="w-full accent-primary-500">
+                        <input id="top_k" type="range" min="1" max="100" step="1" bind:value={aiSettings.top_k} class="w-full accent-primary-500">
                     </div>
                 </div>
 
                 <div class="flex flex-col gap-2 relative">
-                    <label class="text-sm font-semibold text-surface-300 flex justify-between items-center">
+                    <label for="system_prompt" class="text-sm font-semibold text-surface-300 flex justify-between items-center">
                         Global System Prompt (Persona Override)
                         <select onchange={(e) => aiSettings.system_prompt = (e.target as HTMLSelectElement).value} class="bg-surface-800 border-none text-xs text-primary-400 focus:outline-none cursor-pointer p-1">
                             <option value="">Load Template...</option>
@@ -336,7 +336,7 @@
                             {/each}
                         </select>
                     </label>
-                    <textarea bind:value={aiSettings.system_prompt} placeholder="Leave empty for generic The Nurse system logic..." rows="3" class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2 text-surface-200 outline-none focus:border-primary-500 transition-colors resize-none"></textarea>
+                    <textarea id="system_prompt" bind:value={aiSettings.system_prompt} placeholder="Leave empty for generic The Nurse system logic..." rows="3" class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2 text-surface-200 outline-none focus:border-primary-500 transition-colors resize-none"></textarea>
                 </div>
 
                 <button onclick={saveAiSettings} class="mt-2 flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-500 text-white py-2 rounded-lg transition-colors shadow-lg shadow-primary-500/20 font-medium cursor-pointer">

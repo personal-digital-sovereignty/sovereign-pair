@@ -2,7 +2,7 @@
   import '../app.css';
   import { globalState } from '$lib/state.svelte.js';
   import { telemetryState, connectTelemetry, disconnectTelemetry } from '$lib/telemetry.svelte';
-  import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, Activity, Database, Bell, Network } from 'lucide-svelte';
+  import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, Activity, Database, Bell, Network, User } from 'lucide-svelte';
   import { page } from '$app/state';
   import { onMount, onDestroy } from 'svelte';
   import InlineSpotlight from '$lib/components/InlineSpotlight.svelte';
@@ -202,8 +202,9 @@
         </button>
         <div class="h-6 w-px bg-slate-200 mr-4"></div>
         <div class="flex items-center">
-          <!-- Fallback avatar if no live data -->
-          <img alt="System Operator" class="w-8 h-8 rounded-full object-cover border-2 border-slate-100 mr-3 hidden sm:block" src="https://ui-avatars.com/api/?name=Admin&background=e2e8f0&color=334155" />
+          <div class="w-9 h-9 rounded-full bg-slate-900 border-[1.5px] border-indigo-400/50 flex items-center justify-center mr-3 hidden sm:flex shrink-0 shadow-[0_0_15px_rgba(99,102,241,0.2)]" title="System Operator">
+             <User class="w-5 h-5 text-indigo-300" />
+          </div>
           <div class="flex flex-col pr-2">
             <span class="text-sm font-bold text-slate-800 leading-none mb-1">{settingsState.userName}</span>
             <span class="text-[10px] text-slate-500 leading-none tracking-widest uppercase">{settingsState.userProfession}</span>
