@@ -1,4 +1,24 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
+
+    let logs = $state<string[]>([]);
+    let eventSource: EventSource;
+    let logContainer: HTMLElement;
+
+    onMount(() => {
+        eventSource = new EventSource('http://localhost:38001/v1/trainer/unsloth-monitor');
+        
+        eventSource.onmessage = (event) => {
+            logs.push(event.data);
+            if (logContainer) {
+                setTimeout(() => logContainer.scrollTop = logContainer.scrollHeight, 50);
+            }
+        };
+
+        return () => {
+            if (eventSource) eventSource.close();
+        };
+    });
 </script>
 
 <div class="p-8 h-full flex flex-col relative w-full">
@@ -163,20 +183,15 @@
                 </div>
                 
                 <!-- Terminal Output -->
-                <div class="flex-1 overflow-y-auto p-6 font-mono text-[13px] leading-loose custom-scrollbar bg-[#1a1b26] space-y-1.5 shadow-inner">
-                    <p class="text-[#565f89]">[2023-11-24 14:02:11] <span class="text-[#9ece6a] font-bold">INFO</span> Loading model Llama-3-8B-Instruct-v0.1...</p>
-                    <p class="text-[#565f89]">[2023-11-24 14:02:15] <span class="text-[#9ece6a] font-bold">INFO</span> Applying 4-bit quantization...</p>
-                    <p class="text-[#565f89]">[2023-11-24 14:02:22] <span class="text-[#bb9af7] font-bold">STAGE</span> Epoch 1 Complete. Accuracy: 0.824</p>
-                    <div class="my-3 border-l-2 border-[#565f89] pl-3">
-                        <p class="text-[#565f89]">[2023-11-24 14:02:45] <span class="text-[#7aa2f7] font-bold">STEP</span> [1102/5000] Loss: 1.482 | Grad Norm: 0.52</p>
-                        <p class="text-[#565f89]">[2023-11-24 14:03:02] <span class="text-[#7aa2f7] font-bold">STEP</span> [1124/5000] Loss: 1.411 | Grad Norm: 0.49</p>
-                        <p class="text-[#565f89]">[2023-11-24 14:03:18] <span class="text-[#7aa2f7] font-bold">STEP</span> [1148/5000] Loss: 1.365 | Grad Norm: 0.47</p>
-                        <p class="text-[#565f89]">[2023-11-24 14:03:35] <span class="text-[#7aa2f7] font-bold">STEP</span> [1170/5000] Loss: 1.320 | Grad Norm: 0.46</p>
-                        <p class="text-[#565f89]">[2023-11-24 14:03:52] <span class="text-[#7aa2f7] font-bold">STEP</span> [1192/5000] Loss: 1.288 | Grad Norm: 0.46</p>
-                    </div>
-                    <p class="text-slate-200"><span class="text-[#565f89]">[2023-11-24 14:04:09]</span> <span class="text-[#7aa2f7] font-bold">STEP</span> [1214/5000] Loss: 1.241 | Grad Norm: 0.45</p>
-                    <p class="text-slate-200 animate-pulse flex items-center gap-2">
-                        <span class="text-[#565f89]">[2023-11-24 14:04:26]</span> <span class="text-[#7aa2f7] font-bold">STEP</span> [1236/5000] Processing
+                <div bind:this={logContainer} class="flex-1 overflow-y-auto p-6 font-mono text-[13px] leading-loose custom-scrollbar bg-[#1a1b26] space-y-1.5 shadow-inner">
+                    {#each logs as log}
+                        <p class="text-[#565f89]"><span class="text-[#7aa2f7] font-bold">LOG</span> {log}</p>
+                    {/each}
+                    {#if logs.length === 0}
+                        <p class="text-slate-500 animate-pulse">Awaiting Unsloth Engine connection...</p>
+                    {/if}
+                    <p class="text-slate-200 animate-pulse flex items-center gap-2 mt-4">
+                        <span class="text-[#565f89]">[Live]</span> <span class="text-[#7aa2f7] font-bold">SYSTEM</span> Processing
                         <span class="flex gap-1">
                             <span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span>
                             <span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
