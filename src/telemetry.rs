@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashMap};
 use sysinfo::{System, Networks};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,6 +19,7 @@ pub struct TelemetrySnapshot {
     pub avg_tps: f64,
     pub avg_latency_ms: u128,
     pub estimated_cost: f64,
+    pub models_usage: HashMap<String, usize>,
     pub hardware: HardwareSnapshot,
 }
 
@@ -27,6 +28,7 @@ pub struct TelemetryState {
     pub estimated_cost: f64,
     // Buffer para armazenar as ultimas N sessoes (tokens, millis)
     recent_sessions: VecDeque<(usize, u128)>,
+    pub models_usage: HashMap<String, usize>,
     
     // Hardware Sensors (Requires mutable access for diffing)
     pub sys: System,
@@ -85,6 +87,7 @@ impl TelemetryState {
             total_tokens: 0,
             estimated_cost: 0.0,
             recent_sessions: VecDeque::with_capacity(10),
+            models_usage: HashMap::new(),
             sys,
             networks,
             gpu_name,
@@ -98,8 +101,15 @@ impl TelemetryState {
         let mut cost_per_1k = 0.0150;
         if model.to_lowercase().contains("gpt-4") {
             cost_per_1k = 0.0300;
+        } else if model.to_lowercase().contains("claude") {
+            cost_per_1k = 0.0150;
+        } else {
+            // Local Models (Free)
+            cost_per_1k = 0.0;
         }
         self.estimated_cost += (tokens as f64 / 1000.0) * cost_per_1k;
+
+        *self.models_usage.entry(model.to_string()).or_insert(0) += tokens;
         
         // Mantém apenas as ultimas 10 interacoes para média móvel TPS
         if self.recent_sessions.len() >= 10 {
@@ -158,6 +168,7 @@ impl TelemetryState {
             avg_tps: (tps * 100.0).round() / 100.0, // Arredonda 2 casas
             avg_latency_ms: avg_latency,
             estimated_cost: (self.estimated_cost * 10000.0).round() / 10000.0,
+            models_usage: self.models_usage.clone(),
             hardware: HardwareSnapshot {
                 cpu_cores,
                 ram_usage_mb: (ram_usage_mb * 100.0).round() / 100.0,
