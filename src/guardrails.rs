@@ -12,7 +12,49 @@ pub struct SecurityEvent {
 
 /// Verifica um prompt do usuário contra políticas de segurança.
 /// Retorna `Err(SecurityEvent)` se uma violação agressiva for identificada.
-pub fn evaluate_prompt(prompt: &str) -> Result<(), SecurityEvent> {
+use sqlx::Row;
+
+pub async fn evaluate_prompt(prompt: &str, db: &sqlx::SqlitePool) -> Result<(), SecurityEvent> {
+    // DB-Driven Custom Guardrails
+    if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'system_settings'").fetch_optional(db).await {
+        let val: String = row.get("value_json");
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&val) {
+            if let Some(guardrails) = parsed.get("guardrails").and_then(|v| v.as_array()) {
+                for rule in guardrails {
+                    let rule_type = rule.get("type").and_then(|v| v.as_str()).unwrap_or("");
+                    let rule_value = rule.get("value").and_then(|v| v.as_str()).unwrap_or("");
+                    let desc = rule.get("description").and_then(|v| v.as_str()).unwrap_or("");
+                    
+                    if rule_value.is_empty() { continue; }
+
+                    if rule_type == "keyword" {
+                        if prompt.to_lowercase().contains(&rule_value.to_lowercase()) {
+                            return Err(SecurityEvent {
+                                event_type: "Keyword Blocked".to_string(),
+                                severity: "Critical".to_string(),
+                                blocked: true,
+                                message: format!("Custom rule '{}' blocked this interaction.", desc),
+                                source: "DevSecOps".to_string()
+                            });
+                        }
+                    } else if rule_type == "regex" {
+                        if let Ok(re) = regex::Regex::new(rule_value) {
+                            if re.is_match(prompt) {
+                                return Err(SecurityEvent {
+                                    event_type: "Regex Blocked".to_string(),
+                                    severity: "Critical".to_string(),
+                                    blocked: true,
+                                    message: format!("Custom regex '{}' triggered.", desc),
+                                    source: "DevSecOps".to_string()
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     let prompt_lower = prompt.to_lowercase();
 
     // 1. Jailbreak / Prompt Injection Patterns
