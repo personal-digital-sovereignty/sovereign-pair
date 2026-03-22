@@ -118,6 +118,39 @@ pub async fn set_ollama_clusters_handler(
     Json(serde_json::json!({"status": "ok"})).into_response()
 }
 
+/// Rota GET /v1/settings/searxng - Carrega instâncias P2P
+pub async fn get_searxng_nodes_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let result = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'searxng_nodes'")
+        .fetch_optional(&state.db)
+        .await;
+
+    match result {
+        Ok(Some(row)) => {
+            let val: String = row.get("value_json");
+            let parsed: Value = serde_json::from_str(&val).unwrap_or(serde_json::json!([]));
+            Json(parsed).into_response()
+        },
+        _ => {
+            // Emite o Array Vazio para evitar Crash Parser
+            Json(serde_json::json!([])).into_response()
+        }
+    }
+}
+
+/// Rota POST /v1/settings/searxng - Salva Frota de Crawlers Híbridos
+pub async fn set_searxng_nodes_handler(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<Value>,
+) -> impl IntoResponse {
+    let json_str = serde_json::to_string(&payload).unwrap_or_else(|_| "[]".to_string());
+    let _ = sqlx::query("INSERT INTO global_settings (id, value_json) VALUES ('searxng_nodes', ?) ON CONFLICT(id) DO UPDATE SET value_json = excluded.value_json")
+        .bind(json_str)
+        .execute(&state.db)
+        .await;
+        
+    Json(serde_json::json!({"status": "ok"})).into_response()
+}
+
 // ==========================================
 // THE ROAMING ARCHITECTURE: O.S IMP/EXP
 // ==========================================

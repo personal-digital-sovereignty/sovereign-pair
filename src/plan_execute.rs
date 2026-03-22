@@ -5,10 +5,10 @@ use tracing::error;
 
 pub async fn start_plan_and_execute(
     query: String,
-    vault_path: std::path::PathBuf,
-    db: sqlx::SqlitePool,
-    log_sender: broadcast::Sender<LogEntry>,
+    state: std::sync::Arc<crate::AppState>,
 ) {
+    let log_sender = state.log_sender.clone();
+    let db = state.db.clone();
     let _ = log_sender.send(LogEntry {
         timestamp: chrono::Utc::now().to_rfc3339(),
         level: "agent".to_string(),
@@ -108,7 +108,7 @@ VOCÊ NÃO PODE RESPONDER NADA ALÉM DO JSON.
                                                     message: format!("🔓 Autorização MCP Acionada: Agente invocou ferramenta [{}]", name),
                                                 });
 
-                                                let mcp_result = crate::mcp::execute_mcp_tool(&vault_path, name, &arguments).await;
+                                                let mcp_result = crate::mcp::execute_mcp_tool(&state, name, &arguments).await;
                                                 aggregated_results.push_str(&format!("\n[Ação de FileSystem MCP do Step {}]: {}\n", i + 1, mcp_result));
                                             }
                                         }
