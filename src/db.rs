@@ -106,6 +106,46 @@ pub async fn init_pool() -> SqlitePool {
             source TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS routing_rules (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            target_model TEXT NOT NULL,
+            latency_badge TEXT NOT NULL,
+            icon TEXT NOT NULL,
+            is_active BOOLEAN DEFAULT 1,
+            order_index INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS knowledge_gaps (
+            id TEXT PRIMARY KEY,
+            query TEXT NOT NULL,
+            frequency INTEGER DEFAULT 1,
+            context TEXT NOT NULL,
+            sentiment TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS evaluations (
+            id TEXT PRIMARY KEY,
+            conversation_id TEXT NOT NULL,
+            user_query TEXT NOT NULL,
+            rag_context TEXT NOT NULL,
+            ai_response TEXT NOT NULL,
+            faithfulness_score INTEGER DEFAULT 0,
+            precision_score INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS remote_models (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            provider TEXT NOT NULL,
+            icon_url TEXT,
+            latency_ms INTEGER DEFAULT 0,
+            cost_per_1k REAL DEFAULT 0.0,
+            success_rate REAL DEFAULT 1.0,
+            status TEXT DEFAULT 'Operational',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
                  "
     ).execute(&pool).await;
 
