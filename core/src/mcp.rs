@@ -99,7 +99,8 @@ fn validate_safe_path(vault_root: &Path, target: &str) -> std::io::Result<PathBu
 }
 
 /// Resolutor unificado (O Executante) de todas as capacidades MCP providenciadas ao Ollama  
-pub async fn execute_mcp_tool(vault_root: &Path, tool_name: &str, args: &serde_json::Value) -> String {
+pub async fn execute_mcp_tool(state: &std::sync::Arc<crate::AppState>, tool_name: &str, args: &serde_json::Value) -> String {
+    let vault_root = &state.vault_path;
     match tool_name {
         "mcp_list_directory" => {
             let path_str = args.get("path").and_then(|v| v.as_str()).unwrap_or("");
@@ -148,7 +149,7 @@ pub async fn execute_mcp_tool(vault_root: &Path, tool_name: &str, args: &serde_j
             if url_str.is_empty() {
                 return "MCP Error: URL param is strictly required for Web Augmented Generation.".to_string();
             }
-            let engine = crate::research::DeepResearchEngine::new();
+            let engine = crate::research::DeepResearchEngine::new(Some(state.db.clone()));
             match engine.scrape_url(url_str).await {
                 Ok(markdown) => {
                     let slug = url_str.replace("https://", "").replace("http://", "").replace("/", "_");

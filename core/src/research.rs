@@ -7,17 +7,18 @@ use regex::Regex;
 /// Blindada via Rust para injetar contexto externo ao RAG Cíbrido.
 pub struct DeepResearchEngine {
     client: Client,
+    db_pool: Option<sqlx::SqlitePool>,
 }
 
 impl DeepResearchEngine {
-    pub fn new() -> Self {
+    pub fn new(db_pool: Option<sqlx::SqlitePool>) -> Self {
         let client = Client::builder()
             .timeout(Duration::from_secs(15))
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
             .build()
             .unwrap_or_else(|_| Client::new());
 
-        Self { client }
+        Self { client, db_pool }
     }
 
     /// Realiza a varredura e o scrape profundo da URL alvo.
@@ -77,6 +78,162 @@ impl DeepResearchEngine {
         
         markdown
     }
+
+    /// Dispara a busca Multi-Hop com tolerância impecável a falhas WAF/Cloudflare.
+    /// Estratégia 1: DuckDuckGo HTML Nativo (Light DOM)
+    /// Estratégia 2: Rotação Cíbrida Global de SearxNGs
+    pub async fn search_web(&self, query: &str) -> Result<Vec<String>, String> {
+        tracing::info!("🔍 [WAG] Inicializando Busca Autônoma Deep Research (Dual-Engine) por: '{}'", query);
+        
+        // 1. O SOVEREIGN PARSER: Tenta raspar a página retro do DuckDuckGo (Estratégia 1)
+        match self.search_ddg_html(query).await {
+            Ok(links) if !links.is_empty() => {
+                tracing::info!("✅ [WAG] Busca Nativa DGG HTML Bem-Sucedida! ({}) links ancorados.", links.len());
+                return Ok(links);
+            },
+            Err(e) => {
+                let msg = format!("⚠️ [WAG Fallback] Falha catastrófica ou bloqueio WAF agressivo no DuckDuckGo: {}", e);
+                tracing::warn!("{}", msg);
+                if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open("deep_research_waf_audit.log") {
+                    use std::io::Write;
+                    let _ = writeln!(&mut file, "[Deep Research Agent] {}", msg);
+                }
+            },
+            _ => {
+                let msg = "⚠️ [WAG Fallback] DuckDuckGo retornou 0 links limpos (WAF/Cloudflare invisível travou a listagem).";
+                tracing::warn!("{}", msg);
+                if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open("deep_research_waf_audit.log") {
+                    use std::io::Write;
+                    let _ = writeln!(&mut file, "[Deep Research Agent] {}", msg);
+                }
+            }
+        }
+
+        // 2. O FALLBACK SOBERANO: Motores de Busca Descentralizados P2P (Estratégia 2)
+        match self.search_searxng_public(query).await {
+            Ok(links) if !links.is_empty() => {
+                tracing::info!("✅ [WAG] Busca Cíbrida SearxNG Bem-Sucedida! ({}) links ancorados.", links.len());
+                return Ok(links);
+            },
+            Err(e) => {
+                tracing::error!("❌ [WAG Fim de Linha] WAF Absoluto. Nenhuma instância pública do SearxNG sobreviveu. Erro: {}", e);
+                return Err(format!("Dual-Engine Crash. WAF Block total ativo na malha. {}", e));
+            },
+            _ => {
+                return Err("Dual-Engine não achou nenhum resultado útil para a query.".to_string());
+            }
+        }
+    }
+
+    /// Extrator 100% Nativo no Rust que burla bloqueios massivos do DDG acessando sua rede retro HTML.
+    async fn search_ddg_html(&self, query: &str) -> Result<Vec<String>, String> {
+        let url = format!("https://html.duckduckgo.com/html/?q={}", urlencoding::encode(query));
+        
+        let req = self.client.get(&url)
+            .header("Accept-Language", "en-US,en;q=0.5")
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            .header("DNT", "1")
+            .send()
+            .await.map_err(|e| format!("Network Erro ao contatar html.duckduckgo.com: {}", e))?;
+
+        if !req.status().is_success() {
+            return Err(format!("Interceptado por HTTP Status {}", req.status()));
+        }
+
+        let html = req.text().await.map_err(|e| format!("Falha de Decodificação DOM: {}", e))?;
+        
+        if html.contains("CAPTCHA") || html.contains("To continue") || html.contains("cloudflare") {
+            return Err("Honeypot/Captcha nativo engatilhado na camada HTML do DuckDuckGo".to_string());
+        }
+
+        let document = Html::parse_document(&html);
+        let selector = Selector::parse("a.result__snippet").unwrap_or_else(|_| Selector::parse("a.result__url").unwrap());
+        
+        let mut links = Vec::new();
+        for element in document.select(&selector) {
+            if let Some(href_attr) = element.value().attr("href") {
+                if href_attr.starts_with("http") && !href_attr.contains("duckduckgo.com") {
+                    links.push(href_attr.to_string());
+                } else if href_attr.contains("uddg=") {
+                    // Reverse-engineering do token de redirecionamento nativo do DuckDuckGo
+                    let parts: Vec<&str> = href_attr.split("uddg=").collect();
+                    if parts.len() > 1 {
+                        let inner = parts[1].split('&').next().unwrap_or("");
+                        if let Ok(decoded) = urlencoding::decode(inner) {
+                            links.push(decoded.into_owned());
+                        }
+                    }
+                }
+            }
+        }
+
+        links.dedup();
+        links.truncate(5); // Retorna estritamente o Top 5
+        Ok(links)
+    }
+
+    /// Rotação autônoma que pula em instâncias OpenSource pelo mundo pedindo ajuda via API JSON.
+    async fn search_searxng_public(&self, query: &str) -> Result<Vec<String>, String> {
+        let mut instances = vec![
+            "https://paulgo.io".to_string(), 
+            "https://searx.be".to_string(), 
+            "https://search.bus-hit.me".to_string(),
+            "https://search.nadeko.net".to_string(),
+            "https://searx.daetalytica.io".to_string()
+        ];
+
+        // Se o banco Cíbrido estiver acoplado, verifique os IPs configurados pelo usuário
+        if let Some(pool) = &self.db_pool {
+            if let Ok(json_str) = sqlx::query_scalar::<_, String>("SELECT value_json FROM global_settings WHERE id = 'searxng_nodes'")
+                .fetch_one(pool)
+                .await 
+            {
+                if let Ok(parsed) = serde_json::from_str::<Vec<String>>(&json_str) {
+                    if !parsed.is_empty() {
+                        instances = parsed;
+                        tracing::info!("🔗 [SearxNG] {} Nodes Customizados de Busca carregados do Sensus Vault!", instances.len());
+                    }
+                }
+            }
+        }
+
+        let mut last_error = String::new();
+
+        for base_url in instances {
+            tracing::info!("🔄 [SearxNG Agent] Simulando tráfego na instância P2P: {}", base_url);
+            let url = format!("{}/search?q={}&format=json", base_url, urlencoding::encode(query));
+            
+            let req = self.client.get(&url).send().await;
+            
+            match req {
+                Ok(response) => {
+                    if response.status().is_success() {
+                        if let Ok(json_data) = response.json::<serde_json::Value>().await {
+                            if let Some(results) = json_data.get("results").and_then(|r| r.as_array()) {
+                                let mut links = Vec::new();
+                                for res in results {
+                                    if let Some(url_str) = res.get("url").and_then(|u| u.as_str()) {
+                                        links.push(url_str.to_string());
+                                    }
+                                }
+                                links.truncate(5);
+                                return Ok(links);
+                            }
+                        }
+                    } else {
+                        tracing::debug!("Instância {} fechou as portas HTTP {}", base_url, response.status());
+                        last_error = format!("HTTP {}", response.status());
+                    }
+                },
+                Err(e) => {
+                    tracing::debug!("Rede hostil em {}: {}", base_url, e);
+                    last_error = e.to_string();
+                }
+            }
+        }
+
+        Err(format!("A armadura caiu. O WAF destruiu todas as 5 instâncias. Último vestígio: {}", last_error))
+    }
 }
 
 #[cfg(test)]
@@ -85,7 +242,7 @@ mod tests {
 
     #[test]
     fn test_html_to_markdown_sanitization() {
-        let engine = DeepResearchEngine::new();
+        let engine = DeepResearchEngine::new(None);
         let html_mock = r#"
             <!DOCTYPE html>
             <html>

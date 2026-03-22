@@ -176,12 +176,10 @@ if human_prompt.to_lowercase().starts_with("/plan") {
     let query = human_prompt[5..].trim().to_string();
     info!("🧠 [Sovereign Core] Plan & Execute Task detectada: /plan -> Iniciando Macro Orquestração em Background...");
     
-    let db_clone = state.db.clone();
-    let log_tx_clone = state.log_sender.clone();
-    let vault_clone = state.vault_path.clone();
+    let state_clone = state.clone();
     
     tokio::spawn(async move {
-        crate::plan_execute::start_plan_and_execute(query, vault_clone, db_clone, log_tx_clone).await;
+        crate::plan_execute::start_plan_and_execute(query, state_clone).await;
     });
 
     let msg = "🧭 **Plan & Execute (Macro-Orquestração) Iniciado!**\nSua tarefa foi inserida no Threadpool Assíncrono do Cíbrido. O Planner irá quebrar seu pedido em etapas menores, validará nativamente na formatação strict JSON, e o Executor cuidará de cada etapa seqüencialmente sem travar seu terminal. \n\n*Acompanhe o Plasma Widget ou Logs para ver a orquestração em andamento!*".to_string();
@@ -231,11 +229,132 @@ if payload.deep_research.unwrap_or(false) {
     if !url_to_scrape.is_empty() {
         tracing::info!("🕸️ [WAG Native] O botão 'Deep Research' estava ATIVO na UI. Acionando raspagem perene p/ {}", url_to_scrape);
         let wag_args = serde_json::json!({ "url": url_to_scrape });
-        let wag_result = crate::mcp::execute_mcp_tool(&state.vault_path, "mcp_deep_research", &wag_args).await;
+        let wag_result = crate::mcp::execute_mcp_tool(&state, "mcp_deep_research", &wag_args).await;
         
         web_context = format!("INSTRUÇÃO SISTÊMICA (DEEP RESEARCH/WAG): O motor de Agentic Web-Scraping leu a URL solicitada ({}) e a salvou fisicamente na Sensus Database Vault local do usuário.\n\nEis o PREVIEW direto (Truncado) dos dados limpos recém-extraídos da internet:\n\n{}\n\nAGENTE: Baseado estritamente nestes dados in-locus, responda/analise de forma soberba a: '{}'", url_to_scrape, wag_result, user_question);
     } else {
-        web_context = "SENSUS ENGINE ALERTA: O Comandante ativou o modo The Nurse (Deep Research) usando o botão da User Interface Web, mas esqueceu de fornecer uma URL válida (`http://` ou `https://`) na sua frase. Instrua-o cordialmente que para pesquisa profunda atuar, ele precisa citar o endereço.".to_string();
+        tracing::info!("🧠 [WAG Multi-Hop] Nenhuma URL explícita no prompt. Iniciando Deep Research Agentico (Sub-Processo LLM) para Múltiplas Visões: '{}'", user_question);
+        
+        // 1. Notifica o Frontend que o Loop Começou
+        let _ = state.log_sender.send(crate::models::LogEntry {
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            level: "agent".to_string(),
+            message: "🧠 [Deep Research] Acionando O Doutrinador (Sub-LLM) para quebrar sua pergunta em Múltiplas Queries Analíticas...".to_string(),
+        });
+
+        let query_system_prompt = "Você é o Agente Doutrinador de Buscas Profundas. Dado o pedido do usuário, crie exatamente 3 strings de pesquisa distintas para vasculhar a internet profundamente a respeito do tema. Foque em perspectivas analíticas. Retorne EXATAMENTE UM ARRAY JSON de strings, sem NENHUM texto extra. Exemplo: [\"query1\", \"query2\", \"query3\"]";
+        
+        let llm_payload = serde_json::json!({
+            "model": requested_model.clone(),
+            "messages": [
+                { "role": "system", "content": query_system_prompt },
+                { "role": "user", "content": human_prompt }
+            ],
+            "format": "json",
+            "stream": false,
+            "options": { "temperature": 0.2 }
+        });
+
+        // Resolve a Conexão Dinâmica do Ollama via SQLite O.S
+        let mut sub_ollama_url = "http://127.0.0.1:11434".to_string();
+        if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'ollama_clusters'").fetch_optional(&state.db).await {
+            let val: String = sqlx::Row::get(&row, "value_json");
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&val) {
+                let active_id = parsed.get("active_cluster_id").and_then(|v| v.as_str()).unwrap_or("");
+                if let Some(clusters) = parsed.get("clusters").and_then(|v| v.as_array()) {
+                    for c in clusters {
+                        if c.get("id").and_then(|v| v.as_str()).unwrap_or("") == active_id {
+                            if let Some(url) = c.get("url").and_then(|v| v.as_str()) {
+                                sub_ollama_url = url.trim_end_matches('/').to_string();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if sub_ollama_url == "http://host.docker.internal:11434" && std::env::var("SOVEREIGN_RUN_ENV").unwrap_or_default() == "native" {
+            sub_ollama_url = "http://127.0.0.1:11434".to_string();
+        }
+
+        let query_endpoint = format!("{}/api/chat", sub_ollama_url);
+        let mut extracted_queries = Vec::new();
+
+        if let Ok(res) = state.http_client.post(&query_endpoint).json(&llm_payload).timeout(std::time::Duration::from_secs(30)).send().await {
+            if let Ok(json_res) = res.json::<serde_json::Value>().await {
+                if let Some(content) = json_res.get("message").and_then(|m| m.get("content").and_then(|c| c.as_str())) {
+                    if let Ok(queries) = serde_json::from_str::<Vec<String>>(content) {
+                        extracted_queries = queries;
+                    }
+                }
+            }
+        }
+
+        if extracted_queries.is_empty() {
+            tracing::warn!("⚠️ [WAG Multi-Hop] Sub-LLM falhou no Strict JSON. Fallback para Query Direta.");
+            extracted_queries = vec![user_question.clone()];
+        }
+
+        let _ = state.log_sender.send(crate::models::LogEntry {
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            level: "agent".to_string(),
+            message: format!("📡 [Deep Research] 3 Queries Forjadas: {:?}. Lançando {} Spiders Concurrentes à Malha SearxNG...", extracted_queries, extracted_queries.len()),
+        });
+
+        let engine = std::sync::Arc::new(crate::research::DeepResearchEngine::new(Some(state.db.clone())));
+        
+        let mut search_handles = Vec::new();
+        // Dispara Paralelizações puras no CPU
+        for q in extracted_queries {
+            let engine_clone = engine.clone();
+            let q_clone = q.clone();
+            search_handles.push(tokio::spawn(async move {
+                engine_clone.search_web(&q_clone).await
+            }));
+        }
+
+        let mut all_links = Vec::new();
+        for res in futures_util::future::join_all(search_handles).await {
+            if let Ok(Ok(links)) = res {
+                all_links.extend(links);
+            }
+        }
+        all_links.sort();
+        all_links.dedup();
+        all_links.truncate(6); // Poda agressiva p/ não atolar a KV Cache GPU!
+
+        let _ = state.log_sender.send(crate::models::LogEntry {
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            level: "agent".to_string(),
+            message: format!("🕸️ [Deep Research] Capturado top {} Master-URLs. Lendo simultaneamente de {} IPs Cíbridos...", all_links.len(), all_links.len()),
+        });
+
+        let mut scrape_handles = Vec::new();
+        for link in all_links {
+            let engine_clone = engine.clone();
+            scrape_handles.push(tokio::spawn(async move {
+                let markdown = engine_clone.scrape_url(&link).await.unwrap_or_else(|_| String::new());
+                (link, markdown)
+            }));
+        }
+
+        let mut master_dossier = String::new();
+        for res in futures_util::future::join_all(scrape_handles).await {
+            if let Ok((link, mut markdown)) = res {
+                if markdown.len() > 100 {
+                    markdown.truncate(4000); // 4KB por página x 6 = 24KB seguro dentro da GPU local (8B Contexto Mínimo Llama3).
+                    // Cortar quebra uma formatação. Tratamento leviano p/ velocidade.
+                    master_dossier.push_str(&format!("## Origem Escaneada Profundamente: {}\n{}\n\n", link, markdown));
+                }
+            }
+        }
+
+        let _ = state.log_sender.send(crate::models::LogEntry {
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            level: "agent".to_string(),
+            message: "✅ [Deep Research] Dossiê Multi-Site Concluído Massivamente! Despejando Relatório Estratégico no Córtex Principal.".to_string(),
+        });
+
+        web_context = format!("INSTRUÇÃO SISTÊMICA (MULTI-HOP DEEP RESEARCH): O motor Sovereign disparou Sub-Agentes que leram simultaneamente as visões e dados de dezenas páginas globais sobre a missão do usuário.\n\nEis o Dossiê Massivo (truncado em blocos para caber na memória) gerado em tempo-real para você:\n\n{}\n\nAGENTE CHEFE: Baseado ESTRITAMENTE E APENAS na visão transversal deste dossiê recém extraído, estruture uma resposta madura, profunda e com autoridade para: '{}'. Sempre referencie a Origem Escaneada (URL) no seu texto livremente.", master_dossier, user_question);
     }
 } else if is_web {
     let query = human_prompt[4..].trim();

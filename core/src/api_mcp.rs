@@ -161,7 +161,7 @@ async fn handle_rpc_method(state: &Arc<AppState>, req: JsonRpcRequest) -> JsonRp
             let arguments = params.get("arguments").cloned().unwrap_or(serde_json::json!({}));
             
             // Invoca a Sandbox do Sovereign Core
-            let result_str = crate::mcp::execute_mcp_tool(&state.vault_path, name, &arguments).await;
+            let result_str = crate::mcp::execute_mcp_tool(state, name, &arguments).await;
             
             return JsonRpcResponse {
                 jsonrpc: "2.0".to_string(),
