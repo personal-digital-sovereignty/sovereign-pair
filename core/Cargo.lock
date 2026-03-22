@@ -2837,7 +2837,7 @@ dependencies = [
 
 [[package]]
 name = "sovereign-core"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "aes-gcm",
  "async-recursion",
