@@ -54,23 +54,29 @@
     };
 </script>
 
-<header class="mb-10">
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-            <span class="text-indigo-600 font-bold text-xs tracking-widest uppercase">Intelligence Report</span>
-            <h2 class="font-headline font-extrabold text-4xl text-slate-800 mt-2 tracking-tight font-manrope">Quality & Alignment</h2>
-            <p class="text-slate-500 max-w-md mt-2 font-inter text-lg">Monitor RAG performance, detect hallucination patterns, and bridge organizational knowledge gaps.</p>
+<header class="h-20 border-b border-slate-200/60 bg-white flex items-center px-6 shrink-0 justify-between mb-8 rounded-2xl shadow-sm border">
+    <div class="flex items-center gap-4">
+        <div class="bg-emerald-600/10 p-2.5 rounded-xl border border-emerald-100/50">
+            <svg class="w-6 h-6 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
         </div>
-        <div class="flex items-center gap-3">
-            <div class="bg-indigo-50 px-4 py-2 rounded-xl flex items-center gap-2 border border-indigo-100/50">
-                <div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
-                <span class="text-xs font-bold text-indigo-700">System Optimal</span>
+        <div class="flex flex-col">
+            <div class="flex items-center gap-2">
+                <h1 class="text-lg font-bold tracking-tight text-slate-800">Quality & Alignment</h1>
+                <span class="px-2 py-0.5 bg-indigo-100/50 text-indigo-700 text-[9px] uppercase tracking-widest font-bold rounded-full border border-indigo-200/50">REPORT</span>
             </div>
-            <button class="bg-white shadow-sm border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-2 hover:bg-slate-50 transition-colors">
-                <span class="material-symbols-outlined text-sm">download</span>
-                Export PDF
-            </button>
+            <span class="text-xs text-slate-500 font-medium">Monitor RAG performance, detect hallucination patterns, and bridge organizational knowledge gaps.</span>
         </div>
+    </div>
+    
+    <div class="flex items-center gap-3">
+        <div class="bg-indigo-50 px-4 py-2 rounded-xl flex items-center gap-2 border border-indigo-100/50">
+            <div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+            <span class="text-xs font-bold text-indigo-700">System Optimal</span>
+        </div>
+        <button class="bg-white shadow-sm border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-2 hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg>
+            Export PDF
+        </button>
     </div>
 </header>
 
@@ -83,9 +89,7 @@
                     <h3 class="font-manrope font-bold text-xl text-white">Hallucination Radar</h3>
                     <p class="text-xs text-slate-400 mt-1">Grounded Confidence Index</p>
                 </div>
-                <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md">
-                    <span class="material-symbols-outlined text-indigo-400">biotech</span>
-                </div>
+                <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md"></div>
             </div>
             
             <div class="flex flex-col items-center justify-center py-4">
@@ -134,33 +138,16 @@
             </div>
         </div>
 
-        <!-- Bubble/Clustering Visualization -->
-        <div class="h-64 relative bg-slate-50/50 rounded-2xl border border-slate-100/50 overflow-hidden">
-            <div class="absolute top-[10%] left-[20%] w-32 h-32 rounded-full bg-indigo-600 flex items-center justify-center p-4 text-center shadow-lg shadow-indigo-500/30 hover:scale-105 transition-transform cursor-crosshair group">
-                <span class="text-white text-[11px] font-bold leading-tight">40% Spike:<br/>Vacation Policy</span>
-            </div>
-            <div class="absolute top-[40%] left-[50%] w-24 h-24 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center p-2 text-center shadow-sm hover:scale-105 transition-transform cursor-crosshair">
-                <span class="text-indigo-800 text-[10px] font-bold">ERP Reset</span>
-            </div>
-            <div class="absolute bottom-[10%] right-[15%] w-40 h-40 rounded-full bg-white flex items-center justify-center p-6 text-center border shadow-sm hover:scale-105 transition-transform cursor-crosshair">
-                <span class="text-slate-600 text-[11px] font-bold">Onboarding Flows</span>
-            </div>
-            <div class="absolute top-[60%] left-[5%] w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-center shadow-sm hover:scale-105 transition-transform cursor-crosshair">
-                <span class="text-emerald-700 text-[8px] font-bold">Legal<br/>Compliance</span>
-            </div>
-            <!-- Dynamic Data Web / Lines -->
-            <div class="absolute top-[25%] left-[30%] w-32 h-px bg-slate-200 -rotate-12"></div>
-            <div class="absolute bottom-[30%] right-[30%] w-24 h-px bg-slate-200 rotate-45"></div>
+        <!-- Bubble/Clustering Visualization - Empty State -->
+        <div class="h-64 relative bg-slate-50/50 rounded-2xl border border-slate-100/50 overflow-hidden flex flex-col items-center justify-center">
+            <svg class="w-12 h-12 text-slate-300 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            <span class="text-sm font-semibold text-slate-400">Awaiting Search Density</span>
+            <span class="text-xs text-slate-400 text-center max-w-[200px] mt-1">Sensus Sync will aggregate intent groupings here as queries flow in.</span>
         </div>
 
         <div class="mt-6 flex items-center justify-between relative z-10">
             <div class="flex items-center gap-4">
-                <div class="flex -space-x-2">
-                    <div class="w-7 h-7 rounded-full bg-indigo-500 border-2 border-white text-[9px] font-bold text-white flex items-center justify-center">AI</div>
-                    <div class="w-7 h-7 rounded-full bg-emerald-500 border-2 border-white text-[9px] font-bold text-white flex items-center justify-center">HR</div>
-                    <div class="w-7 h-7 rounded-full bg-rose-400 border-2 border-white text-[9px] font-bold text-white flex items-center justify-center">IT</div>
-                </div>
-                <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">3 Analysts online</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Data Feed Offline</span>
             </div>
             <a class="text-indigo-600 text-xs font-bold hover:text-indigo-800 transition-colors" href="#">Full Heatmap &rarr;</a>
         </div>
