@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import { globalState } from '$lib/state.svelte';
-    import { Plus, ArrowLeft, Archive, FolderKanban, BarChart2, Edit2 } from 'lucide-svelte';
+    import { Plus, ArrowLeft, Archive, FolderKanban, BarChart2, Edit2, Search, X } from 'lucide-svelte';
     import { projectState, fetchProjects, createProject, updateProjectAPI } from '$lib/projects.svelte';
     import KanbanBoard from '$lib/components/kanban/KanbanBoard.svelte';
     import ProjectDocuments from '$lib/components/kanban/ProjectDocuments.svelte';
@@ -20,9 +20,14 @@
     let isEditingSettings = $state(false);
     let editName = $state('');
     let editPurpose = $state('');
+    let searchQuery = $state('');
 
     let filteredProjects = $derived(
-        projectState.projects.filter(p => activeTab === 'active' ? !p.is_archived : p.is_archived)
+        projectState.projects.filter(p => {
+            const matchesTab = activeTab === 'active' ? !p.is_archived : p.is_archived;
+            const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || (p.purpose || '').toLowerCase().includes(searchQuery.toLowerCase());
+            return matchesTab && matchesSearch;
+        })
     );
 
     let activeProject = $derived(
@@ -142,38 +147,46 @@
         </div>
     {:else}
         <!-- ================= PROJECTS OVERVIEW HUB ================= -->
-        <header class="h-32 px-10 flex flex-col justify-center bg-transparent shrink-0 space-y-4 border-b border-slate-200/50">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="font-bold text-slate-800 text-3xl tracking-wide flex items-center gap-3">
-                        <FolderKanban class="w-8 h-8 text-blue-600"/>
-                        Hub de Orquestração
-                    </h1>
-                    <p class="text-sm text-slate-500 mt-1 font-medium">Gerencie e orquestre todas as suas iniciativas Cíbridas num só local.</p>
+        <header class="mb-6 px-10 pt-10 w-full flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-4">
+                <h1 class="font-extrabold text-2xl text-[#191c1d] tracking-tight flex items-center gap-3">
+                    <FolderKanban class="w-6 h-6 text-primary" />
+                    Hub de Orquestração
+                </h1>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <!-- Search Bar -->
+                <div class="relative flex items-center bg-surface-container-low rounded-full px-4 py-2 border border-outline-variant/10 shadow-sm w-[300px]">
+                    <Search class="w-4 h-4 text-on-surface-variant mr-3" />
+                    <input type="text" bind:value={searchQuery} placeholder="Buscar projetos..." class="bg-transparent border-none text-sm font-medium text-on-surface w-full focus:outline-none placeholder:text-on-surface-variant/50" />
+                    {#if searchQuery}
+                        <button onclick={() => searchQuery = ''} class="text-on-surface-variant hover:text-on-surface transition"><X class="w-4 h-4"/></button>
+                    {/if}
                 </div>
                 
+                <!-- Pill Menu -->
+                <div class="flex items-center gap-1 bg-surface-container-low p-1.5 rounded-xl border border-outline-variant/10">
+                    <button onclick={() => activeTab = 'active'} class="px-4 py-2 {activeTab === 'active' ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high'} font-bold text-xs rounded-lg transition-colors cursor-pointer">
+                        Projetos Ativos ({projectState.projects.filter(p => !p.is_archived).length})
+                    </button>
+                    <button onclick={() => activeTab = 'archived'} class="px-4 py-2 {activeTab === 'archived' ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high'} font-bold text-xs rounded-lg transition-colors cursor-pointer">
+                        Gaveta ({projectState.projects.filter(p => p.is_archived).length})
+                    </button>
+                </div>
+
+                <!-- Add Project Action -->
                 {#if isAddingProject}
-                    <div class="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm">
-                        <input type="text" bind:value={newProjectName} class="px-3 py-1.5 text-sm font-bold bg-transparent focus:outline-none min-w-[200px]" placeholder="Nome do Novo Projeto..." onkeydown={(e) => e.key === 'Enter' && submitProject()} />
-                        <button onclick={submitProject} class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition">Lançar</button>
-                        <button onclick={() => {isAddingProject = false; newProjectName = '';}} class="bg-slate-100 hover:bg-slate-200 text-slate-500 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition">X</button>
+                    <div class="flex items-center gap-2 bg-surface-container-lowest p-1.5 rounded-xl border border-primary/20 shadow-sm ml-2">
+                        <input type="text" bind:value={newProjectName} class="px-3 py-1.5 text-sm font-bold bg-transparent focus:outline-none min-w-[150px] text-on-surface" placeholder="Nome..." onkeydown={(e) => e.key === 'Enter' && submitProject()} autofocus />
+                        <button onclick={submitProject} class="bg-primary hover:bg-primary/90 text-white px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition">Lançar</button>
+                        <button onclick={() => {isAddingProject = false; newProjectName = '';}} class="px-2 py-1.5 text-on-surface-variant hover:text-on-surface transition"><X class="w-4 h-4"/></button>
                     </div>
                 {:else}
-                    <button onclick={() => isAddingProject = true} class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center transition-colors shadow-md cursor-pointer">
-                        <Plus class="w-5 h-5 mr-2" />
-                        Novo Projeto
+                    <button onclick={() => isAddingProject = true} class="bg-primary text-white p-2.5 rounded-xl hover:bg-primary/90 transition shadow-sm cursor-pointer ml-2">
+                        <Plus class="w-5 h-5" />
                     </button>
                 {/if}
-            </div>
-            
-            <!-- Tabs -->
-            <div class="flex gap-6 pb-0.5 mt-2">
-                <button onclick={() => activeTab = 'active'} class="text-sm font-bold pb-2 border-b-2 {activeTab === 'active' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-400 hover:text-slate-800'} transition cursor-pointer">
-                    Projetos Ativos ({projectState.projects.filter(p => !p.is_archived).length})
-                </button>
-                <button onclick={() => activeTab = 'archived'} class="text-sm font-bold pb-2 border-b-2 {activeTab === 'archived' ? 'border-amber-500 text-amber-700' : 'border-transparent text-slate-400 hover:text-slate-800'} transition cursor-pointer">
-                    Gaveta de Arquivos ({projectState.projects.filter(p => p.is_archived).length})
-                </button>
             </div>
         </header>
 
