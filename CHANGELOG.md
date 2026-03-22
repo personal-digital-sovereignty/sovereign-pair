@@ -2,6 +2,22 @@
 
 All notable changes to the Sovereign Pair project will be documented in this file.
 
+## [0.8.3] - 2026-03-21
+
+### 🚀 The Omniscient Cibrid Hub & Dynamic Topology Mapping
+
+Esta release eleva o nível de Autoconsciência do Motor Rust. O painel central do *Sovereign Pair* (Control Hub) descarta de vez dependências mockadas e passa a atuar como um monitor Cíbrido genuíno do ecossistema local do hospedeiro, extraindo variáveis do barramento de hardware com precisão granular.
+
+### Adicionado
+- **Native GPU Autodiscovery**: Implementada macro multiplataforma condicionada no Rust (`#[cfg(target_os="linux|macos")]`) que invoca os utilitários de sistema nativos (`glxinfo`, `system_profiler`) para inferir organicamente o Chipset e o Total VRAM Máximo (MB/GB) em tempo de execução, injetando de volta na dashboard UI Svelte sem latência.
+- **Dynamic Hub Reality**: A interface do `Home` finalmente transcende ao status real do Vault e Projetos:
+  - `Active Projects e Pending Tasks`: Orquestração reativa do Kanban agora exclui logicamente *archived nodes* e contabiliza em tempo-real as progressões do motor Sensus.
+  - `Categories Placed e Synced Files`: Leituras de indexação sincronizadas bit a bit lendo as chaves exatas do `sensus_documents` e diretórios raiz no SO.
+  - `Firewall Blocks & LLM Latency`: Status dinâmico consumindo gaps embutidos de segurança da thread de execução do proxy *OpenCode*.
+
+### Corrigido
+- **Blindagem do Payload Axum (Missing Properties JSON)**: Eliminado o drop visual silenciado (`struct missing`) no Frontend do Svelte, orquestrando perfeitamente a serialização `serde_json` do nó de Hardware para refletir instâncias ociosas da inteligência artificial no SysMonitor.
+
 ## [0.8.2] - 2026-03-21
 
 ### 🚀 Vault Explorer, Svelte UI & Performance Cíbrida
