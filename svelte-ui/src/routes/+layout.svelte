@@ -7,6 +7,7 @@
   import { onMount, onDestroy } from 'svelte';
   import InlineSpotlight from '$lib/components/InlineSpotlight.svelte';
   import SettingsModal from '$lib/components/SettingsModal.svelte';
+  import NotificationBell from '$lib/components/NotificationBell.svelte';
   import { settingsState, loadSettings } from '$lib/settings.svelte';
 
   let { children } = $props();
@@ -174,7 +175,7 @@
   <div class="flex-1 flex flex-col h-full overflow-hidden relative min-w-0 transition-all duration-300 ease-in-out" style="padding-right: {globalState?.layout?.isRightAuxPanelOpen ? '420px' : '0'}">
     
     <!-- Top Main Header -->
-    <header class="h-16 flex items-center justify-between px-6 shrink-0 mt-2 z-10">
+    <header class="h-16 flex items-center justify-between px-6 shrink-0 mt-2 z-[100] relative">
       <!-- Active Workspace Selector -->
       <label for="workspace-select" class="flex items-center bg-white rounded-lg shadow-sm px-4 py-2 border border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors max-w-sm flex-shrink min-w-0">
         <div class="flex flex-col mr-4 w-full">
@@ -195,10 +196,7 @@
 
       <!-- Account / Notifications Actions -->
       <div class="flex items-center bg-white rounded-full shadow-sm pr-2 pl-4 py-1.5 border border-slate-100 h-12 flex-shrink-0">
-        <button class="text-slate-400 hover:text-indigo-500 mr-4 relative transition-colors focus:outline-none">
-          <Bell class="w-5 h-5" />
-          <span class="absolute top-0 right-0 w-2 h-2 rounded-full border-2 border-white {telemetryState.connected ? 'bg-emerald-400' : 'bg-red-400'}"></span>
-        </button>
+        <NotificationBell />
         <button onclick={() => settingsState.isOpen = true} class="text-slate-400 hover:text-slate-600 mr-4 transition-colors focus:outline-none">
           <Settings class="w-5 h-5" />
         </button>
