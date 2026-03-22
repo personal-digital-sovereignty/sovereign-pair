@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Sovereign AI - Engine Settings</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface": "#f8f9fa",
+                        "inverse-primary": "#bac3ff",
+                        "tertiary": "#00250e",
+                        "on-tertiary-container": "#4faf6e",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed": "#00210c",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#003d1c",
+                        "on-surface-variant": "#444653",
+                        "on-secondary-fixed": "#0c1d2a",
+                        "surface-tint": "#3e54c1",
+                        "outline-variant": "#c5c5d5",
+                        "on-tertiary-fixed-variant": "#005228",
+                        "on-primary-fixed-variant": "#223aa8",
+                        "surface-container-highest": "#e1e3e4",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#7ada95",
+                        "surface-container-high": "#e7e8e9",
+                        "surface-container": "#edeeef",
+                        "error": "#ba1a1a",
+                        "on-secondary-container": "#546473",
+                        "inverse-surface": "#2e3132",
+                        "secondary-container": "#d1e2f3",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#50606f",
+                        "primary-fixed": "#dee1ff",
+                        "on-surface": "#191c1d",
+                        "surface-container-low": "#f3f4f5",
+                        "surface-bright": "#f8f9fa",
+                        "primary-fixed-dim": "#bac3ff",
+                        "surface-variant": "#e1e3e4",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191c1d",
+                        "outline": "#757684",
+                        "on-primary-fixed": "#001159",
+                        "on-primary-container": "#8094ff",
+                        "surface-dim": "#d9dadb",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-on-surface": "#f0f1f2",
+                        "background": "#f8f9fa",
+                        "primary-container": "#002395",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#96f7af",
+                        "primary": "#001360",
+                        "on-secondary-fixed-variant": "#394857",
+                        "secondary-fixed-dim": "#b8c8da",
+                        "secondary-fixed": "#d4e4f6"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        h1,
+        h2,
+        h3 {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-surface text-on-surface selection:bg-primary-fixed overflow-hidden">
+    <!-- Dashboard Background (Blurred Content) -->
+    <div class="fixed inset-0 z-0 flex blur-md saturate-50 opacity-60 pointer-events-none">
+        <!-- SideNavBar Mockup -->
+        <aside class="h-screen w-64 bg-slate-100 flex flex-col p-4 gap-2">
+            <div class="flex items-center gap-3 px-2 py-4 mb-4">
+                <div class="w-8 h-8 rounded bg-primary"></div>
+                <div>
+                    <div class="text-lg font-bold text-blue-950">RAG Command</div>
+                    <div class="text-xs text-slate-500">v2.4.0-stable</div>
+                </div>
+            </div>
+            <div class="h-10 w-full bg-white rounded-lg shadow-sm flex items-center px-3">
+                <span class="material-symbols-outlined text-blue-900 mr-2">memory</span>
+                <span class="text-sm font-medium text-blue-900">Models</span>
+            </div>
+            <div class="h-10 w-full bg-transparent rounded-lg flex items-center px-3">
+                <span class="material-symbols-outlined text-slate-600 mr-2">terminal</span>
+                <span class="text-sm font-medium text-slate-600">Engine</span>
+            </div>
+        </aside>
+        <!-- Main Content Area Mockup -->
+        <main class="flex-1 p-10">
+            <header class="flex justify-between items-center mb-10">
+                <div class="h-8 w-48 bg-slate-200 rounded"></div>
+                <div class="flex gap-4">
+                    <div class="h-10 w-10 rounded-full bg-slate-200"></div>
+                    <div class="h-10 w-10 rounded-full bg-slate-200"></div>
+                </div>
+            </header>
+            <div class="grid grid-cols-3 gap-6">
+                <div class="col-span-2 h-64 bg-white rounded-xl shadow-sm border border-slate-100"></div>
+                <div class="h-64 bg-white rounded-xl shadow-sm border border-slate-100"></div>
+                <div class="h-48 bg-white rounded-xl shadow-sm border border-slate-100"></div>
+                <div class="h-48 bg-white rounded-xl shadow-sm border border-slate-100"></div>
+                <div class="h-48 bg-white rounded-xl shadow-sm border border-slate-100"></div>
+            </div>
+        </main>
+    </div>
+    <!-- Modal Overlay -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-on-surface/5 backdrop-blur-[2px]">
+        <!-- Engine Settings Modal -->
+        <div
+            class="w-full max-w-2xl bg-surface-container-lowest rounded-xl shadow-2xl border border-outline-variant/15 flex flex-col max-h-[921px] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-8 py-6 flex items-center justify-between bg-surface-container-low/50">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-primary-container/10 rounded-lg">
+                        <span class="material-symbols-outlined text-primary" data-icon="tune">tune</span>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-on-surface tracking-tight">Engine Settings</h2>
+                        <p class="text-sm text-on-surface-variant">Configure core RAG retrieval and generation
+                            parameters</p>
+                    </div>
+                </div>
+                <button class="p-2 hover:bg-surface-variant rounded-full transition-colors">
+                    <span class="material-symbols-outlined text-on-surface-variant" data-icon="close">close</span>
+                </button>
+            </div>
+            <!-- Modal Content -->
+            <div class="flex-1 overflow-y-auto p-8 space-y-10">
+                <!-- 1 & 2: Provider & Model Selection -->
+                <section class="grid grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label
+                            class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant flex items-center gap-2">
+                            Provider
+                        </label>
+                        <div class="relative">
+                            <button
+                                class="w-full flex items-center justify-between px-4 py-3 bg-surface-container-high rounded-xl border border-outline-variant/20 text-on-surface text-sm font-medium">
+                                <span class="flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-on-tertiary-container"></span>
+                                    Ollama (Local)
+                                </span>
+                                <span class="material-symbols-outlined text-on-surface-variant"
+                                    data-icon="expand_more">expand_more</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label
+                            class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant flex items-center gap-2">
+                            Model Name
+                        </label>
+                        <div class="relative">
+                            <button
+                                class="w-full flex items-center justify-between px-4 py-3 bg-surface-container-lowest rounded-xl border border-primary/20 text-on-surface text-sm font-medium shadow-sm">
+                                Llama 3.2:latest
+                                <span class="material-symbols-outlined text-primary"
+                                    data-icon="unfold_more">unfold_more</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+                <!-- 3: Temperature (Slider) -->
+                <section class="space-y-4">
+                    <div class="flex justify-between items-end">
+                        <div class="space-y-1">
+                            <label
+                                class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Temperature
+                                (Creativity)</label>
+                            <p class="text-xs text-on-surface-variant">Controls randomness: Lower is more focused and
+                                deterministic.</p>
+                        </div>
+                        <span
+                            class="text-sm font-mono font-bold text-primary bg-primary-fixed px-2 py-0.5 rounded">0.7</span>
+                    </div>
+                    <div class="relative h-6 flex items-center">
+                        <div class="absolute w-full h-1.5 bg-surface-container-highest rounded-full"></div>
+                        <div class="absolute w-[70%] h-1.5 bg-primary rounded-full"></div>
+                        <div
+                            class="absolute left-[70%] -translate-x-1/2 w-5 h-5 bg-white border-2 border-primary rounded-full shadow-lg cursor-pointer">
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-outline uppercase font-bold tracking-tighter">
+                        <span>Precise</span>
+                        <span>Balanced</span>
+                        <span>Creative</span>
+                    </div>
+                </section>
+                <!-- 4: AI Personality -->
+                <section class="space-y-4 pt-2">
+                    <div class="space-y-2">
+                        <label
+                            class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Personality
+                            Name</label>
+                        <input
+                            class="w-full px-4 py-3 bg-surface-container-high border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20"
+                            placeholder="e.g. Helpful Assistant" type="text" value="System Architect" />
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">System
+                            Instructions</label>
+                        <textarea
+                            class="w-full px-4 py-3 bg-surface-container-high border-none rounded-xl text-sm leading-relaxed focus:ring-2 focus:ring-primary/20 resize-none"
+                            rows="4">Você é um assistente técnico especialista em RAG. Seu objetivo é analisar documentos internos e fornecer respostas baseadas exclusivamente nos fatos recuperados, mantendo um tom profissional e citando fontes.</textarea>
+                    </div>
+                </section>
+                <!-- 5: Behavior & Formality -->
+                <section class="flex items-center justify-between p-4 bg-surface-container-low rounded-xl">
+                    <div class="space-y-0.5">
+                        <h4 class="text-sm font-bold text-on-surface">Behavior &amp; Formality</h4>
+                        <p class="text-xs text-on-surface-variant">Adjust the tone of voice for generated responses.</p>
+                    </div>
+                    <div class="flex p-1 bg-surface-container-highest rounded-full">
+                        <button
+                            class="px-5 py-1.5 text-xs font-bold rounded-full transition-all bg-white text-primary shadow-sm">Formal</button>
+                        <button
+                            class="px-5 py-1.5 text-xs font-bold rounded-full transition-all text-on-surface-variant hover:text-on-surface">Casual</button>
+                    </div>
+                </section>
+                <!-- 6: Appearance (Theme Selection) -->
+                <section class="space-y-4">
+                    <label
+                        class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Appearance</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Light Mode -->
+                        <div
+                            class="relative group cursor-pointer border-2 border-primary rounded-xl p-3 bg-surface-container-lowest transition-all hover:shadow-md">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-on-surface">Light Mode</span>
+                                <div class="w-4 h-4 rounded-full border-4 border-primary bg-white"></div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="h-2 w-full bg-surface-container-high rounded"></div>
+                                <div class="h-2 w-2/3 bg-surface-container-high rounded"></div>
+                                <div class="flex gap-2">
+                                    <div class="h-4 w-4 rounded bg-primary/20"></div>
+                                    <div class="h-4 w-12 rounded bg-surface-container-high"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Dark Mode -->
+                        <div
+                            class="relative group cursor-pointer border-2 border-outline-variant/10 rounded-xl p-3 bg-inverse-surface transition-all hover:border-outline-variant/30">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-inverse-on-surface">Dark Mode</span>
+                                <div class="w-4 h-4 rounded-full border border-outline"></div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="h-2 w-full bg-on-surface-variant/20 rounded"></div>
+                                <div class="h-2 w-2/3 bg-on-surface-variant/20 rounded"></div>
+                                <div class="flex gap-2">
+                                    <div class="h-4 w-4 rounded bg-on-surface-variant/30"></div>
+                                    <div class="h-4 w-12 rounded bg-on-surface-variant/20"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <!-- Modal Footer -->
+            <div
+                class="px-8 py-6 bg-surface-container-low/50 border-t border-outline-variant/10 flex justify-end gap-3">
+                <button
+                    class="px-6 py-2.5 text-sm font-bold text-on-surface-variant hover:bg-surface-variant rounded-lg transition-colors">Discard
+                    Changes</button>
+                <button
+                    class="px-8 py-2.5 text-sm font-bold text-white bg-gradient-to-br from-primary to-primary-container rounded-lg shadow-lg hover:brightness-110 active:scale-[0.98] transition-all">Save
+                    Engine Config</button>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
