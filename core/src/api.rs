@@ -726,6 +726,7 @@ pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> i
             avg_tps: 0.0,
             avg_latency_ms: 0,
             estimated_cost: 0.0,
+            models_usage: std::collections::HashMap::new(),
             hardware: crate::telemetry::HardwareSnapshot {
                 cpu_cores: vec![],
                 ram_usage_mb: 0.0,
@@ -780,8 +781,10 @@ pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> i
     Json(serde_json::json!({
         "total_tokens": snapshot.total_tokens,
         "avg_tps": snapshot.avg_tps,
+        "avg_latency_ms": snapshot.avg_latency_ms,
         "estimated_cost": snapshot.estimated_cost,
-        "active_models": 1, 
+        "models_usage": snapshot.models_usage,
+        "active_models": snapshot.models_usage.keys().len(), 
         "hardware": {
             "cpu_cores": snapshot.hardware.cpu_cores,
             "ram": snapshot.hardware.ram_usage_mb,
