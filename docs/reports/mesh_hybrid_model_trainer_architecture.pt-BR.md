@@ -1,47 +1,93 @@
-# Relatório Arquitetural: Model Trainer de Rede Mesh e Destilação de Conhecimento Híbrida
+# Sovereign Pair: Arquitetura Híbrida do Model Trainer (Mesh Engine)
 
-**Data:** Março de 2026
-**Assunto:** Sovereign Pair - Treinamento Local Distribuído e Inferência de Mesh
-**Classificação:** Documentação de Arquitetura Pública
+## Resumo e Objetivos (Fase 37)
+
+A implementação do **Model Trainer** solidifica o conceito central de *Sovereignty* (Soberania Digital) ao permitir que o usuário refine, destile e audite modelos Locais (Edge) utilizando conhecimento privado (Sensus Vault) e o poder computacional de *Nó de Malha* (Mesh Nodes) da Oracle Cloud e outras APIs proprietárias.
+
+O design abrange três domínios funcionais expostos através do **Svelte 5** nativo:
+1. **Knowledge Distillation Studio:** Transferência de conhecimento de Modelos "Professor" maduros (Ex: Nexus-70B Oracle OCI, GPT-4o) para Modelos "Aluno" locais (Ex: Llama 3.2 3B).
+2. **Reflection Lab UI:** Ambiente laboratorial que injeta metadados sintéticos de *Chain-of-Thought* e *Self-Correction* para ensinar os modelos locais a aplicar a premissa de *Think-Before-Response*.
+3. **Unsloth Fine-Tuning Monitor:** Gerenciador direto para tuning LoRA parametrizável (Batch Size, LoRA Rank, LR).
 
 ---
 
-## 1. Sumário Executivo
-A arquitetura do **Sovereign Pair** foi desenhada fundamentalmente para solucionar as restrições físicas da execução local de IA (VRAM limitada e Baixo Computador em dispositivos de usuários finais). Para alcançar a verdadeira "Soberania Digital" sem sacrificar inteligência, a aplicação emprega um **Model Trainer Híbrido em Mesh**.
+## 🏗️ Topologia e Fluxo de Dados (Data Flow)
 
-Esta arquitetura permite que um agente local leve (ex: Laptop Mac/Windows rodando a Interface de Usuário) orquestre operações complexas — como Destilação de Conhecimento e Fine-Tuning LoRA — despachando transparentemente as cargas pesadas para nós mais potentes dentro da rede Mesh privada do usuário (ex: um servidor robusto Oracle Cloud ou uma estação de trabalho local com GPUs dedicadas).
+O paradigma Híbrido conecta o **Frontend Reativo (Svelte 5)** ao **Proxy de Treinamento (Rust Axum)**, que injeta manifestos gerados sob o flybed unificado do Ollama e dos Workers Python (Unsloth).
 
-## 2. Mesh Global de Nós (O Cluster Soberano)
-O Sovereign Core (`api_settings.rs` e `api_mesh.rs`) mantém um índice ativo de todos os nós Ollama disponíveis para o usuário. Cada nó registra sua `URI` única, perfil computacional físico e modelos instalados (`/api/tags`).
+```mermaid
+sequenceDiagram
+    participant UI as Svelte 5 Dashboard
+    participant Backend as Rust Axum (api_trainer.rs)
+    participant Vault as Sensus Vault (SQLite)
+    participant Worker as Unsloth Python / Ollama Engine
+    participant Mesh as Teacher Node (Oracle OCI / OpenAI)
 
-Quando o usuário acessa o painel do **Model Trainer** em seu dispositivo local, a engine consulta de forma nativa o **Nó de Trabalho (Worker Node)** ativo.
-- Se o Nó Ativo configurado for `http://10.0.0.5:11434` (Um servidor remoto na Oracle Cloud), o Model Trainer mira dinamicamente esta instância remota.
-- A Stream de telemetria visual (**Unsloth Monitor**) da interface recebe os Server-Sent Events (SSE) envelopados e redirecionados diretamente do status de sincronização de tensores do servidor remoto (`/api/create`), renderizando as métricas em tempo real localmente, como se o hardware estivesse fisicamente dentro do laptop do usuário.
+    UI->>Backend: /v1/trainer/finetune HTTP POST (LoRA r=16, Batch=4)
+    activate Backend
+    Backend->>Backend: tokio::spawn (Async Worker)
+    Backend-->>UI: Retorna HTTP 202 Accepted (job_id)
+    deactivate Backend
+    
+    Backend->>Vault: Query Embeddings & Conhecimento Vetorial
+    Vault-->>Backend: Dataset Bruto
+    Backend->>Backend: Compila Dataset em `/tmp/sovereign-pair/[name].jsonl`
+    
+    Backend->>Worker: Dispara Subprocess / Chamada gRPC passando o JSONL
+    activate Worker
+    Worker->>Mesh: Puxa Inferência Pesada Distilada (Se Distillation)
+    Mesh-->>Worker: Respostas Sintéticas e Tokens de CoT
+    
+    loop Server-Sent Events (SSE)
+        Worker-->>Backend: Status (VRAM, Epochs, Loss) via STDOUT
+        Backend-->>UI: /v1/trainer/unsloth-monitor (SSE Broadcast)
+    end
+    
+    Worker->>Worker: Mescla LoRA Weights (.gguf)
+    Worker->>Backend: Finalizado. Arquivo gravado no OLLAMA_MODELS_PATH
+    deactivate Worker
+```
 
-## 3. Destilação de Conhecimento: Do 70B/GPT-4 ao 3B Local
-A Destilação de Conhecimento (Knowledge Distillation) dentro do Sovereign Pair não é apenas simbólica; ela é construída sobre uma pipeline orquestrada de extração de dados e subsequente injeção de modelo.
+---
 
-### Cenários de Destilação Multicamadas
+## 🎨 Design do Frontend (Svelte 5 UI)
 
-**Cenário A: Professor Terceirizado (GPT-4o) ➡️ Aluno Local (Llama 3.2 3B)**
-O usuário pode alavancar inteligência proprietária para forjar soberania localizada de código aberto.
-1. O usuário especifica **Professor:** `gpt-4o` e **Aluno:** `llama3.2:3b`.
-2. O Rust Sovereign Core consulta de forma segura a API da OpenAI (utilizando as chaves de API auto-criptografadas por KMS no Vault do usuário).
-3. A engine extrai respostas de raciocínio lógico estrutural, formatando um "Gold Dataset" de alta qualidade que é salvo diretamente no banco de memória P2P local (`sovereign_memory.db`).
-4. Esse dataset é então consumido via injetores para alimentar a instância do Ollama local em processos de ajuste de parâmetros, solidificando o conhecimento externo offline de forma perpétua.
+Com o lançamento do Svelte 5, nossa base nativa substituiu os blueprints estáticos convertendo todo o fluxo para estados assíncronos vinculados aos Endpoints Axum.
 
-**Cenário B: Professor Soberano Remoto (Llama 3 70B) ➡️ Aluno Local (Qwen 1.5B)**
-Para ambientes Zero-Trust, APIs externas são completamente contornadas.
-1. Um modelo Llama 3 70B superpotente roda em um Nó Mesh acoplado (ex: Servidor no trabalho ou Nuvem Dedicada).
-2. O Model Trainer orquestra requisições de geração pelo túnel VPN/Mesh, extraindo deduções lógicas do professor 70B offline.
-3. Os datasets derivados são trazidos pela rede até o nó do dispositivo local e utilizados para treinar o modelo menor de 1.5B ou 3B (o aluno) localmente.
-4. O usuário conquista altíssima capacidade de raciocínio offline e hiper-especializada em seu laptop sem jamais depender da internet, e o servidor na nuvem pode ser desligado após ceder seus talentos.
+### 1. Distillation Studio (`/distillation/+page.svelte`)
+- Utiliza o paradigma de **optgroups** nativos no HTML sobre classes customizadas do Tailwind. 
+- Permite auto-discovering de nós: A UI exibe provedores externos lado a lado com *Sovereign Mesh Nodes* disponíveis (ex: Raspberry Pis na mesma rede ZeroTier, Oracle Cloud VMs).
+- Integração de *Hyperparameter Constraints*: Controles visuais *Range Slider* de 1 a 10 Epochs interligados nativamente em `$state(3)`.
 
-## 4. Design de Engenharia Resiliente
-Para garantir total estabilidade durante horas de operações pesadas:
-- **Pool de Tarefas Assíncronas**: O ambiente assíncrono do Rust (`tokio::spawn`) dispara os Requests HTTP de longo termo para as APIs externas/Ollama sem bloquear a thread principal, mantendo a responsividade Cíbrida da interface de usuário em 60 frames.
-- **Canais de Transmissão (Broadcast)**: O canal robusto do Rust `tokio::sync::broadcast` garante que o stream de telemetria da interface viaje limpo sobrevivendo à latência imposta pela rede externa durante processos de fine-tuning.
-- **Abstração Soberana**: O módulo frontend (`SettingsModal.svelte`) lê localmente ou remotamente sem distinção lógica. Para o sistema, não há diferença visual/de uso entre lidar com a GPU do computador ou o datacenter gigantesco a duas cidades de distância.
+### 2. Reflection Lab (`/reflection/+page.svelte`)
+- Funciona como um depurador em tempo real para os metadados MLOps.
+- **Toggles "Think-Before-Response"**: Aplica o comportamento que atrasa a resposta do LLM para forçá-lo a um loop recursivo analítico interno. 
+- Componente `JSONL Dataset Preview` com *Highlighting* para checar o formato sintético gerado e alinhar as propriedades de "Auditoria de Lógica".
 
-## 5. Conclusão da Arquitetura Cíbrida
-O Model Trainer do Sovereign Pair é muito mais que uma tela simplória de treinamento. Ele age como um verdadeiro Sistema Operacional Distribuído em Rede. Ele prevê um futuro próximo onde dispositivos hiper-leves lidam apenas com orquestração pesada e renderização de dados, enquanto toda queima de silício pesado é enviada inteligentemente para os porões onde as GPUs habitam.
+### 3. Fine-Tuning Engine (`/fine-tuning/+page.svelte`)
+- Monitor visual de VRAM gerido em microcomponentes e Barras de Progresso interativas.
+- Controles nativos `Unsloth Native Configuration` passando LoRA rank dinamicamente (de `r=8` até `r=128`) para focar em precisão analítica.
+
+---
+
+## ⚙️ Backend Asynchronous Execution (Rust Axum Engine)
+
+O coração da automação vive no ecosistema nativo implementado no `core/src/api_trainer.rs`.
+
+*   **Non-Blocking Jobs (`tokio::spawn`)**: Operações IO massivas, como transformar gigabytes do `Sensus Vault` em um manifesto JSONL, foram acopladas no `tokio::spawn` para prevenir timeout do Client `fetch` original e engasgos na porta `38001`.
+*   **SSE Log Bridge Component (`unsloth_monitor_sse_handler`)**: Construindo sob o `async_stream` e canais multithread (`tokio::sync::broadcast`), a arquitetura envia PINGS nulos a cada 10 segundos para contornar bloqueios TCP de roteadores ou firewalls durante inferências extensas que podem durar de horas a semanas (Treinamento Local no Ollama / Python).
+
+### Trechos Chave
+A estruturação dos requests agora reflete os parâmetros cruciais definidos semanticamente na camada Svelte:
+```rust
+pub struct FineTuningReq {
+    pub base_model: String,
+    pub dataset_name: String,
+    pub learning_rate: f64,
+    pub lora_rank: i32,
+    pub batch_size: i32,
+}
+```
+
+## 🌏 Autodiscovery dos Nós Soberanos (Mesh)
+Uma evolução crítica desta arquitetura foi não depender de nuvens centrais, mas sim do cluster "Mesh" do usuário (Oracle + Edge Device). O Backend tem o poder de rotear e registrar a localização das GPUs espalhadas em redes P2P ou ZeroTier. No caso de Treinos pesados (ex: rodar Llama 70B como "Professor"), a API despacha solicitações REST indiretas que interropem subsegmentos isolados sem drenar bateria e memória do Laptop/Host do Cíbrido e repassa ao Servidor Principal.
