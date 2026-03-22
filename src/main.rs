@@ -26,6 +26,7 @@ pub mod mesh_installer;
 pub mod mesh_router;
 pub mod os_installer;
 pub mod guardrails;
+pub mod research;
 
 use axum::{routing::post, Router, response::IntoResponse, http::{header, StatusCode, Uri}};
 use reqwest::Client;
