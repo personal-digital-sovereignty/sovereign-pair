@@ -6,12 +6,15 @@
   import { page } from '$app/state';
   import { onMount, onDestroy } from 'svelte';
   import InlineSpotlight from '$lib/components/InlineSpotlight.svelte';
+  import SettingsModal from '$lib/components/SettingsModal.svelte';
+  import { settingsState, loadSettings } from '$lib/settings.svelte';
 
   let { children } = $props();
 
   onMount(() => {
     connectTelemetry();
     fetchWorkspaces();
+    loadSettings();
   });
 
   async function fetchWorkspaces() {
@@ -196,7 +199,7 @@
           <Bell class="w-5 h-5" />
           <span class="absolute top-0 right-0 w-2 h-2 rounded-full border-2 border-white {telemetryState.connected ? 'bg-emerald-400' : 'bg-red-400'}"></span>
         </button>
-        <button class="text-slate-400 hover:text-slate-600 mr-4 transition-colors focus:outline-none">
+        <button onclick={() => settingsState.isOpen = true} class="text-slate-400 hover:text-slate-600 mr-4 transition-colors focus:outline-none">
           <Settings class="w-5 h-5" />
         </button>
         <div class="h-6 w-px bg-slate-200 mr-4"></div>
@@ -204,8 +207,8 @@
           <!-- Fallback avatar if no live data -->
           <img alt="System Operator" class="w-8 h-8 rounded-full object-cover border-2 border-slate-100 mr-3 hidden sm:block" src="https://ui-avatars.com/api/?name=Admin&background=e2e8f0&color=334155" />
           <div class="flex flex-col pr-2">
-            <span class="text-sm font-bold text-slate-800 leading-none mb-1">Sovereign Admin</span>
-            <span class="text-[10px] text-slate-500 leading-none tracking-widest uppercase">System Active</span>
+            <span class="text-sm font-bold text-slate-800 leading-none mb-1">{settingsState.userName}</span>
+            <span class="text-[10px] text-slate-500 leading-none tracking-widest uppercase">{settingsState.userProfession}</span>
           </div>
         </div>
       </div>
@@ -217,3 +220,4 @@
     </main>
   </div>
 </div>
+<SettingsModal />
