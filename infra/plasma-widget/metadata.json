@@ -1,0 +1,20 @@
+{
+    "KPlugin": {
+        "Name": "Sovereign Pair",
+        "Description": "Cibrid Agent AI Telemetry & Hub",
+        "Icon": "sovereign-pair",
+        "Authors": [
+            {
+                "Name": "Sovereign",
+                "Email": "admin@sovereign.local"
+            }
+        ],
+        "Id": "org.sovereign.pair.widget",
+        "Version": "0.8.1",
+        "Website": "https://sovereignpair.local"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-API": "declarativeappletscript",
+    "X-Plasma-MainScript": "ui/main.qml",
+    "KPackageStructure": "Plasma/Applet"
+}

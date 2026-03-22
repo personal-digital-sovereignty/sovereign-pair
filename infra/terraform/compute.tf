@@ -89,9 +89,8 @@ resource "null_resource" "deploy_release" {
       "curl -sL -H \"Authorization: Bearer $GH_TOKEN\" -H \"Accept: application/octet-stream\" \"\\$TAR_URL\" -o sovereign-core",
       "chmod +x sovereign-core",
       "sudo mv sovereign-core /usr/local/bin/sovereign-core",
-      "sudo systemctl daemon-reload",
-      "sudo systemctl enable sovereign",
-      "sudo systemctl start sovereign",
+      "echo 'Invocando Setup Headless Universal do Kernel Cíbrido...'",
+      "sudo /usr/local/bin/sovereign-core --setup",
       "echo 'Deployment successful!'"
     ]
   }
