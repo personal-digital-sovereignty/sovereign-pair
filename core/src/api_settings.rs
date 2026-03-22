@@ -248,3 +248,44 @@ pub async fn import_config_handler(
         (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "O Nó Rejeitou o Coração Cíbrido.").into_response()
     }
 }
+
+/// Varre a tabela `ollama_clusters` para descobrir a URL ativa e lista os modelos (/api/tags)
+pub async fn get_available_models_handler(State(state): State<Arc<crate::AppState>>) -> impl IntoResponse {
+    let mut ollama_base_url = "http://127.0.0.1:11434".to_string();
+
+    if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'ollama_clusters'").fetch_optional(&state.db).await {
+        let val: String = sqlx::Row::get(&row, "value_json");
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&val) {
+            let active_id = parsed.get("active_cluster_id").and_then(|v| v.as_str()).unwrap_or("");
+            if let Some(clusters) = parsed.get("clusters").and_then(|v| v.as_array()) {
+                for c in clusters {
+                    if c.get("id").and_then(|v| v.as_str()).unwrap_or("") == active_id {
+                        if let Some(url) = c.get("url").and_then(|v| v.as_str()) {
+                            let clean_url = url.trim_end_matches('/').to_string();
+                            if !clean_url.is_empty() {
+                                ollama_base_url = clean_url;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if ollama_base_url == "http://host.docker.internal:11434" && std::env::var("SOVEREIGN_RUN_ENV").unwrap_or_default() == "native" {
+        ollama_base_url = "http://127.0.0.1:11434".to_string();
+    }
+
+    let endpoint = format!("{}/api/tags", ollama_base_url);
+    
+    match state.http_client.get(&endpoint).send().await {
+        Ok(res) if res.status().is_success() => {
+            if let Ok(json) = res.json::<serde_json::Value>().await {
+                Json(json).into_response()
+            } else {
+                Json(serde_json::json!({"models": []})).into_response()
+            }
+        },
+        _ => Json(serde_json::json!({"models": []})).into_response() // Retorna vazio se o nó remoto estiver offline
+    }
+}

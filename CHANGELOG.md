@@ -2,11 +2,77 @@
 
 All notable changes to the Sovereign Pair project will be documented in this file.
 
-## [0.7.3] - 2026-03-20
+## [0.9.0] - 2026-03-22
 
-### 🛡️ DevSecOps & Estabilização Extrema
-- **Bloqueio de Autorização Manual OCI (No-GitOps)**: Desativados completamente os gatilhos CI/CD automáticos do OpenTofu (`on: push`). O ciclo de Deploy para Nuvem (A1) agora é **100% Manual via Workflow Dispatch**, impedindo mutações não-solicitadas e "corridas" contra binários corrompidos no Storage. Inclusivo suporte visual na listagem de *Workflows* para imputação determinística de versão de artefato semântico ou `nightly`.
-- **Benchmarking de Latência Extrema (Hyper-Stress)**: Escrito e acoplado teste de carga multi-thread na base Cíbrida (Axum/SQLite WAL). O nó virtual injetou 10.000 requisições simultâneas assíncronas no pool do Banco atingindo throughput oficial absoluto de > 31.000 RPS (Requests p/ Segundo) limitados pela thread OS.
+### 🚀 O Despertar do Protocolo MCP & Ollama Real Engine
+
+Esta release introduz a interoperabilidade de agentes IDE e extermina os Mocks Falsos da arquitetura Cíbrida, injetando fluxos autênticos do Ollama e validando a maturidade corporativa da aplicação com bateria de testes rígida.
+
+### Adicionado
+- **Model Context Protocol (MCP) Server**: Construção nativa do Servidor MCP (`/v1/mcp/sse` e `/v1/mcp/message`) em Rust (Axum), permitindo que IDEs de Terceiros (OpenCode, Cursor, Windsurf) gerenciem e indexem o Sensus Vault como ferramenta nativa, obedecendo ao protocolo aberto da Anthropic.
+- **Ollama Real Model Creation API**: Os mocks visuais no *Model Trainer* foram implodidos. A suíte de rotas `api_trainer.rs` aciona autenticamente o daemon nativo via porta `11434`, disparando builds e pulls das imagens estritamente controladas no bare-metal.
+- **Server-Sent Events (SSE) Progress Tracker**: Transmissão em tempo estrito do payload gerado pelo Ollama (MB por segundo, Status de Digest) direto para a interface Svelte 5 (Model Trainer) anulando deadlocks visuais de longa duração.
+
+### Segurança & Qualidade (QA Suite)
+- **Rust Sandbox Hardening**: Implementado barreira Anti-Directory Traversal (`validate_safe_path()`) no núcleo MCP com testes unitários dinâmicos via `tempfile`, barrando agentes externos e payloads N8N de lerem chaves SSH ou arquivos ROOT fora da bolha arbitrária do Vault.
+- **Svelte Zero-Warning State (TypeScript/A11y)**: Extirpados +30 alertas críticos de Acessibilidade (Labels ausentes) em dezenas de componentes vitais do Svelte, em conjunto com o expurgo de erros inferenciais críticos de Type-Safety no roteador Global. O Linter (`svelte-check`) atinge `0 Errors` antes da pipeline.
+- **Premium Identity Silhouettes**: Extirpado o Avatar de texto padrão ("AD" via `ui-avatars.com`), introduzindo um layout estruturado vetorizado (`User` Lucide) orgânico em paleta Navy Blue com sombras radiantes (`drop-shadow-sm`).
+- **Zero-Trust Credential Sweep**: Todo o código encapsulado nesta release foi homologado com escaneamento imperativo assíncrono do `zricethezav/gitleaks`, garantindo 0 chaves vazadas.
+
+## [0.8.3] - 2026-03-21
+
+### 🚀 The Omniscient Cibrid Hub & Dynamic Topology Mapping
+
+Esta release eleva o nível de Autoconsciência do Motor Rust. O painel central do *Sovereign Pair* (Control Hub) descarta de vez dependências mockadas e passa a atuar como um monitor Cíbrido genuíno do ecossistema local do hospedeiro, extraindo variáveis do barramento de hardware com precisão granular.
+
+### Adicionado
+- **Native GPU Autodiscovery**: Implementada macro multiplataforma condicionada no Rust (`#[cfg(target_os="linux|macos")]`) que invoca os utilitários de sistema nativos (`glxinfo`, `system_profiler`) para inferir organicamente o Chipset e o Total VRAM Máximo (MB/GB) em tempo de execução, injetando de volta na dashboard UI Svelte sem latência.
+- **Dynamic Hub Reality**: A interface do `Home` finalmente transcende ao status real do Vault e Projetos:
+  - `Active Projects e Pending Tasks`: Orquestração reativa do Kanban agora exclui logicamente *archived nodes* e contabiliza em tempo-real as progressões do motor Sensus.
+  - `Categories Placed e Synced Files`: Leituras de indexação sincronizadas bit a bit lendo as chaves exatas do `sensus_documents` e diretórios raiz no SO.
+  - `Firewall Blocks & LLM Latency`: Status dinâmico consumindo gaps embutidos de segurança da thread de execução do proxy *OpenCode*.
+
+### Corrigido
+- **Blindagem do Payload Axum (Missing Properties JSON)**: Eliminado o drop visual silenciado (`struct missing`) no Frontend do Svelte, orquestrando perfeitamente a serialização `serde_json` do nó de Hardware para refletir instâncias ociosas da inteligência artificial no SysMonitor.
+
+## [0.8.2] - 2026-03-21
+
+### 🚀 Vault Explorer, Svelte UI & Performance Cíbrida
+
+### Adicionado
+- **Integração Real-Time Hardware Telemetry (Memória OS)**: O motor Axum agora lê nativamente `/proc/meminfo` para injetar no dashboard do *Control Hub* a volumetria exata do Hardware (RAM) do hospedeiro atual, neutralizando o limite mockado de 24GB do layout antigo.
+- **Vault Data Explorer UI Refinada**: Implementada uma barra de *Command Line Search* unificada, expurgando as inconsistências das antigas interfaces de filtragem e empoderando o grid de arquivos via tags (ex: `tag:projeto`), *paths* e clique dinâmico (sort) nos cabeçalhos transversais.
+- **Componente Props Escalado (BlockEditor)**: O Popover Flutuante de edição Frontmatter YAML (`Props`) sofreu um recálculo profundo nas diretivas Tailwind, adquirindo a robustez necessária (`w-[450px]`) para não estrangular chaves e arrays longos e sobrepor as engrenagens de refração visual.
+
+### Corrigido
+- **Context-Bombing & ReWOO Engine Latency**: Refatorado o roteador híbrido Rust (`HybridRouter::dispatch_planner`) que estava disparando uma varredura completa (`VaultSearch`) em cada interação mínima do usuário no Chat nativo. A lógica reconfigurada aguarda agora condicionalmente por instruções com `@vault`. Essa mudança resgatou instantaneamente o LLM do estado comatoso (onde demorava minutos lendo 16k tokens).
+- **Integração de LLM (The Doctor) e Svelte Typings (HTTP 422)**: Erradicado o travamento bruto onde objetos numéricos (Integers) vazavam do Estado (`globalState.activeWorkspaceId`) e implodiam a desserialização do Endpoint Axum. Conversões blindadas em String asseguraram a consistência dos requests do chat intra-arquivos.
+
+## [0.8.1] - 2026-03-20
+
+🚨 **A Atualização Estabilizadora**
+Esta não-planejada e microscópica "micro-patch" solidifica o Core nativo do Motor Cíbrido contra "warnings" da API e desvios de tabela (drift). Ela coroa o esforço gigantesco da estabilização e garante fluidez cega nos Linux / Mac / Win sem warnings legados. 
+
+### 🎉 Melhorias e Correções Profundas (Hotfixes):
+- **O Fim da Panificação SQLite / Sync Engine**: Eliminado o bug "Falha ao Ler Tabela de Workspaces" que corrompia as entranhas assíncronas do monitorador The Watcher. O problema de derivação do Schema (onde ele procurava a coluna como String `absolute_path` quando, estritamente, ela era um Integer + String `path` nativo) foi totalmente sanado. As tabelas SQL agora vinculam os File System FSEvents perfeitamente.
+- **Limpeza do Lixo de Logs (Rust Native CLI)**: Compilado com Zero Warnings de macros importadas indevidamente (Linter do Cargo). A biblioteca The Nurse / The Watcher (`fs_extra` & `Copy`) e as passagens do `Tauri::AppHandle` foram envelopadas através das travas blindadas condicionalmente via `#[cfg]` Macros, impedindo "Unused Imports" do Windows e do Apple macOS em um ambiente de produção Linux. 
+- **O Fim da Mega-Bomba de Artefatos no Release Workflow**: A CI Pipeline que gerava nossos instaladores foi radicalmente lapidada. Variáveis dinâmicas para forçar `Node.JS 24` em processos nativos paralelos (evitando "Deprecation Warning"), e o expurgo do *Artifact Glob Path* ("`**/*`" $\rightarrow$ "`*.AppImage, *.msi`") no Github. O Uploader do GitHub Release agora não travará na nuvem por Rate Limits tentando ejetar milhares de arquivos recursivos em C++ no log, postando EXCLUSIVAMENTE pacotes empacotados.
+
+## [0.8.1] - 2026-03-20
+
+### Melhorias e Correções Profundas (Hotfixes)
+- **O Fim da Panificação SQLite / Sync Engine**: Eliminado o bug "Falha ao Ler Tabela" corrompendo as entranhas assíncronas do monitorador The Watcher. O problema de derivação do Schema de `absolute_path` (String) para `path` (Integer mapping) foi totalmente sanado. 
+- **Limpeza do Lixo de Logs (Rust Native CLI)**: Compilado com Zero Warnings de macros indevidamente importadas. A biblioteca The Nurse / The Watcher (`fs_extra` & `Copy`) foram envelopadas através das travas condicionalmente blindadas `#[cfg]`, impedindo "Unused Imports" do Windows e MacOS. 
+- **O Fim da Mega-Bomba de Artefatos no Release Workflow**: A CI Pipeline que gerava nossos instaladores foi radicalmente lapidada. Variáveis dinâmicas forçam `Node.JS 24` em processos nativos paralelos (evitando "Deprecation Warning"), e o expurgo do *Artifact Glob Path* protege o Uploader do GitHub Release contra API Rate Limits e Not Found Errors.
+
+## [0.8.0] - 2026-03-20
+
+### Adicionado
+- **Universal Installers & GUI Setup**: Lançamento do Instalador Visual Tauri v2. O App engloba o Backend RUST injetado via `externalBin` e executa um Setup Wizard na primeira inicialização da Dashboard Svelte.
+- **Arquitetura Cíbrida (Thin-Client e Fat-Daemon)**: O motor de dados e segurança (Sensus / SQLite) foi definitivamente movido para Background Daemons escalonados via `sudo/UAC/pkexec`.
+- **System Tray (Area de Notificação)**: Adicionado suporte cross-platform nativo para manter a engine ativa enquanto o Frontend webview é desligado com segurança de RAM.
+- **KDE Plasma & Shell Implants**: A injeção universal do `sovereign-pair-widget` (Plasmoids) e integrações nativas ocorrem silenciadas via `tauri-plugin-fs` como diretivas do "Usuário Local", anulando os riscos de vazamentos de superusuário do SysDaemon.
+- **Logs Nativos Desktop**: A atividade gerada entre o escalonamento do daemon e inicialização das extensões agora emite um `.log` limpo na visualização do Desktop do hospedeiro.
 
 ## [0.7.2] - 2026-03-19
 
