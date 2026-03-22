@@ -3,22 +3,32 @@
 </script>
 
 <div class="p-8 h-full">
-    <!-- Header Section -->
-    <header class="mb-10">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <p class="text-primary font-semibold text-sm tracking-wide mb-1">Model Trainer</p>
-                <h1 class="text-4xl font-extrabold text-on-surface tracking-tight ">Fine-Tuning Engine</h1>
-            </div>
-            <div class="flex items-center gap-4 bg-surface-container-low p-1.5 rounded-xl border border-outline-variant/10">
-                <button class="px-4 py-2 bg-surface-container-lowest text-primary font-bold text-xs rounded-lg shadow-sm">Fine-Tuning</button>
-                <a href="/model-trainer/distillation" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">Distillation</a>
-                <a href="/model-trainer/reflection" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">Reflection Lab</a>
-                <a href="/model-trainer/rag-pipeline" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">RAG Pipeline</a>
-                <a href="/model-trainer/unsloth" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">Unsloth Monitor</a>
-            </div>
+    <!-- Header Section (Identical to Distillation) -->
+    <header class="mb-10 w-full flex items-center justify-between">
+        <div class="flex items-center gap-4 bg-surface-container-low px-4 py-2 rounded-full w-96 border border-outline-variant/10 shadow-sm">
+            <span class="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
+            <input class="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-on-surface-variant/70 text-on-surface outline-none" placeholder="Search experiments or datasets..." type="text" />
+        </div>
+        <div class="flex items-center gap-4 bg-surface-container-low p-1.5 rounded-xl border border-outline-variant/10">
+            <button class="px-4 py-2 bg-surface-container-lowest text-primary font-bold text-xs rounded-lg shadow-sm">Fine-Tuning</button>
+            <a href="/model-trainer/distillation" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">Distillation</a>
+            <a href="/model-trainer/reflection" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">Reflection Lab</a>
+            <a href="/model-trainer/rag-pipeline" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">RAG Pipeline</a>
+            <a href="/model-trainer/unsloth" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">Unsloth Monitor</a>
         </div>
     </header>
+
+    <div class="w-full flex-1">
+        <!-- Title Section -->
+        <section class="flex justify-between items-end mb-10">
+            <div>
+                <p class="text-primary font-semibold text-sm tracking-wide mb-1 uppercase">Model Trainer</p>
+                <h1 class="font-extrabold text-3xl tracking-tight text-on-surface">Fine-Tuning Engine</h1>
+            </div>
+            <div class="flex gap-3">
+                <!-- Additional fine-tuning page buttons can go here if needed later -->
+            </div>
+        </section>
 
     <!-- Grid Layout -->
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
@@ -311,3 +321,4 @@
         border-radius: 3px;
     }
 </style>
+    </div>
