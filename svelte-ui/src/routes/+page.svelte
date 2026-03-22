@@ -45,7 +45,7 @@
     function handleNodeClick(node: any) {
         console.log("Navigating to Node:", node);
         if (node.type === 'file' && node.path) {
-            globalState.activeFileId = node.path;
+            globalState.vault.activeDocumentId = node.path;
             window.location.href = '/vault';
         }
     }
@@ -96,21 +96,21 @@
                 <!-- Floating Controls Overlay -->
                 <div class="absolute bottom-8 left-1/2 -translate-x-1/2 bg-slate-800/80 backdrop-blur-xl border border-slate-600/50 px-8 py-5 rounded-2xl flex items-center gap-8 shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
                     <div class="flex flex-col gap-3">
-                        <label class="text-xs font-bold text-slate-400 uppercase tracking-widest flex justify-between">
+                        <label for="graph-depth" class="text-xs font-bold text-slate-400 uppercase tracking-widest flex justify-between">
                             <span>Graph Depth</span>
                             <span class="text-blue-400">Max</span>
                         </label>
-                        <input type="range" class="w-48 accent-blue-500 cursor-pointer" min="1" max="5" value="5" />
+                        <input id="graph-depth" type="range" class="w-48 accent-blue-500 cursor-pointer" min="1" max="5" value="5" />
                     </div>
                     
                     <div class="w-px h-10 bg-slate-600/50"></div>
                     
                     <div class="flex flex-col gap-3">
-                        <label class="text-xs font-bold text-slate-400 uppercase tracking-widest flex justify-between">
+                        <label for="data-history" class="text-xs font-bold text-slate-400 uppercase tracking-widest flex justify-between">
                             <span>Data Flow History</span>
                             <span class="text-emerald-400">All Time</span>
                         </label>
-                        <input type="range" class="w-48 accent-emerald-500 cursor-pointer" min="0" max="100" value="100" />
+                        <input id="data-history" type="range" class="w-48 accent-emerald-500 cursor-pointer" min="0" max="100" value="100" />
                     </div>
                 </div>
             {/if}

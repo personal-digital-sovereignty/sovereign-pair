@@ -2,6 +2,23 @@
 
 All notable changes to the Sovereign Pair project will be documented in this file.
 
+## [0.9.0] - 2026-03-22
+
+### 🚀 O Despertar do Protocolo MCP & Ollama Real Engine
+
+Esta release introduz a interoperabilidade de agentes IDE e extermina os Mocks Falsos da arquitetura Cíbrida, injetando fluxos autênticos do Ollama e validando a maturidade corporativa da aplicação com bateria de testes rígida.
+
+### Adicionado
+- **Model Context Protocol (MCP) Server**: Construção nativa do Servidor MCP (`/v1/mcp/sse` e `/v1/mcp/message`) em Rust (Axum), permitindo que IDEs de Terceiros (OpenCode, Cursor, Windsurf) gerenciem e indexem o Sensus Vault como ferramenta nativa, obedecendo ao protocolo aberto da Anthropic.
+- **Ollama Real Model Creation API**: Os mocks visuais no *Model Trainer* foram implodidos. A suíte de rotas `api_trainer.rs` aciona autenticamente o daemon nativo via porta `11434`, disparando builds e pulls das imagens estritamente controladas no bare-metal.
+- **Server-Sent Events (SSE) Progress Tracker**: Transmissão em tempo estrito do payload gerado pelo Ollama (MB por segundo, Status de Digest) direto para a interface Svelte 5 (Model Trainer) anulando deadlocks visuais de longa duração.
+
+### Segurança & Qualidade (QA Suite)
+- **Rust Sandbox Hardening**: Implementado barreira Anti-Directory Traversal (`validate_safe_path()`) no núcleo MCP com testes unitários dinâmicos via `tempfile`, barrando agentes externos e payloads N8N de lerem chaves SSH ou arquivos ROOT fora da bolha arbitrária do Vault.
+- **Svelte Zero-Warning State (TypeScript/A11y)**: Extirpados +30 alertas críticos de Acessibilidade (Labels ausentes) em dezenas de componentes vitais do Svelte, em conjunto com o expurgo de erros inferenciais críticos de Type-Safety no roteador Global. O Linter (`svelte-check`) atinge `0 Errors` antes da pipeline.
+- **Premium Identity Silhouettes**: Extirpado o Avatar de texto padrão ("AD" via `ui-avatars.com`), introduzindo um layout estruturado vetorizado (`User` Lucide) orgânico em paleta Navy Blue com sombras radiantes (`drop-shadow-sm`).
+- **Zero-Trust Credential Sweep**: Todo o código encapsulado nesta release foi homologado com escaneamento imperativo assíncrono do `zricethezav/gitleaks`, garantindo 0 chaves vazadas.
+
 ## [0.8.3] - 2026-03-21
 
 ### 🚀 The Omniscient Cibrid Hub & Dynamic Topology Mapping
