@@ -5,6 +5,55 @@
   --color-sidebar-bg: #384663;
   --color-sidebar-active: #232d42;
   --color-sidebar-muted: #8a96aa;
+  
+  /* Trainer Engine & RAG Colors */
+  --color-surface-container-highest: #e1e3e4;
+  --color-on-tertiary-container: #4faf6e;
+  --color-on-tertiary: #ffffff;
+  --color-on-surface-variant: #444653;
+  --color-error: #ba1a1a;
+  --color-surface-dim: #d9dadb;
+  --color-on-secondary-fixed-variant: #394857;
+  --color-outline: #757684;
+  --color-error-container: #ffdad6;
+  --color-on-surface: #191c1d;
+  --color-tertiary: #00250e;
+  --color-surface-container-high: #e7e8e9;
+  --color-on-background: #191c1d;
+  --color-secondary-fixed-dim: #b8c8da;
+  --color-on-secondary: #ffffff;
+  --color-surface-container: #edeeef;
+  --color-on-tertiary-fixed-variant: #005228;
+  --color-primary: #001360;
+  --color-tertiary-fixed-dim: #7ada95;
+  --color-surface-bright: #f8f9fa;
+  --color-on-secondary-fixed: #0c1d2a;
+  --color-on-primary-container: #8094ff;
+  --color-surface-container-low: #f3f4f5;
+  --color-background: #f8f9fa;
+  --color-on-primary: #ffffff;
+  --color-tertiary-fixed: #96f7af;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-error: #ffffff;
+  --color-on-secondary-container: #546473;
+  --color-on-tertiary-fixed: #00210c;
+  --color-surface-tint: #3e54c1;
+  --color-primary-container: #002395;
+  --color-on-primary-fixed: #001159;
+  --color-surface: #f8f9fa;
+  --color-inverse-surface: #2e3132;
+  --color-surface-variant: #e1e3e4;
+  --color-secondary-fixed: #d4e4f6;
+  --color-inverse-primary: #bac3ff;
+  --color-primary-fixed-dim: #bac3ff;
+  --color-on-primary-fixed-variant: #223aa8;
+  --color-tertiary-container: #003d1c;
+  --color-on-error-container: #93000a;
+  --color-inverse-on-surface: #f0f1f2;
+  --color-secondary-container: #d1e2f3;
+  --color-secondary: #50606f;
+  --color-primary-fixed: #dee1ff;
+  --color-outline-variant: #c5c5d5;
 }
 
 @layer base {
