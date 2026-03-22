@@ -84,7 +84,7 @@ let human_prompt = payload.messages.last()
     .unwrap_or_else(|| "Interação O.S".to_string());
 
 // ======= DevSecOps Guardrails (Phase 17) =======
-if let Err(security_alert) = crate::guardrails::evaluate_prompt(&human_prompt) {
+if let Err(security_alert) = crate::guardrails::evaluate_prompt(&human_prompt, &state.db).await {
     tracing::warn!("🛡️ [Sovereign Guardrails] Ameaça Bloqueada: {}", security_alert.message);
     
     let db_clone = state.db.clone();
