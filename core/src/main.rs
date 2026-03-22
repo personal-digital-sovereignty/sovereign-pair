@@ -10,6 +10,8 @@ mod api_vault;
 mod api_projects;
 mod api_settings;
 mod api_tools;
+mod api_rag;
+mod auto_evaluator;
 mod api_mesh;
 pub mod kms;
 pub mod network;
@@ -119,6 +121,9 @@ async fn main() {
         db: db_pool,
     });
 
+    // Boot the Auto-Evaluator (LLM-as-a-Judge Mesh Loop)
+    auto_evaluator::start_evaluator_loop(state.clone()).await;
+
     let app = Router::new()
         // ------------------ LLMOps Telemetry & Logs ------------------
         .route("/v1/analytics/telemetry", axum::routing::get(api::telemetry_snapshot_handler))
@@ -163,6 +168,15 @@ async fn main() {
         .route("/v1/system/export_config", axum::routing::get(api_settings::export_config_handler))
         .route("/v1/system/import_config", axum::routing::post(api_settings::import_config_handler))
         .route("/v1/system/available_models", axum::routing::get(api_settings::get_available_models_handler))
+        // ------------------ RAG Engine Command Center ----------
+        .route("/v1/rag-engine/rules", axum::routing::get(api_rag::get_routing_rules_handler)
+            .post(api_rag::create_routing_rule_handler))
+        .route("/v1/rag-engine/rules/:id", axum::routing::delete(api_rag::delete_routing_rule_handler))
+        .route("/v1/rag-engine/models", axum::routing::get(api_rag::get_remote_models_handler)
+            .post(api_rag::create_remote_model_handler))
+        .route("/v1/rag-engine/models/:id", axum::routing::delete(api_rag::delete_remote_model_handler))
+        .route("/v1/rag-engine/gaps", axum::routing::get(api_rag::get_knowledge_gaps_handler))
+        .route("/v1/rag-engine/radar", axum::routing::get(api_rag::get_radar_metrics_handler))
         // ------------------ Chat Endpoints ------------------
         .route("/opencode/v1/chat/completions", post(api::chat_completions_handler))
         .route("/v1/chat/completions", post(api::chat_completions_handler))
