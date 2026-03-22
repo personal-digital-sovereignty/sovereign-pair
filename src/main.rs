@@ -11,6 +11,7 @@ mod api_projects;
 mod api_settings;
 mod api_tools;
 mod api_rag;
+mod api_trainer;
 mod auto_evaluator;
 mod api_mesh;
 pub mod kms;
@@ -141,6 +142,8 @@ async fn main() {
         .route("/v1/vault/fs/rename", axum::routing::put(api_vault::vault_fs_rename_handler))
         .route("/v1/vault/fs/move", axum::routing::put(api_vault::vault_fs_move_handler))
         .route("/v1/vault/fs/delete", axum::routing::delete(api_vault::vault_fs_delete_handler))
+        .route("/v1/vault/documents", axum::routing::get(api_vault::vault_documents_handler))
+        .route("/v1/vault/search", axum::routing::get(api_vault::vault_documents_search_handler))
         // ------------------ Historical Chat API (Sovereign O.S) ------
         .route("/v1/sessions", axum::routing::get(api_chat::get_sessions_handler))
         .route("/v1/sessions/:id", axum::routing::get(api_chat::get_session_by_id_handler)
@@ -177,6 +180,10 @@ async fn main() {
         .route("/v1/rag-engine/models/:id", axum::routing::delete(api_rag::delete_remote_model_handler))
         .route("/v1/rag-engine/gaps", axum::routing::get(api_rag::get_knowledge_gaps_handler))
         .route("/v1/rag-engine/radar", axum::routing::get(api_rag::get_radar_metrics_handler))
+        // ------------------ Model Trainer Engine ----------------
+        .route("/v1/trainer/distillation", axum::routing::post(api_trainer::run_distillation_handler))
+        .route("/v1/trainer/finetuning", axum::routing::post(api_trainer::run_finetuning_handler))
+        .route("/v1/trainer/unsloth-monitor", axum::routing::get(api_trainer::unsloth_monitor_sse_handler))
         // ------------------ Chat Endpoints ------------------
         .route("/opencode/v1/chat/completions", post(api::chat_completions_handler))
         .route("/v1/chat/completions", post(api::chat_completions_handler))
