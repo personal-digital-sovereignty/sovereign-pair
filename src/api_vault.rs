@@ -850,7 +850,7 @@ mod tests {
                     .body(Body::empty())
                     .unwrap();
 
-                let response = app_clone.oneshot(request).await.unwrap();
+                let response: axum::response::Response = app_clone.oneshot(request).await.unwrap();
                 assert_eq!(response.status(), StatusCode::OK);
             });
 
