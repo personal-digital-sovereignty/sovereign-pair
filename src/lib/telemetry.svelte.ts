@@ -19,6 +19,7 @@ export const telemetryState = $state({
     syncedFiles: 0,
     vaultCategories: [] as string[],
     modelsUsage: {} as Record<string, number>,
+    securityLogs: [] as any[],
     logs: [] as string[]
 });
 
@@ -59,7 +60,8 @@ export function connectTelemetry() {
                     telemetryState.activeModel = 'Idle';
                 }
 
-                telemetryState.firewallBlocks = data.cronos?.gaps || 0;
+                telemetryState.firewallBlocks = data.security_blocks || 0;
+                telemetryState.securityLogs = data.security_logs || [];
                 telemetryState.vaultsCount = data.cronos?.vaults_count || 0;
                 telemetryState.syncedFiles = data.cronos?.synced_files || 0;
                 telemetryState.vaultCategories = data.cronos?.vault_categories || [];

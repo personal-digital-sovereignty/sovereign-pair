@@ -210,31 +210,26 @@
                     LIVE MONITOR
                 </span>
             </div>
-            <div class="space-y-3 relative z-10">
+            <div class="space-y-3 relative z-10 overflow-y-auto max-h-[300px] custom-scrollbar pr-2">
+                {#each telemetryState.securityLogs as log}
                 <div class="flex items-start gap-4 p-4 bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 hover:border-slate-600 transition-colors">
-                    <div class="mt-1 w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0 shadow-[0_0_8px_rgba(244,63,94,0.6)]"></div>
+                    <div class="mt-1 w-2.5 h-2.5 rounded-full {log.severity === 'Critical' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]' : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]'} shrink-0"></div>
                     <div>
-                        <p class="text-xs font-mono text-slate-200 font-bold tracking-tight mb-1.5">SEC Prompt Injection BLOCKED</p>
-                        <p class="text-[10px] text-slate-400 leading-relaxed">Request ID: 894-X-92 | Model: GPT-4o<br/>Source: External IP 192.x.x.x</p>
+                        <p class="text-xs font-mono text-slate-200 font-bold tracking-tight mb-1.5">{log.event_type} {log.blocked ? 'BLOCKED' : 'PASSED'}</p>
+                        <p class="text-[10px] text-slate-400 leading-relaxed">{log.message}<br/>Source: {log.source}</p>
                     </div>
-                    <span class="ml-auto text-[10px] font-mono text-slate-500">2m ago</span>
+                    <span class="ml-auto text-[10px] font-mono text-slate-500">{log.created_at}</span>
                 </div>
-                <div class="flex items-start gap-4 p-4 bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 hover:border-slate-600 transition-colors">
-                    <div class="mt-1 w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.6)]"></div>
+                {/each}
+                {#if telemetryState.securityLogs.length === 0}
+                <div class="flex items-start gap-4 p-4 bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 opacity-60">
+                    <div class="mt-1 w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.4)]"></div>
                     <div>
-                        <p class="text-xs font-mono text-slate-200 font-bold tracking-tight mb-1.5">PII Detected CPF MASKED</p>
-                        <p class="text-[10px] text-slate-400 leading-relaxed">Output Filter Active | Compliance: GDPR/LGPD<br/>Masked: [***.842.***-**]</p>
+                        <p class="text-xs font-mono text-slate-200 font-bold tracking-tight mb-1.5">Sovereign Guardrails PASSED</p>
+                        <p class="text-[10px] text-slate-400 leading-relaxed">Nenhuma ameaça identificada.<br/>Policy: Enterprise-Strict</p>
                     </div>
-                    <span class="ml-auto text-[10px] font-mono text-slate-500">14m ago</span>
                 </div>
-                <div class="flex items-start gap-4 p-4 bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 opacity-60 hover:opacity-100 transition-opacity">
-                    <div class="mt-1 w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></div>
-                    <div>
-                        <p class="text-xs font-mono text-slate-200 font-bold tracking-tight mb-1.5">Toxicity Check PASSED</p>
-                        <p class="text-[10px] text-slate-400 leading-relaxed">Score: 0.002 | Policy: Enterprise-Strict</p>
-                    </div>
-                    <span class="ml-auto text-[10px] font-mono text-slate-500">21m ago</span>
-                </div>
+                {/if}
             </div>
         </div>
 
