@@ -1,7 +1,6 @@
 <script lang="ts">
     import { page } from '$app/state';
     let { children }: { children: import('svelte').Snippet } = $props();
-    let routeId = $derived(page.url.pathname);
 </script>
 
 <div class="flex h-full w-full gap-6 px-2 pb-4">
