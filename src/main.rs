@@ -14,6 +14,7 @@ mod api_rag;
 mod api_trainer;
 mod auto_evaluator;
 mod api_mesh;
+mod api_mcp;
 pub mod kms;
 pub mod network;
 pub mod rewoo;
@@ -193,6 +194,9 @@ async fn main() {
         // ------------------ Tools & Agentic Capabilities ----
         .route("/v1/tools/read_vault_file", post(api_tools::read_vault_file_handler))
         .route("/v1/tools/create_kanban_task", post(api_tools::create_kanban_task_handler))
+        // ------------------ Master Control Program (MCP Server) -------
+        .route("/v1/mcp/sse", axum::routing::get(api_mcp::mcp_sse_handler))
+        .route("/v1/mcp/message", axum::routing::post(api_mcp::mcp_message_handler))
         // Bypass pacificador para TUI que tenta carregar modelos disponíveis antes da call
         .route("/v1/models", axum::routing::get(|| async {
             axum::Json(serde_json::json!({
