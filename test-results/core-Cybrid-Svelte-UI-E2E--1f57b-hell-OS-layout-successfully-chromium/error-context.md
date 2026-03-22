@@ -1,0 +1,97 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e6]
+      - heading "Control Hub" [level=1] [ref=e9]
+    - navigation [ref=e10]:
+      - link "Home" [ref=e11] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e12]
+        - generic [ref=e13]: Home
+      - link "Chat" [ref=e14] [cursor=pointer]:
+        - /url: /chat
+        - img [ref=e15]
+        - generic [ref=e16]: Chat
+      - link "Vault" [ref=e17] [cursor=pointer]:
+        - /url: /vault
+        - img [ref=e18]
+        - generic [ref=e19]: Vault
+      - link "Projects" [ref=e20] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e21]
+        - generic [ref=e22]: Projects
+      - heading "System Modules" [level=2] [ref=e24]
+      - link "Cognitive Graph" [ref=e25] [cursor=pointer]:
+        - /url: /graph
+        - img [ref=e26]
+        - generic [ref=e27]: Cognitive Graph
+      - link "RAG Engine" [ref=e28] [cursor=pointer]:
+        - /url: /rag-engine/routing
+        - generic [ref=e29]: RAG Engine
+      - link "Model Trainer" [ref=e30] [cursor=pointer]:
+        - /url: /model-trainer/fine-tuning
+        - generic [ref=e31]: Model Trainer
+      - link "Analytics" [ref=e32] [cursor=pointer]:
+        - /url: /analytics
+        - generic [ref=e33]: Analytics
+      - link "System Settings" [ref=e35] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e36]
+        - generic [ref=e37]: System Settings
+  - generic [ref=e38]:
+    - generic [ref=e39]:
+      - heading "Hardware Telemetry" [level=3] [ref=e40]
+      - img [ref=e41]
+    - generic [ref=e42]:
+      - generic [ref=e45]:
+        - generic [ref=e46]: "SYS RAM:"
+        - generic [ref=e47]: 0 MB / 24 GB
+      - generic [ref=e50]:
+        - generic [ref=e51]: "TOKENS/SEC:"
+        - generic [ref=e52]: 0.0 T/s
+      - generic [ref=e60]:
+        - generic [ref=e61]: "MODEL:"
+        - generic "Not Loaded" [ref=e62]
+  - generic [ref=e69]:
+    - banner [ref=e70]:
+      - generic [ref=e71] [cursor=pointer]:
+        - generic [ref=e72]:
+          - generic [ref=e73]: Active Workspace
+          - combobox "Active Workspace" [ref=e74]:
+            - option "Sovereign Origin" [selected]
+        - img
+      - generic [ref=e75]:
+        - button [ref=e77]:
+          - img [ref=e78]
+        - button [ref=e80]:
+          - img [ref=e81]
+        - generic [ref=e83]:
+          - generic "System Operator" [ref=e84]:
+            - img [ref=e85]
+          - generic [ref=e86]:
+            - generic [ref=e87]: Jeferson
+            - generic [ref=e88]: Software Engineer
+    - main [ref=e89]:
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - generic [ref=e92]:
+            - img [ref=e94]
+            - heading "Control Hub" [level=1] [ref=e95]
+            - generic [ref=e96]: Cognitive Graph
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - img [ref=e100]
+              - generic [ref=e101]: "0"
+              - text: Nodes
+            - generic [ref=e103]:
+              - img [ref=e104]
+              - generic [ref=e105]: "0"
+              - text: Synapses
+        - main [ref=e106]:
+          - generic [ref=e108]:
+            - img [ref=e109]
+            - generic [ref=e110]: Sovereign Core offline or unreachable.
+```
