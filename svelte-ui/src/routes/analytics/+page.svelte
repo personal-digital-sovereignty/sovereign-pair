@@ -1,5 +1,27 @@
 <script lang="ts">
     import { CircleDollarSign, Timer, Gauge, AlertTriangle, TrendingUp, CheckCircle2, Zap, ShieldAlert, Network, AlertCircle, FileText, DownloadCloud, RefreshCw, ShieldCheck } from 'lucide-svelte';
+    import { telemetryState } from '$lib/telemetry.svelte';
+
+    const tailwindPalette = [
+        { bg: 'bg-blue-500', bgHover: 'group-hover:bg-blue-600', text: 'text-blue-600' },
+        { bg: 'bg-indigo-400', bgHover: 'group-hover:bg-indigo-500', text: 'text-indigo-600' },
+        { bg: 'bg-teal-400', bgHover: 'group-hover:bg-teal-500', text: 'text-teal-600' },
+        { bg: 'bg-rose-400', bgHover: 'group-hover:bg-rose-500', text: 'text-rose-600' },
+        { bg: 'bg-amber-400', bgHover: 'group-hover:bg-amber-500', text: 'text-amber-600' },
+        { bg: 'bg-emerald-500', bgHover: 'group-hover:bg-emerald-600', text: 'text-emerald-600' }
+    ];
+
+    let totalTokens = $derived(Object.values(telemetryState.modelsUsage).reduce((a, b) => a + b, 0));
+    
+    let modelSplits = $derived(Object.entries(telemetryState.modelsUsage).map(([name, tokens], idx) => {
+        let palette = tailwindPalette[idx % tailwindPalette.length];
+        return {
+            name,
+            tokens,
+            percent: totalTokens > 0 ? (tokens / totalTokens) * 100 : 0,
+            palette
+        };
+    }).sort((a,b) => b.tokens - a.tokens));
 </script>
 
 <div class="flex flex-col h-full w-full bg-white rounded-2xl border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
@@ -42,7 +64,7 @@
                   <CircleDollarSign class="text-blue-600 w-5 h-5" />
                 </div>
             </div>
-            <div class="text-3xl font-extrabold text-slate-800 mb-1 leading-none">US$ 342.50</div>
+            <div class="text-3xl font-extrabold text-slate-800 mb-1 leading-none">US$ {telemetryState.estimatedCost.toFixed(4)}</div>
             <div class="flex items-center gap-1.5 text-xs font-bold text-rose-500 mt-4">
                 <TrendingUp class="w-4 h-4" /> 5% vs last 24h
             </div>
@@ -56,7 +78,7 @@
                   <Timer class="text-indigo-600 w-5 h-5" />
                 </div>
             </div>
-            <div class="text-3xl font-extrabold text-slate-800 mb-1 leading-none">450 <span class="text-lg text-slate-400 font-medium">ms</span></div>
+            <div class="text-3xl font-extrabold text-slate-800 mb-1 leading-none">{telemetryState.avgLatencyMs} <span class="text-lg text-slate-400 font-medium">ms</span></div>
             <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-500 mt-4">
                 <CheckCircle2 class="w-4 h-4" /> Rapid • Healthy
             </div>
@@ -70,7 +92,7 @@
                   <Gauge class="text-teal-600 w-5 h-5" />
                 </div>
             </div>
-            <div class="text-3xl font-extrabold text-slate-800 mb-1 leading-none">68 <span class="text-lg text-slate-400 font-medium">t/s</span></div>
+            <div class="text-3xl font-extrabold text-slate-800 mb-1 leading-none">{telemetryState.tokensPerSecond} <span class="text-lg text-slate-400 font-medium">t/s</span></div>
             <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-500 mt-4">
                 <Zap class="w-4 h-4" /> Peak Performance
             </div>
@@ -84,7 +106,7 @@
                   <AlertTriangle class="text-rose-600 w-5 h-5" />
                 </div>
             </div>
-            <div class="text-3xl font-extrabold text-rose-600 mb-1 leading-none">12</div>
+            <div class="text-3xl font-extrabold text-rose-600 mb-1 leading-none">{telemetryState.firewallBlocks}</div>
             <div class="flex items-center gap-1.5 text-xs font-bold text-rose-600 mt-4">
                 <AlertCircle class="w-4 h-4" /> Requires Attention
             </div>
@@ -100,16 +122,17 @@
                     <h2 class="text-xl font-bold text-slate-800">Live Traffic by Model</h2>
                     <p class="text-xs text-slate-500 font-medium mt-1">Real-time token request volume per architecture</p>
                 </div>
-                <div class="flex gap-4">
+                <div class="flex flex-wrap gap-4">
+                    {#each modelSplits as split}
                     <div class="flex items-center gap-2 text-xs font-bold text-slate-600">
-                        <span class="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></span> GPT-4o
+                        <span class="w-3 h-3 rounded-full {split.palette.bg} shadow-sm"></span> {split.name}
                     </div>
-                    <div class="flex items-center gap-2 text-xs font-bold text-slate-600">
-                        <span class="w-3 h-3 rounded-full bg-indigo-400 shadow-sm"></span> Claude 3.5
+                    {/each}
+                    {#if modelSplits.length === 0}
+                    <div class="flex items-center gap-2 text-xs font-bold text-slate-400">
+                        <span class="w-3 h-3 rounded-full bg-slate-300 shadow-sm"></span> Awaiting Data
                     </div>
-                    <div class="flex items-center gap-2 text-xs font-bold text-slate-600">
-                        <span class="w-3 h-3 rounded-full bg-teal-400 shadow-sm"></span> Llama-3
-                    </div>
+                    {/if}
                 </div>
             </div>
             
@@ -119,9 +142,14 @@
                     [60, 30, 10], [65, 25, 10], [55, 35, 10], [70, 20, 10], [50, 40, 10], [60, 25, 15], [63, 27, 10], [58, 30, 12] 
                 ] as split}
                 <div class="flex-1 flex flex-col justify-end gap-0.5 group cursor-crosshair">
-                    <div class="w-full bg-blue-500/80 rounded-t-sm group-hover:bg-blue-600 transition-colors" style="height: {split[0]}%;"></div>
-                    <div class="w-full bg-indigo-400/80 group-hover:bg-indigo-500 transition-colors" style="height: {split[1]}%;"></div>
-                    <div class="w-full bg-teal-400/80 rounded-b-sm group-hover:bg-teal-500 transition-colors" style="height: {split[2]}%;"></div>
+                    {#if modelSplits.length > 0}
+                        {#each modelSplits as model, idx}
+                        <!-- Pseudo timeseries distribution mirroring aggregate percent exactly -->
+                        <div class="w-full {model.palette.bg}/80 {model.palette.bgHover} transition-colors {idx === 0 ? 'rounded-t-sm' : ''} {idx === modelSplits.length - 1 ? 'rounded-b-sm' : ''}" style="height: {model.percent * split[0] / 60}%;"></div>
+                        {/each}
+                    {:else}
+                        <div class="w-full bg-slate-200/50 rounded-sm" style="height: {split[0]}%;"></div>
+                    {/if}
                 </div>
                 {/each}
             </div>
@@ -134,33 +162,23 @@
         <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
             <h2 class="text-xl font-bold text-slate-800 mb-6">Usage Economics</h2>
             <div class="space-y-6">
+                {#each modelSplits as split}
                 <div>
                     <div class="flex justify-between text-xs font-bold mb-2 text-slate-700">
-                        <span>GPT-4o</span>
-                        <span class="text-slate-500">60% Volume</span>
+                        <span>{split.name}</span>
+                        <span class="text-slate-500">{split.percent.toFixed(1)}% Volume</span>
                     </div>
                     <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div class="h-full bg-blue-500 w-[60%] rounded-full shadow-[inset_0_-1px_2px_rgba(0,0,0,0.1)]"></div>
+                        <div class="h-full {split.palette.bg} rounded-full shadow-[inset_0_-1px_2px_rgba(0,0,0,0.1)]" style="width: {split.percent}%"></div>
                     </div>
                 </div>
-                <div>
-                    <div class="flex justify-between text-xs font-bold mb-2 text-slate-700">
-                        <span>Claude 3.5</span>
-                        <span class="text-slate-500">30% Volume</span>
-                    </div>
-                    <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div class="h-full bg-indigo-400 w-[30%] rounded-full shadow-[inset_0_-1px_2px_rgba(0,0,0,0.1)]"></div>
-                    </div>
+                {/each}
+                {#if modelSplits.length === 0}
+                <div class="flex flex-col items-center justify-center py-6 text-slate-400">
+                    <Network class="w-8 h-8 mb-2 opacity-50" />
+                    <p class="text-xs font-medium text-center">Awaiting intelligence routing to compile economics.</p>
                 </div>
-                <div>
-                    <div class="flex justify-between text-xs font-bold mb-2 text-slate-700">
-                        <span>Llama-3</span>
-                        <span class="text-slate-500">10% Volume</span>
-                    </div>
-                    <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div class="h-full bg-teal-400 w-[10%] rounded-full shadow-[inset_0_-1px_2px_rgba(0,0,0,0.1)]"></div>
-                    </div>
-                </div>
+                {/if}
             </div>
             <div class="mt-auto pt-8 border-t border-slate-100">
                 <div class="flex items-center gap-5">
