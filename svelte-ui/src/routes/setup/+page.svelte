@@ -18,17 +18,15 @@
 		isInstalling = true;
 		appendLog("🚀 Iniciando instalação Cíbrida Sovereign Pair...");
 
-		// 1. Detectar Ollama via Fetch Local (Simulação Cliente)
-		appendLog("🔍 Checando Engine RAG (Ollama) em localhost:11434...");
+		// 1. Detectar Ollama via Backend Rust API (Simulação Localhost Natively)
+		appendLog("🔍 Checando Engine RAG (Ollama) na Porta 11434...");
 		try {
-			const res = await fetch("http://127.0.0.1:11434/api/tags");
-			if (res.ok) {
-				ollamaDetected = true;
-				appendLog("✅ Motor Ollama detectado com sucesso!");
-			}
+			const resMsg = await invoke("check_ollama_engine") as string;
+			ollamaDetected = true;
+			appendLog(`✅ ${resMsg}`);
 		} catch (e) {
 			ollamaDetected = false;
-			appendLog("⚠️ AVISO: Ollama não está rodando! O Sovereign irá funcionar, mas sem RAG Local.");
+			appendLog(`⚠️ AVISO: A API do Ollama retornou falha ou não está acessível! (${e})`);
 			appendLog("👉 Por favor, acesse https://ollama.com e instale.");
 		}
 
