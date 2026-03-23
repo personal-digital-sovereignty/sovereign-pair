@@ -36,14 +36,27 @@ Move-Item .\sovereign-core.exe C:\SovereignPair\
 ./sovereign-core.exe --host 127.0.0.1
 ```
 
-### macOS (Apple Silicon / Intel)
+### macOS (Graphical Desktop .DMG Install)
 
-1. Download the `sovereign-core-darwin-arm64` binary.
+1. Download the `SovereignPair_0.9.x_aarch64.dmg` from the Releases tab.
+2. Open the DMG and drag **Sovereign Pair.app** into your `/Applications` folder.
+3. Because the open-source bundle is intentionally NOT code-signed via the paid Apple Developer M1 program, macOS Gatekeeper will forcefully flag the `.app` as "Damaged or compromised by malware".
+4. To remove the arbitrary Quarantine Attribute, open your Terminal and execute:
+```bash
+sudo xattr -cr "/Applications/Sovereign Pair.app"
+```
+5. You can now launch the Sovereign Pair icon directly from your Launchpad!
+
+---
+
+### macOS (Headless Binary Mode)
+
+1. Download the `sovereign-core-macos-arm64-binary`.
 2. Authenticate the execution through Gatekeeper exceptions:
 ```bash
-chmod +x sovereign-core-darwin-arm64
-xattr -d com.apple.quarantine sovereign-core-darwin-arm64
-./sovereign-core-darwin-arm64
+chmod +x sovereign-core-macos-arm64-binary
+xattr -d com.apple.quarantine sovereign-core-macos-arm64-binary
+./sovereign-core-macos-arm64-binary
 ```
 
 ---
