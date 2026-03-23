@@ -359,9 +359,14 @@ jobs:
           files: |
             sovereign-core-linux-amd64-binary
             sovereign-core-linux-arm64-binary
-            sovereign-core-windows-amd64.exe
+            sovereign-core-windows-amd64-binary.exe
             sovereign-core-macos-arm64-binary
             sovereign-pair-kde-widget/sovereign-pair-widget.plasmoid
+            tauri-installers-*/**/*.msi
+            tauri-installers-*/**/*.exe
+            tauri-installers-*/**/*.dmg
+            tauri-installers-*/**/*.deb
+            tauri-installers-*/**/*.AppImage
 
   publish-stable:
     needs: [build-desktop-installers]
