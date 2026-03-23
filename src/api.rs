@@ -175,7 +175,7 @@ if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE
             && !p.is_empty() { global_system_prompt = Some(p.to_string()); }
     }
 }
-let ollama_model = resolved_model;
+let ollama_model = resolved_model.clone();
 
 // ===== THE PLANNER (MACRO ORCHESTRATION BYPASS) =====
 if human_prompt.to_lowercase().starts_with("/plan") {
