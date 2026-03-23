@@ -3,6 +3,7 @@ name: Unified Cibrid CI/CD Pipeline
 on:
   push:
     branches: [ "main", "fix/**" ]
+    tags: [ "**" ]
   pull_request:
     branches: [ "main" ]
   release:
