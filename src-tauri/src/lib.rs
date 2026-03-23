@@ -52,6 +52,15 @@ async fn install_desktop_widgets(#[allow(unused_variables)] app: tauri::AppHandl
     }
 }
 
+#[tauri::command]
+async fn check_ollama_engine() -> Result<String, String> {
+    // Fase 42: Bypassing WebView CORS for Ollama Detection via Rust Native TCP Socket
+    match std::net::TcpStream::connect("127.0.0.1:11434") {
+        Ok(_) => Ok("Motor Ollama detectado na Porta 11434 com sucesso!".to_string()),
+        Err(e) => Err(format!("Ollama daemon offline: {}", e)),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -60,6 +69,30 @@ pub fn run() {
     .plugin(tauri_plugin_os::init())
     .plugin(tauri_plugin_dialog::init())
     .setup(|app| {
+      use tauri_plugin_shell::ShellExt;
+      use tauri_plugin_shell::process::CommandEvent;
+
+      // Fase 41: Sovereign Core Sidecar Spawning
+      match app.shell().sidecar("sovereign-core") {
+          Ok(sidecar_command) => {
+              match sidecar_command.spawn() {
+                  Ok((mut rx, _child)) => {
+                      tauri::async_runtime::spawn(async move {
+                          while let Some(event) = rx.recv().await {
+                              if let CommandEvent::Stdout(line) = event {
+                                  println!("[Core] {}", String::from_utf8_lossy(&line));
+                              } else if let CommandEvent::Stderr(line) = event {
+                                  eprintln!("[Core Err] {}", String::from_utf8_lossy(&line));
+                              }
+                          }
+                      });
+                  },
+                  Err(e) => eprintln!("❌ Falha Máxima ao invocar Sidecar: {}", e),
+              }
+          },
+          Err(e) => eprintln!("❌ Binário sidecar 'sovereign-core' não econtrado no bundle Desktop: {}", e),
+      }
+
       let quit_i = MenuItem::with_id(app, "quit", "Sair do Cíbrido", true, None::<&str>)?;
       let show_i = MenuItem::with_id(app, "show", "Abrir Painel", true, None::<&str>)?;
       let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
@@ -95,7 +128,7 @@ pub fn run() {
         }
         _ => {}
     })
-    .invoke_handler(tauri::generate_handler![install_desktop_widgets])
+    .invoke_handler(tauri::generate_handler![install_desktop_widgets, check_ollama_engine])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
