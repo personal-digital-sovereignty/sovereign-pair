@@ -106,6 +106,11 @@ async fn main() {
     // Invoca o SQLite Master O.S
     let db_pool = db::init_pool().await;
 
+    // Hotfix 0.9.4: Windows DOS Extended Path Cleanup (Remove \\?\ quebrando a interface e prompts)
+    tracing::info!("🧹 [Sovereign DB] Higienizando possíveis rastros de prefixos DOS (\\?\\) em Workspaces...");
+    let _ = sqlx::query(r#"UPDATE workspaces SET path = REPLACE(path, '\\?\', '')"#).execute(&db_pool).await;
+    let _ = sqlx::query(r#"UPDATE sensus_documents SET path = REPLACE(path, '\\?\', '')"#).execute(&db_pool).await;
+
     // Inicializa o Motor Físico RAG O.S Multi-Drive
     let r_sync_engine = sync_engine::SyncEngine::new(db_pool.clone());
     r_sync_engine.start_watcher().await;
