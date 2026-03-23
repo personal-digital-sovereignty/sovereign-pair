@@ -143,7 +143,12 @@ pub async fn create_workspace_handler(
         return (axum::http::StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": true, "message": "O caminho fornecido não existe ou não é um diretório acessível no Host Local Pessoal."}))).into_response();
     }
 
-    let absolute_str = raw_path.canonicalize().unwrap_or(raw_path).to_string_lossy().to_string();
+    let mut absolute_str = raw_path.canonicalize().unwrap_or(raw_path).to_string_lossy().to_string();
+    
+    // Windows DOS Extended-Length Path Sanitization (Prevents UI artifacts like \\?\C:\)
+    if absolute_str.starts_with(r"\\?\") {
+        absolute_str = absolute_str.strip_prefix(r"\\?\").unwrap_or(&absolute_str).to_string();
+    }
 
     let res = sqlx::query("INSERT INTO workspaces (name, path) VALUES (?, ?)")
         .bind(&req.name)
