@@ -528,14 +528,16 @@ if !sys_context.is_empty() {
     }));
 }
 
-// Injeta a Orquestração do ReWOO (Reasoning Without Observation)
+// Injeta a Orquestração do ReWOO (Reasoning Without Observation) Apenas Se Houver Plano
 let workspace_id = payload.workspace_id.clone().unwrap_or_else(|| "default".to_string());
 let rewoo_observations = crate::rewoo::execute_rewoo_plan(&human_prompt, &workspace_id, &state.db).await;
-tracing::debug!("🧠 ReWOO Workflow Executed. Injecting compiled DAG observations.");
-purified_messages.push(json!({
-    "role": "system",
-    "content": rewoo_observations
-}));
+if !rewoo_observations.trim().is_empty() && rewoo_observations != "ReWOO Accumulated Observations:\n" {
+    tracing::debug!("🧠 ReWOO Workflow Executed. Injecting compiled DAG observations.");
+    purified_messages.push(json!({
+        "role": "system",
+        "content": rewoo_observations
+    }));
+}
 
 // Injeta as Mensagens da própria TUI (Código e Prompts)
 purified_messages.extend(payload.messages.into_iter().map(|msg| {
