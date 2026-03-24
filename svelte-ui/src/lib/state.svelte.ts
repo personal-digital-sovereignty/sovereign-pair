@@ -105,15 +105,24 @@ export const sendGlobalChatMessage = async (userText: string) => {
 
     try {
         let finalUserMsg = userText;
+        const currentPath = window.location.pathname;
+
         if (globalState.chat.inputContext) {
             finalUserMsg = `[Contexto Destacado]: "${globalState.chat.inputContext}"\n\n[Pergunta]: ${userText}`;
             globalState.chat.inputContext = ''; // Limpa pra n explodir os próximos
-        } else if (globalState.vault.activeDocumentId && globalState.vault.activeDocumentContent) {
-            // Se o usuário está focado em um PDF/Markdown no modo FileViewer
+        } else if (currentPath.includes('/vault') && globalState.vault.activeDocumentId && globalState.vault.activeDocumentContent) {
+            // Context-Lock (Sub-Tenant Vault): Só anexa context se a render tree estiver no Editor de Texto
             finalUserMsg = `[Documento Atual: ${globalState.vault.activeDocumentId.split('/').pop()}]\n${globalState.vault.activeDocumentContent.substring(0, 1500)}\n\n[Instrução]: ${userText}`;
         }
 
-        const contextPayload = [{ role: 'user', content: finalUserMsg }];
+        const historyPayload = globalState.chat.messages.slice(0, -2)
+            .filter(m => m.text && !m.text.includes('Sensus Synchronized.'))
+            .map(m => ({
+                role: m.role,
+                content: m.text
+            }));
+
+        const contextPayload = [...historyPayload, { role: 'user', content: finalUserMsg }];
         const ws_id = String(globalState.activeWorkspaceId || 'default');
         const token = localStorage.getItem('sovereign_token') || '';
 
