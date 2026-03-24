@@ -249,14 +249,29 @@ if payload.deep_research.unwrap_or(false) {
             message: "🧠 [Deep Research] Acionando O Doutrinador (Sub-LLM) para quebrar sua pergunta em Múltiplas Queries Analíticas...".to_string(),
         });
 
-        let query_system_prompt = "Você é o Agente Doutrinador de Buscas Profundas. Dado o pedido do usuário, crie exatamente 3 strings de pesquisa distintas para vasculhar a internet profundamente a respeito do tema. Foque em perspectivas analíticas. Retorne EXATAMENTE UM ARRAY JSON de strings, sem NENHUM texto extra. Exemplo: [\"query1\", \"query2\", \"query3\"]";
+        let query_system_prompt = "Você é o Agente Doutrinador de Buscas Profundas. Leia a CONVERSA HISTÓRICA atual do usuário com o assistente. Com base no contexto e no ÚLTIMO pedido do usuário, crie exatamente 3 strings de pesquisa distintas para vasculhar a internet profundamente a respeito do tema solicitado. Retorne EXATAMENTE UM ARRAY JSON de strings, sem NENHUM texto extra. Exemplo: [\"query1\", \"query2\", \"query3\"]";
         
+        let mut synth_messages = vec![
+            serde_json::json!({ "role": "system", "content": query_system_prompt })
+        ];
+
+        let msg_count = payload.messages.len();
+        let skip_count = msg_count.saturating_sub(6);
+
+        for msg in payload.messages.iter().skip(skip_count) {
+            let content_str = match &msg.content {
+                Some(crate::models::MessageContent::Text(t)) => t.clone(),
+                Some(crate::models::MessageContent::Multimodal(parts)) => {
+                    parts.iter().filter_map(|p| p.get("text").and_then(|t| t.as_str())).collect::<String>()
+                },
+                None => "".to_string(),
+            };
+            synth_messages.push(serde_json::json!({ "role": msg.role, "content": content_str }));
+        }
+
         let llm_payload = serde_json::json!({
             "model": requested_model.clone(),
-            "messages": [
-                { "role": "system", "content": query_system_prompt },
-                { "role": "user", "content": human_prompt }
-            ],
+            "messages": synth_messages,
             "format": "json",
             "stream": false,
             "options": { "temperature": 0.2 }
@@ -528,10 +543,10 @@ if !sys_context.is_empty() {
         "content": sys_context
     }));
 } else if let Some(global_prompt) = global_system_prompt {
-    // Injeta a Persona Customizada definida na UI se não for uma Agentic Task Restrita
+    // Injeta a Persona Customizada definida na UI com Alta Prioridade Cognitiva (Enforcement Tático)
     purified_messages.push(json!({
         "role": "system",
-        "content": global_prompt
+        "content": format!(">>> DIRETRIZ ABSOLUTA DE PERSONALIDADE, COMPORTAMENTO E NÍVEL DE CONHECIMENTO TÉCNICO <<<\n{}\n>>> VOCÊ DEVE AGIR ESTRITAMENTE CONFORME ESTA DIRETRIZ EM TODAS AS SUAS RESPOSTAS, MANTENDO A IMERSÃO E A PROFUNDIDADE INTELECTUAL EXIGIDA. <<<", global_prompt)
     }));
 }
 
