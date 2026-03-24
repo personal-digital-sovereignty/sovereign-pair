@@ -123,6 +123,38 @@
     </div>
 
     <div class="space-y-4">
+      {#if Math.floor(telemetryState.ramTotalGB) === 0}
+        <!-- Loading Skeleton / Bootstrapping State -->
+        <div class="animate-pulse space-y-5 pt-1 pb-2">
+            <div class="flex flex-col gap-2">
+                <div class="h-2.5 bg-slate-200 rounded w-16"></div>
+                <div class="h-5 bg-slate-200 rounded w-24"></div>
+                <div class="h-1.5 bg-slate-100 rounded-full w-full"></div>
+            </div>
+            <div class="flex items-center justify-between">
+                <div class="flex flex-col gap-2">
+                    <div class="h-2.5 bg-slate-200 rounded w-20"></div>
+                    <div class="h-5 bg-slate-200 rounded w-16"></div>
+                </div>
+                <div class="flex items-end gap-1 h-6">
+                    {#each [1,2,3,4,5] as _}
+                        <div class="w-1.5 h-full bg-slate-100 rounded-t-sm"></div>
+                    {/each}
+                </div>
+            </div>
+            <div class="flex items-center justify-between">
+                <div class="flex flex-col gap-2">
+                    <div class="h-2.5 bg-slate-200 rounded w-12"></div>
+                    <div class="h-4 bg-slate-200 rounded w-20"></div>
+                </div>
+                <div class="flex items-end gap-1 h-6">
+                    {#each [1,2,3,4,5] as _}
+                        <div class="w-1.5 h-full bg-slate-100 rounded-t-sm"></div>
+                    {/each}
+                </div>
+            </div>
+        </div>
+      {:else}
       <!-- VRAM Component -->
       <div>
         <div class="flex justify-between items-end mb-1">
@@ -167,6 +199,7 @@
           <div class="w-1.5 bg-emerald-400 h-[68%] rounded-t-sm"></div>
         </div>
       </div>
+      {/if}
     </div>
   </div>
   <!-- END: Hardware Telemetry Widget -->
