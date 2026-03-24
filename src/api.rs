@@ -608,7 +608,7 @@ if let Some(tool_choice) = payload.tool_choice {
 }
 
 // Resgate Masterplan da Tabela de Configurações
-let env_ollama_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string());
+let env_ollama_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://localhost:11434".to_string());
 let mut ollama_base_url = env_ollama_url.trim_end_matches('/').to_string();
 let mut is_custom_cluster = false;
 
@@ -636,9 +636,9 @@ if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE
 // Só ignora se for um custom cluster selecionado de fato na UI (tipo um IP da Oracle)
 if !is_custom_cluster && ollama_base_url == "http://host.docker.internal:11434" {
     // Tenta checar se o docker internal está resolvendo, se a request HTTP estiver quebrando por DNS, caimos de volta
-    // Simplificado: sempre usar 127.0.0.1 se for host native O.S
+    // Simplificado: sempre usar localhost se for host native O.S para compatibilidade IPv6 (MacOS)
     if std::env::var("SOVEREIGN_RUN_ENV").unwrap_or_default() == "native" {
-         ollama_base_url = "http://127.0.0.1:11434".to_string();
+         ollama_base_url = "http://localhost:11434".to_string();
     }
 }
 
