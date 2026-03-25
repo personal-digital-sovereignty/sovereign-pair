@@ -314,9 +314,22 @@
                     <tbody class="divide-y divide-slate-100 text-slate-700">
                         {#each filteredFiles as file}
                             <tr class="hover:bg-slate-50 cursor-pointer transition-colors group" onclick={() => openFile(file.path, file.name)}>
-                                <td class="px-4 py-2.5 font-medium flex items-center gap-2">
-                                    <FileText class="w-4 h-4 text-blue-500 shrink-0" /> 
-                                    <span class="truncate max-w-[200px]" title={file.name}>{file.name}</span>
+                                <td class="px-4 py-2.5 font-medium flex items-center gap-3">
+                                    {#if file.path.includes('_agents/artifacts')}
+                                        <div class="p-1.5 bg-purple-100 rounded-lg shrink-0 shadow-inner"><Sparkles class="w-3.5 h-3.5 text-purple-600" /></div>
+                                    {:else if file.path.includes('/gaps') || file.path_dir === 'gaps/'}
+                                        <div class="p-1.5 bg-amber-100 rounded-lg shrink-0 shadow-inner"><BrainCircuit class="w-3.5 h-3.5 text-amber-600" /></div>
+                                    {:else}
+                                        <FileText class="w-4 h-4 text-blue-500 shrink-0" /> 
+                                    {/if}
+                                    <div class="flex flex-col">
+                                        <span class="truncate max-w-[200px]" title={file.name}>{file.name}</span>
+                                        {#if file.path.includes('_agents/artifacts')}
+                                            <span class="text-[9px] font-bold uppercase tracking-widest text-purple-600 mt-0.5">Deep Research</span>
+                                        {:else if file.path.includes('/gaps') || file.path_dir === 'gaps/'}
+                                            <span class="text-[9px] font-bold uppercase tracking-widest text-amber-600 mt-0.5">Knowledge Gap</span>
+                                        {/if}
+                                    </div>
                                 </td>
                                 <td class="px-4 py-2.5 text-slate-400 text-xs font-mono">{file.path_dir}</td>
                                 <td class="px-4 py-2.5 flex items-center gap-1.5 flex-wrap">
