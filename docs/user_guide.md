@@ -24,7 +24,7 @@ A página **Home** é o seu *Dashboard* (painel de controle). Aqui você tem uma
 O **Chat** é a sua sala privada de diálogo com a Inteligência Artificial. Diferente de sistemas genéricos na nuvem, tudo o que você escreve aqui é criptografado e não sai da sua máquina a não ser que você autorize.
 - **Deep Research Mode:** O botão de hiper-foco investigativo. Em vez de uma simples e passiva resposta em texto, o modelo ativa uma rotina de pesquisa contínua e autônoma na Web, entregando para você dossiês implacáveis após escavar a camada superficial dos links.
 - **Análise Nativa de PDFs:** Arraste e solte arquivos complexos ou massivos (PDFs corporativos, contratos densos, manuais) diretamente na janela de conversa. O Motor RAG fará a trituração matemática vetorial sem enviar um único byte para fora.
-- **Histórico Matemático em Pastas:** Um avanço revolucionário (Sendo a vanguarda pioneira do mercado em 2026). O seu histórico com as IAs não fica enfileirado de forma linear e caótica. Você pode criar *Folders* de conversas, separando e encadeando suas trocas em blocos por projeto formal, urgência de código ou devaneios lógicos, tudo perfeitamente arrumado localmente.
+- **Histórico Isolado em Árvore de Diretórios:** Esqueça a fila caótica de chats em nuvem. A retenção das suas requisições possui estrutura de *file-system* real. Você pode instanciar Diretórios Lógicos (*Folders*) de contexto e isolar a janela de memória do LLM em blocos por projeto de código, níveis de segurança ou depuração bruta, organizando as threads de forma cirúrgica e unicamente na sua máquina.
 
 ## 3. Vault (Seu Cofre de Conhecimento)
 O **Vault** (Cofre) é a manifestação física do espaço de HD que você concedeu à IA. É onde vivem os "Workspaces" (Suas pastas de conhecimento).
