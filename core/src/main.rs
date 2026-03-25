@@ -191,6 +191,8 @@ async fn main() {
         .route("/v1/rag-engine/gaps/:id", axum::routing::delete(api_rag::delete_knowledge_gap_handler).put(api_rag::resolve_knowledge_gap_handler))
         .route("/v1/rag-engine/radar", axum::routing::get(api_rag::get_radar_metrics_handler))
         // ------------------ Model Trainer Engine ----------------
+        .route("/v1/trainer/stats", axum::routing::get(api_trainer::trainer_stats_handler))
+        .route("/v1/trainer/control", axum::routing::post(api_trainer::trainer_control_handler))
         .route("/v1/trainer/distill", axum::routing::post(api_trainer::run_distillation_handler))
         .route("/v1/trainer/finetune", axum::routing::post(api_trainer::run_finetuning_handler))
         .route("/v1/trainer/unsloth-monitor", axum::routing::get(api_trainer::unsloth_monitor_sse_handler))

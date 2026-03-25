@@ -1,12 +1,57 @@
 <script lang="ts">
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
+    import { onMount, onDestroy } from 'svelte';
+    import { trainerState, exportTrainerConfig } from '$lib/trainer.svelte';
 
     let isSubmitting = $state(false);
+    let pollingInterval: any;
 
-    let loraRank = $state(16);
-    let batchSize = $state(4);
-    let learningRate = $state(0.0002);
+    onMount(() => {
+        fetchTrainerStats();
+        pollingInterval = setInterval(fetchTrainerStats, 10000);
+        return () => clearInterval(pollingInterval);
+    });
+
+    async function fetchTrainerStats() {
+        try {
+            const res = await fetch('http://localhost:38001/v1/trainer/stats');
+            if (res.ok) {
+                const data = await res.json();
+                trainerState.knowledgeGapPercentage = data.knowledge_gap_percentage || 0;
+                trainerState.sourcesScanned = data.sources_scanned || 0;
+                trainerState.sourcesScannedDelta = data.sources_scanned_delta || 0;
+                if (data.recently_acquired) {
+                    trainerState.recentlyAcquiredKnowledge = data.recently_acquired;
+                }
+                
+                // Telemetry
+                trainerState.isTraining = data.unsloth?.is_training || false;
+                if(data.unsloth) {
+                    trainerState.vramUsageGb = data.unsloth.vram_usage_gb || 0;
+                    trainerState.epochCurrent = data.unsloth.epoch_current || 0;
+                    trainerState.epochTotal = data.unsloth.epoch_total || 5;
+                    trainerState.trainingSpeedTokensSec = data.unsloth.tokens_per_sec || 0;
+                    trainerState.lastCheckpoint = data.unsloth.last_checkpoint || 'Idle';
+                }
+            }
+        } catch(e) {
+            console.error("Failed to fetch Live Trainer Telemetry from Axum:", e);
+        }
+    }
+
+    async function sendUnslothControl(action: 'play' | 'pause' | 'stop') {
+        try {
+            await fetch('http://localhost:38001/v1/trainer/control', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action })
+            });
+            await fetchTrainerStats(); // Force refresh UI
+        } catch(e) {
+            console.error(`Unsloth RPC failed: ${action}`, e);
+        }
+    }
 
     async function runFineTuning() {
         if(isSubmitting) return;
@@ -18,9 +63,12 @@
                 body: JSON.stringify({
                     base_model: 'Llama-3-8B-Instruct-v0.1',
                     dataset_name: 'sovereign-hq-rag-dataset-v1',
-                    learning_rate: learningRate,
-                    lora_rank: loraRank,
-                    batch_size: batchSize
+                    learning_rate: trainerState.learningRate,
+                    lora_rank: trainerState.loraRank,
+                    batch_size: trainerState.batchSize,
+                    internet_to_rag: trainerState.internetToRagActive,
+                    strict_grounding: trainerState.strictGrounding,
+                    top_k: trainerState.contextDepthTopK
                 })
             });
             goto('/model-trainer/unsloth');
@@ -55,7 +103,7 @@
                 <h1 class="font-extrabold text-3xl tracking-tight text-on-surface">Fine-Tuning Engine</h1>
             </div>
             <div class="flex gap-3">
-                <button class="px-5 py-2.5 rounded-xl border border-outline-variant/30 text-on-surface-variant font-bold text-xs hover:bg-surface-container-high transition-colors">
+                <button onclick={exportTrainerConfig} class="px-5 py-2.5 rounded-xl border border-outline-variant/30 text-on-surface-variant font-bold text-xs hover:bg-surface-container-high transition-colors cursor-pointer active:scale-95">
                     Export Configuration
                 </button>
                 <button disabled={isSubmitting} onclick={runFineTuning} class="px-5 py-2.5 rounded-xl bg-gradient-to-br from-[#001360] to-[#002395] text-white font-bold text-xs shadow-md shadow-primary/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer disabled:opacity-50">
@@ -88,49 +136,47 @@
                     </div>
                     <div class="flex items-center gap-3 px-4 py-2 bg-surface-container-low rounded-xl">
                         <span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">Internet-to-RAG</span>
-                        <div class="w-10 h-5 bg-primary rounded-full relative">
-                            <div class="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></div>
-                        </div>
+                        <button onclick={() => trainerState.internetToRagActive = !trainerState.internetToRagActive} class="w-10 h-5 {trainerState.internetToRagActive ? 'bg-primary' : 'bg-surface-variant'} rounded-full relative transition-colors cursor-pointer">
+                            <div class="absolute top-1 w-3 h-3 bg-white rounded-full transition-all {trainerState.internetToRagActive ? 'right-1' : 'left-1'}"></div>
+                        </button>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-3 gap-4 mb-8">
                     <div class="p-4 bg-surface-container-low rounded-xl">
                         <p class="text-[10px] text-on-surface-variant font-bold uppercase mb-2">Knowledge Gap</p>
-                        <p class="text-lg font-bold text-on-surface">14.2%</p>
+                        <p class="text-lg font-bold text-on-surface">{trainerState.knowledgeGapPercentage.toFixed(1)}%</p>
                         <div class="w-full h-1 bg-surface-container-highest mt-3 rounded-full overflow-hidden">
-                            <div class="w-2/3 h-full bg-primary"></div>
+                            <div class="h-full bg-primary transition-all duration-500" style="width: {trainerState.knowledgeGapPercentage}%"></div>
                         </div>
                     </div>
                     <div class="p-4 bg-surface-container-low rounded-xl">
                         <p class="text-[10px] text-on-surface-variant font-bold uppercase mb-2">Sources Scanned</p>
-                        <p class="text-lg font-bold text-on-surface">1,402</p>
-                        <p class="text-[10px] text-on-tertiary-container font-bold mt-1">+12 in last hour</p>
+                        <p class="text-lg font-bold text-on-surface">{trainerState.sourcesScanned.toLocaleString()}</p>
+                        <p class="text-[10px] text-on-tertiary-container font-bold mt-1">+{trainerState.sourcesScannedDelta} in last hour</p>
                     </div>
                     <div class="p-4 bg-surface-container-low rounded-xl">
                         <p class="text-[10px] text-on-surface-variant font-bold uppercase mb-2">Vault Sync</p>
                         <p class="text-lg font-bold text-on-surface">Encrypted</p>
-                        <span class="text-[10px] bg-tertiary-fixed text-on-tertiary-fixed px-2 py-0.5 rounded-full mt-2 font-bold inline-block">Verified</span>
+                        <span class="text-[10px] {trainerState.sourcesScanned > 0 ? 'bg-tertiary-fixed text-on-tertiary-fixed' : 'bg-surface-variant text-on-surface-variant'} px-2 py-0.5 rounded-full mt-2 font-bold inline-block">{trainerState.sourcesScanned > 0 ? 'Verified' : 'Idle'}</span>
                     </div>
                 </div>
 
                 <div>
                     <h3 class="text-sm font-bold text-on-surface mb-4 ">Recently Acquired Knowledge</h3>
                     <div class="space-y-3">
-                        <div class="flex items-center justify-between p-3 bg-surface hover:bg-surface-container-high rounded-lg transition-colors group cursor-pointer border border-transparent hover:border-outline-variant/20">
-                            <div class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-[20px]">article</span>
-                                <span class="text-xs font-medium text-on-surface">Quantum entanglement in room-temp semiconductors...</span>
+                        {#if trainerState.recentlyAcquiredKnowledge.length === 0}
+                            <div class="text-xs text-on-surface-variant font-medium text-center py-4 bg-surface-container-lowest rounded-lg border border-outline-variant/10">No recent Vault injections documented in the system yet.</div>
+                        {/if}
+                        {#each trainerState.recentlyAcquiredKnowledge as item}
+                            <div class="flex items-center justify-between p-3 bg-surface hover:bg-surface-container-high rounded-lg transition-colors group cursor-pointer border border-transparent hover:border-outline-variant/20">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-[20px]">{item.type === 'description' ? 'description' : 'article'}</span>
+                                    <span class="text-xs font-medium text-on-surface">{item.title}</span>
+                                </div>
+                                <span class="text-[10px] text-on-surface-variant font-medium">{item.timeAgo}</span>
                             </div>
-                            <span class="text-[10px] text-on-surface-variant font-medium">2m ago</span>
-                        </div>
-                        <div class="flex items-center justify-between p-3 bg-surface hover:bg-surface-container-high rounded-lg transition-colors group cursor-pointer border border-transparent hover:border-outline-variant/20">
-                            <div class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-[20px]">description</span>
-                                <span class="text-xs font-medium text-on-surface">Technical documentation for Llama 3.2-1B quantization</span>
-                            </div>
-                            <span class="text-[10px] text-on-surface-variant font-medium">15m ago</span>
-                        </div>
+                        {/each}
                     </div>
                 </div>
             </section>
@@ -154,24 +200,25 @@
                     <div class="space-y-4">
                         <div class="flex justify-between items-end">
                             <p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">VRAM Usage</p>
-                            <p class="text-lg font-bold font-mono text-on-surface">14.2 GB <span class="text-xs font-medium text-on-surface-variant">/ 24 GB</span></p>
+                            <p class="text-lg font-bold font-mono text-on-surface">{trainerState.vramUsageGb.toFixed(1)} GB <span class="text-xs font-medium text-on-surface-variant">/ {trainerState.vramTotalGb} GB</span></p>
                         </div>
                         <div class="h-10 w-full bg-surface-container-high rounded-lg overflow-hidden flex gap-1 p-1">
-                            <div class="h-full bg-primary rounded-md w-3/5 transition-all"></div>
-                            <div class="h-full bg-primary-fixed rounded-md w-1/5 transition-all"></div>
+                            <div class="h-full bg-primary rounded-md transition-all duration-1000" style="width: {Math.min(100, (trainerState.vramUsageGb / trainerState.vramTotalGb) * 100)}%"></div>
                             <div class="h-full bg-surface-variant rounded-md flex-1"></div>
                         </div>
                     </div>
                     <div class="space-y-4">
                         <div class="flex justify-between items-end">
                             <p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Epoch Progress</p>
-                            <p class="text-lg font-bold font-mono text-on-surface">2 / 5 <span class="text-xs font-medium text-on-surface-variant">(44%)</span></p>
+                            <p class="text-lg font-bold font-mono text-on-surface">{trainerState.epochCurrent} / {trainerState.epochTotal} <span class="text-xs font-medium text-on-surface-variant">({trainerState.epochTotal > 0 ? Math.round((trainerState.epochCurrent / trainerState.epochTotal) * 100) : 0}%)</span></p>
                         </div>
                         <div class="h-10 w-full bg-surface-container-high rounded-lg overflow-hidden p-1">
-                            <div class="h-full bg-gradient-to-r from-primary to-primary-container rounded-md w-[44%] relative">
+                            <div class="h-full bg-gradient-to-r from-primary to-primary-container rounded-md relative transition-all duration-1000" style="width: {trainerState.epochTotal > 0 ? (trainerState.epochCurrent / trainerState.epochTotal) * 100 : 0}%">
+                                {#if trainerState.isTraining}
                                 <div class="absolute inset-0 bg-white/10 flex items-center justify-end px-2">
                                     <div class="w-1 h-4 bg-white/40 rounded-full animate-pulse"></div>
                                 </div>
+                                {/if}
                             </div>
                         </div>
                     </div>
@@ -179,20 +226,24 @@
 
                 <div class="flex items-center gap-4 bg-surface-container-low p-4 rounded-xl border border-outline-variant/10">
                     <div class="flex gap-2 shrink-0">
-                        <button class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:scale-105 transition-transform active:scale-95 shadow-md shadow-primary/20">
-                            <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+                        <button onclick={() => sendUnslothControl('play')} class="w-10 h-10 rounded-full {trainerState.isTraining ? 'bg-primary text-white shadow-md shadow-primary/20 hover:scale-105' : 'bg-surface-container-lowest text-on-surface-variant border border-outline-variant/30 hover:bg-primary hover:text-white'} flex items-center justify-center transition-all active:scale-95 cursor-pointer">
+                            <span class="material-symbols-outlined text-[20px]" style={trainerState.isTraining ? "font-variation-settings: 'FILL' 1;" : ""}>play_arrow</span>
                         </button>
-                        <button class="w-10 h-10 rounded-full bg-surface-container-lowest text-on-surface-variant border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container-high transition-colors">
+                        <button onclick={() => sendUnslothControl('pause')} class="w-10 h-10 rounded-full {!trainerState.isTraining && trainerState.epochCurrent > 0 ? 'bg-surface-variant text-on-surface shadow-inner' : 'bg-surface-container-lowest text-on-surface-variant border border-outline-variant/30 hover:bg-surface-container-high'} flex items-center justify-center transition-colors cursor-pointer">
                             <span class="material-symbols-outlined text-[20px]">pause</span>
                         </button>
-                        <button class="w-10 h-10 rounded-full bg-surface-container-lowest text-error border border-error/20 flex items-center justify-center hover:bg-error-container text-error transition-colors">
+                        <button onclick={() => sendUnslothControl('stop')} class="w-10 h-10 rounded-full bg-surface-container-lowest text-error border border-error/20 flex items-center justify-center hover:bg-error-container hover:text-error transition-colors cursor-pointer">
                             <span class="material-symbols-outlined text-[20px]">stop</span>
                         </button>
                     </div>
                     <div class="h-8 w-[1px] bg-outline-variant/30 mx-2"></div>
                     <div class="flex-1 font-mono text-[11px] text-on-surface-variant leading-relaxed">
-                        <p>[SYSTEM] Weights saved at step 1400</p>
-                        <p class="text-on-tertiary-container font-medium">[INFO] Training speed: 42.1 tokens/sec</p>
+                        <p>[SYSTEM] {trainerState.lastCheckpoint}</p>
+                        {#if trainerState.isTraining}
+                            <p class="text-on-tertiary-container font-medium animate-pulse">[INFO] Training speed: {trainerState.trainingSpeedTokensSec.toFixed(1)} tokens/sec</p>
+                        {:else}
+                            <p class="text-on-surface-variant/50 font-medium">[INFO] Engine Sleeping...</p>
+                        {/if}
                     </div>
                     <a href="/model-trainer/unsloth" class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors ml-auto tooltip" title="Open Full Monitor">
                         <span class="material-symbols-outlined text-[20px]">open_in_new</span>
@@ -216,9 +267,9 @@
                     <div>
                         <div class="flex justify-between items-center mb-3">
                             <span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">LoRA Rank (r)</span>
-                            <span class="px-2 py-1 bg-primary/10 text-primary font-extrabold text-xs rounded-lg">{loraRank}</span>
+                            <span class="px-2 py-1 bg-primary/10 text-primary font-extrabold text-xs rounded-lg">{trainerState.loraRank}</span>
                         </div>
-                        <input type="range" class="w-full accent-primary h-1.5 bg-surface-variant rounded-full appearance-none outline-none" min="8" max="128" step="8" bind:value={loraRank} />
+                        <input type="range" class="w-full accent-primary h-1.5 bg-surface-variant rounded-full appearance-none outline-none" min="8" max="128" step="8" bind:value={trainerState.loraRank} />
                         <div class="flex justify-between text-[10px] text-on-surface-variant mt-2 font-mono">
                             <span>r=8 (Fast)</span>
                             <span>r=128 (Detailed)</span>
@@ -230,9 +281,9 @@
                     <div>
                         <div class="flex justify-between items-center mb-3">
                             <span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Batch Size</span>
-                            <span class="px-2 py-1 bg-secondary/10 text-secondary font-extrabold text-xs rounded-lg">{batchSize}</span>
+                            <span class="px-2 py-1 bg-secondary/10 text-secondary font-extrabold text-xs rounded-lg">{trainerState.batchSize}</span>
                         </div>
-                        <input type="range" class="w-full accent-secondary h-1.5 bg-surface-variant rounded-full appearance-none outline-none" min="1" max="32" step="1" bind:value={batchSize} />
+                        <input type="range" class="w-full accent-secondary h-1.5 bg-surface-variant rounded-full appearance-none outline-none" min="1" max="32" step="1" bind:value={trainerState.batchSize} />
                         <div class="flex justify-between text-[10px] text-on-surface-variant mt-2 font-mono">
                             <span>1 (Slow / Precise)</span>
                             <span>32 (High VRAM)</span>
@@ -257,8 +308,8 @@
                                 <p class="text-[10px] text-on-surface-variant mt-0.5">Force factual matching in RAG</p>
                             </div>
                         </div>
-                        <button title="Toggle Strict Grounding AI" class="w-12 h-6 bg-primary rounded-full relative cursor-pointer ring-4 ring-primary-fixed transition-colors">
-                            <div class="absolute right-1 top-1.5 w-3 h-3 bg-white rounded-full shadow-sm"></div>
+                        <button onclick={() => trainerState.strictGrounding = !trainerState.strictGrounding} title="Toggle Strict Grounding AI" class="w-12 h-6 {trainerState.strictGrounding ? 'bg-primary ring-4 ring-primary-fixed' : 'bg-surface-variant'} rounded-full relative cursor-pointer transition-colors">
+                            <div class="absolute top-1.5 w-3 h-3 bg-white rounded-full shadow-sm transition-all {trainerState.strictGrounding ? 'right-1' : 'left-1'}"></div>
                         </button>
                     </div>
                     
@@ -267,17 +318,17 @@
                         <div class="space-y-3">
                             <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest">
                                 <span class="text-on-surface-variant">Embedding Alignment</span>
-                                <span class="text-primary font-mono bg-primary-fixed/50 px-2 py-0.5 rounded text-[10px]">0.96 Alpha</span>
+                                <span class="text-primary font-mono bg-primary-fixed/50 px-2 py-0.5 rounded text-[10px]">{trainerState.embeddingAlignmentAlpha / 100} Alpha</span>
                             </div>
-                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" value="96" />
+                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" min="0" max="100" bind:value={trainerState.embeddingAlignmentAlpha} />
                         </div>
                         
                         <div class="space-y-3">
                             <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest">
                                 <span class="text-on-surface-variant">Context Depth (Top-K)</span>
-                                <span class="text-primary font-mono bg-primary-fixed/50 px-2 py-0.5 rounded text-[10px]">k = 12</span>
+                                <span class="text-primary font-mono bg-primary-fixed/50 px-2 py-0.5 rounded text-[10px]">k = {trainerState.contextDepthTopK}</span>
                             </div>
-                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" value="40" min="0" max="100" />
+                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" min="1" max="128" bind:value={trainerState.contextDepthTopK} />
                         </div>
                     </div>
                 </div>
@@ -291,14 +342,15 @@
                                 <span class="material-symbols-outlined text-[16px] text-on-surface-variant">psychology</span>
                                 <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Internal Monologue</p>
                             </div>
-                            <button title="Toggle Internal Monologue" class="w-8 h-4 bg-outline-variant rounded-full relative">
-                                <div class="absolute left-1 top-0.5 w-3 h-3 bg-white rounded-full"></div>
+                            <button onclick={() => trainerState.internalMonologue = !trainerState.internalMonologue} title="Toggle Internal Monologue" class="w-8 h-4 {trainerState.internalMonologue ? 'bg-tertiary shadow-[0_0_8px_rgba(79,175,110,0.4)]' : 'bg-outline-variant'} rounded-full relative cursor-pointer transition-colors">
+                                <div class="absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all {trainerState.internalMonologue ? 'right-1' : 'left-1'}"></div>
                             </button>
                         </div>
                         
                         <div class="flex items-end justify-between">
                             <div>
-                                <p class="text-3xl font-extrabold text-on-tertiary-container leading-none ">94.2%</p>
+                                <!-- Use inverse gap to simulate truth grounded reflection success rate -->
+                                <p class="text-3xl font-extrabold text-on-tertiary-container leading-none ">{Math.max(0, 100 - trainerState.knowledgeGapPercentage).toFixed(1)}%</p>
                                 <p class="text-[10px] text-on-surface-variant font-bold mt-2 uppercase tracking-tight">Self-Correction Rate</p>
                             </div>
                             
