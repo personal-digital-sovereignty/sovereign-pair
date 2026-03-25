@@ -321,3 +321,19 @@ pub async fn get_available_models_handler(State(state): State<Arc<crate::AppStat
         _ => Json(serde_json::json!({"models": []})).into_response() // Retorna vazio se o nó remoto estiver offline
     }
 }
+
+/// Rota GET /v1/system/docs/user_guide - Retorna o README / Oficial Manual em Raw Markdown
+pub async fn get_user_guide_handler() -> impl IntoResponse {
+    let guide_path = "docs/user_guide.md";
+    match tokio::fs::read_to_string(guide_path).await {
+        Ok(content) => (
+            axum::http::StatusCode::OK,
+            [("Content-Type", "text/plain; charset=utf-8")],
+            content,
+        ).into_response(),
+        Err(_) => (
+            axum::http::StatusCode::NOT_FOUND,
+            "Sovereign User Guide (docs/user_guide.md) não encontrado nativamente no disco.",
+        ).into_response()
+    }
+}

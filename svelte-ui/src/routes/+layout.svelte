@@ -6,6 +6,7 @@
   import { telemetryState, connectTelemetry, disconnectTelemetry } from '$lib/telemetry.svelte';
   import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, Activity, Database, Bell, Network, User } from 'lucide-svelte';
   import { page } from '$app/state';
+  import { goto } from '$app/navigation';
   import { onMount, onDestroy } from 'svelte';
   import InlineSpotlight from '$lib/components/InlineSpotlight.svelte';
   import SettingsModal from '$lib/components/SettingsModal.svelte';
@@ -17,10 +18,29 @@
 
   let { children } = $props();
 
-  onMount(() => {
+  onMount(async () => {
     connectTelemetry();
     fetchWorkspaces();
     loadSettings();
+
+    // Sovereign Boot Preference Interception
+    if (window.location.pathname === '/') {
+        try {
+            const res = await fetch('http://localhost:38001/v1/settings');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.default_route && data.default_route !== '/dashboard') {
+                    goto(data.default_route);
+                } else {
+                    goto('/dashboard');
+                }
+            } else {
+                goto('/dashboard');
+            }
+        } catch (e) {
+            goto('/dashboard');
+        }
+    }
   });
 
   async function fetchWorkspaces() {
