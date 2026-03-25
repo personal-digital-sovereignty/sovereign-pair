@@ -197,6 +197,7 @@ async fn main() {
         .route("/v1/trainer/distill", axum::routing::post(api_trainer::run_distillation_handler))
         .route("/v1/trainer/finetune", axum::routing::post(api_trainer::run_finetuning_handler))
         .route("/v1/trainer/deep-research", axum::routing::post(api_trainer::run_deep_research_handler))
+        .route("/v1/trainer/deep-research/cancel", axum::routing::post(api_trainer::cancel_deep_research_handler))
         .route("/v1/trainer/unsloth-monitor", axum::routing::get(api_trainer::unsloth_monitor_sse_handler))
         // ------------------ Chat Endpoints ------------------
         .route("/opencode/v1/chat/completions", post(api::chat_completions_handler))
