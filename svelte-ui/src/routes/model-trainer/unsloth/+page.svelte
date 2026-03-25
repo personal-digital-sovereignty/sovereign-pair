@@ -1,11 +1,17 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { trainerState, fetchTrainerStats, sendUnslothControl } from '$lib/trainer.svelte';
 
     let logs = $state<string[]>([]);
     let eventSource: EventSource;
     let logContainer: HTMLElement;
+    let pollingInterval: any;
 
     onMount(() => {
+        // Start Global Polling
+        fetchTrainerStats();
+        pollingInterval = setInterval(fetchTrainerStats, 10000);
+
         eventSource = new EventSource('http://localhost:38001/v1/trainer/unsloth-monitor');
         
         eventSource.onmessage = (event) => {
@@ -16,6 +22,7 @@
         };
 
         return () => {
+            clearInterval(pollingInterval);
             if (eventSource) eventSource.close();
         };
     });
@@ -49,18 +56,18 @@
             <div class="bg-surface-container-lowest p-6 rounded-3xl shadow-sm border border-outline-variant/10 h-fit">
                 <h3 class=" text-on-surface-variant text-[11px] font-extrabold uppercase tracking-widest mb-6">Control Center</h3>
                 <div class="flex flex-col gap-3">
-                    <button class="bg-gradient-to-br from-[#001360] to-[#002395] text-white w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-md shadow-primary/20">
+                    <button onclick={() => sendUnslothControl('play')} class="bg-gradient-to-br from-[#001360] to-[#002395] text-white w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-md shadow-primary/20">
                         <span class="material-symbols-outlined text-[20px]">play_arrow</span>
                         Start Training
                     </button>
                     <div class="grid grid-cols-2 gap-3">
-                        <button class="bg-surface-container-low border border-outline-variant/10 text-on-surface-variant py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-surface-container-highest transition-all">
+                        <button onclick={() => sendUnslothControl('pause')} class="bg-surface-container-low border border-outline-variant/10 text-on-surface-variant py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-surface-container-highest transition-all">
                             <span class="material-symbols-outlined text-[18px]">pause</span>
                             Pause
                         </button>
-                        <button class="bg-primary-container/10 border border-primary-container/20 text-primary py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-primary-container/20 transition-all">
-                            <span class="material-symbols-outlined text-[18px]">merge</span>
-                            Merge LoRA
+                        <button onclick={() => sendUnslothControl('stop')} class="bg-primary-container/10 border border-primary-container/20 text-primary py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-primary-container/20 transition-all">
+                            <span class="material-symbols-outlined text-[18px]">stop</span>
+                            Stop / Merge
                         </button>
                     </div>
                 </div>
@@ -77,19 +84,19 @@
                     <div>
                         <div class="flex justify-between text-[13px] mb-2">
                             <span class="font-bold text-on-surface">VRAM / Memory Allocation</span>
-                            <span class="text-primary font-bold">Waiting telemetry...</span>
+                            <span class="text-primary font-bold">{trainerState.isTraining ? `${trainerState.vramUsageGb} GB / ${trainerState.vramTotalGb} GB` : 'Waiting telemetry...'}</span>
                         </div>
                         <div class="h-2.5 bg-surface-variant rounded-full overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-primary to-primary-container" style="width: 0%"></div>
+                            <div class="h-full bg-gradient-to-r from-primary to-primary-container transition-all duration-1000" style="width: {trainerState.isTraining ? Math.min((trainerState.vramUsageGb / trainerState.vramTotalGb) * 100, 100) : 0}%"></div>
                         </div>
                     </div>
                     <div>
                         <div class="flex justify-between text-[13px] mb-2">
                             <span class="font-bold text-on-surface">Compute Load</span>
-                            <span class="text-[#50606f] font-bold">Idle</span>
+                            <span class="text-[#50606f] font-bold">{trainerState.isTraining ? 'Active Processing' : 'Idle'}</span>
                         </div>
                         <div class="h-2.5 bg-surface-variant rounded-full overflow-hidden">
-                            <div class="h-full bg-[#50606f]" style="width: 0%"></div>
+                            <div class="h-full bg-[linear-gradient(45deg,var(--tw-gradient-stops))] from-tertiary to-tertiary-container transition-all duration-1000 animate-[progress-stripe_2s_linear_infinite]" style="width: {trainerState.isTraining ? '80%' : '0%'}"></div>
                         </div>
                     </div>
                 </div>
@@ -105,8 +112,8 @@
                         <p class="text-on-surface-variant text-sm mt-1.5 font-mono font-medium">Llama-3-8B-Instruct-v0.1 • LoRA Adapter: alpha_v2</p>
                     </div>
                     <div class="text-right">
-                        <div class="text-3xl  font-extrabold text-primary">Epoch 2/5</div>
-                        <p class="text-[11px] text-on-surface-variant font-bold uppercase tracking-widest mt-1">Est. Completion: 14:22 UTC</p>
+                        <div class="text-3xl font-extrabold text-primary">Epoch {trainerState.epochCurrent}/{trainerState.epochTotal}</div>
+                        <p class="text-[11px] text-on-surface-variant font-bold uppercase tracking-widest mt-1">Est. Completion: Calculating...</p>
                     </div>
                 </div>
                 
@@ -114,11 +121,13 @@
                 <div class="mb-10">
                     <div class="flex justify-between text-[11px] font-extrabold uppercase tracking-widest text-on-surface-variant mb-3">
                         <span>Total Progress</span>
-                        <span class="text-primary">38.4%</span>
+                        <span class="text-primary">{Math.min((trainerState.epochCurrent / trainerState.epochTotal) * 100, 100).toFixed(1)}%</span>
                     </div>
                     <div class="h-4 bg-surface-variant rounded-full p-0.5">
-                        <div class="h-full bg-gradient-to-r from-primary to-primary-fixed-dim rounded-full relative overflow-hidden shadow-[0_0_10px_rgba(0,19,96,0.3)]" style="width: 38.4%">
+                        <div class="h-full bg-gradient-to-r from-primary to-primary-fixed-dim rounded-full relative overflow-hidden shadow-[0_0_10px_rgba(0,19,96,0.3)] transition-all duration-1000" style="width: {Math.min((trainerState.epochCurrent / trainerState.epochTotal) * 100, 100)}%">
+                            {#if trainerState.isTraining}
                             <div class="absolute top-0 left-0 right-0 bottom-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.15)_50%,rgba(255,255,255,0.15)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem] animate-[progress-stripe_1s_linear_infinite]"></div>
+                            {/if}
                         </div>
                     </div>
                 </div>
@@ -128,22 +137,22 @@
                     <div class="p-5 bg-surface-container-low rounded-2xl border border-outline-variant/10 relative overflow-hidden group">
                         <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-on-tertiary-container/10 rounded-full blur-xl transition-all group-hover:scale-150 group-hover:bg-on-tertiary-container/30"></div>
                         <p class="text-[10px] text-on-surface-variant font-extrabold uppercase tracking-widest mb-1.5 line-clamp-1">Current Loss</p>
-                        <p class="text-2xl  font-extrabold text-[#191c1d]">1.241</p>
+                        <p class="text-2xl font-extrabold text-[#191c1d] transition-all">{trainerState.loss}</p>
                         <p class="text-[11px] text-on-tertiary-container font-extrabold mt-1 uppercase tracking-tight flex items-center gap-1">
                             <span class="material-symbols-outlined text-[14px]">arrow_downward</span>
-                            0.042
+                            Converging
                         </p>
                     </div>
                     <div class="p-5 bg-surface-container-low rounded-2xl border border-outline-variant/10 relative overflow-hidden">
                         <p class="text-[10px] text-on-surface-variant font-extrabold uppercase tracking-widest mb-1.5 line-clamp-1">Grad Norm</p>
-                        <p class="text-2xl  font-extrabold text-[#191c1d]">0.45</p>
+                        <p class="text-2xl font-extrabold text-[#191c1d] transition-all">{trainerState.gradNorm}</p>
                         <p class="text-[11px] text-on-secondary-container font-extrabold mt-1 uppercase tracking-tight flex items-center gap-1">
                             Stable
                         </p>
                     </div>
                     <div class="p-5 bg-surface-container-low rounded-2xl border border-outline-variant/10 relative overflow-hidden">
                         <p class="text-[10px] text-on-surface-variant font-extrabold uppercase tracking-widest mb-1.5 line-clamp-1">Learning Rate</p>
-                        <p class="text-2xl  font-extrabold text-[#191c1d]">2e-4</p>
+                        <p class="text-2xl font-extrabold text-[#191c1d] transition-all">{trainerState.learningRateLabel}</p>
                         <p class="text-[11px] text-on-surface-variant font-bold mt-1 uppercase tracking-tight flex items-center gap-1">
                             Linear Decay
                         </p>
@@ -151,7 +160,7 @@
                     <div class="p-5 bg-surface-container-low rounded-2xl border border-outline-variant/10 relative overflow-hidden group">
                         <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-primary/5 rounded-full blur-xl transition-all group-hover:scale-150 group-hover:bg-primary/20"></div>
                         <p class="text-[10px] text-on-surface-variant font-extrabold uppercase tracking-widest mb-1.5 line-clamp-1">Step Time</p>
-                        <p class="text-2xl  font-extrabold text-[#191c1d]">0.82s</p>
+                        <p class="text-2xl font-extrabold text-[#191c1d] transition-all">{trainerState.stepTime}</p>
                         <p class="text-[11px] text-primary font-extrabold mt-1 uppercase tracking-tight flex items-center gap-1">
                             Optimized
                         </p>
@@ -190,6 +199,7 @@
                     {#if logs.length === 0}
                         <p class="text-slate-500 animate-pulse">Awaiting Unsloth Engine connection...</p>
                     {/if}
+                    {#if trainerState.isTraining}
                     <p class="text-slate-200 animate-pulse flex items-center gap-2 mt-4">
                         <span class="text-[#565f89]">[Live]</span> <span class="text-[#7aa2f7] font-bold">SYSTEM</span> Processing
                         <span class="flex gap-1">
@@ -198,6 +208,7 @@
                             <span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
                         </span>
                     </p>
+                    {/if}
                 </div>
             </div>
         </div>
@@ -220,21 +231,23 @@
                     </div>
                     
                     <!-- Histogram Bars -->
-                    <div class="flex-1 bg-primary/10 rounded-t-sm h-[20%] transition-all hover:bg-primary/30"></div>
-                    <div class="flex-1 bg-primary/20 rounded-t-sm h-[35%] transition-all hover:bg-primary/40"></div>
-                    <div class="flex-1 bg-primary/30 rounded-t-sm h-[45%] transition-all hover:bg-primary/50"></div>
-                    <div class="flex-1 bg-primary/40 rounded-t-sm h-[40%] transition-all hover:bg-primary/60"></div>
-                    <div class="flex-1 bg-primary/50 rounded-t-sm h-[52%] transition-all hover:bg-primary/70"></div>
-                    <div class="flex-1 bg-primary/60 rounded-t-sm h-[58%] transition-all hover:bg-primary/80"></div>
-                    
-                    <div class="flex-1 bg-gradient-to-t from-primary to-primary-container rounded-t-sm h-[52%] relative shadow-[0_0_15px_rgba(0,19,96,0.3)] cursor-pointer group">
-                        <div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-[10px] font-bold px-2 py-1.5 rounded-lg whitespace-nowrap shadow-xl opacity-0 transition-opacity group-hover:opacity-100 border border-white/10 z-10 pointer-events-none">Peak 12.4GB</div>
-                        <div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    </div>
-                    
-                    <div class="flex-1 bg-primary/60 rounded-t-sm h-[50%] transition-all hover:bg-primary/80"></div>
-                    <div class="flex-1 bg-primary/50 rounded-t-sm h-[48%] transition-all hover:bg-primary/70"></div>
-                    <div class="flex-1 bg-primary/40 rounded-t-sm h-[51%] transition-all hover:bg-primary/60"></div>
+                    {#each trainerState.vramHistory as val, i}
+                        <div class="flex-1 rounded-t-sm transition-all duration-700 relative group"
+                             class:bg-primary={trainerState.isTraining}
+                             class:opacity-10={!trainerState.isTraining || trainerState.vramHistory.length - 1 !== i}
+                             class:opacity-100={trainerState.isTraining && trainerState.vramHistory.length - 1 === i}
+                             class:bg-[linear-gradient(to_top,var(--tw-gradient-stops))]={trainerState.isTraining && trainerState.vramHistory.length - 1 === i}
+                             class:from-primary={trainerState.isTraining && trainerState.vramHistory.length - 1 === i}
+                             class:to-primary-container={trainerState.isTraining && trainerState.vramHistory.length - 1 === i}
+                             class:shadow-[0_0_15px_rgba(0,19,96,0.3)]={trainerState.isTraining && trainerState.vramHistory.length - 1 === i}
+                             class:bg-primary-container={!trainerState.isTraining}
+                             style="height: {Math.max((val / trainerState.vramTotalGb) * 100, 5)}%">
+                             {#if trainerState.isTraining && trainerState.vramHistory.length - 1 === i}
+                                <div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-[10px] font-bold px-2 py-1.5 rounded-lg whitespace-nowrap shadow-xl opacity-0 transition-opacity group-hover:opacity-100 border border-white/10 z-10 pointer-events-none">Peak {val.toFixed(1)}GB</div>
+                                <div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                             {/if}
+                        </div>
+                    {/each}
                     
                     <!-- Baseline Grid -->
                     <div class="absolute bottom-6 left-0 right-0 border-b border-dashed border-outline-variant/40"></div>
@@ -250,7 +263,7 @@
                             </div>
                             <div>
                                 <p class="text-[9px] text-on-surface-variant font-extrabold uppercase tracking-widest mb-0.5">Memory BW</p>
-                                <p class="text-sm font-bold ">1,024 GB/s</p>
+                                <p class="text-sm font-bold ">{trainerState.memoryBw}</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-4 p-4 rounded-xl border border-outline-variant/5 bg-surface-container-lowest">
@@ -259,7 +272,7 @@
                             </div>
                             <div>
                                 <p class="text-[9px] text-on-surface-variant font-extrabold uppercase tracking-widest mb-0.5">Temperature</p>
-                                <p class="text-sm font-bold ">64°C</p>
+                                <p class="text-sm font-bold ">{trainerState.temperatureC}°C</p>
                             </div>
                         </div>
                     </div>

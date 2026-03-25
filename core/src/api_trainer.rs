@@ -311,10 +311,21 @@ pub async fn trainer_stats_handler(
     let last_checkpoint = UNSLOTH_LAST_CHECKPOINT.read().unwrap().clone();
 
     // Fabricate live telemetry logic based on state
-    let (vram, speed) = if is_training {
-        (18.4, 42.1 + (epoch_current as f64 * 0.5)) // Faux telemetry fluctuation
+    let (vram, speed, loss, grad_norm, learning_rate, step_time, mem_bw, temp) = if is_training {
+        let ep = epoch_current as f64;
+        let p_loss = (1.241 - (ep * 0.15)).max(0.35); // simulated loss curve
+        (
+            18.4, 
+            42.1 + (ep * 0.5), 
+            p_loss, 
+            0.45 + (ep * 0.01), 
+            "2e-4", 
+            "0.82s", 
+            "1,024 GB/s", 
+            64 + (epoch_current * 2)
+        )
     } else {
-        (0.8, 0.0) // Idle overhead
+        (0.8, 0.0, 0.0, 0.0, "Idle", "Idle", "0 GB/s", 42) // Idle overhead
     };
 
     let ts_metrics = TrainerStatsResponse {
@@ -328,6 +339,12 @@ pub async fn trainer_stats_handler(
             "epoch_current": epoch_current,
             "epoch_total": 5, // Locked for the simulation
             "tokens_per_sec": speed,
+            "loss": format!("{:.3}", loss),
+            "grad_norm": format!("{:.2}", grad_norm),
+            "learning_rate": learning_rate,
+            "step_time": step_time,
+            "memory_bw": mem_bw,
+            "temperature_c": temp,
             "last_checkpoint": last_checkpoint
         })
     };
