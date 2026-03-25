@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { MessageSquare, Cpu, Shield, Send, Loader2, Paperclip, ThumbsUp, ThumbsDown, Bot, User, BrainCircuit, Copy, RotateCcw } from 'lucide-svelte';
+    import { MessageSquare, Cpu, Shield, Send, Loader2, Paperclip, ThumbsUp, ThumbsDown, Bot, User, BrainCircuit, Copy, RotateCcw, Settings } from 'lucide-svelte';
     import { globalState, loadGlobalSession, sendGlobalChatMessage } from '$lib/state.svelte.js';
+    import { settingsState } from '$lib/settings.svelte';
     import { marked } from 'marked';
     import DOMPurify from 'dompurify';
     import { untrack } from 'svelte';
@@ -201,10 +202,17 @@
                 <Bot class="w-5 h-5" />
             </button>
 
+            <button type="button" 
+                onclick={() => settingsState.isOpen = true}
+                class="absolute left-[88px] bottom-2 p-2.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer" 
+                title="Parâmetros do Modelo">
+                <Settings class="w-5 h-5" />
+            </button>
+
             <textarea 
                 bind:value={message}
                 placeholder="Ask the Global Cybrid Council..." 
-                class="flex-1 bg-transparent border-none text-slate-800 text-sm p-4 pl-24 h-14 resize-none outline-none custom-scrollbar placeholder:text-slate-400"
+                class="flex-1 bg-transparent border-none text-slate-800 text-sm p-4 pl-[140px] h-14 resize-none outline-none custom-scrollbar placeholder:text-slate-400"
                 onkeydown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
