@@ -7,6 +7,8 @@
         frequency: number;
         context: string;
         sentiment: string;
+        status?: string;
+        resolution_content?: string;
     }
 
     interface RadarMetrics {
@@ -16,8 +18,12 @@
     }
 
     let gaps = $state<KnowledgeGap[]>([]);
+    let currentTab = $state<'pending' | 'resolved'>('pending');
+    let expandedGapId = $state<string | null>(null);
     let radar = $state<RadarMetrics>({ global_score: 0, faithfulness: 0, precision: 0 });
     let is_loading = $state(true);
+
+    let filteredGaps = $derived(gaps.filter(g => currentTab === 'pending' ? (g.status === 'pending' || !g.status) : g.status === 'resolved'));
 
     async function fetchData() {
         try {
@@ -49,9 +55,58 @@
     
     const getSentimentIcon = (sentiment: string) => {
         if(sentiment === 'Frustrated' || sentiment === 'Angry') return 'sentiment_dissatisfied';
+        if(sentiment === 'Frustrated' || sentiment === 'Angry') return 'sentiment_dissatisfied';
         if(sentiment === 'Neutral') return 'sentiment_neutral';
         return 'sentiment_satisfied';
     };
+
+    async function handleInjectContent(gap: KnowledgeGap) {
+        const content = prompt(`Inject raw context for the unresolved query:\n"${gap.query}"\n\nPaste plaintext below. It will be vectorized instantly.`);
+        if (!content) return;
+        
+        // Rapid optimistic UI update (Move to solved tab)
+        const previousState = [...gaps];
+        gaps = gaps.map(g => g.id === gap.id ? { ...g, status: 'resolved', resolution_content: content } : g);
+
+        try {
+            const safeGapId = "Gap_" + gap.id.substring(0, 8);
+            const fileName = `${safeGapId}.md`;
+            
+            // 1. Escreve diretamente no O.S (Vault Master Markdown Root)
+            const mdPayload = `# Knowledge Resolution: ${safeGapId}\n\n**Unresolved User Query:**\n${gap.query}\n\n**Operator Context Injection:**\n${content}`;
+            await fetch(`http://localhost:38001/v1/vault/document/${encodeURIComponent(fileName)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ workspace_id: 1, content: mdPayload })
+            });
+
+            // 2. Registra o Dual-Truth Soft Delete na Memória SQLite
+            await fetch(`http://localhost:38001/v1/rag-engine/gaps/${gap.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ resolution_content: content })
+            });
+            
+        } catch(e) {
+            console.error("Failed to inject context into the vault", e);
+            gaps = previousState; // Revert UI optimism on error
+            alert("Falha Cíbrida ao salvar documento .md e sincronizar o SQLite.");
+        }
+    }
+
+    async function handleHardDelete(gap: KnowledgeGap) {
+        if(!confirm("Tem certeza que deseja aniquilar este log permanentemente? (O arquivo físico .md não será apagado do Vault)")) return;
+        
+        const previousState = [...gaps];
+        gaps = gaps.filter(g => g.id !== gap.id);
+
+        try {
+            await fetch(`http://localhost:38001/v1/rag-engine/gaps/${gap.id}`, { method: 'DELETE' });
+        } catch(e) {
+            console.error("Failed to Hard Delete gap", e);
+            gaps = previousState;
+        }
+    }
 </script>
 
 <header class="h-20 border-b border-slate-200/60 bg-white flex items-center px-6 shrink-0 justify-between mb-8 rounded-2xl shadow-sm border">
@@ -73,7 +128,7 @@
             <div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
             <span class="text-xs font-bold text-indigo-700">System Optimal</span>
         </div>
-        <button class="bg-white shadow-sm border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-2 hover:bg-slate-50 transition-colors">
+        <button onclick={() => window.print()} class="bg-white shadow-sm border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-2 hover:bg-slate-50 transition-colors">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg>
             Export PDF
         </button>
@@ -160,11 +215,17 @@
                 <h3 class="font-manrope font-bold text-2xl text-slate-800">Knowledge Gaps</h3>
                 <p class="text-sm text-slate-500 mt-1">Missing source documentation identified automatically from user queries.</p>
             </div>
-            <select class="appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-100 outline-none cursor-pointer">
-                <option>High Priority</option>
-                <option>Most Recent</option>
-                <option>Volume</option>
-            </select>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                    <button onclick={() => currentTab = 'pending'} class="px-4 py-1.5 text-xs font-bold rounded-lg transition-colors {currentTab === 'pending' ? 'bg-white shadow-sm text-slate-800 border border-slate-200/50' : 'text-slate-500 hover:text-slate-700'}">Pendentes</button>
+                    <button onclick={() => currentTab = 'resolved'} class="px-4 py-1.5 text-xs font-bold rounded-lg transition-colors {currentTab === 'resolved' ? 'bg-white shadow-sm text-slate-800 border border-slate-200/50' : 'text-slate-500 hover:text-slate-700'}">Resolvidos</button>
+                </div>
+                <select class="appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-100 outline-none cursor-pointer">
+                    <option>High Priority</option>
+                    <option>Most Recent</option>
+                    <option>Volume</option>
+                </select>
+            </div>
         </div>
 
         <div class="overflow-x-auto no-scrollbar">
@@ -173,16 +234,23 @@
                     <tr class="text-[10px] uppercase font-bold tracking-widest text-slate-400 border-b border-slate-100">
                         <th class="pb-4 px-3 w-[40%]">Unresolved Query</th>
                         <th class="pb-4 px-3 text-center">Frequency</th>
-                        <th class="pb-4 px-3">Context Field</th>
-                        <th class="pb-4 px-3">Sentiment Effect</th>
-                        <th class="pb-4 px-3 text-right">Rapid Action</th>
+                        {#if currentTab === 'pending'}
+                            <th class="pb-4 px-3">Context Field</th>
+                            <th class="pb-4 px-3">Sentiment Effect</th>
+                            <th class="pb-4 px-3 text-right">Rapid Action</th>
+                        {:else}
+                            <th class="pb-4 px-3 w-[30%]">Resolution Vault</th>
+                            <th class="pb-4 px-3 text-right">Purge Log</th>
+                        {/if}
                     </tr>
                 </thead>
                 <tbody class="text-sm">
                     {#if is_loading}
                         <tr><td colspan="5" class="py-12 text-center text-slate-400 font-medium">Scanning index blocks...</td></tr>
+                    {:else if filteredGaps.length === 0}
+                        <tr><td colspan="5" class="py-12 text-center text-slate-400 font-medium">{currentTab === 'pending' ? 'All hallucination gaps resolved. System optimal.' : 'No resolved logs recorded yet.'}</td></tr>
                     {:else}
-                        {#each gaps as gap}
+                        {#each filteredGaps as gap}
                             <tr class="group hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
                                 <td class="py-5 px-3">
                                     <span class="font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">"{gap.query}"</span>
@@ -196,20 +264,47 @@
                                         <span class="px-2.5 py-1 rounded bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">{gap.frequency} hits</span>
                                     {/if}
                                 </td>
-                                <td class="py-5 px-3 text-slate-500 font-medium">{gap.context}</td>
-                                <td class="py-5 px-3">
-                                    <div class="flex items-center gap-1.5 {getSentimentColor(gap.sentiment)}">
-                                        <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">{getSentimentIcon(gap.sentiment)}</span>
-                                        <span class="text-xs font-bold">{gap.sentiment}</span>
-                                    </div>
-                                </td>
-                                <td class="py-5 px-3 text-right">
-                                    <button class="text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 font-bold text-xs px-3 py-1.5 rounded-lg flex items-center justify-end gap-1 ml-auto transition-colors">
-                                        Inject Content <span class="material-symbols-outlined text-[16px]">add</span>
-                                    </button>
-                                </td>
+                                {#if currentTab === 'pending'}
+                                    <td class="py-5 px-3 text-slate-500 font-medium">{gap.context}</td>
+                                    <td class="py-5 px-3">
+                                        <div class="flex items-center gap-1.5 {getSentimentColor(gap.sentiment)}">
+                                            <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">{getSentimentIcon(gap.sentiment)}</span>
+                                            <span class="text-xs font-bold">{gap.sentiment}</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-5 px-3 text-right">
+                                        <button onclick={() => handleInjectContent(gap)} class="text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 font-bold text-xs px-3 py-1.5 rounded-lg flex items-center justify-end gap-1 ml-auto transition-colors">
+                                            Inject Content <span class="material-symbols-outlined text-[16px]">add</span>
+                                        </button>
+                                    </td>
+                                {:else}
+                                    <td class="py-5 px-3">
+                                        {#if expandedGapId === gap.id}
+                                            <button 
+                                                onclick={() => expandedGapId = null} 
+                                                class="text-xs text-slate-700 bg-slate-100 border border-slate-200 p-3 rounded-xl max-w-xl text-left hover:bg-slate-200 transition-colors cursor-pointer leading-relaxed"
+                                            >
+                                                {gap.resolution_content}
+                                            </button>
+                                        {:else}
+                                            <button 
+                                                onclick={() => expandedGapId = gap.id}
+                                                class="text-xs text-slate-500 line-clamp-2 max-w-sm text-left hover:text-indigo-600 transition-colors cursor-pointer" 
+                                                title="Clique para ler a resolução completa"
+                                            >
+                                                {gap.resolution_content}
+                                            </button>
+                                        {/if}
+                                    </td>
+                                    <td class="py-5 px-3 text-right">
+                                        <button onclick={() => handleHardDelete(gap)} class="text-rose-500 bg-rose-50 hover:bg-rose-100 border border-rose-100 font-bold text-xs p-1.5 rounded-lg flex items-center justify-center ml-auto transition-colors" title="Purge logic permanently">
+                                            <span class="material-symbols-outlined text-[16px]">delete</span>
+                                        </button>
+                                    </td>
+                                {/if}
                             </tr>
                         {/each}
+
                     {/if}
                 </tbody>
             </table>

@@ -62,6 +62,28 @@
         }
     }
 
+    let fileInput: HTMLInputElement;
+
+    function handleFileUpload(e: Event) {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+
+        if (file.size > 1024 * 1024 * 2) {
+            alert("O arquivo excede o limite de 2MB para contexto dinâmico via Chat. Utilize a pasta Vault para documentos massivos.");
+            (e.target as HTMLInputElement).value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (re) => {
+            const text = re.target?.result as string;
+            globalState.chat.inputContext = `[ARQUIVO ANEXADO: ${file.name}]\n\n${text.substring(0, 10000)}`;
+        };
+        reader.readAsText(file);
+        
+        (e.target as HTMLInputElement).value = '';
+    }
+
     function handleSend() {
         if (!message) return;
         sendGlobalChatMessage(message);
@@ -166,7 +188,9 @@
             onsubmit={(e) => { e.preventDefault(); handleSend(); }}
             class="max-w-4xl mx-auto relative flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all shadow-sm"
         >
-            <button type="button" class="absolute left-2 bottom-2 p-2.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer" title="Anexar Arquivo ou Imagem">
+            <input type="file" bind:this={fileInput} onchange={handleFileUpload} class="hidden" />
+            
+            <button type="button" onclick={() => fileInput.click()} class="absolute left-2 bottom-2 p-2.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer" title="Anexar Arquivo Rápido de Texto/Código">
                 <Paperclip class="w-5 h-5" />
             </button>
 

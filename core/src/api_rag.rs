@@ -50,6 +50,8 @@ pub struct KnowledgeGap {
     pub frequency: i32,
     pub context: String,
     pub sentiment: String,
+    pub status: Option<String>,
+    pub resolution_content: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -129,7 +131,7 @@ pub async fn delete_remote_model_handler(State(state): State<Arc<AppState>>, Pat
 
 pub async fn get_knowledge_gaps_handler(State(state): State<Arc<AppState>>) -> Json<Vec<KnowledgeGap>> {
     let gaps = sqlx::query_as::<_, KnowledgeGap>(
-        "SELECT id, query, frequency, context, sentiment FROM knowledge_gaps ORDER BY frequency DESC LIMIT 10"
+        "SELECT id, query, frequency, context, sentiment, status, resolution_content FROM knowledge_gaps ORDER BY frequency DESC LIMIT 50"
     )
     .fetch_all(&state.db)
     .await
@@ -137,6 +139,45 @@ pub async fn get_knowledge_gaps_handler(State(state): State<Arc<AppState>>) -> J
 
 
     Json(gaps)
+}
+
+#[derive(Deserialize)]
+pub struct ResolveGapPayload {
+    pub resolution_content: String,
+}
+
+pub async fn resolve_knowledge_gap_handler(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Json(payload): Json<ResolveGapPayload>
+) -> Json<serde_json::Value> {
+    let res = sqlx::query("UPDATE knowledge_gaps SET status = 'resolved', resolution_content = ? WHERE id = ?")
+        .bind(&payload.resolution_content)
+        .bind(&id)
+        .execute(&state.db)
+        .await;
+
+    match res {
+        Ok(exec) if exec.rows_affected() > 0 => Json(serde_json::json!({"status": "resolved"})),
+        Ok(_) => Json(serde_json::json!({"error": true, "message": "Gap not found or already deleted"})),
+        Err(e) => Json(serde_json::json!({"error": true, "message": format!("DB Error: {}", e)}))
+    }
+}
+
+pub async fn delete_knowledge_gap_handler(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>
+) -> Json<serde_json::Value> {
+    let res = sqlx::query("DELETE FROM knowledge_gaps WHERE id = ?")
+        .bind(&id)
+        .execute(&state.db)
+        .await;
+
+    match res {
+        Ok(exec) if exec.rows_affected() > 0 => Json(serde_json::json!({"status": "deleted"})),
+        Ok(_) => Json(serde_json::json!({"error": true, "message": "Gap not found or already resolved"})),
+        Err(e) => Json(serde_json::json!({"error": true, "message": format!("DB Error: {}", e)}))
+    }
 }
 
 pub async fn get_radar_metrics_handler(State(state): State<Arc<AppState>>) -> Json<RadarMetrics> {
