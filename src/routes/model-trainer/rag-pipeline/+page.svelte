@@ -275,18 +275,20 @@
     </div>
 
     <!-- Contextual "Grounding" Alert Glassmorphism -->
+    {#if trainerState.deepResearchGroundingFocus}
     <div class="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-xl border border-white/60 px-6 py-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] flex items-center gap-5 z-50 animate-in slide-in-from-bottom-5 duration-500">
         <div class="w-12 h-12 rounded-full bg-tertiary-container/10 flex items-center justify-center shrink-0 border border-tertiary-container/20">
-            <span class="material-symbols-outlined text-on-tertiary-container text-[24px]">auto_awesome</span>
+            <span class="material-symbols-outlined text-on-tertiary-container text-[24px]">database</span>
         </div>
         <div>
             <p class="text-[13px] font-extrabold text-on-surface tracking-tight mb-0.5 ">Grounding Engine Active</p>
             <p class="text-[11px] text-on-surface-variant font-medium">Model will exclusively utilize the internal Sovereign DB for responses.</p>
         </div>
-        <button class="ml-4 pl-4 border-l border-outline-variant/20 text-on-surface-variant hover:text-error transition-colors flex shrink-0">
+        <button aria-label="Dismiss Grounding Alert" onclick={() => trainerState.deepResearchGroundingFocus = false} class="ml-4 pl-4 border-l border-outline-variant/20 text-on-surface-variant hover:text-error transition-colors flex shrink-0">
             <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
     </div>
+    {/if}
 </div>
 
 <style>
