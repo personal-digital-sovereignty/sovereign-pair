@@ -37,8 +37,26 @@ export const trainerState = $state({
     stepTime: "0.82s",
     memoryBw: "1,024 GB/s",
     temperatureC: 64,
-    vramHistory: new Array(12).fill(0)
+    vramHistory: new Array(12).fill(0),
+    
+    // Distillation Engine
+    distillationEpochs: 3,
+    distillationBatchSize: 4,
+    hasOpenAiKey: true,
+    hasAnthropicKey: false,
+    datasetSizeCount: 1200000
 });
+
+export const AI_MODELS = [
+    { id: 'qwen2.5:1.5b', name: 'Qwen 2.5 1.5B', type: 'local', provider: 'ollama', sizeB: 1.5, badge: 'Edge Optimized' },
+    { id: 'llama3.2:3b', name: 'Llama 3.2 3B', type: 'local', provider: 'ollama', sizeB: 3, badge: 'Edge Optimized' },
+    { id: 'phi3.5', name: 'Phi-3.5 Mini', type: 'local', provider: 'ollama', sizeB: 3.8, badge: 'Edge Optimized' },
+    { id: 'llama-3-8b', name: 'Llama 3 8B', type: 'local', provider: 'ollama', sizeB: 8, badge: 'Local Server' },
+    { id: 'Dionysus-14B', name: 'Dionysus-14B (Local Edge Pi)', type: 'local', provider: 'sovereign-mesh', sizeB: 14, badge: 'Tier 2 (Advanced)' },
+    { id: 'Nexus-70B', name: 'Nexus-70B (Oracle Cloud GPU)', type: 'local', provider: 'sovereign-mesh', sizeB: 70, badge: 'Tier 1 (Elite)' },
+    { id: 'GPT-4o', name: 'GPT-4o (OpenAI)', type: 'external', provider: 'openai', sizeB: 1000, badge: 'Tier 1 (Elite)' },
+    { id: 'Claude-3.5-Sonnet', name: 'Claude 3.5 Sonnet (Anthropic)', type: 'external', provider: 'anthropic', sizeB: 1000, badge: 'Tier 1 (Elite)' }
+];
 
 export async function fetchTrainerStats() {
     try {
@@ -143,6 +161,34 @@ export function exportReflectionLogs(liveStreamData: any[] = []) {
     const a = document.createElement('a');
     a.href = dataStr;
     a.download = `reflection_lab_audit_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// Distillation Engine Operations
+export function getSimilarityScoreBaseline() {
+    return Math.max(0.70, (1.0 - (trainerState.knowledgeGapPercentage / 100))).toFixed(2);
+}
+
+export function exportDistillationLogs(teacherModel: string, studentModel: string, runLogs: string[]) {
+    const payload = {
+        session: `distillation_${Date.now()}`,
+        teacher_model: teacherModel,
+        student_model: studentModel,
+        parameters: {
+            epochs: trainerState.distillationEpochs,
+            batch_size: trainerState.distillationBatchSize
+        },
+        dataset_size: trainerState.datasetSizeCount,
+        final_similarity_score: getSimilarityScoreBaseline(),
+        distillation_logs: runLogs
+    };
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+    const a = document.createElement('a');
+    a.href = dataStr;
+    a.download = `distillation_manifest_${Date.now()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
