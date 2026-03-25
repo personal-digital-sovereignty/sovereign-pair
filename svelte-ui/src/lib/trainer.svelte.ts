@@ -3,6 +3,8 @@ export const trainerState = $state({
     internetToRagActive: true,
     strictGrounding: true,
     internalMonologue: false,
+    reasoningDepth: 80,
+    auditIntensity: 65,
 
     // Unsloth Lora Constraints
     loraRank: 16,
@@ -113,6 +115,32 @@ export function exportTrainerConfig() {
     const a = document.createElement('a');
     a.href = dataStr;
     a.download = `sovereign_trainer_config_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// Reflection Lab Operations
+export const selfCorrectRatio = $derived((100 - trainerState.knowledgeGapPercentage).toFixed(1));
+
+export function exportReflectionLogs(liveStreamData: any[] = []) {
+    const payload = {
+        model: "Llama-3-8B-Instruct-v0.1",
+        version: "0.9.7",
+        timestamp: new Date().toISOString(),
+        reflection_state: {
+            think_before_response: trainerState.internalMonologue,
+            reasoning_depth: trainerState.reasoningDepth,
+            audit_intensity: trainerState.auditIntensity,
+            self_correct_ratio: selfCorrectRatio
+        },
+        logs: liveStreamData
+    };
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+    const a = document.createElement('a');
+    a.href = dataStr;
+    a.download = `reflection_lab_audit_${Date.now()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
