@@ -2,13 +2,16 @@
   import '../app.css';
   import { globalState } from '$lib/state.svelte.js';
   
-  let appVersion = "0.9.6";
+  let appVersion = "0.9.7";
   import { telemetryState, connectTelemetry, disconnectTelemetry } from '$lib/telemetry.svelte';
   import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, Activity, Database, Bell, Network, User } from 'lucide-svelte';
   import { page } from '$app/state';
   import { onMount, onDestroy } from 'svelte';
   import InlineSpotlight from '$lib/components/InlineSpotlight.svelte';
   import SettingsModal from '$lib/components/SettingsModal.svelte';
+  import ChangelogModal from '$lib/components/ChangelogModal.svelte';
+  
+  let isChangelogOpen = $state(false);
   import NotificationBell from '$lib/components/NotificationBell.svelte';
   import { settingsState, loadSettings } from '$lib/settings.svelte';
 
@@ -68,7 +71,7 @@
       </svg>
       <div class="flex items-center gap-2">
         <h1 class="text-xl font-bold tracking-wide text-white">Control Hub</h1>
-        <span class="text-[9px] font-mono font-bold bg-white/10 text-white/50 px-1.5 py-0.5 rounded shadow-inner ml-1">v{appVersion}</span>
+        <button onclick={() => isChangelogOpen = true} class="text-[9px] font-mono font-bold bg-white/10 text-white/50 px-1.5 py-0.5 rounded shadow-inner ml-1 hover:bg-white/20 hover:text-white transition-colors cursor-pointer" title="Ver Changelog de Versões">v{appVersion}</button>
       </div>
     </div>
 
@@ -258,3 +261,4 @@
   </div>
 </div>
 <SettingsModal />
+<ChangelogModal bind:isOpen={isChangelogOpen} />
