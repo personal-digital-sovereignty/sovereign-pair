@@ -119,7 +119,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="space-y-3">
+                            <div class="space-y-3 mb-4">
                                 <div class="flex justify-between text-xs">
                                     <span class="text-on-surface-variant font-medium">Reasoning Level</span>
                                     <span class="font-bold text-secondary">{AI_MODELS.find(m => m.id === teacherModel)?.badge || 'Tier 1 (Elite)'}</span>
@@ -128,6 +128,25 @@
                                     <div class="bg-secondary h-full w-[95%] rounded-full"></div>
                                 </div>
                             </div>
+                            
+                            <!-- Privacy Warning Advisory -->
+                            {#if AI_MODELS.find(m => m.id === teacherModel)?.type === 'local'}
+                            <div class="bg-primary-fixed/20 border border-primary/20 rounded-lg p-2.5 flex items-start gap-2.5 animate-in fade-in duration-300 shadow-sm">
+                                <span class="material-symbols-outlined text-primary text-[16px] mt-0.5">shield_person</span>
+                                <div>
+                                    <p class="text-[9px] font-extrabold text-primary uppercase tracking-widest mb-0.5">Sovereign Privacy Active</p>
+                                    <p class="text-[10px] text-on-surface-variant/90 leading-tight font-medium">Local residents guarantee <strong class="text-on-surface">zero-cost</strong> and <strong class="text-on-surface">100% private</strong> distillation independent of external APIs.</p>
+                                </div>
+                            </div>
+                            {:else}
+                            <div class="bg-surface-variant border border-outline-variant/30 rounded-lg p-2.5 flex items-start gap-2.5 animate-in fade-in duration-300 shadow-sm">
+                                <span class="material-symbols-outlined text-on-surface-variant text-[16px] mt-0.5">cloud_upload</span>
+                                <div>
+                                    <p class="text-[9px] font-extrabold text-on-surface-variant uppercase tracking-widest mb-0.5">External API Dependent</p>
+                                    <p class="text-[10px] text-on-surface-variant/80 leading-tight font-medium">Subject to third-party billing and data sovereignty risks. <strong class="text-on-surface">Prefer local models</strong> when possible.</p>
+                                </div>
+                            </div>
+                            {/if}
                         </div>
                         
                         <!-- Transfer Link -->
