@@ -42,17 +42,40 @@ impl DeepResearchEngine {
         // Isso é uma filtragem em memória antes da decodificação.
         let mut text_blocks = Vec::new();
         
-        // Vamos capturar parágrafos, cabeçalhos e listas
-        let selector = Selector::parse("p, h1, h2, h3, h4, li, article, main, .content").unwrap();
+        // Vamos capturar apenas elementos atômicos contendo texto orgânico
+        let selector = Selector::parse("p, h1, h2, h3, h4, h5, h6, li").unwrap();
         
         for element in document.select(&selector) {
+            // Filtro 1: Genética (Ancestors)
+            // Se o nó estiver dentro de contêineres lixo, ele é sumariamente abatido.
+            let is_junk = element.ancestors().any(|a| {
+                if let scraper::node::Node::Element(el) = a.value() {
+                    let name = el.name();
+                    matches!(name, "nav" | "header" | "footer" | "aside" | "script" | "style" | "noscript" | "form" | "iframe" | "button" | "dialog")
+                } else {
+                    false
+                }
+            });
+
+            if is_junk {
+                continue;
+            }
+
             let tag_name = element.value().name();
+            let is_header = tag_name.starts_with('h');
             
             // Foca o inner text, ignorando scripts implícitos
             let inner_text = element.text().collect::<Vec<_>>().join(" ");
             let clean_text = inner_text.trim();
             
             if clean_text.is_empty() {
+                continue;
+            }
+
+            // Filtro 2: Comprimento Semântico
+            // Ignorar textos minúsculos como "Fazer Login", "Categorias", "iPhone 15", etc.
+            // Exceção: Cabeçalhos podem ser curtos (Ex: "Resumo", "Conclusão").
+            if !is_header && clean_text.len() < 30 && clean_text.split_whitespace().count() < 5 {
                 continue;
             }
             
@@ -62,8 +85,10 @@ impl DeepResearchEngine {
                 "h2" => format!("## {}\n", clean_text),
                 "h3" => format!("### {}\n", clean_text),
                 "h4" => format!("#### {}\n", clean_text),
+                "h5" => format!("##### {}\n", clean_text),
+                "h6" => format!("###### {}\n", clean_text),
                 "li" => format!("- {}", clean_text),
-                _ => format!("{}\n", clean_text), // <p>, <article>, <main>
+                _ => format!("{}\n", clean_text), // <p>
             };
             
             text_blocks.push(formatted);
@@ -168,7 +193,7 @@ impl DeepResearchEngine {
         }
 
         links.dedup();
-        links.truncate(5); // Retorna estritamente o Top 5
+        links.truncate(20); // Retorna estritamente o Top 20 expandido
         Ok(links)
     }
 
@@ -212,7 +237,7 @@ impl DeepResearchEngine {
                                         links.push(url_str.to_string());
                                     }
                                 }
-                                links.truncate(5);
+                                links.truncate(20);
                                 return Ok(links);
                             }
                     } else {
@@ -251,8 +276,8 @@ mod tests {
                     <h1>Sovereign Pair WAG Test</h1>
                     <p>This is a test paragraph describing the Deep Research module.</p>
                     <ul>
-                        <li>Item 1</li>
-                        <li>Item 2</li>
+                        <li>Primeira evidência da RAG Matrix Pipeline Ativa</li>
+                        <li>Segunda evidência da RAG Matrix Pipeline Ativa</li>
                     </ul>
                 </main>
                 <aside>Adverts here</aside>
@@ -265,7 +290,7 @@ mod tests {
         // Asserting the inclusion of valid semantic elements
         assert!(markdown.contains("# Sovereign Pair WAG Test"));
         assert!(markdown.contains("This is a test paragraph"));
-        assert!(markdown.contains("- Item 1"));
+        assert!(markdown.contains("- Primeira evidência da RAG"));
         
         // Asserting the EXCLUSION of malicious/junk elements
         assert!(!markdown.contains("HACKED"), "Scraper leaked raw Script text!");

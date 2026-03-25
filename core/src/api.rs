@@ -171,8 +171,23 @@ if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE
         
         if let Some(t) = parsed.get("temperature").and_then(|v| v.as_f64()) { sys_temperature = Some(t); }
         if let Some(k) = parsed.get("top_k").and_then(|v| v.as_i64()) { sys_top_k = Some(k); }
-        if let Some(p) = parsed.get("system_prompt").and_then(|v| v.as_str())
-            && !p.is_empty() { global_system_prompt = Some(p.to_string()); }
+        
+        let mut base_prompt = String::new();
+        if let Some(name) = parsed.get("ai_name").and_then(|v| v.as_str()) {
+            if !name.is_empty() {
+                base_prompt = format!("Identidade Sistêmica: Assuma a persona local soberana definida pelo usuário. Seu nome é {}. Aja de forma coerente e amigável sem ser repetitivo.\n\n", name);
+            }
+        }
+        
+        if let Some(p) = parsed.get("system_prompt").and_then(|v| v.as_str()) {
+            if !p.is_empty() { 
+                base_prompt.push_str(p); 
+            }
+        }
+        
+        if !base_prompt.is_empty() {
+            global_system_prompt = Some(base_prompt);
+        }
     }
 }
 let ollama_model = resolved_model.clone();
