@@ -57,12 +57,11 @@
   let routeId = $derived(page.route.id || '');
 </script>
 
-<div class="h-screen w-full flex overflow-hidden antialiased text-slate-800 bg-[#F4F5F7] font-sans">
+<div class="h-screen print:h-auto print:overflow-visible w-full flex overflow-hidden antialiased text-slate-800 bg-[#F4F5F7] font-sans">
   
   <InlineSpotlight />
 
-  <!-- BEGIN: Sidebar Master -->
-  <aside class="w-[280px] bg-[#2C3E50] text-[#CBD5E1] flex flex-col h-full flex-shrink-0 relative z-20 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)] m-2 rounded-2xl overflow-hidden transition-all duration-300">
+  <aside class="w-[280px] bg-[#2C3E50] text-[#CBD5E1] flex flex-col h-full print:hidden flex-shrink-0 relative z-20 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)] m-2 rounded-2xl overflow-hidden transition-all duration-300">
     <!-- Sidebar Header (Sovereign Origin Icon Preserved) -->
     <div class="h-16 flex items-center px-6 border-b border-white/5 shrink-0">
       <svg class="w-8 h-8 text-indigo-400 mr-3 shrink-0" viewBox="0 0 24 24" fill="none">
@@ -124,7 +123,7 @@
   <!-- END: Sidebar Master -->
 
   <!-- BEGIN: Hardware Telemetry Widget Overlay -->
-  <div class="absolute bottom-4 left-4 w-[264px] bg-white rounded-xl shadow-lg p-4 z-30 border border-slate-100">
+  <div class="absolute bottom-4 left-4 w-[264px] bg-white rounded-xl shadow-lg p-4 z-30 border border-slate-100 print:hidden">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Hardware Telemetry</h3>
       <Activity class="w-3 h-3 {telemetryState.connected ? 'text-indigo-500 animate-pulse' : 'text-slate-400'}" />
@@ -213,10 +212,10 @@
   <!-- END: Hardware Telemetry Widget -->
 
   <!-- BEGIN: Main Viewport (Header + Route Children) -->
-  <div class="flex-1 flex flex-col h-full overflow-hidden relative min-w-0 transition-all duration-300 ease-in-out" style="padding-right: {globalState?.layout?.isRightAuxPanelOpen ? '420px' : '0'}">
+  <div class="flex-1 flex flex-col h-full print:h-auto print:overflow-visible overflow-hidden relative min-w-0 transition-all duration-300 ease-in-out" style="padding-right: {globalState?.layout?.isRightAuxPanelOpen ? '420px' : '0'}">
     
     <!-- Top Main Header -->
-    <header class="h-16 flex items-center justify-between px-6 shrink-0 mt-2 z-[100] relative">
+    <header class="h-16 flex items-center justify-between px-6 shrink-0 mt-2 z-[100] relative print:hidden">
       <!-- Active Workspace Selector -->
       <label for="workspace-select" class="flex items-center bg-white rounded-lg shadow-sm px-4 py-2 border border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors max-w-sm flex-shrink min-w-0">
         <div class="flex flex-col mr-4 w-full">
@@ -255,7 +254,7 @@
     </header>
 
     <!-- Page Content (Slot Injection) -->
-    <main class="flex-1 pb-4 px-4 overflow-hidden flex flex-col relative z-20">
+    <main class="flex-1 pb-4 px-4 overflow-hidden print:h-auto print:overflow-visible flex flex-col relative z-20">
          {@render children()}
     </main>
   </div>
