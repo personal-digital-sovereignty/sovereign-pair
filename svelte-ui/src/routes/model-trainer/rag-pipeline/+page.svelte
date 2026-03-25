@@ -3,13 +3,29 @@
     
     let flowStep = $state(0);
     
-    function launchDeepResearch() {
+    async function launchDeepResearch() {
         // Prevent empty prompt or concurrent executions
         if (!trainerState.deepResearchPrompt.trim() || trainerState.isDeepResearchActive) return;
         
         trainerState.isDeepResearchActive = true;
         trainerState.deepResearchScrapedSources = 0;
         flowStep = 0; // 0: Vectorizing, 1: Matrix/Scraping, 2: Hallucination, 3: Injector, 4: Done
+        
+        // Dispara orquestração assíncrona p/ backend Sovereign (Artifact Routing via Sensus Vault)
+        try {
+            await fetch('http://127.0.0.1:38001/v1/trainer/deep-research', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    directive: trainerState.deepResearchPrompt,
+                    strict_hallucination: trainerState.deepResearchStrictHallucination,
+                    grounding_focus: trainerState.deepResearchGroundingFocus,
+                    query_expansion: trainerState.deepResearchQueryExpansion
+                })
+            });
+        } catch (e) {
+            console.error("🚀 Fatal: Sensus Deep Research Invocation Failed", e);
+        }
         
         // Simulating the furious web scraping/ingestion rate
         const scrapeInterval = setInterval(() => {

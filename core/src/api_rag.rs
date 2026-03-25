@@ -151,16 +151,48 @@ pub async fn resolve_knowledge_gap_handler(
     Path(id): Path<String>,
     Json(payload): Json<ResolveGapPayload>
 ) -> Json<serde_json::Value> {
+    // 1. Mark as resolved in SQLite
     let res = sqlx::query("UPDATE knowledge_gaps SET status = 'resolved', resolution_content = ? WHERE id = ?")
         .bind(&payload.resolution_content)
         .bind(&id)
         .execute(&state.db)
         .await;
 
-    match res {
-        Ok(exec) if exec.rows_affected() > 0 => Json(serde_json::json!({"status": "resolved"})),
-        Ok(_) => Json(serde_json::json!({"error": true, "message": "Gap not found or already deleted"})),
-        Err(e) => Json(serde_json::json!({"error": true, "message": format!("DB Error: {}", e)}))
+    // 2. Fetch the original query to format the Markdown safely
+    let query_str = sqlx::query_scalar::<_, String>("SELECT query FROM knowledge_gaps WHERE id = ?")
+        .bind(&id)
+        .fetch_optional(&state.db)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "Unknown_Gap".to_string());
+
+    // 3. Artifact Routing: Save the Markdown to [Vault]/gaps/
+    if res.as_ref().map(|x| x.rows_affected() > 0).unwrap_or(false) {
+        let safe_filename = query_str.chars()
+            .map(|c| if c.is_alphanumeric() { c } else { '_' })
+            .collect::<String>()
+            .split_at(std::cmp::min(50, query_str.len())).0.to_string();
+            
+        let gaps_dir = state.vault_path.join("gaps");
+        let _ = tokio::fs::create_dir_all(&gaps_dir).await;
+        
+        let md_path = gaps_dir.join(format!("{}_{}.md", safe_filename, uuid::Uuid::new_v4().to_string().chars().take(4).collect::<String>()));
+        
+        let md_content = format!(
+            "# RAG Knowledge Gap Restored\n\n**Original Query:** {}\n**Gap ID:** {}\n\n## Resolution Context:\n\n{}\n", 
+            query_str, id, payload.resolution_content
+        );
+        
+        if let Err(e) = tokio::fs::write(&md_path, md_content).await {
+            tracing::error!("❌ [Vault Router] Failed to write Gap artifact to {:?}: {}", md_path, e);
+        } else {
+            tracing::info!("✅ [Vault Router] Gap artifact persisted: {:?}", md_path);
+        }
+        
+        Json(serde_json::json!({"status": "resolved", "artifact_path": md_path.to_string_lossy().to_string()}))
+    } else {
+        Json(serde_json::json!({"error": true, "message": "Gap not found or already deleted"}))
     }
 }
 
