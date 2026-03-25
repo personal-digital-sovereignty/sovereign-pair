@@ -162,9 +162,8 @@
                             <p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">VRAM Usage</p>
                             <p class="text-lg font-bold font-mono text-on-surface">{trainerState.vramUsageGb.toFixed(1)} GB <span class="text-xs font-medium text-on-surface-variant">/ {trainerState.vramTotalGb} GB</span></p>
                         </div>
-                        <div class="h-10 w-full bg-surface-container-high rounded-lg overflow-hidden flex gap-1 p-1">
+                        <div class="h-10 w-full bg-surface-container-high rounded-lg overflow-hidden p-1">
                             <div class="h-full bg-primary rounded-md transition-all duration-1000" style="width: {Math.min(100, (trainerState.vramUsageGb / trainerState.vramTotalGb) * 100)}%"></div>
-                            <div class="h-full bg-surface-variant rounded-md flex-1"></div>
                         </div>
                     </div>
                     <div class="space-y-4">
