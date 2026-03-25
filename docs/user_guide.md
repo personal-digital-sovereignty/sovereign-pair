@@ -8,6 +8,11 @@ Abaixo, detalhamos cada uma das seções que você encontrará no menu principal
 
 ---
 
+## 0. Settings (Configurações Globais)
+A engrenagem base de tudo. O **Settings** é o alicerce criptografado do seu aplicativo.
+- **O que você encontra aqui:** O gerenciamento das chaves de API (OpenAI, Anthropic, Gemini, Groq) e parâmetros core da sua instância.
+- **Para que serve:** Sempre que precisar alternar provedores corporativos nas destilações do motor, ou inserir o seu Token Mestre para sincronizar novos repositórios/workspaces. Tudo aqui é guardado e trancado apenas na memória do seu SQLite interno de forma offline, sem servidores fofoqueiros.
+
 ## 1. Home (O Centro de Comando)
 A página **Home** é o seu *Dashboard* (painel de controle). Aqui você tem uma visão panorâmica e em tempo real da saúde da sua malha cíbrida.
 - **O que você encontra aqui:** Gráficos de velocidade de resposta (Tokens por segundo), quantidade de documentos que o sistema já absorveu, temperatura do sistema e o tráfego da rede P2P (ponto a ponto).
