@@ -11,14 +11,6 @@
             <MessageSquare class="w-6 h-6 text-primary" />
             Sovereign Cíbrid Chat
         </h1>
-        <div class="flex items-center gap-2 bg-surface-container-low p-1.5 rounded-xl border border-outline-variant/10">
-            <button class="flex items-center gap-2 px-4 py-2 bg-surface-container-lowest text-primary font-bold text-xs rounded-lg shadow-sm cursor-pointer">
-                <Plus class="w-4 h-4"/> Nova Sessão
-            </button>
-            <button onclick={() => settingsState.isOpen = true} class="flex items-center gap-2 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors font-bold text-xs rounded-lg cursor-pointer">
-                <Settings class="w-4 h-4"/> Parâmetros do Modelo
-            </button>
-        </div>
     </header>
 
     <div class="flex-1 flex overflow-hidden px-10 pb-6 w-full gap-6">
