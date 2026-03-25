@@ -2,18 +2,49 @@
     import { trainerState } from '$lib/trainer.svelte';
     
     let flowStep = $state(0);
+    let sseClient: EventSource | null = null;
     
     async function launchDeepResearch() {
-        // Prevent empty prompt or concurrent executions
         if (!trainerState.deepResearchPrompt.trim() || trainerState.isDeepResearchActive) return;
         
         trainerState.isDeepResearchActive = true;
         trainerState.deepResearchScrapedSources = 0;
-        flowStep = 0; // 0: Vectorizing, 1: Matrix/Scraping, 2: Hallucination, 3: Injector, 4: Done
+        flowStep = 0;
         
-        // Dispara orquestração assíncrona p/ backend Sovereign (Artifact Routing via Sensus Vault)
+        // Spawn Real SSE Connection to Sovereign Engine
+        if (sseClient) {
+            sseClient.close();
+        }
+        sseClient = new EventSource('http://localhost:38001/v1/trainer/unsloth-monitor');
+        
+        sseClient.onmessage = (event) => {
+            const data = event.data;
+            if (data.includes('[STEP 0]')) {
+                flowStep = 0;
+            } else if (data.includes('[STEP 1]')) {
+                flowStep = 1;
+            } else if (data.includes('[STEP 2]')) {
+                flowStep = 2;
+            } else if (data.includes('[STEP 3]')) {
+                flowStep = 3;
+            } else if (data.includes('[STEP 4]')) {
+                flowStep = 4;
+                trainerState.isDeepResearchActive = false;
+                if (sseClient) sseClient.close();
+            } else if (data.includes('[SCRAPED: ')) {
+                // Parse amount e.g. [SCRAPED: 3]
+                const match = data.match(/\[SCRAPED: (\d+)\]/);
+                if (match && match[1]) {
+                    trainerState.deepResearchScrapedSources += parseInt(match[1], 10);
+                }
+            } else if (data.includes('DEEP_RESEARCH') && data.includes('ABORTED')) {
+                trainerState.isDeepResearchActive = false;
+                if (sseClient) sseClient.close();
+            }
+        };
+
         try {
-            await fetch('http://127.0.0.1:38001/v1/trainer/deep-research', {
+            await fetch('http://localhost:38001/v1/trainer/deep-research', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -25,22 +56,27 @@
             });
         } catch (e) {
             console.error("🚀 Fatal: Sensus Deep Research Invocation Failed", e);
-        }
-        
-        // Simulating the furious web scraping/ingestion rate
-        const scrapeInterval = setInterval(() => {
-            trainerState.deepResearchScrapedSources += Math.floor(Math.random() * 8) + 2;
-        }, 400);
-        
-        // Simulated execution timeline
-        setTimeout(() => { flowStep = 1; }, 2000);
-        setTimeout(() => { flowStep = 2; }, 5000);
-        setTimeout(() => { flowStep = 3; }, 7500);
-        setTimeout(() => {
-            clearInterval(scrapeInterval);
-            flowStep = 4;
             trainerState.isDeepResearchActive = false;
-        }, 10000);
+            if (sseClient) sseClient.close();
+        }
+    }
+
+    async function cancelDeepResearch() {
+        if (!trainerState.isDeepResearchActive) return;
+        
+        trainerState.isDeepResearchActive = false;
+        if (sseClient) {
+            sseClient.close();
+            sseClient = null;
+        }
+
+        try {
+            await fetch('http://localhost:38001/v1/trainer/deep-research/cancel', {
+                method: 'POST'
+            });
+        } catch (e) {
+            console.error("Failed to abort deep research process.", e);
+        }
     }
 </script>
 
@@ -275,10 +311,10 @@
 
         <!-- Action Footer -->
         <div class="flex justify-end gap-4 border-t border-outline-variant/10 pt-8 pb-4">
-            <button disabled={trainerState.isDeepResearchActive} class="px-8 py-3 bg-white text-on-surface-variant text-xs font-bold uppercase tracking-widest rounded-xl shadow-sm border border-outline-variant/20 hover:bg-surface-container-low transition-colors active:scale-95 disabled:opacity-50">
-                Cancel
+            <button onclick={cancelDeepResearch} disabled={!trainerState.isDeepResearchActive} class="cursor-pointer px-8 py-3 bg-white text-on-surface-variant text-xs font-bold uppercase tracking-widest rounded-xl shadow-sm border border-outline-variant/20 hover:bg-surface-container-low transition-colors active:scale-95 disabled:opacity-50">
+                Cancel Crawler
             </button>
-            <button onclick={launchDeepResearch} disabled={trainerState.isDeepResearchActive || !trainerState.deepResearchPrompt.trim()} class="px-10 py-3 bg-gradient-to-br flex items-center gap-3 from-[#001360] to-[#002395] text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-md shadow-primary/20 hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
+            <button onclick={launchDeepResearch} disabled={trainerState.isDeepResearchActive || !trainerState.deepResearchPrompt.trim()} class="cursor-pointer px-10 py-3 bg-gradient-to-br flex items-center gap-3 from-[#001360] to-[#002395] text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-md shadow-primary/20 hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
                 {#if trainerState.isDeepResearchActive}
                     <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                     Executing Analysis...
