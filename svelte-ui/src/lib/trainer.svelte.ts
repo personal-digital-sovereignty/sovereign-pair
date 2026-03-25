@@ -83,6 +83,7 @@ export async function fetchTrainerStats() {
             trainerState.isTraining = data.unsloth?.is_training || false;
             if(data.unsloth) {
                 trainerState.vramUsageGb = data.unsloth.vram_usage_gb || 0;
+                trainerState.vramTotalGb = data.unsloth.vram_total_gb || 24.0;
                 trainerState.epochCurrent = data.unsloth.epoch_current || 0;
                 trainerState.epochTotal = data.unsloth.epoch_total || 5;
                 trainerState.trainingSpeedTokensSec = data.unsloth.tokens_per_sec || 0;
