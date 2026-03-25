@@ -2,7 +2,7 @@
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
     import { onMount, onDestroy } from 'svelte';
-    import { trainerState, exportTrainerConfig } from '$lib/trainer.svelte';
+    import { trainerState, exportTrainerConfig, fetchTrainerStats, sendUnslothControl } from '$lib/trainer.svelte';
 
     let isSubmitting = $state(false);
     let pollingInterval: any;
@@ -12,46 +12,6 @@
         pollingInterval = setInterval(fetchTrainerStats, 10000);
         return () => clearInterval(pollingInterval);
     });
-
-    async function fetchTrainerStats() {
-        try {
-            const res = await fetch('http://localhost:38001/v1/trainer/stats');
-            if (res.ok) {
-                const data = await res.json();
-                trainerState.knowledgeGapPercentage = data.knowledge_gap_percentage || 0;
-                trainerState.sourcesScanned = data.sources_scanned || 0;
-                trainerState.sourcesScannedDelta = data.sources_scanned_delta || 0;
-                if (data.recently_acquired) {
-                    trainerState.recentlyAcquiredKnowledge = data.recently_acquired;
-                }
-                
-                // Telemetry
-                trainerState.isTraining = data.unsloth?.is_training || false;
-                if(data.unsloth) {
-                    trainerState.vramUsageGb = data.unsloth.vram_usage_gb || 0;
-                    trainerState.epochCurrent = data.unsloth.epoch_current || 0;
-                    trainerState.epochTotal = data.unsloth.epoch_total || 5;
-                    trainerState.trainingSpeedTokensSec = data.unsloth.tokens_per_sec || 0;
-                    trainerState.lastCheckpoint = data.unsloth.last_checkpoint || 'Idle';
-                }
-            }
-        } catch(e) {
-            console.error("Failed to fetch Live Trainer Telemetry from Axum:", e);
-        }
-    }
-
-    async function sendUnslothControl(action: 'play' | 'pause' | 'stop') {
-        try {
-            await fetch('http://localhost:38001/v1/trainer/control', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action })
-            });
-            await fetchTrainerStats(); // Force refresh UI
-        } catch(e) {
-            console.error(`Unsloth RPC failed: ${action}`, e);
-        }
-    }
 
     async function runFineTuning() {
         if(isSubmitting) return;
