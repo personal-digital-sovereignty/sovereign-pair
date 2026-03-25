@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { trainerState, exportReflectionLogs, selfCorrectRatio } from '$lib/trainer.svelte';
+    import { trainerState, exportReflectionLogs, getSelfCorrectRatio } from '$lib/trainer.svelte';
 
     let isReflecting = $state(false);
     
@@ -165,7 +165,7 @@
                     <div class="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/10 shadow-sm relative overflow-hidden">
                         <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-primary/5 rounded-full blur-xl"></div>
                         <p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">Self-Correct</p>
-                        <p class="text-2xl font-extrabold text-primary pr-2">{selfCorrectRatio}%</p>
+                        <p class="text-2xl font-extrabold text-primary pr-2">{getSelfCorrectRatio()}%</p>
                         <div class="mt-4 flex items-center gap-1.5 text-[10px] text-on-tertiary-container font-extrabold uppercase tracking-tight">
                             <span class="material-symbols-outlined text-[16px]">check_circle</span>
                             <span>Optimal Rate</span>
