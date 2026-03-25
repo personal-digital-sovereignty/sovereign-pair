@@ -1,6 +1,8 @@
 <script lang="ts">
   import '../app.css';
   import { globalState } from '$lib/state.svelte.js';
+  
+  let appVersion = "0.9.6";
   import { telemetryState, connectTelemetry, disconnectTelemetry } from '$lib/telemetry.svelte';
   import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, Activity, Database, Bell, Network, User } from 'lucide-svelte';
   import { page } from '$app/state';
@@ -64,7 +66,10 @@
         <circle cx="12" cy="12" r="4.5" fill="currentColor"/>
         <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.3"/>
       </svg>
-      <h1 class="text-xl font-bold tracking-wide text-white">Control Hub</h1>
+      <div class="flex items-center gap-2">
+        <h1 class="text-xl font-bold tracking-wide text-white">Control Hub</h1>
+        <span class="text-[9px] font-mono font-bold bg-white/10 text-white/50 px-1.5 py-0.5 rounded shadow-inner ml-1">v{appVersion}</span>
+      </div>
     </div>
 
     <!-- Main Navigation Container -->
