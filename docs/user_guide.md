@@ -22,16 +22,20 @@ A página **Home** é o seu *Dashboard* (painel de controle). Aqui você tem uma
 
 ## 2. Chat (A Interface de Conversa)
 O **Chat** é a sua sala privada de diálogo com a Inteligência Artificial. Diferente de sistemas genéricos na nuvem, tudo o que você escreve aqui é criptografado e não sai da sua máquina a não ser que você autorize.
-- **O que você encontra aqui:** Um campo limpo para enviar mensagens, anexar arquivos rapidamente, e visualizar as respostas analíticas da IA, que ativamente consulta o seu *Vault* (Cofre) de memórias em tempo real.
-- **Para que serve:** Tirar dúvidas difíceis, pedir a criação de códigos ou debater grandes ideias criativas de forma instantânea.
+- **Deep Research Mode:** O botão de hiper-foco investigativo. Em vez de uma simples e passiva resposta em texto, o modelo ativa uma rotina de pesquisa contínua e autônoma na Web, entregando para você dossiês implacáveis após escavar a camada superficial dos links.
+- **Análise Nativa de PDFs:** Arraste e solte arquivos complexos ou massivos (PDFs corporativos, contratos densos, manuais) diretamente na janela de conversa. O Motor RAG fará a trituração matemática vetorial sem enviar um único byte para fora.
+- **Histórico Matemático em Pastas:** Um avanço revolucionário (Sendo a vanguarda pioneira do mercado em 2026). O seu histórico com as IAs não fica enfileirado de forma linear e caótica. Você pode criar *Folders* de conversas, separando e encadeando suas trocas em blocos por projeto formal, urgência de código ou devaneios lógicos, tudo perfeitamente arrumado localmente.
 
 ## 3. Vault (Seu Cofre de Conhecimento)
 O **Vault** (Cofre) é a manifestação física do espaço de HD que você concedeu à IA. É onde vivem os "Workspaces" (Suas pastas de conhecimento).
-- **Explorador de Arquivos:** Você pode navegar organizadamente por pastas e documentos Markdown (`.md`), PDFs e Imagens sincronizadas. 
-- **O Visualizador Frontal:** Ao clicar em um arquivo, ele se abre em abas limpas para leitura rápida, sem interromper sua pesquisa.
-- **Sinalização Inteligente de Artefatos da IA:** Nossa UI classifica as pastas visualmente para você não se perder.
-  - **✨ Deep Research Artifact:** Arquivos demarcados com insígnias lilás brilhantes. São relatórios ultra-completos e condensados gerados de forma 100% autônoma pela IA após uma pesquisa profunda na internet (Eles ficam salvos em `_agents/artifacts/`).
-  - **🧠 Knowledge Gap:** Arquivos demarcados com a cor laranja. São relatórios de "Buracos no Sistema", criados quando a IA nota que o cofre carece de dados importantes sobre algum tema vital (Eles ficam salvos em `gaps/`).
+- **Categorização em Nível Cerebral (Wikilinks):** Toda vez que você ou a IA referenciou um conceito interno ativando as chaves duplas (`[[conceito]]`), o Vault lê e constrói uma Categoria Lógica inteira baseada nesses nós de ligação da internet neural.
+- **Busca Cirúrgica com Filtros Nativos:** Uma barra de busca com o poder limpo de um shell Linux nativo integrado ao painel transparente do Svelte. Acione comandos precisos na busca, como `tag:linux`, `path:/projects/code`, `status:synced` ou `name:relatorio.md` para filtrar em nanossegundos sua vastidão intelectual.
+- **Editor Markdown e Motor de Tabelas Complexas:** Escreva ou visualize os relatórios das IAs através do poderoso renderizador da UI, que constrói tabelas matemáticas, grids organizacionais e *code-highlights* com estética laboratorial polida.
+- **Gestão Viva de Interface e Documentos:** Com botões ágeis no próprio explorador, crie documentos interativos (`Novo Arquivo`), renomeie instantaneamente com cliques contínuos ou mande arquivos mortos para a exclusão física através do botão vermelho (*Trash2*).
+- **Chat Exclusivo Centrado no Contexto:** Um sistema impecável — quando você clica em um documento no Explorador do Vault, ele é aberto na Área de Leitura. Imediatamente, o painel Direito do Chat lateral restringe total e *estritamente* seus conhecimentos de leitura ao Escopo Analítico do que estava aberto. Se você perguntou, a resposta é blindada usando o seu arquivo.
+- **Sinalização Inteligente de Artefatos da IA:** Nossa UI classifica as pastas visualmente para você não se perder na poeira.
+  - **✨ Deep Research Artifact:** Arquivos demarcados com bolhas lilás brilhantes. Relatórios destilados e gerados pela IA autônoma em jornadas pela internet (Salvos em `_agents/artifacts/`).
+  - **🧠 Knowledge Gap:** Arquivos demarcados com insígnias âmbar/laranja. Diários alertando de "Buracos Lógicos Verificados no Modelo" a serem preenchidos com mais material intelectual (Salvos em `gaps/`).
 
 ## 4. Projects (A Prancheta de Projetos)
 A aba de **Projects** foi desenhada para amarrar a IA nas amarras organizacionais do seu dia a dia (Estilo Trello/Kanban).
