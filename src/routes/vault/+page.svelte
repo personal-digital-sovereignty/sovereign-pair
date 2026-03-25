@@ -26,6 +26,7 @@
     let files = $state<any[]>([]);
     let isLoading = $state(true);
     let activeFilterTag = $state<string | null>(null);
+    let fileCategory = $state<'all' | 'source' | 'artifacts' | 'gaps'>('all');
     let searchQuery = $state('');
     let sortColumn = $state<string | null>('name');
     let sortAscending = $state(true);
@@ -50,6 +51,15 @@
     let filteredFiles = $derived((() => {
         let result = files.filter(f => {
             const matchTag = activeFilterTag ? f.wikilinks?.includes(activeFilterTag) : true;
+            
+            let matchCat = true;
+            const isArtifact = f.path.includes('_agents/artifacts');
+            const isGap = f.path.includes('/gaps') || f.path_dir === 'gaps/';
+            
+            if (fileCategory === 'artifacts' && !isArtifact) matchCat = false;
+            if (fileCategory === 'gaps' && !isGap) matchCat = false;
+            if (fileCategory === 'source' && (isArtifact || isGap)) matchCat = false;
+
             let matchSearch = true;
 
             if (searchQuery) {
@@ -75,7 +85,7 @@
                     }
                 }
             }
-            return matchTag && matchSearch;
+            return matchTag && matchSearch && matchCat;
         });
 
         const col = sortColumn;
@@ -261,10 +271,18 @@
             </h1>
             
             <div class="flex items-center gap-4">
+                <!-- Segmented Control for Categories -->
+                <div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-xl border border-outline-variant/10 shadow-sm shrink-0">
+                    <button aria-label="Show All Files" class="cursor-pointer px-3 py-1.5 text-xs font-bold rounded-lg transition-colors {fileCategory === 'all' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}" onclick={() => fileCategory = 'all'}>Tudo</button>
+                    <button aria-label="Show Source Files" class="cursor-pointer px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 rounded-lg transition-colors {fileCategory === 'source' ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50/50'}" onclick={() => fileCategory = 'source'}><FileText class="w-3.5 h-3.5"/> Sources</button>
+                    <button aria-label="Show AI Artifacts" class="cursor-pointer px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 rounded-lg transition-colors {fileCategory === 'artifacts' ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-100' : 'text-slate-500 hover:text-purple-600 hover:bg-purple-50/50'}" onclick={() => fileCategory = 'artifacts'}><Sparkles class="w-3.5 h-3.5"/> AI Artifacts</button>
+                    <button aria-label="Show Knowledge Gaps" class="cursor-pointer px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 rounded-lg transition-colors {fileCategory === 'gaps' ? 'bg-amber-50 text-amber-700 shadow-sm border border-amber-100' : 'text-slate-500 hover:text-amber-600 hover:bg-amber-50/50'}" onclick={() => fileCategory = 'gaps'}><BrainCircuit class="w-3.5 h-3.5"/> Gaps</button>
+                </div>
+
                 <!-- Search Bar -->
-                <div class="relative flex items-center bg-surface-container-low rounded-full px-4 py-2 border border-outline-variant/10 shadow-sm w-[400px]">
-                    <Search class="w-4 h-4 text-on-surface-variant mr-3" />
-                    <input type="text" placeholder="Search Sovereign Network (Names & Cmds)..." class="bg-transparent border-none text-sm font-medium text-on-surface w-full focus:outline-none placeholder:text-on-surface-variant/50" bind:value={searchQuery}>
+                <div class="relative flex items-center bg-surface-container-low rounded-full px-4 py-2 border border-outline-variant/10 shadow-sm w-[280px]">
+                    <Search class="w-4 h-4 text-on-surface-variant mr-3 shrink-0" />
+                    <input type="text" placeholder="Search Sovereign..." class="bg-transparent border-none text-sm font-medium text-on-surface w-full focus:outline-none placeholder:text-on-surface-variant/50" bind:value={searchQuery}>
                     {#if searchQuery}
                         <button onclick={() => searchQuery = ''} class="text-on-surface-variant hover:text-on-surface transition"><X class="w-4 h-4"/></button>
                     {/if}
