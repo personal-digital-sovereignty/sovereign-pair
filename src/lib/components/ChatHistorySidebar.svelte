@@ -15,6 +15,12 @@
             });
             if (res.ok) {
                 sessions = await res.json();
+                const uniqueFolders = new Set(sessions.map((s: any) => s.folder_name || 'Chats Recentes'));
+                const newCollapsed: Record<string, boolean> = {};
+                for (const folder of uniqueFolders) {
+                    newCollapsed[folder] = folder !== 'Chats Recentes';
+                }
+                collapsedFolders = newCollapsed;
             }
         } catch (e) {
             console.error("Failed fetching chat sessions", e);
@@ -57,13 +63,19 @@
     }
 
     let groupedSessions = $derived.by((): { folder: string, items: typeof sessions }[] => {
-        const groups: Record<string, typeof sessions> = { 'Chats Recentes': [] };
+        const groups: Record<string, typeof sessions> = {};
         for (const s of sessions) {
             const folder = s.folder_name || 'Chats Recentes';
             if (!groups[folder]) groups[folder] = [];
             groups[folder].push(s);
         }
-        return Object.keys(groups).map(k => ({ folder: k, items: groups[k] }));
+        const keys = Object.keys(groups);
+        const standardFolders = keys.filter(k => k !== 'Chats Recentes').sort((a,b) => a.localeCompare(b));
+        let result = standardFolders.map(k => ({ folder: k, items: groups[k] }));
+        if (groups['Chats Recentes']) {
+            result.push({ folder: 'Chats Recentes', items: groups['Chats Recentes'] });
+        }
+        return result;
     });
 
     // ------------------ Módulo de Pastas Acordeão ------------------
