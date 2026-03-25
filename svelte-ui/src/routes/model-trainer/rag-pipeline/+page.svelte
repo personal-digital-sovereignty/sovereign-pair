@@ -1,4 +1,31 @@
 <script lang="ts">
+    import { trainerState } from '$lib/trainer.svelte';
+    
+    let flowStep = $state(0);
+    
+    function launchDeepResearch() {
+        // Prevent empty prompt or concurrent executions
+        if (!trainerState.deepResearchPrompt.trim() || trainerState.isDeepResearchActive) return;
+        
+        trainerState.isDeepResearchActive = true;
+        trainerState.deepResearchScrapedSources = 0;
+        flowStep = 0; // 0: Vectorizing, 1: Matrix/Scraping, 2: Hallucination, 3: Injector, 4: Done
+        
+        // Simulating the furious web scraping/ingestion rate
+        const scrapeInterval = setInterval(() => {
+            trainerState.deepResearchScrapedSources += Math.floor(Math.random() * 8) + 2;
+        }, 400);
+        
+        // Simulated execution timeline
+        setTimeout(() => { flowStep = 1; }, 2000);
+        setTimeout(() => { flowStep = 2; }, 5000);
+        setTimeout(() => { flowStep = 3; }, 7500);
+        setTimeout(() => {
+            clearInterval(scrapeInterval);
+            flowStep = 4;
+            trainerState.isDeepResearchActive = false;
+        }, 10000);
+    }
 </script>
 
 <div class="p-8 h-full flex flex-col relative">
@@ -45,80 +72,80 @@
             <!-- Left Column: Perfection Controls -->
             <div class="col-span-12 xl:col-span-7 space-y-6">
                 <div class="bg-surface-container-lowest p-8 rounded-3xl shadow-sm border border-outline-variant/10">
-                    <div class="flex items-center gap-4 mb-10 pb-6 border-b border-outline-variant/10">
+                    <div class="flex items-center gap-4 mb-8 pb-6 border-b border-outline-variant/10">
                         <div class="p-3 bg-primary-fixed/50 rounded-2xl shadow-inner">
-                            <span class="material-symbols-outlined text-primary text-[28px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+                            <span class="material-symbols-outlined text-primary text-[28px]" style="font-variation-settings: 'FILL' 1;">travel_explore</span>
                         </div>
-                        <h3 class=" text-xl font-bold text-on-surface">Perfection Engine</h3>
+                        <div>
+                            <h3 class=" text-xl font-bold text-on-surface">Deep Research Protocol</h3>
+                            <p class="text-[11px] font-medium text-on-surface-variant mt-1">Sovereign pipelines will autonomously scrape, verify, and distill global knowledge into the RAG Vault.</p>
+                        </div>
                     </div>
                     
-                    <div class="space-y-10">
-                        <!-- Slider: Top-K Value -->
-                        <div class="space-y-5 px-1">
+                    <div class="space-y-8">
+                        <!-- Generative Input Area -->
+                        <div class="space-y-3">
                             <div class="flex justify-between items-center">
-                                <label class="text-sm font-bold text-on-surface">Top-K Retrieval Value</label>
-                                <span class="bg-primary/5 text-primary text-xs px-3 py-1 rounded-md font-mono font-bold border border-primary/10">K = 5</span>
+                                <label for="deep-research-prompt" class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Research Directive</label>
+                                {#if trainerState.isDeepResearchActive}
+                                <span class="bg-tertiary-container/20 text-on-tertiary-container text-xs px-3 py-1 rounded-md font-mono font-bold border border-tertiary-container/30 animate-pulse flex items-center gap-2">
+                                    <div class="w-2 h-2 rounded-full bg-on-tertiary-container"></div> Executing
+                                </span>
+                                {/if}
                             </div>
-                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none cursor-pointer accent-primary hover:accent-primary-container transition-colors" max="50" min="1" type="range" value={5} />
-                            <div class="flex justify-between text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-2">
-                                <span>Precision focus</span>
-                                <span>Recall focus</span>
-                            </div>
+                            <textarea 
+                                id="deep-research-prompt"
+                                bind:value={trainerState.deepResearchPrompt}
+                                disabled={trainerState.isDeepResearchActive}
+                                placeholder='e.g. "Analise o histórico de preço das ações da Petrobras e verifique quais períodos do ano suas ações mais sofrem quedas. Traga um percentil anual justificando os motivadores..."'
+                                class="w-full h-44 bg-surface-container-high border border-outline-variant/30 rounded-2xl p-5 text-sm font-medium text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none disabled:opacity-50 transition-all custom-scrollbar"
+                            ></textarea>
+                            <p class="text-[10px] text-on-surface-variant/70 leading-relaxed font-medium">Use highly specific prompts. The engine will decompose multi-hop questions and compile the results into a definitive Markdown artifact within your selected Workspace.</p>
                         </div>
 
-                        <!-- Slider: Embedding Quality -->
-                        <div class="space-y-5 px-1 pt-4">
-                            <div class="flex justify-between items-center">
-                                <label class="text-sm font-bold text-on-surface">Embedding Quality Threshold</label>
-                                <span class="bg-tertiary-container/10 text-on-tertiary-container text-xs px-3 py-1 rounded-md font-mono font-bold border border-tertiary-container/20">0.96</span>
-                            </div>
-                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none cursor-pointer accent-on-tertiary-container hover:accent-tertiary-container transition-colors" max="100" min="0" type="range" value={96} />
-                            <p class="text-[11px] text-on-surface-variant leading-relaxed font-medium mt-2">Higher thresholds ensure vector similarity but may increase retrieval misses in sparse datasets.</p>
-                        </div>
-
-                        <!-- Toggles Grid -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-8">
-                            <!-- Toggle 1 -->
+                        <!-- Toggles Grid: Research Modifiers -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                            <!-- Toggle 1: Cross-Encoder -->
                             <div class="flex items-center justify-between p-5 bg-surface-container-low rounded-2xl group border border-outline-variant/5 hover:border-outline-variant/20 transition-colors">
                                 <div class="flex flex-col">
                                     <span class="text-[13px] font-bold text-on-surface">Cross-Encoder Re-rank</span>
                                     <span class="text-[10px] text-on-surface-variant mt-0.5">Deep semantic validation</span>
                                 </div>
-                                <button class="w-12 h-6 bg-primary rounded-full relative cursor-pointer ring-4 ring-primary-fixed/50 transition-colors">
-                                    <span class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm"></span>
+                                <button aria-label="Toggle Cross-Encoder Re-rank" disabled={trainerState.isDeepResearchActive} onclick={() => trainerState.deepResearchCrossEncoder = !trainerState.deepResearchCrossEncoder} class="w-12 h-6 rounded-full relative cursor-pointer border transition-colors disabled:opacity-50 {trainerState.deepResearchCrossEncoder ? 'bg-primary ring-4 ring-primary-fixed/50 border-transparent' : 'bg-surface-variant hover:bg-outline-variant border-outline-variant/30'}">
+                                    <span class="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all {trainerState.deepResearchCrossEncoder ? 'right-1' : 'left-1'}"></span>
                                 </button>
                             </div>
                             
-                            <!-- Toggle 2 -->
+                            <!-- Toggle 2: Strict Hallucination -->
                             <div class="flex items-center justify-between p-5 bg-surface-container-low rounded-2xl group border border-outline-variant/5 hover:border-outline-variant/20 transition-colors">
                                 <div class="flex flex-col">
                                     <span class="text-[13px] font-bold text-on-surface">Strict Hallucination</span>
                                     <span class="text-[10px] text-on-surface-variant mt-0.5">Entity verification layer</span>
                                 </div>
-                                <button class="w-12 h-6 bg-primary rounded-full relative cursor-pointer ring-4 ring-primary-fixed/50 transition-colors">
-                                    <span class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm"></span>
+                                <button aria-label="Toggle Strict Hallucination" disabled={trainerState.isDeepResearchActive} onclick={() => trainerState.deepResearchStrictHallucination = !trainerState.deepResearchStrictHallucination} class="w-12 h-6 rounded-full relative cursor-pointer border transition-colors disabled:opacity-50 {trainerState.deepResearchStrictHallucination ? 'bg-primary ring-4 ring-primary-fixed/50 border-transparent' : 'bg-surface-variant hover:bg-outline-variant border-outline-variant/30'}">
+                                    <span class="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all {trainerState.deepResearchStrictHallucination ? 'right-1' : 'left-1'}"></span>
                                 </button>
                             </div>
                             
-                            <!-- Toggle 3 -->
+                            <!-- Toggle 3: Grounding Focus -->
                             <div class="flex items-center justify-between p-5 bg-surface-container-low rounded-2xl group border border-outline-variant/5 hover:border-outline-variant/20 transition-colors">
                                 <div class="flex flex-col">
                                     <span class="text-[13px] font-bold text-on-surface">Grounding Focus</span>
                                     <span class="text-[10px] text-on-surface-variant mt-0.5">Source-only attribution</span>
                                 </div>
-                                <button class="w-12 h-6 bg-surface-variant rounded-full relative cursor-pointer hover:bg-outline-variant transition-colors border border-outline-variant/30">
-                                    <span class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm"></span>
+                                <button aria-label="Toggle Grounding Focus" disabled={trainerState.isDeepResearchActive} onclick={() => trainerState.deepResearchGroundingFocus = !trainerState.deepResearchGroundingFocus} class="w-12 h-6 rounded-full relative cursor-pointer border transition-colors disabled:opacity-50 {trainerState.deepResearchGroundingFocus ? 'bg-primary ring-4 ring-primary-fixed/50 border-transparent' : 'bg-surface-variant hover:bg-outline-variant border-outline-variant/30'}">
+                                    <span class="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all {trainerState.deepResearchGroundingFocus ? 'right-1' : 'left-1'}"></span>
                                 </button>
                             </div>
                             
-                            <!-- Toggle 4 -->
+                            <!-- Toggle 4: Query Expansion -->
                             <div class="flex items-center justify-between p-5 bg-surface-container-low rounded-2xl group border border-outline-variant/5 hover:border-outline-variant/20 transition-colors">
                                 <div class="flex flex-col">
                                     <span class="text-[13px] font-bold text-on-surface">Query Expansion</span>
                                     <span class="text-[10px] text-on-surface-variant mt-0.5">Multi-hop decomposition</span>
                                 </div>
-                                <button class="w-12 h-6 bg-surface-variant rounded-full relative cursor-pointer hover:bg-outline-variant transition-colors border border-outline-variant/30">
-                                    <span class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm"></span>
+                                <button aria-label="Toggle Query Expansion" disabled={trainerState.isDeepResearchActive} onclick={() => trainerState.deepResearchQueryExpansion = !trainerState.deepResearchQueryExpansion} class="w-12 h-6 rounded-full relative cursor-pointer border transition-colors disabled:opacity-50 {trainerState.deepResearchQueryExpansion ? 'bg-primary ring-4 ring-primary-fixed/50 border-transparent' : 'bg-surface-variant hover:bg-outline-variant border-outline-variant/30'}">
+                                    <span class="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all {trainerState.deepResearchQueryExpansion ? 'right-1' : 'left-1'}"></span>
                                 </button>
                             </div>
                         </div>
@@ -129,34 +156,38 @@
             <!-- Right Column: Visualizer / Metadata -->
             <div class="col-span-12 xl:col-span-5 space-y-6 flex flex-col">
                 <!-- Status Card -->
-                <div class="bg-gradient-to-br from-[#001360] to-[#002395] text-white p-8 rounded-3xl relative overflow-hidden h-fit shadow-lg shadow-primary/10 border border-primary/20">
+                <div class="bg-gradient-to-br from-[#001360] to-[#002395] text-white p-8 rounded-3xl relative overflow-hidden h-fit shadow-lg shadow-primary/10 border border-primary/20 transition-all duration-500 {trainerState.isDeepResearchActive ? 'ring-2 ring-primary ring-offset-2 ring-offset-surface' : ''}">
                     <div class="relative z-10">
                         <div class="flex justify-between items-start mb-8">
                             <span class="text-[10px] font-extrabold tracking-[0.25em] uppercase text-white/60">Engine Status</span>
                             <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm">
+                                {#if trainerState.isDeepResearchActive}
+                                <span class="material-symbols-outlined text-white/90 animate-spin">autorenew</span>
+                                {:else}
                                 <span class="material-symbols-outlined text-white/90">speed</span>
+                                {/if}
                             </div>
                         </div>
-                        <h4 class=" text-5xl font-extrabold mb-2 leading-none">99.8%</h4>
-                        <p class="text-xs font-bold text-white/70 mb-8 uppercase tracking-widest">Retrieval Accuracy Index</p>
+                        <h4 class=" text-5xl font-extrabold mb-2 leading-none font-mono">{trainerState.isDeepResearchActive ? trainerState.deepResearchScrapedSources : (flowStep === 4 && trainerState.deepResearchScrapedSources > 0) ? trainerState.deepResearchScrapedSources : 'Idle'}</h4>
+                        <p class="text-xs font-bold text-white/70 mb-8 uppercase tracking-widest">{trainerState.isDeepResearchActive || flowStep === 4 ? 'Sources Scraped' : 'Awaiting Protocol'}</p>
                         
                         <div class="space-y-4">
                             <div class="flex justify-between text-[11px] border-b border-white/10 pb-3 font-mono">
                                 <span class="text-white/60 uppercase tracking-widest">Latency</span>
-                                <span class="font-bold text-white">142ms</span>
+                                <span class="font-bold text-white">{trainerState.isDeepResearchActive ? `${Math.floor(Math.random()*40)+10}ms` : '--'}</span>
                             </div>
                             <div class="flex justify-between text-[11px] border-b border-white/10 pb-3 font-mono">
-                                <span class="text-white/60 uppercase tracking-widest">Throughput</span>
-                                <span class="font-bold text-white">1.2k req/min</span>
+                                <span class="text-white/60 uppercase tracking-widest">Active Threads</span>
+                                <span class="font-bold text-white">{trainerState.isDeepResearchActive ? '64 (Max)' : '0'}</span>
                             </div>
                             <div class="flex justify-between text-[11px] font-mono">
-                                <span class="text-white/60 uppercase tracking-widest">Resources</span>
-                                <span class="font-bold text-white">Optimized</span>
+                                <span class="text-white/60 uppercase tracking-widest">Engine Load</span>
+                                <span class="font-bold text-white">{trainerState.isDeepResearchActive ? '100% (Turbine)' : 'Standby'}</span>
                             </div>
                         </div>
                     </div>
                     <!-- Abstract Design Background -->
-                    <div class="absolute -right-20 -bottom-20 w-64 h-64 rounded-full bg-primary-fixed blur-[60px] opacity-30"></div>
+                    <div class="absolute -right-20 -bottom-20 w-64 h-64 rounded-full bg-primary-fixed blur-[60px] opacity-30 {trainerState.isDeepResearchActive ? 'animate-pulse scale-150' : ''}"></div>
                 </div>
 
                 <!-- Pipeline Visualization Placeholder -->
@@ -164,34 +195,62 @@
                     <h5 class="text-[10px] font-extrabold text-on-surface-variant uppercase tracking-widest mb-8 ">Execution Flow Graph</h5>
                     
                     <div class="space-y-5 px-2">
-                        <div class="flex items-center gap-4">
-                            <div class="w-3 h-3 rounded-full bg-primary shadow-[0_0_10px_rgba(0,19,96,0.5)] ring-4 ring-primary/20 shrink-0"></div>
-                            <div class="w-10 border-t-2 border-dashed border-outline-variant/40 shrink-0"></div>
-                            <div class="px-4 py-2 bg-surface text-[11px] font-extrabold rounded-xl shadow-sm uppercase tracking-widest text-[#444653] border border-outline-variant/10 w-full">Query Vectorization</div>
-                        </div>
-                        
-                        <div class="flex items-center gap-4">
-                            <div class="w-3 h-3 rounded-full bg-primary ring-4 ring-primary/20 shrink-0"></div>
-                            <div class="w-10 border-t-2 border-dashed border-outline-variant/40 shrink-0"></div>
-                            <div class="px-4 py-2 bg-surface text-[11px] font-extrabold rounded-xl shadow-sm uppercase tracking-widest text-[#444653] border border-outline-variant/10 w-full flex justify-between">
-                                <span>Retrieval Matrix</span>
-                                <span class="text-primary bg-primary/10 px-2 rounded">K=5</span>
+                        <!-- Step 1 -->
+                        <div class="flex items-center gap-4 transition-all duration-300 {trainerState.isDeepResearchActive && flowStep >= 0 || flowStep === 4 ? 'opacity-100 scale-100' : 'opacity-40 grayscale scale-95'}">
+                            <div class="w-4 h-4 rounded-full bg-primary shadow-[0_0_10px_rgba(0,19,96,0.5)] ring-4 ring-primary/20 shrink-0 {trainerState.isDeepResearchActive && flowStep === 0 ? 'animate-pulse' : ''} flex items-center justify-center {flowStep > 0 || flowStep === 4 ? 'bg-secondary' : ''}">
+                                {#if flowStep > 0 || flowStep === 4}
+                                <span class="material-symbols-outlined text-white text-[10px] font-bold">check</span>
+                                {/if}
+                            </div>
+                            <div class="w-10 border-t-2 border-dashed border-outline-variant/40 shrink-0 {flowStep > 0 || flowStep === 4 ? 'border-secondary' : ''}"></div>
+                            <div class="px-4 py-2 bg-surface text-[11px] font-extrabold rounded-xl shadow-sm uppercase tracking-widest text-[#444653] border border-outline-variant/10 w-full flex items-center justify-between">
+                                Query Vectorization
+                                {#if trainerState.isDeepResearchActive && flowStep === 0} <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span> {/if}
                             </div>
                         </div>
                         
-                        <div class="flex items-center gap-4">
-                            <div class="w-3 h-3 rounded-full bg-on-tertiary-container shadow-[0_0_10px_rgba(79,175,110,0.5)] ring-4 ring-on-tertiary-container/20 shrink-0"></div>
-                            <div class="w-10 border-t-2 border-dashed border-outline-variant/40 shrink-0"></div>
-                            <div class="px-4 py-2 bg-[#f6fcf8] text-[11px] font-extrabold rounded-xl shadow-sm uppercase tracking-widest text-on-tertiary-container border border-on-tertiary-container/30 w-full flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[14px]">security</span>
-                                Hallucination Filter
+                        <!-- Step 2 -->
+                        <div class="flex items-center gap-4 transition-all duration-300 {trainerState.isDeepResearchActive && flowStep >= 1 || flowStep === 4 ? 'opacity-100 scale-100' : 'opacity-40 grayscale scale-95'}">
+                            <div class="w-4 h-4 rounded-full bg-primary ring-4 ring-primary/20 shrink-0 {trainerState.isDeepResearchActive && flowStep === 1 ? 'animate-pulse' : ''} flex items-center justify-center {flowStep > 1 || flowStep === 4 ? 'bg-secondary' : ''}">
+                                {#if flowStep > 1 || flowStep === 4}
+                                <span class="material-symbols-outlined text-white text-[10px] font-bold">check</span>
+                                {/if}
+                            </div>
+                            <div class="w-10 border-t-2 border-dashed border-outline-variant/40 shrink-0 {flowStep > 1 || flowStep === 4 ? 'border-secondary' : ''}"></div>
+                            <div class="px-4 py-2 bg-surface text-[11px] font-extrabold rounded-xl shadow-sm uppercase tracking-widest text-[#444653] border border-outline-variant/10 w-full flex justify-between items-center">
+                                <span>Web Matrix Scraper</span>
+                                {#if trainerState.isDeepResearchActive && flowStep === 1}
+                                <span class="text-primary bg-primary/10 px-2 py-0.5 rounded font-mono animate-pulse">{trainerState.deepResearchScrapedSources} docs</span>
+                                {/if}
                             </div>
                         </div>
                         
-                        <div class="flex items-center gap-4">
-                            <div class="w-3 h-3 rounded-full bg-secondary ring-4 ring-secondary/20 shrink-0"></div>
+                        <!-- Step 3 -->
+                        <div class="flex items-center gap-4 transition-all duration-300 {trainerState.isDeepResearchActive && flowStep >= 2 || flowStep === 4 ? 'opacity-100 scale-100' : 'opacity-40 grayscale scale-95'}">
+                            <div class="w-4 h-4 rounded-full bg-on-tertiary-container shadow-[0_0_10px_rgba(79,175,110,0.5)] ring-4 ring-on-tertiary-container/20 shrink-0 {trainerState.isDeepResearchActive && flowStep === 2 ? 'animate-pulse' : ''} flex items-center justify-center {flowStep > 2 || flowStep === 4 ? 'bg-secondary' : ''}">
+                                {#if flowStep > 2 || flowStep === 4}
+                                <span class="material-symbols-outlined text-white text-[10px] font-bold">check</span>
+                                {/if}
+                            </div>
+                            <div class="w-10 border-t-2 border-dashed border-outline-variant/40 shrink-0 {flowStep > 2 || flowStep === 4 ? 'border-secondary' : ''}"></div>
+                            <div class="px-4 py-2 bg-[#f6fcf8] text-[11px] font-extrabold rounded-xl shadow-sm uppercase tracking-widest text-on-tertiary-container border border-on-tertiary-container/30 w-full flex items-center gap-2 justify-between">
+                                <span class="flex items-center gap-2"><span class="material-symbols-outlined text-[14px]">security</span> Hallucination Filter</span>
+                                {#if trainerState.isDeepResearchActive && flowStep === 2} <span class="w-2 h-2 rounded-full bg-on-tertiary-container animate-pulse"></span> {/if}
+                            </div>
+                        </div>
+                        
+                        <!-- Step 4 -->
+                        <div class="flex items-center gap-4 transition-all duration-300 {trainerState.isDeepResearchActive && flowStep >= 3 || flowStep === 4 ? 'opacity-100 scale-100' : 'opacity-40 grayscale scale-95'}">
+                            <div class="w-4 h-4 rounded-full bg-secondary ring-4 ring-secondary/20 shrink-0 {trainerState.isDeepResearchActive && flowStep === 3 ? 'animate-pulse' : ''} flex items-center justify-center {flowStep === 4 ? 'bg-secondary' : ''}">
+                                {#if flowStep === 4}
+                                <span class="material-symbols-outlined text-white text-[10px] font-bold">check</span>
+                                {/if}
+                            </div>
                             <div class="w-10 border-t-2 border-dashed border-outline-variant/40 shrink-0"></div>
-                            <div class="px-4 py-2 bg-surface text-[11px] font-extrabold rounded-xl shadow-sm uppercase tracking-widest text-[#444653] border border-outline-variant/10 w-full">Context Injector</div>
+                            <div class="px-4 py-2 bg-surface text-[11px] font-extrabold rounded-xl shadow-sm uppercase tracking-widest text-[#444653] border border-outline-variant/10 w-full flex items-center justify-between">
+                                Vault Context Injector
+                                {#if trainerState.isDeepResearchActive && flowStep === 3} <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span> {/if}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -200,11 +259,17 @@
 
         <!-- Action Footer -->
         <div class="flex justify-end gap-4 border-t border-outline-variant/10 pt-8 pb-4">
-            <button class="px-8 py-3 bg-white text-on-surface-variant text-xs font-bold uppercase tracking-widest rounded-xl shadow-sm border border-outline-variant/20 hover:bg-surface-container-low transition-colors active:scale-95">
-                Discard
+            <button disabled={trainerState.isDeepResearchActive} class="px-8 py-3 bg-white text-on-surface-variant text-xs font-bold uppercase tracking-widest rounded-xl shadow-sm border border-outline-variant/20 hover:bg-surface-container-low transition-colors active:scale-95 disabled:opacity-50">
+                Cancel
             </button>
-            <button class="px-10 py-3 bg-gradient-to-br from-[#001360] to-[#002395] text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-md shadow-primary/20 hover:shadow-lg active:scale-95 transition-all">
-                Update Pipeline Conf
+            <button onclick={launchDeepResearch} disabled={trainerState.isDeepResearchActive || !trainerState.deepResearchPrompt.trim()} class="px-10 py-3 bg-gradient-to-br flex items-center gap-3 from-[#001360] to-[#002395] text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-md shadow-primary/20 hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
+                {#if trainerState.isDeepResearchActive}
+                    <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                    Executing Analysis...
+                {:else}
+                    <span class="material-symbols-outlined text-[18px]">travel_explore</span>
+                    Launch Deep Research
+                {/if}
             </button>
         </div>
     </div>
@@ -227,42 +292,5 @@
 <style>
     .material-symbols-outlined {
         font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    }
-    
-    input[type=range] {
-        -webkit-appearance: none;
-        width: 100%;
-        background: transparent;
-    }
-    input[type=range]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        height: 18px;
-        width: 18px;
-        border-radius: 50%;
-        background: var(--color-primary);
-        cursor: pointer;
-        margin-top: -6px;
-        box-shadow: 0 0 10px rgba(0, 19, 96, 0.3);
-    }
-    input[type=range]::-webkit-slider-thumb:hover {
-        background: var(--color-primary-container);
-        transform: scale(1.1);
-    }
-    
-    /* Dedicated specific coloring for the second slider */
-    input[type=range].accent-on-tertiary-container::-webkit-slider-thumb {
-        background: var(--color-on-tertiary-container);
-        box-shadow: 0 0 10px rgba(79, 175, 110, 0.4);
-    }
-    input[type=range].accent-on-tertiary-container::-webkit-slider-thumb:hover {
-        background: var(--color-tertiary-fixed-dim);
-    }
-
-    input[type=range]::-webkit-slider-runnable-track {
-        width: 100%;
-        height: 6px;
-        cursor: pointer;
-        background: var(--color-surface-variant);
-        border-radius: 3px;
     }
 </style>
