@@ -2,6 +2,71 @@
 
 All notable changes to the Sovereign Pair project will be documented in this file.
 
+> **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
+> Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A série 1.0.0 será ativada unicamente quando o núcleo do ecossistema Sovereign Bare Metal atingir maturidade e estabilidade arquitetural plenas.
+
+## [0.9.7] - 2026-03-24
+
+### Adicionado
+- **Zero-Shot Paperclip Node**: Implementada a injeção volátil de memória na interface de Chat. Arquivos de texto e código (`.md`, `.rs`, `.py`, `.json`, `.csv`) anexados via clipe de papel agora são carregados instantaneamente via `HTML5 FileReader` direto para a malha de contexto (`inputContext`), pulando a indexação massiva do RAG para avaliações ultra-rápidas do LLM.
+- **Native Changelog Modal**: A tag semântica de versão (`v0.9.7`) no menu `Control Hub` evoluiu para um botão interativo. Ao clicar, o sistema carrega o histórico completo de versões (`CHANGELOG.md`) de forma responsiva, utilizando o `DOMPurify` blindado no client-side (`$effect`) para prevenir falhas drásticas de SSR.
+- **Semver UI Badge**: Injetado badge minimalista no cabeçalho do Sidebar, expondo explicitamente a versão da release compilada ativamente no Vite.
+
+---
+
+## [0.9.6] - 2026-03-24
+
+### Corrigido
+- **MacOS IPv6 Inference Pipeline**: Eliminada a falha onde requisições de Chat silenciosamente morriam (Connection Refused) no Apple Silicon. Alterado o proxy Axum de `127.0.0.1` rígido para o resolvedor orgânico `localhost:11434`, respeitando a stack nativa IPv6 do Ollama no Darwin.
+- **Darwin Vector Injection**: Criado o design purista e transparente (`app-icon-mac.svg`) dedicado estritamente ao bundle Apple (`.icns`), preservando intacto a variante Dark Green nativa de empacotamento do Windows/Linux.
+
+---
+
+## [0.9.5] - 2026-03-24
+
+### Adicionado
+- **Deep Memory Sync (Amnesia Fix)**: Implementada a retenção de contexto temporal. A interface Svelte agora constrói arrays expansivos embutindo todo o fluxo da conversa pregressa, extinguindo as antigas inferências "Zero-Shot Amnésicas" e pavimentando as rotas avançadas de Raciocínio multi-hop.
+- **Sovereign Multi-Tenant Architecture**: Isolação sistêmica do estado global `chatLayoutState`, solidificando arquiteturas sub-tenant que blindam os painéis operacionais.
+
+---
+
+## [0.9.4] - 2026-03-23
+
+### Corrigido
+- **DOS Canonicalize Paths**: Aplicada macro universal em Rust para decepar estritamente os artefatos visuais `\\?\` gerados pelo subsistema do Windows ao resolver caminhos absolutos nativos. As rotas do Vault renderizam puras de volta para a UI Svelte.
+- **Borrow Checker Panic no Rust**: Blindagem profunda resolvendo o erro Crítico E0382 no clonador da fila `resolved_model`, extirpando os picos severos e fatais da engine transacional nativa na escalada.
+- **GitHub Action Tag Triggers**: Revigorada a estrutura de engrenagem YML do CI/CD assegurando disparo perfeitamente sincronizado durante push tags (`v*`).
+
+---
+
+## [0.9.3] - 2026-03-22
+
+### Adicionado
+- **Standalone Cross-Platform Pipeline**: Estabelecidas pontes de integração do `tauri-cli` no O.S para geração híbrida de artefatos Windows (`.msi`, `.exe`) e executáveis AppImage independentes.
+- **Native Sidecar (Phases 41-42)**: Emancipação da base acoplada do Tauri, permitindo a orquestração de sub-rotinas compiladas injetadas remotamente no diretório de instalação do O.S.
+
+---
+
+## [0.9.2] - 2026-03-22
+
+### Corrigido
+- **DevSecOps Gate 4 Clippy Restricts**: Normalizado todo o ecossistema base RUST contra advertências puristas do `clippy` (Gate 4). Condicionais booleanas desidratadas para macro `saturating_sub`, validando Green Build na esteira Github.
+- **ReWOO Hallucination Proxy**: Neutralizou o envenenamento fantasma onde a malha de abstração de Workflow inseria instruções vazias no prompt do Sistema, confundindo o modelo final.
+
+---
+
+## [0.9.1] - 2026-03-22
+
+### 🚀 O Berço do Deep Research WAG
+
+### Adicionado
+- **W.A.G (Web Augmented Generation) Module**: Nascimento da estrutura central `deep-research`. O motor Llama agora indexa o modelo aberto da web, construindo scrapes semânticos e jogando-os estaticamente organizados de volta pro Vault local para consumo cíbrido.
+- **Web Scraping Mesh Persistence**: Camada conectiva desenhada entre a pesquisa ao vivo (Serper/DuckDuckGo) e o indexador vetorial do RAG, evitando perdas de informação efêmera.
+- **Dual-Engine Multi-Hop Evasion**: Engrenagem defensiva nativa de Web Application Firewall (WAF) spoofing, permitindo coletas ininterruptas pelo Sovereign Bot em superfícies blindadas.
+- **UI Research Toggle**: Inserido gatilho booleano visual direto na caixa de texto do Svelte, orquestrando a injeção sob-demanda do Deep Research ao lado de instâncias do RAG.
+
+---
+
 ## [0.9.0] - 2026-03-22
 
 ### 🚀 O Despertar do Protocolo MCP & Ollama Real Engine
@@ -385,6 +450,21 @@ Esta versão marca a maior transição arquitetural do Sovereign Pair, expurgand
 - Diversos tratamentos de erros
 - Validações de configuração
 - Robustez geral do sistema
+
+---
+
+## [0.1.0] - 2026-02-26
+
+### 🚀 Alpha Release - Phase 6 Persistence & Web UI
+
+**Commit**: `d4a7ff9`
+
+### Adicionado
+- **FastAPI Engine**: Primeira transmutação do sistema CLI para um servidor web assíncrono modular via FastAPI, incluindo autenticação (`auth.py`), abstrações REST (`routes.py`), e roteamento de dependências de RAG.
+- **Sovereign Web UI (Vue 3)**: Inauguração da primeiríssima interface gráfica no navegador utilizando componentes modulares nativos do Vue.js (suportando *Setup* interativo e telas de *Login*).
+- **Obsidian Sensus Plugin**: Lançamento do primeiro cliente integrado (em *TypeScript*) para o ecossistema Obsidian, fundindo o Editor de Notas ao motor P2P e RAG do Vault.
+- **Core Abstractions**: Refatoração estrutural profunda do Python original, isolando módulos sistêmicos em `engine_builder.py`, `llm_factory.py`, iteradores nativos em `web_search.py` e o demônio rastreador autônomo `watcher.py`.
+- **Database & Formats Architecture**: Consolidação física dos DBs relacionais SQLite e extensiva literatura fundadora gerada em `ARCHITECTURE.md` e `FILE_FORMATS.md`.
 
 ---
 

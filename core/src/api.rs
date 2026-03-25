@@ -755,6 +755,13 @@ let tracking_telemetry = state.telemetry.clone();
 let tracking_db = state.db.clone();
 let tracking_session = active_session_id;
 let tracking_model = ollama_model.clone();
+
+let tracking_human_query = human_prompt.clone();
+let mut tracking_rag_context = project_context.clone();
+if !web_context.is_empty() { tracking_rag_context.push_str("\n"); tracking_rag_context.push_str(&web_context); }
+if !sys_context.is_empty() { tracking_rag_context.push_str("\n"); tracking_rag_context.push_str(&sys_context); }
+if tracking_rag_context.trim().is_empty() { tracking_rag_context = "Interação Direta (Zero-Shot / Sem Contexto RAG)".to_string(); }
+
 let start_time = std::time::Instant::now();
 let mut session_tokens = 0;
 let mut accumulator = String::new(); // Memory Builder da Resposta do Agente
@@ -866,8 +873,22 @@ let stream = res.bytes_stream().map(move |result| {
                                 // 🗄️ Imortalidade de Diálogo: Insere via Spawn para não bloquear o Axum Stream
                                 let final_text = accumulator.clone();
                                 let db_clone = tracking_db.clone();
+                                let tr_q = tracking_human_query.clone();
+                                let tr_ctx = tracking_rag_context.clone();
+                                
                                 tokio::spawn(async move {
                                     crate::api_chat::save_message(&db_clone, tracking_session, "assistant", &final_text).await;
+
+                                    // Engatilha a Avaliação (Auto Evaluator / The Nurse) no Rastro
+                                    let eval_id = uuid::Uuid::new_v4().to_string();
+                                    let _ = sqlx::query("INSERT INTO evaluations (id, conversation_id, user_query, rag_context, ai_response, status) VALUES (?, ?, ?, ?, ?, 'pending')")
+                                        .bind(&eval_id)
+                                        .bind(tracking_session.to_string())
+                                        .bind(&tr_q)
+                                        .bind(&tr_ctx)
+                                        .bind(&final_text)
+                                        .execute(&db_clone)
+                                        .await;
                                 });
 
                                 let finish_response = OpenAIChatChunkResponse {

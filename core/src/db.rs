@@ -189,6 +189,10 @@ pub async fn init_pool() -> SqlitePool {
     let _ = sqlx::query("ALTER TABLE projects ADD COLUMN is_archived BOOLEAN DEFAULT 0;").execute(&pool).await;
     let _ = sqlx::query("ALTER TABLE projects ADD COLUMN columns_json TEXT DEFAULT '[\"To Do\", \"In Progress\", \"Done\"]';").execute(&pool).await;
 
+    // Migrations to support Dual-Truth Soft Deletes for Knowledge Gaps (fail silently if already exists)
+    let _ = sqlx::query("ALTER TABLE knowledge_gaps ADD COLUMN status TEXT DEFAULT 'pending';").execute(&pool).await;
+    let _ = sqlx::query("ALTER TABLE knowledge_gaps ADD COLUMN resolution_content TEXT;").execute(&pool).await;
+
     let path_str = env::var("RAG_VAULT_PATH").unwrap_or_else(|_| {
         let mut path = env::current_dir().expect("Hostile Environment");
         if path.ends_with("core") { path.pop(); }
