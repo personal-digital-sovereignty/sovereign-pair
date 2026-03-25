@@ -188,6 +188,7 @@ async fn main() {
             .post(api_rag::create_remote_model_handler))
         .route("/v1/rag-engine/models/:id", axum::routing::delete(api_rag::delete_remote_model_handler))
         .route("/v1/rag-engine/gaps", axum::routing::get(api_rag::get_knowledge_gaps_handler))
+        .route("/v1/rag-engine/gaps/:id", axum::routing::delete(api_rag::delete_knowledge_gap_handler).put(api_rag::resolve_knowledge_gap_handler))
         .route("/v1/rag-engine/radar", axum::routing::get(api_rag::get_radar_metrics_handler))
         // ------------------ Model Trainer Engine ----------------
         .route("/v1/trainer/distill", axum::routing::post(api_trainer::run_distillation_handler))
