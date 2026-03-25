@@ -8,10 +8,12 @@ Abaixo, detalhamos cada uma das seções que você encontrará no menu principal
 
 ---
 
-## 0. Settings (Configurações Globais)
-A engrenagem base de tudo. O **Settings** é o alicerce criptografado do seu aplicativo.
-- **O que você encontra aqui:** O gerenciamento das chaves de API (OpenAI, Anthropic, Gemini, Groq) e parâmetros core da sua instância.
-- **Para que serve:** Sempre que precisar alternar provedores corporativos nas destilações do motor, ou inserir o seu Token Mestre para sincronizar novos repositórios/workspaces. Tudo aqui é guardado e trancado apenas na memória do seu SQLite interno de forma offline, sem servidores fofoqueiros.
+## 0. Settings (Identidade & Infraestrutura)
+A sala das máquinas. O **Settings** não é um painel genérico de chaves de API, mas sim o alicerce operacional da sua inteligência descentralizada. Dividido em 4 pilares:
+- **Sovereign Identity (Cortex Continuity):** Onde você pode *Exportar* ou *Importar* um arquivo encriptado `.cybrid`. Ele salva todo o seu estado mental (pastas, preferências, chaves) te permitindo restaurar a IA inteira em outra máquina num clique.
+- **Sovereign Mesh P2P:** Mostra onde seus cérebros físicos estão operando. Pode ser o `ryzen-local-alpha` do seu quarto, ou uma placa remota. É aqui que você abre novos túneis P2P descentralizados.
+- **Cloud Sandboxing (OCI):** A configuração de contingência da Oracle Cloud. Usado apenas quando seu maquinário local ficar indisponível.
+- **Sovereign Core (AI Engine):** O configurador de Personalidade Matemática. Aqui você distribui funções: Qual modelo de IA atuará como a "Enfermeira" (Triagem e Web Scraping), qual será o "Doutor" (Planning e Chat), e qual será o "Coder" (Execução). Você escolhe a Temperatura, limita o Top-K de criatividade e pode injetar "Personas" mestres globais (Ex: *The Code Architect* ou *The Security Auditor*).
 
 ## 1. Home (O Centro de Comando)
 A página **Home** é o seu *Dashboard* (painel de controle). Aqui você tem uma visão panorâmica e em tempo real da saúde da sua malha cíbrida.
