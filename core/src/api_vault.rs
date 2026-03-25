@@ -421,7 +421,12 @@ pub async fn vault_fs_rename_handler(
     };
 
     let ws_root = PathBuf::from(&target_path_str);
-    let current = ws_root.join::<PathBuf>(req.path.strip_prefix('/').unwrap_or(&req.path).into());
+    
+    let current = if Path::new(&req.path).is_absolute() {
+        PathBuf::from(&req.path)
+    } else {
+        ws_root.join::<PathBuf>(req.path.strip_prefix('/').unwrap_or(&req.path).into())
+    };
 
     if !current.starts_with(&ws_root) {
         return (axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({"detail":"Path manipulation prevented"}))).into_response();
@@ -458,7 +463,12 @@ pub async fn vault_fs_delete_handler(
     };
 
     let ws_root = PathBuf::from(&target_path_str);
-    let target = ws_root.join::<PathBuf>(req.path.strip_prefix('/').unwrap_or(&req.path).into());
+    
+    let target = if Path::new(&req.path).is_absolute() {
+        PathBuf::from(&req.path)
+    } else {
+        ws_root.join::<PathBuf>(req.path.strip_prefix('/').unwrap_or(&req.path).into())
+    };
 
     if !target.starts_with(&ws_root) {
         return (axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({"detail":"Path manipulation prevented"}))).into_response();
@@ -505,8 +515,12 @@ pub async fn vault_fs_move_handler(
 
     let ws_root = PathBuf::from(&target_path_str);
     
-    // Path original (absoluto host-O.S)
-    let source = ws_root.join::<PathBuf>(req.path.strip_prefix('/').unwrap_or(&req.path).into());
+    // Path original (absoluto host-O.S ou relativo)
+    let source = if Path::new(&req.path).is_absolute() {
+        PathBuf::from(&req.path)
+    } else {
+        ws_root.join::<PathBuf>(req.path.strip_prefix('/').unwrap_or(&req.path).into())
+    };
     
     // Pasta raiz destino
     let dest_dir = if req.target_path.is_empty() {
