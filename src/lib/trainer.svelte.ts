@@ -121,7 +121,9 @@ export function exportTrainerConfig() {
 }
 
 // Reflection Lab Operations
-export const selfCorrectRatio = $derived((100 - trainerState.knowledgeGapPercentage).toFixed(1));
+export function getSelfCorrectRatio() {
+    return (100 - trainerState.knowledgeGapPercentage).toFixed(1);
+}
 
 export function exportReflectionLogs(liveStreamData: any[] = []) {
     const payload = {
@@ -132,7 +134,7 @@ export function exportReflectionLogs(liveStreamData: any[] = []) {
             think_before_response: trainerState.internalMonologue,
             reasoning_depth: trainerState.reasoningDepth,
             audit_intensity: trainerState.auditIntensity,
-            self_correct_ratio: selfCorrectRatio
+            self_correct_ratio: getSelfCorrectRatio()
         },
         logs: liveStreamData
     };
