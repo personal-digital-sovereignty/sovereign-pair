@@ -44,7 +44,16 @@ export const trainerState = $state({
     distillationBatchSize: 4,
     hasOpenAiKey: true,
     hasAnthropicKey: false,
-    datasetSizeCount: 1200000
+    datasetSizeCount: 1200000,
+    
+    // Deep Research Orchestrator
+    deepResearchPrompt: "",
+    isDeepResearchActive: false,
+    deepResearchCrossEncoder: true,
+    deepResearchStrictHallucination: true,
+    deepResearchGroundingFocus: false,
+    deepResearchQueryExpansion: false,
+    deepResearchScrapedSources: 0
 });
 
 export const AI_MODELS = [
