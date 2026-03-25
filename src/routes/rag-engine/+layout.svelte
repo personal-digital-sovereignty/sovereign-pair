@@ -3,7 +3,7 @@
     import { Database } from 'lucide-svelte';
 </script>
 
-<div class="w-full h-full flex flex-col bg-[#F4F7FA] font-sans">
+<div class="w-full h-full print:h-auto flex flex-col bg-[#F4F7FA] font-sans">
     <header class="mb-4 px-10 pt-10 w-full flex items-center justify-between shrink-0">
         <h1 class="font-extrabold text-2xl text-[#191c1d] tracking-tight flex items-center gap-3">
             <Database class="w-6 h-6 text-primary" />
@@ -20,7 +20,7 @@
     </header>
 
     <!-- Main Content Canvas -->
-    <div class="flex-1 w-full min-w-0 overflow-y-auto px-10 pb-12 custom-scrollbar">
+    <div class="flex-1 w-full min-w-0 overflow-y-auto print:overflow-visible px-10 pb-12 custom-scrollbar">
         <slot />
     </div>
 </div>
