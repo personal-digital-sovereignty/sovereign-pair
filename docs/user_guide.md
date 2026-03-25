@@ -38,14 +38,19 @@ O **Vault** (Cofre) é a manifestação física do espaço de HD que você conce
   - **🧠 Knowledge Gap:** Arquivos demarcados com insígnias âmbar/laranja. Diários alertando de "Buracos Lógicos Verificados no Modelo" a serem preenchidos com mais material intelectual (Salvos em `gaps/`).
 
 ## 4. Projects (A Prancheta de Projetos)
-A aba de **Projects** foi desenhada para amarrar a IA nas amarras organizacionais do seu dia a dia (Estilo Trello/Kanban).
-- **O que você encontra aqui:** Quadros de tarefas separadas em "A Fazer", "Em Progresso" e "Concluído". 
-- **Para que serve:** Vincular documentos específicos de um projeto e criar um roteiro onde a IA saiba exatamente o contexto específico daquela tarefa antes de escrever uma linha de código.
+A aba de **Projects** foi forjada para domar o caos. Esqueça sistemas de gerenciamento passivos; aqui, as demandas do seu dia a dia evoluem e são amarradas sob os olhos da Inteligência Artificial.
+- **Listagem e Visão Geral:** Ao entrar, você obtém uma visão tática macro de todos os seus "Projetos". É um sistema de gestão vivo: você pode criar novos escopos, editar as premissas estruturais, ou "engavetar" (Arquivar) temporariamente projetos antigos ou concluídos para focar apenas nas prioridades vitais correntes.
+- **Direto ao Ponto (Dentro do Projeto):** Ao selecionar um item, a interface silencia o resto do computador e cria uma bolha. Você passa a dominar um sofisticado **Quadro Kanban** (A Fazer, Em Progresso, Concluído). Cada *Task* aceita descritivos detalhados, tags e o peso de se trabalhar com extrema rigidez de cronogramas — definindo datas de entrega ("Com Prazos") ou atuando em modo focado exploratório ("Sem Prazos").
+- **O Vínculo Cinético com o Vault (O Verdadeiro Poder):** Você pode ancorar arquivos físicos ou pastas gigantes do seu *Vault* ligando-os visceralmente a uma tarefa específica ou à raiz do projeto. Toda a interface reconhece o que está linkado.
+- **A IA Acelerando a Vida (Sem Ctrl+C/Ctrl+V):** Com a tarefa ancorada a um arquivo do Vault, o Chat lateral não te fará perder tempo. Se você abriu seu Kanban e ordenou ao Chat: *"Analise a documentação linkada e resolva esta tarefa"*, a IA atravessará dinamicamente os vínculos salvos no Kanban, fará a leitura matemática exata do código/documento em pauta baseando-se no prazo e cenário da sua tarefa, e te devolverá a resolução já no balanço ideal. A interação atinge um nível impiedoso de organização profissional sem que você tenha movido o cursor.
 
 ---
 
 ## 5. System Modules (O Motor Cíbrido)
 Aqui é onde a mágica absoluta, a ciência de dados e a engenharia profunda acontecem. O *System Modules* expõe os "órgãos internos" da IA para que você tenha controle laboratorial.
+
+> **⚠️ Arquitetura Estrita de Isolamento (Sub-Tenants Contextuais):**
+> Antes de dissecarmos os laboratórios abaixo, grave essa regra: **todo e qualquer Chat com a IA espalhado pelo sistema vive confinado num *Sub-Tenant* (Locatário de Contexto) isolado e criptografado.** Isso evita severamente a contaminação cruzada e as temidas "Alucinações". Uma pergunta técnica realizada no módulo *Model Trainer* jamais invocará ou se confundirá com os desabafos organizacionais que você conversou com o Chat no módulo de *Projects*. Toda janela de diálogo é blindada, fazendo a Inteligência Artificial ser super-especialista no escopo de tela onde você a chamou, apagando alucinações cognitivas indesejadas pela raiz.
 
 ### 5.1 Cognitive Graph (O Cérebro em Mapeamento)
 Uma representação visual e viva do seu conhecimento. Enquanto o Vault guarda as pastas friamente, o *Cognitive Graph* desenha os neurônios e brilha as *Sinapses* luminosas (ligações dinâmicas) constatando as correlações lógicas entre os documentos e as rotinas diárias gravadas nele.
