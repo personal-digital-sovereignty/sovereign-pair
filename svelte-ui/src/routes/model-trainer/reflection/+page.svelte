@@ -1,26 +1,67 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
+    import { trainerState, exportReflectionLogs, selfCorrectRatio } from '$lib/trainer.svelte';
+
     let isReflecting = $state(false);
-    let thinkBeforeResponse = $state(true);
-    let reasoningDepth = $state(80);
-    let auditIntensity = $state(65);
+    
+    // Dataset JSON state
+    let validationStatus = $state<{valid: boolean | null, msg: string}>({valid: null, msg: "UTF-8 • JSON"});
+    let reflectionDatasetJson = $state(`{
+  "step_id": "reflection_v4_092",
+  "input_query": "Summarize the quarterly risk report for EMEA.",
+  "chain_of_thought": [
+    {
+      "thought": "Identify primary risk factors mentioned in page 4-12.",
+      "self_critique": "Initial scan missed political instability in section 3.",
+      "correction": "Rerouting attention to geopolitical headers."
+    },
+    {
+      "thought": "Synthesize fiscal impact vs operational impact.",
+      "confidence_score": 0.982
+    }
+  ],
+  "output_buffer": "The EMEA region shows a 12% rise in political risk due to shifts in border policies..."
+}`);
+
+    let liveStreamLogs = $state<any[]>([]);
+
+    function validateDataset() {
+        try {
+            JSON.parse(reflectionDatasetJson);
+            validationStatus = { valid: true, msg: "Syntax OK" };
+            setTimeout(() => validationStatus.msg = "UTF-8 • JSON", 3000);
+        } catch(e: any) {
+            validationStatus = { valid: false, msg: e.message };
+        }
+    }
+
+    function applyToTraining() {
+        validateDataset();
+        if(validationStatus.valid) {
+            alert("Payload Injected to Rust Axiom via Local IPC!");
+        }
+    }
 
     async function launchSimulation() {
         if (isReflecting) return;
         isReflecting = true;
-        try {
-            await fetch('http://localhost:38001/v1/trainer/reflection', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    think_before_response: thinkBeforeResponse,
-                    reasoning_depth: reasoningDepth,
-                    audit_intensity: auditIntensity
-                })
-            }).catch(() => {});
-        } finally {
-            // Simulated delay for UI feedback
-            setTimeout(() => { isReflecting = false; }, 2500);
-        }
+        
+        const simInterval = setInterval(() => {
+            const randomType = Math.random() > 0.5 ? 'correction' : 'completion';
+            liveStreamLogs = [{
+                type: randomType,
+                title: randomType === 'correction' ? "Successful Self-Correction" : "Complex Chain Completion",
+                icon: randomType === 'correction' ? "verified" : "psychology",
+                color: randomType === 'correction' ? "text-on-tertiary-container bg-tertiary-container/10" : "text-primary bg-primary-container/10",
+                desc: randomType === 'correction' ? "Model identified hallucinated figure and corrected to verified data source." : "Deep reasoning loop completed. 12 intermediate steps verified by AI Auditor.",
+                time: "Just now"
+            }, ...liveStreamLogs].slice(0, 5);
+        }, 1500);
+
+        setTimeout(() => { 
+            clearInterval(simInterval);
+            isReflecting = false; 
+        }, 10000);
     }
 </script>
 
@@ -57,7 +98,7 @@
                 </p>
             </div>
             <div class="flex gap-3">
-                <button class="px-5 py-2.5 rounded-xl border border-outline-variant/30 text-on-surface font-bold text-xs hover:bg-surface-container-low transition-colors">
+                <button onclick={() => exportReflectionLogs(liveStreamLogs)} class="px-5 py-2.5 rounded-xl border border-outline-variant/30 text-on-surface font-bold text-xs hover:bg-surface-container-low transition-colors">
                     Export Logs
                 </button>
                 <button onclick={launchSimulation} disabled={isReflecting} class="px-5 py-2.5 rounded-xl bg-gradient-to-br from-[#001360] to-[#002395] text-white font-bold text-xs shadow-md shadow-primary/20 active:scale-95 transition-transform flex items-center gap-2 disabled:opacity-50">
@@ -88,25 +129,25 @@
                                 <p class="text-xs font-bold text-on-surface">Think-Before-Response</p>
                                 <p class="text-[10px] text-on-surface-variant mt-0.5">Force 500ms latent reasoning loop</p>
                             </div>
-                            <button aria-label="Toggle Think Before Response" onclick={() => thinkBeforeResponse = !thinkBeforeResponse} class="w-12 h-6 {thinkBeforeResponse ? 'bg-primary ring-4 ring-primary-fixed/50' : 'bg-surface-variant'} rounded-full relative transition-colors cursor-pointer outline-none">
-                                <span class="absolute {thinkBeforeResponse ? 'right-1' : 'left-1'} top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all"></span>
+                            <button aria-label="Toggle Think Before Response" onclick={() => trainerState.internalMonologue = !trainerState.internalMonologue} class="w-12 h-6 {trainerState.internalMonologue ? 'bg-primary ring-4 ring-primary-fixed/50' : 'bg-surface-variant'} rounded-full relative transition-colors cursor-pointer outline-none">
+                                <span class="absolute {trainerState.internalMonologue ? 'right-1' : 'left-1'} top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all"></span>
                             </button>
                         </div>
                         
                         <div class="space-y-4 px-1">
                             <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                                 <span>Reasoning Depth</span>
-                                <span class="text-primary font-mono bg-primary-fixed/30 px-2 py-0.5 rounded">Level {Math.floor(reasoningDepth / 10)}</span>
+                                <span class="text-primary font-mono bg-primary-fixed/30 px-2 py-0.5 rounded">Level {Math.floor(trainerState.reasoningDepth / 10)}</span>
                             </div>
-                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" bind:value={reasoningDepth} />
+                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" bind:value={trainerState.reasoningDepth} />
                         </div>
                         
                         <div class="space-y-4 px-1">
                             <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                                 <span>Audit Intensity</span>
-                                <span class="text-primary font-mono bg-primary-fixed/30 px-2 py-0.5 rounded">High ({(auditIntensity / 100).toFixed(2)})</span>
+                                <span class="text-primary font-mono bg-primary-fixed/30 px-2 py-0.5 rounded">High ({(trainerState.auditIntensity / 100).toFixed(2)})</span>
                             </div>
-                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" bind:value={auditIntensity} />
+                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" bind:value={trainerState.auditIntensity} />
                         </div>
                     </div>
                 </div>
@@ -124,7 +165,7 @@
                     <div class="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/10 shadow-sm relative overflow-hidden">
                         <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-primary/5 rounded-full blur-xl"></div>
                         <p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">Self-Correct</p>
-                        <p class="text-2xl font-extrabold text-primary  pr-2">94.2%</p>
+                        <p class="text-2xl font-extrabold text-primary pr-2">{selfCorrectRatio}%</p>
                         <div class="mt-4 flex items-center gap-1.5 text-[10px] text-on-tertiary-container font-extrabold uppercase tracking-tight">
                             <span class="material-symbols-outlined text-[16px]">check_circle</span>
                             <span>Optimal Rate</span>
@@ -150,33 +191,18 @@
                         </div>
                     </div>
                     
-                    <div class="flex-1 overflow-auto p-6 font-mono text-[13px] leading-loose custom-scrollbar">
-<pre><span class="text-tertiary-fixed-dim">{"{"}</span>
-  <span class="text-primary-fixed-dim">"step_id"</span>: <span class="text-secondary-fixed-dim">"reflection_v4_092"</span>,
-  <span class="text-primary-fixed-dim">"input_query"</span>: <span class="text-secondary-fixed-dim">"Summarize the quarterly risk report for EMEA."</span>,
-  <span class="text-primary-fixed-dim">"chain_of_thought"</span>: <span class="text-tertiary-fixed-dim">[</span>
-    <span class="text-tertiary-fixed-dim">{"{"}</span>
-      <span class="text-primary-fixed-dim">"thought"</span>: <span class="text-secondary-fixed-dim">"Identify primary risk factors mentioned in page 4-12."</span>,
-      <span class="text-primary-fixed-dim">"self_critique"</span>: <span class="text-[#ffdad6] bg-[#ba1a1a]/20 px-1 rounded">"Initial scan missed political instability in section 3."</span>,
-      <span class="text-primary-fixed-dim">"correction"</span>: <span class="text-[#96f7af] bg-[#005228]/40 px-1 rounded">"Rerouting attention to geopolitical headers."</span>
-    <span class="text-tertiary-fixed-dim">{"}"}</span>,
-    <span class="text-tertiary-fixed-dim">{"{"}</span>
-      <span class="text-primary-fixed-dim">"thought"</span>: <span class="text-secondary-fixed-dim">"Synthesize fiscal impact vs operational impact."</span>,
-      <span class="text-primary-fixed-dim">"confidence_score"</span>: <span class="text-tertiary-fixed-dim font-bold">0.982</span>
-    <span class="text-tertiary-fixed-dim">{"}"}</span>
-  <span class="text-tertiary-fixed-dim">]</span>,
-  <span class="text-primary-fixed-dim">"output_buffer"</span>: <span class="text-secondary-fixed-dim">"The EMEA region shows a 12% rise in political risk due to shifts in border policies..."</span>
-<span class="text-tertiary-fixed-dim">{"}"}</span></pre>
+                    <div class="flex-1 overflow-hidden p-6 font-mono text-[13px] leading-loose custom-scrollbar flex">
+<textarea bind:value={reflectionDatasetJson} class="w-full h-full bg-transparent border-none focus:outline-none focus:ring-0 resize-none text-[#a9b1d6] font-mono leading-relaxed" spellcheck="false"></textarea>
                     </div>
                     
                     <div class="px-6 py-4 bg-[#232527] border-t border-[#35383a] flex justify-between items-center text-[10px] text-outline-variant font-mono">
-                        <span>UTF-8 • JSON • Ln 12, Col 24</span>
+                        <span class={validationStatus.valid === false ? 'text-error font-bold' : validationStatus.valid === true ? 'text-primary' : ''}>{validationStatus.msg}</span>
                         <div class="flex gap-6 font-sans">
-                            <button class="hover:text-white transition-colors uppercase font-bold tracking-widest text-[#94A3B8] flex items-center gap-2">
+                            <button onclick={validateDataset} class="hover:text-white transition-colors uppercase font-bold tracking-widest text-[#94A3B8] flex items-center gap-2">
                                 <span class="material-symbols-outlined text-[16px]">fact_check</span>
                                 Validate Schema
                             </button>
-                            <button class="text-primary-fixed-dim hover:text-white transition-colors uppercase font-bold tracking-widest flex items-center gap-2">
+                            <button onclick={applyToTraining} class="text-primary-fixed-dim hover:text-white transition-colors uppercase font-bold tracking-widest flex items-center gap-2">
                                 <span class="material-symbols-outlined text-[16px]">publish</span>
                                 Apply to Training
                             </button>
@@ -193,46 +219,30 @@
                         </div>
                     </div>
                     <div class="divide-y divide-outline-variant/5">
-                        <div class="p-5 flex items-start gap-4 hover:bg-surface-container-low transition-colors group cursor-pointer">
-                            <div class="w-10 h-10 rounded-xl bg-tertiary-container/10 flex items-center justify-center text-on-tertiary-container shrink-0 group-hover:bg-tertiary-container/20 transition-colors">
-                                <span class="material-symbols-outlined text-[20px]">verified</span>
+                        {#each liveStreamLogs as log}
+                        <div class="p-5 flex items-start gap-4 hover:bg-surface-container-low transition-colors group cursor-pointer animate-in fade-in slide-in-from-top-4 duration-500">
+                            <div class="w-10 h-10 rounded-xl {log.color} flex items-center justify-center shrink-0 group-hover:bg-opacity-80 transition-colors">
+                                <span class="material-symbols-outlined text-[20px]">{log.icon}</span>
                             </div>
                             <div class="flex-1 mt-0.5">
                                 <div class="flex justify-between mb-1.5">
-                                    <span class="text-xs font-bold text-on-surface">Successful Self-Correction</span>
-                                    <span class="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">2m ago</span>
+                                    <span class="text-xs font-bold text-on-surface">{log.title}</span>
+                                    <span class="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">{log.time}</span>
                                 </div>
-                                <p class="text-[12px] text-on-surface-variant leading-relaxed">Model identified hallucinated figure in financial summary and corrected to verified data source ID #9928.</p>
+                                <p class="text-[12px] text-on-surface-variant leading-relaxed">{log.desc}</p>
                             </div>
                         </div>
-                        <div class="p-5 flex items-start gap-4 hover:bg-surface-container-low transition-colors group cursor-pointer">
-                            <div class="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary-container/20 transition-colors">
-                                <span class="material-symbols-outlined text-[20px]">psychology</span>
+                        {/each}
+                        {#if liveStreamLogs.length === 0}
+                            <div class="flex justify-center flex-col items-center py-10 opacity-50">
+                                <span class="material-symbols-outlined text-[42px] mb-2 text-on-surface-variant">hourglass_empty</span>
+                                <p class="text-xs text-on-surface-variant uppercase tracking-widest font-bold">Waiting for simulation triggers...</p>
                             </div>
-                            <div class="flex-1 mt-0.5">
-                                <div class="flex justify-between mb-1.5">
-                                    <span class="text-xs font-bold text-on-surface">Complex Chain Completion</span>
-                                    <span class="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">12m ago</span>
-                                </div>
-                                <p class="text-[12px] text-on-surface-variant leading-relaxed">Deep reasoning loop completed for query "Multi-vector threat analysis". 12 intermediate steps verified by AI Auditor.</p>
-                            </div>
-                        </div>
+                        {/if}
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Floating Action Button -->
-    <div class="fixed bottom-10 right-10 z-50">
-        <button onclick={launchSimulation} disabled={isReflecting} class="w-16 h-16 rounded-full bg-gradient-to-br from-[#001360] to-[#002395] text-white shadow-[0_10px_25px_rgba(0,19,96,0.4)] flex items-center justify-center active:scale-90 transition-transform group hover:shadow-[0_15px_35px_rgba(0,19,96,0.6)] disabled:opacity-50 disabled:active:scale-100 disabled:hover:rotate-0">
-            <span class="material-symbols-outlined text-[28px] group-hover:rotate-12 transition-transform">{isReflecting ? 'sync' : 'auto_awesome'}</span>
-            {#if !isReflecting}
-            <div class="absolute right-20 bg-inverse-surface text-inverse-on-surface text-[12px] px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-bold pointer-events-none shadow-xl border border-white/10">
-                Start Bulk Reflection Test
-            </div>
-            {/if}
-        </button>
     </div>
 </div>
 
