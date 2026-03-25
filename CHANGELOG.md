@@ -7,6 +7,23 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 
 ## [0.9.7] - 2026-03-24
 
+### 🤖 RAG Engine Autómaton & Hallucination Radar Convergence
+
+### Adicionado
+- **Self-Healing RAG (Autómaton Node)**: Escrito e executado um script cibernético fora de banda (`auto_resolve.mjs`) que se conectou ao SQLite e invocou localmente a LLM (`llama3.2`) para atuar como Curadora de Conhecimento. O motor sintético escreveu automaticamente explicações densas para todos os Gaps faltantes e injetou fisicamente as resoluções no Vault em Markdown via API REST, zerando a dívida técnica da base de conhecimento da aplicação.
+- **Deep Observability Stream (Axum)**: O interceptador SSE (Server-Sent Events) no gateway de chat em Rust (`api.rs`) foi reconstruído. Agora o sistema clona e despacha ativamente qualquer contexto RAG, Web Search ou Metadados de Sistema *genuínos* e os vincula aos prompts, jogando-os estritamente para a fila da tabela `evaluations`. O bug milenar onde 'The Nurse' não encontrava insumos reais para auditar foi completamente estancado.
+- **Zero-Shot Paperclip Node**: Implementada a injeção volátil de memória na interface de Chat. Arquivos de texto e código (`.md`, `.rs`, `.py`, `.json`, `.csv`) anexados via clipe de papel agora são carregados instantaneamente via `HTML5 FileReader` direto para a malha de contexto (`inputContext`), pulando a indexação massiva do RAG para avaliações ultra-rápidas do LLM.
+- **Native Changelog Modal**: A tag semântica de versão (`v0.9.7`) no menu `Control Hub` evoluiu para um botão interativo. Ao clicar, o sistema carrega o histórico completo de versões (`CHANGELOG.md`) de forma responsiva, utilizando o `DOMPurify` blindado no client-side (`$effect`) para prevenir falhas drásticas de SSR.
+- **Semver UI Badge**: Injetado badge minimalista no cabeçalho do Sidebar, expondo explicitamente a versão da release compilada ativamente no Vite.
+
+### Corrigido
+- **Fim da Alucinação Estática do Radar**: Extirpada a âncora de dados mockados (`system-init`) fundida no loop `auto_evaluator.rs`. O Radar de Alucinações (Quality & Gaps UI) inicializa puramente em 0% e agora audita e exibe com total honestidade o *Grounded Confidence Index* calcado puramente no pareamento Humano/Máquina local.
+- **SQLite Database Lock Timeout**: Solucionado o silencioso engasgo HTTP que ocorria quando The Nurse avaliava dezenas de transações pesadas em lote no Histórico Cíbrido. A espera assíncrona nas validações do Node (`res.text()`) libertou o DB de concorrências letais nas rotas PUT.
+
+---
+
+## [0.9.6] - 2026-03-24
+
 ### Adicionado
 - **Zero-Shot Paperclip Node**: Implementada a injeção volátil de memória na interface de Chat. Arquivos de texto e código (`.md`, `.rs`, `.py`, `.json`, `.csv`) anexados via clipe de papel agora são carregados instantaneamente via `HTML5 FileReader` direto para a malha de contexto (`inputContext`), pulando a indexação massiva do RAG para avaliações ultra-rápidas do LLM.
 - **Native Changelog Modal**: A tag semântica de versão (`v0.9.7`) no menu `Control Hub` evoluiu para um botão interativo. Ao clicar, o sistema carrega o histórico completo de versões (`CHANGELOG.md`) de forma responsiva, utilizando o `DOMPurify` blindado no client-side (`$effect`) para prevenir falhas drásticas de SSR.
