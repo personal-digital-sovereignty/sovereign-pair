@@ -53,7 +53,8 @@ export const trainerState = $state({
     deepResearchStrictHallucination: true,
     deepResearchGroundingFocus: false,
     deepResearchQueryExpansion: false,
-    deepResearchScrapedSources: 0
+    deepResearchScrapedSources: 0,
+    deepResearchModel: "llama3.2:latest"
 });
 
 export const AI_MODELS = [

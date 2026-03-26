@@ -27,6 +27,7 @@ pub mod mesh_router;
 pub mod os_installer;
 pub mod guardrails;
 pub mod research;
+pub mod adblocker;
 
 use axum::{routing::post, Router, response::IntoResponse, http::{header, StatusCode, Uri}};
 use reqwest::Client;
@@ -73,6 +74,7 @@ pub struct AppState {
     pub log_sender: broadcast::Sender<models::LogEntry>,
     pub sync_sender: broadcast::Sender<sync_engine::IngestionJob>,
     pub db: sqlx::SqlitePool,
+    pub adblock_engine: adblocker::AdblockHandle,
 }
 
 #[tokio::main]
@@ -119,6 +121,9 @@ async fn main() {
     // Inicializa o Corredor de Eventos Cíbridos (Capacidade p/ 100 Logs antes de lag)
     let (log_tx, _) = broadcast::channel(100);
 
+    // Despacha o Daemon Assíncrono do AdGuard (Toda a lógica RAG depende das assinaturas dele)
+    let adblock_handle = adblocker::start_adblock_daemon(active_vault.clone(), db_pool.clone());
+
     // Cria o Roteador Axum (A fundação dos Cíbridos) com Contexto Acoplado
     let state = Arc::new(AppState {
         http_client: Client::new(),
@@ -127,6 +132,7 @@ async fn main() {
         log_sender: log_tx,
         sync_sender: sync_tx,
         db: db_pool,
+        adblock_engine: adblock_handle,
     });
 
     // Boot the Auto-Evaluator (LLM-as-a-Judge Mesh Loop)

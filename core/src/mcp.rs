@@ -149,7 +149,7 @@ pub async fn execute_mcp_tool(state: &std::sync::Arc<crate::AppState>, tool_name
             if url_str.is_empty() {
                 return "MCP Error: URL param is strictly required for Web Augmented Generation.".to_string();
             }
-            let engine = crate::research::DeepResearchEngine::new(Some(state.db.clone()));
+            let engine = crate::research::DeepResearchEngine::new(Some(state.db.clone()), Some(state.adblock_engine.clone()), Some(state.vault_path.clone()));
             match engine.scrape_url(url_str).await {
                 Ok(markdown) => {
                     let slug = url_str.replace("https://", "").replace("http://", "").replace("/", "_");
