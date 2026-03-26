@@ -2,23 +2,76 @@ use reqwest::Client;
 use scraper::{Html, Selector};
 use std::time::Duration;
 use regex::Regex;
+use std::sync::Arc;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct TrustMatrix {
+    pub tier1: Vec<String>,
+    pub tier2: Vec<String>,
+    pub encyclopedia: Vec<String>,
+}
+
+impl Default for TrustMatrix {
+    fn default() -> Self {
+        Self {
+            tier1: vec![
+                "gov.br".into(), "ibge.gov.br".into(), "bcb.gov.br".into(), "tesourodireto.com.br".into(), 
+                "anp.gov.br".into(), "cade.gov.br".into(), "mil.br".into(), ".gov/".into(), ".mil/".into(),
+                "gov.uk".into(), "gob.es".into(), "gob.ar".into(), "gouv.fr".into(), "bund.de".into(), "go.jp".into(),
+                "edu".into(), "edu.br".into(), "usp.br".into(), "mit.edu".into(), "harvard.edu".into(),
+                "docs.microsoft.com".into(), "developer.mozilla.org".into(), "rust-lang.org".into(), "python.org".into(), "github.com".into()
+            ],
+            tier2: vec![
+                "agenciabrasil.ebc.com.br".into(), "estadao.com.br".into(), "folha.uol.com.br".into(), 
+                "piaui.folha.uol.com.br".into(), "nexojornal.com.br".into(), "lupa.uol.com.br".into(), 
+                "aosfatos.org".into(), "apublica.org".into(), "infomoney.com.br".into(), "valor.globo.com".into(),
+                "bbc.com".into(), "dw.com".into(), "reuters.com".into(), "stackoverflow.com".into()
+            ],
+            encyclopedia: vec!["wikipedia.org".into()],
+        }
+    }
+}
+
+struct ScoredUrl {
+    url: String,
+    score: i32,
+}
 
 /// Arquitetura nativa do Sovereign Web-Augmented Generation (WAG)
 /// Blindada via Rust para injetar contexto externo ao RAG Cíbrido.
 pub struct DeepResearchEngine {
     client: Client,
     db_pool: Option<sqlx::SqlitePool>,
+    adblock_engine: Option<crate::adblocker::AdblockHandle>,
+    trust_matrix: TrustMatrix,
 }
 
 impl DeepResearchEngine {
-    pub fn new(db_pool: Option<sqlx::SqlitePool>) -> Self {
+    pub fn new(db_pool: Option<sqlx::SqlitePool>, adblock_engine: Option<crate::adblocker::AdblockHandle>, vault_path: Option<std::path::PathBuf>) -> Self {
         let client = Client::builder()
             .timeout(Duration::from_secs(15))
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
             .build()
             .unwrap_or_else(|_| Client::new());
 
-        Self { client, db_pool }
+        let mut trust_matrix = TrustMatrix::default();
+        if let Some(path) = vault_path {
+            let matrix_path = path.join("_agents").join("trust_matrix.json");
+            if let Ok(content) = std::fs::read_to_string(&matrix_path) {
+                if let Ok(parsed) = serde_json::from_str::<TrustMatrix>(&content) {
+                    trust_matrix = parsed;
+                }
+            } else {
+                // Generate default file if it doesn't exist
+                let _ = std::fs::create_dir_all(matrix_path.parent().unwrap());
+                if let Ok(json_str) = serde_json::to_string_pretty(&trust_matrix) {
+                    let _ = std::fs::write(&matrix_path, json_str);
+                }
+            }
+        }
+
+        Self { client, db_pool, adblock_engine, trust_matrix }
     }
 
     /// Realiza a varredura e o scrape profundo da URL alvo.
@@ -113,8 +166,9 @@ impl DeepResearchEngine {
         // 1. O SOVEREIGN PARSER: Tenta raspar a página retro do DuckDuckGo (Estratégia 1)
         match self.search_ddg_html(query).await {
             Ok(links) if !links.is_empty() => {
-                tracing::info!("✅ [WAG] Busca Nativa DGG HTML Bem-Sucedida! ({}) links ancorados.", links.len());
-                return Ok(links);
+                let clean_links = self.apply_pi_hole_filter(links).await;
+                tracing::info!("✅ [WAG] Busca Nativa DGG HTML Bem-Sucedida! ({}) links orgânicos purificados.", clean_links.len());
+                return Ok(clean_links);
             },
             Err(e) => {
                 let msg = format!("⚠️ [WAG Fallback] Falha catastrófica ou bloqueio WAF agressivo no DuckDuckGo: {}", e);
@@ -137,8 +191,9 @@ impl DeepResearchEngine {
         // 2. O FALLBACK SOBERANO: Motores de Busca Descentralizados P2P (Estratégia 2)
         match self.search_searxng_public(query).await {
             Ok(links) if !links.is_empty() => {
-                tracing::info!("✅ [WAG] Busca Cíbrida SearxNG Bem-Sucedida! ({}) links ancorados.", links.len());
-                Ok(links)
+                let clean_links = self.apply_pi_hole_filter(links).await;
+                tracing::info!("✅ [WAG] Busca Cíbrida SearxNG Bem-Sucedida! ({}) links limpos ancorados.", clean_links.len());
+                Ok(clean_links)
             },
             Err(e) => {
                 tracing::error!("❌ [WAG Fim de Linha] WAF Absoluto. Nenhuma instância pública do SearxNG sobreviveu. Erro: {}", e);
@@ -148,6 +203,64 @@ impl DeepResearchEngine {
                 Err("Dual-Engine não achou nenhum resultado útil para a query.".to_string())
             }
         }
+    }
+
+    /// Implementa o Sovereign Pi-Hole: Trilha a lista inteira contra o motor Bravee C/Rust
+    /// e descarta sumariamente propagandas, telemetria e trackers.
+    async fn apply_pi_hole_filter(&self, links: Vec<String>) -> Vec<String> {
+        let mut final_links = Vec::new();
+        if let Some(adb) = &self.adblock_engine {
+            for link in links {
+                let is_blocked = adb.check_url(&link).await;
+                
+                if is_blocked {
+                   tracing::info!("🛡️ [Sovereign Pi-Hole] Lixo Publicitário Sublimado: {}", link);
+                   if let Some(pool) = &self.db_pool {
+                       // Atualiza a totalidade de Analytics
+                       let _ = sqlx::query("UPDATE analytics SET val_int = val_int + 1 WHERE id = 'total_trackers_blocked'").execute(pool).await;
+                   }
+                } else {
+                   final_links.push(link);
+                }
+            }
+        } else {
+            return links;
+        }
+        final_links
+    }
+
+    /// Executa o algoritmo de Vetting Institucional.
+    /// Avalia cada link orgânico extraído e joga fontes Tier-1 e Tier-2 para o Topo do Index, 
+    /// destruindo algoritmos de SEO falsos.
+    fn assign_sovereign_trust_score(&self, links: Vec<String>) -> Vec<String> {
+        let mut scored_links: Vec<ScoredUrl> = links.into_iter().map(|url| {
+            let mut score = 0;
+            let url_lower = url.to_lowercase();
+            
+            // Check Trust Matrix
+            if self.trust_matrix.tier1.iter().any(|d| url_lower.contains(d)) {
+                score += 100;
+            } else if self.trust_matrix.tier2.iter().any(|d| url_lower.contains(d)) {
+                score += 50;
+            } else if self.trust_matrix.encyclopedia.iter().any(|d| url_lower.contains(d)) {
+                score += 30;
+            } else if url_lower.contains(".org") || url_lower.contains(".io") {
+                score += 10;
+            }
+
+            // Penalize suspicious SEO trash
+            if url_lower.contains("pinterest.") || url_lower.contains("quora.") || url_lower.contains("yahoo.answers") {
+                score -= 100;
+            }
+
+            ScoredUrl { url, score }
+        }).collect();
+
+        // Sort descending
+        scored_links.sort_by(|a, b| b.score.cmp(&a.score));
+        
+        // Strip out the metadata struct and return the raw string vectors
+        scored_links.into_iter().map(|s| s.url).collect()
     }
 
     /// Extrator 100% Nativo no Rust que burla bloqueios massivos do DDG acessando sua rede retro HTML.
@@ -193,8 +306,9 @@ impl DeepResearchEngine {
         }
 
         links.dedup();
-        links.truncate(20); // Retorna estritamente o Top 20 expandido
-        Ok(links)
+        let mut prioritized_links = self.assign_sovereign_trust_score(links);
+        prioritized_links.truncate(20); // Retorna estritamente o Top 20 de Confiabilidade
+        Ok(prioritized_links)
     }
 
     /// Rotação autônoma que pula em instâncias OpenSource pelo mundo pedindo ajuda via API JSON.
@@ -237,8 +351,9 @@ impl DeepResearchEngine {
                                         links.push(url_str.to_string());
                                     }
                                 }
-                                links.truncate(20);
-                                return Ok(links);
+                                let mut prioritized_links = self.assign_sovereign_trust_score(links);
+                                prioritized_links.truncate(20);
+                                return Ok(prioritized_links);
                             }
                     } else {
                         tracing::debug!("Instância {} fechou as portas HTTP {}", base_url, response.status());
@@ -262,7 +377,7 @@ mod tests {
 
     #[test]
     fn test_html_to_markdown_sanitization() {
-        let engine = DeepResearchEngine::new(None);
+        let engine = DeepResearchEngine::new(None, None, None);
         let html_mock = r#"
             <!DOCTYPE html>
             <html>

@@ -333,7 +333,7 @@ if payload.deep_research.unwrap_or(false) {
             message: format!("📡 [Deep Research] 3 Queries Forjadas: {:?}. Lançando {} Spiders Concurrentes à Malha SearxNG...", extracted_queries, extracted_queries.len()),
         });
 
-        let engine = std::sync::Arc::new(crate::research::DeepResearchEngine::new(Some(state.db.clone())));
+        let engine = std::sync::Arc::new(crate::research::DeepResearchEngine::new(Some(state.db.clone()), Some(state.adblock_engine.clone()), Some(state.vault_path.clone())));
         
         let mut search_handles = Vec::new();
         // Dispara Paralelizações puras no CPU
@@ -996,6 +996,11 @@ pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> i
         .await
         .unwrap_or(0);
 
+    let trackers_blocked_count = sqlx::query_scalar::<_, i32>("SELECT val_int FROM analytics WHERE id = 'total_trackers_blocked'")
+        .fetch_one(&state.db)
+        .await
+        .unwrap_or(0);
+
     let pending_tasks = sqlx::query_scalar::<_, i32>("SELECT COUNT(*) FROM tasks WHERE status != 'completed'")
         .fetch_one(&state.db)
         .await
@@ -1038,6 +1043,7 @@ pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> i
         "models_usage": snapshot.models_usage,
         "active_models": snapshot.models_usage.keys().len(), 
         "security_blocks": security_blocks_count,
+        "trackers_blocked": trackers_blocked_count,
         "security_logs": security_logs,
         "hardware": {
             "cpu_cores": snapshot.hardware.cpu_cores,
