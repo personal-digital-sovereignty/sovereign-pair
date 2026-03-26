@@ -1,8 +1,47 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import { trainerState } from '$lib/trainer.svelte';
     
     let flowStep = $state(0);
     let sseClient: EventSource | null = null;
+    let agenticLogs: string[] = $state([]);
+    let availableModels = $state<{name: string, isCapable: boolean}[]>([]);
+    let hasCapableModel = $state(true);
+
+    onMount(async () => {
+        try {
+            const res = await fetch('http://localhost:11434/api/tags');
+            const data = await res.json();
+            if (data && data.models) {
+                availableModels = data.models.map((m: any) => {
+                    const name = m.name;
+                    // A capable Scribe model needs to be >= 7B parameters. 
+                    const isCapable = name.includes('7b') || name.includes('8b') || name.includes('9b') || name.includes('14b') || name.includes('32b') || name.includes('70b');
+                    return { name, isCapable };
+                });
+                
+                hasCapableModel = availableModels.some(m => m.isCapable);
+                
+                if (availableModels.length > 0) {
+                    const currentExists = availableModels.some(m => m.name === trainerState.deepResearchModel);
+                    if (!currentExists) {
+                        trainerState.deepResearchModel = availableModels[0].name;
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Failed to fetch Ollama models:", err);
+            // Fallback so it doesn't break if Ollama API behaves weirdly during dev
+            hasCapableModel = true; 
+        }
+    });
+    
+    $effect(() => {
+        if (agenticLogs.length > 0) {
+            const el = document.getElementById('xray-terminal');
+            if (el) el.scrollTop = el.scrollHeight;
+        }
+    });
     
     async function launchDeepResearch() {
         if (!trainerState.deepResearchPrompt.trim() || trainerState.isDeepResearchActive) return;
@@ -10,6 +49,7 @@
         trainerState.isDeepResearchActive = true;
         trainerState.deepResearchScrapedSources = 0;
         flowStep = 0;
+        agenticLogs = [];
         
         // Spawn Real SSE Connection to Sovereign Engine
         if (sseClient) {
@@ -19,9 +59,11 @@
         
         sseClient.onmessage = (event) => {
             const data = event.data;
+            agenticLogs.push(data);
+            
             if (data.includes('[STEP 0]')) {
                 flowStep = 0;
-            } else if (data.includes('[STEP 1]')) {
+            } else if (data.includes('[STEP 1.0]')) {
                 flowStep = 1;
             } else if (data.includes('[STEP 2]')) {
                 flowStep = 2;
@@ -142,8 +184,15 @@
                                 <label for="deep-research-prompt" class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Research Directive</label>
                                 <div class="flex items-center gap-3">
                                     <select bind:value={trainerState.deepResearchModel} disabled={trainerState.isDeepResearchActive} class="bg-surface-container border border-outline-variant/30 text-[11px] text-on-surface font-bold rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary shadow-sm disabled:opacity-50">
-                                        <option value="llama3.2:latest">Llama 3.2 3B (Fast Triage)</option>
-                                        <option value="qwen2.5:14b">Qwen 2.5 14B (Heavy Analytics)</option>
+                                        {#if availableModels.length === 0}
+                                            <option value="llama3.2:latest">Llama 3.2 3B (Fast Triage)</option>
+                                            <option value="qwen2.5:7b">Qwen 2.5 7B (Optimal Balance)</option>
+                                            <option value="qwen2.5:14b">Qwen 2.5 14B (Heavy Analytics)</option>
+                                        {:else}
+                                            {#each availableModels as model}
+                                                <option value={model.name}>{model.name} {model.isCapable ? '(Capable Scribe)' : '(Master Only)'}</option>
+                                            {/each}
+                                        {/if}
                                     </select>
                                     {#if trainerState.isDeepResearchActive}
                                     <span class="bg-tertiary-container/20 text-on-tertiary-container text-xs px-3 py-1 rounded-md font-mono font-bold border border-tertiary-container/30 animate-pulse flex items-center gap-2">
@@ -160,6 +209,13 @@
                                 class="w-full h-44 bg-surface-container-high border border-outline-variant/30 rounded-2xl p-5 text-sm font-medium text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none disabled:opacity-50 transition-all custom-scrollbar"
                             ></textarea>
                             <p class="text-[10px] text-on-surface-variant/70 leading-relaxed font-medium">Use highly specific prompts. The engine will decompose multi-hop questions and compile the results into a definitive Markdown artifact within your selected Workspace.</p>
+                            
+                            {#if !hasCapableModel && availableModels.length > 0}
+                                <div class="mt-4 p-3 rounded-lg bg-error-container/20 border border-error/30 flex gap-3 text-on-error-container text-[11px] font-semibold">
+                                    <span class="material-symbols-outlined text-error text-lg">warning</span>
+                                    <span><strong>Scribe Engine Inoperante:</strong> Você não possui modelos locais suficientes (Mínimo requerido: 7B parâmetros) para formatar e concluir o relatório Markdown sem sofrer riscos de alucinação algorítmica.</span>
+                                </div>
+                            {/if}
                         </div>
 
                         <!-- Toggles Grid: Research Modifiers -->
@@ -316,12 +372,42 @@
             </div>
         </div>
 
+        <!-- Full-Width X-Ray Terminal Logger -->
+        {#if trainerState.isDeepResearchActive || agenticLogs.length > 0}
+        <div class="w-full mb-12 bg-[#0a0a0a] rounded-3xl border border-outline-variant/20 shadow-inner overflow-hidden flex flex-col h-80 animate-in fade-in duration-500">
+            <div class="bg-[#1a1a1a] px-5 py-3 border-b border-white/10 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-[16px] text-green-400">terminal</span>
+                    <span class="text-[11px] font-mono font-bold text-white/70 uppercase tracking-widest">Cognitive X-Ray</span>
+                </div>
+                <div class="flex gap-2 opacity-50 hover:opacity-100 transition-opacity">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                </div>
+            </div>
+            <div class="p-5 flex-1 overflow-y-auto font-mono text-[12px] leading-relaxed custom-scrollbar flex flex-col gap-2" id="xray-terminal">
+                {#each agenticLogs as logLine}
+                    <div class="text-green-400/90 break-words flex gap-3">
+                        <span class="text-blue-400/50 shrink-0">❯</span>
+                        <span class="{logLine.includes('❌') ? 'text-red-400' : logLine.includes('⚠️') ? 'text-yellow-400' : 'text-green-400/90'}">{logLine}</span>
+                    </div>
+                {/each}
+                {#if trainerState.isDeepResearchActive}
+                    <div class="text-white/50 animate-pulse mt-3 flex items-center gap-2">
+                        <span class="w-2.5 h-5 bg-white/50 block"></span>
+                    </div>
+                {/if}
+            </div>
+        </div>
+        {/if}
+
         <!-- Action Footer -->
         <div class="flex justify-end gap-4 border-t border-outline-variant/10 pt-8 pb-4">
             <button onclick={cancelDeepResearch} disabled={!trainerState.isDeepResearchActive} class="cursor-pointer px-8 py-3 bg-white text-on-surface-variant text-xs font-bold uppercase tracking-widest rounded-xl shadow-sm border border-outline-variant/20 hover:bg-surface-container-low transition-colors active:scale-95 disabled:opacity-50">
                 Cancel Crawler
             </button>
-            <button onclick={launchDeepResearch} disabled={trainerState.isDeepResearchActive || !trainerState.deepResearchPrompt.trim()} class="cursor-pointer px-10 py-3 bg-gradient-to-br flex items-center gap-3 from-[#001360] to-[#002395] text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-md shadow-primary/20 hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
+            <button onclick={launchDeepResearch} disabled={trainerState.isDeepResearchActive || !trainerState.deepResearchPrompt.trim() || !hasCapableModel} class="cursor-pointer px-10 py-3 bg-gradient-to-br flex items-center gap-3 from-[#001360] to-[#002395] text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-md shadow-primary/20 hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
                 {#if trainerState.isDeepResearchActive}
                     <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                     Executing Analysis...
