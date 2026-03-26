@@ -205,12 +205,13 @@ pub async fn run_finetuning_handler(
     }))
 }
 
-#[derive(Deserialize)]
+#[derive(serde::Deserialize)]
 pub struct DeepResearchReq {
     pub directive: String,
     pub strict_hallucination: bool,
     pub grounding_focus: bool,
     pub query_expansion: bool,
+    pub model: Option<String>,
 }
 
 async fn wait_or_cancel(ms: u64, token: &CancellationToken) -> bool {
@@ -221,6 +222,26 @@ async fn wait_or_cancel(ms: u64, token: &CancellationToken) -> bool {
             true
         }
     }
+}
+
+fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
+    let dot_product: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
+    let norm_a: f32 = a.iter().map(|&x| x * x).sum::<f32>().sqrt();
+    let norm_b: f32 = b.iter().map(|&x| x * x).sum::<f32>().sqrt();
+    if norm_a == 0.0 || norm_b == 0.0 { 0.0 } else { dot_product / (norm_a * norm_b) }
+}
+
+async fn get_embedding(client: &reqwest::Client, text: &str, model: &str) -> Option<Vec<f32>> {
+    let payload = serde_json::json!({ "model": model, "prompt": text });
+    if let Ok(res) = client.post("http://127.0.0.1:11434/api/embeddings").json(&payload).send().await {
+        if let Ok(json) = res.json::<serde_json::Value>().await {
+            if let Some(embed) = json.get("embedding").and_then(|v| v.as_array()) {
+                let vec: Vec<f32> = embed.iter().filter_map(|num| num.as_f64().map(|f| f as f32)).collect();
+                return Some(vec);
+            }
+        }
+    }
+    None
 }
 
 pub async fn run_deep_research_handler(
@@ -240,6 +261,7 @@ pub async fn run_deep_research_handler(
 
     let vault_ptr = state.vault_path.clone();
     let prompt = req.directive.clone();
+    let target_model_name = req.model.clone().unwrap_or_else(|| "llama3.2:latest".to_string());
     
     tokio::spawn(async move {
         // [STEP 0]: Query Vectorization
@@ -271,15 +293,33 @@ pub async fn run_deep_research_handler(
                     let cleaned = content.trim().replace("\"", "").replace("'", "");
                     if !cleaned.is_empty() && cleaned.len() < 100 {
                         optimized_query = cleaned;
+                        
+                        // Phase 26: Dynamic Intent Dorking
+                        let mut intent_dorks = String::new();
+                        let q_low = optimized_query.to_lowercase();
+                        
+                        if q_low.contains("codigo") || q_low.contains("programacao") || q_low.contains("python") || q_low.contains("rust") || q_low.contains("react") || q_low.contains("javascript") || q_low.contains("c++") {
+                            intent_dorks = " (site:docs.* OR site:*.io OR github.com)".to_string();
+                        } else if q_low.contains("economia") || q_low.contains("inflacao") || q_low.contains("petroleo") || q_low.contains("dolar") || q_low.contains("pib") || q_low.contains("taxa") || q_low.contains("selic") {
+                            intent_dorks = " (site:gov.br OR site:*.edu.br OR site:bcb.gov.br)".to_string();
+                        } else if q_low.contains("academico") || q_low.contains("artigo") || q_low.contains("tese") || q_low.contains("ciencia") {
+                            intent_dorks = " (site:*.edu OR site:*.edu.br OR site:scielo.br)".to_string();
+                        }
+
+                        if !intent_dorks.is_empty() {
+                            tracing::info!("🎯 [WAG Dorking] Intent Detectada. Dorks Injetados: {}", intent_dorks);
+                            optimized_query.push_str(&intent_dorks);
+                        }
+
                         tracing::info!("🧠 [WAG Sub-LLM] Texto reduzido para bypass de WAF HTTP: '{}'", optimized_query);
-                        let _ = TRAINER_LOGS.send(format!("[WAG] Matrix Reduzida: '{}'", optimized_query));
+                        let _ = TRAINER_LOGS.send(format!("[WAG] Matrix de Busca Otimizada: '{}'", optimized_query));
                     }
                 }
             }
         }
         
         // Spawn Real Search & Scrape
-        let engine = std::sync::Arc::new(crate::research::DeepResearchEngine::new(Some(state.db.clone())));
+        let engine = std::sync::Arc::new(crate::research::DeepResearchEngine::new(Some(state.db.clone()), Some(state.adblock_engine.clone()), Some(state.vault_path.clone())));
         let engine_clone = engine.clone();
         let prompt_clone = optimized_query; // Safely condensed string
         
@@ -317,15 +357,144 @@ pub async fn run_deep_research_handler(
             }
         }
 
+        // --- PHASE 30 & 28: Sovereign Map-Reduce (The RAG Trinity) ---
+        if final_markdown.len() > 2000 {
+            let _ = TRAINER_LOGS.send("[STEP 1.5] Map-Reduce: Decompondo a Diretiva em Micro-Missões...".to_string());
+            let embed_client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(60)).build().unwrap_or_else(|_| reqwest::Client::new());
+            
+            let planner_prompt = format!(
+                "Decomponha a seguinte diretiva de pesquisa num array JSON estrito contendo entre 2 a 5 perguntas específicas.\n\
+                REGRAS:\n\
+                1. Retorne APENAS um array JSON válido de strings.\n\
+                2. Não inclua texto fora do array.\n\
+                3. Exemplo: [\"Qual o IPCA de 2021?\", \"Investigação do CADE\"]\n\n\
+                DIRETIVA:\n{}", prompt
+            );
+            
+            let planner_payload = serde_json::json!({
+                "model": "llama3.2:latest",
+                "messages": [{"role": "user", "content": planner_prompt}],
+                "stream": false,
+                "options": { "temperature": 0.1 }
+            });
+            
+            let mut sub_questions: Vec<String> = vec![prompt.clone()]; // Fallback
+            if let Ok(res) = embed_client.post("http://127.0.0.1:11434/api/chat").json(&planner_payload).send().await {
+                if let Ok(json) = res.json::<serde_json::Value>().await {
+                    if let Some(content) = json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
+                        let start = content.find('[');
+                        let end = content.rfind(']');
+                        if let (Some(s), Some(e)) = (start, end) {
+                            if s < e {
+                                if let Ok(parsed) = serde_json::from_str::<Vec<String>>(&content[s..=e]) {
+                                    if !parsed.is_empty() {
+                                        sub_questions = parsed;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            let _ = TRAINER_LOGS.send(format!("[Agente Planejador] Diretiva fracionada em {} missões. Lendo dossiê bruto...", sub_questions.len()));
+            
+            // Chunk the haystack
+            let mut all_chunks: Vec<String> = Vec::new();
+            let mut current_source = String::new();
+            for line in final_markdown.split("\n\n") {
+                let trimmed = line.trim();
+                if trimmed.is_empty() || trimmed.len() < 40 { continue; }
+                if trimmed.starts_with("## Source:") {
+                    current_source = trimmed.to_string();
+                } else {
+                    all_chunks.push(format!("{}\n{}", current_source, trimmed));
+                }
+            }
+            
+            let mut progressive_dossier = String::new();
+            
+            // Loop through Agent 2: Extractor
+            for (idx, sq) in sub_questions.iter().enumerate() {
+                if wait_or_cancel(2, &token).await { return; }
+                let _ = TRAINER_LOGS.send(format!("[Vetorizador {}/{}] Minerando: '{}'", idx+1, sub_questions.len(), sq));
+                
+                if let Some(sq_embed) = get_embedding(&embed_client, sq, "llama3.2:latest").await {
+                    let mut scored_chunks: Vec<(f32, String)> = Vec::new();
+                    for chunk in &all_chunks {
+                        if wait_or_cancel(2, &token).await { return; }
+                        if let Some(chunk_embed) = get_embedding(&embed_client, chunk, "llama3.2:latest").await {
+                            let score = cosine_similarity(&sq_embed, &chunk_embed);
+                            scored_chunks.push((score, chunk.clone()));
+                        }
+                    }
+                    
+                    scored_chunks.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+                    let top_5: Vec<String> = scored_chunks.into_iter().take(5).map(|(_, text)| text).collect();
+                    let local_context = top_5.join("\n\n");
+                    
+                    let _ = TRAINER_LOGS.send(format!("[Extrator {}/{}] Analisando 5 fragmentos retidos...", idx+1, sub_questions.len()));
+                    let extractor_prompt = format!(
+                        "Responda à pergunta abaixo baseando-se APENAS no contexto histórico fornecido. \n\
+                        Se a resposta final não puder ser extraída do texto, responda estritamente: 'DADO NÃO ENCONTRADO no contexto raspado'.\n\
+                        IMPORTANTE: Indique sempre a [Fonte: URL] de onde tirou o dado. Mantenha a resposta curta, direta e factual.\n\n\
+                        PERGUNTA:\n{}\n\n\
+                        CONTEXTO:\n{}", sq, local_context
+                    );
+                    
+                    let ext_payload = serde_json::json!({
+                        "model": "llama3.2:latest",
+                        "messages": [{"role": "user", "content": extractor_prompt}],
+                        "stream": false,
+                        "options": { "temperature": 0.0 }
+                    });
+                    
+                    if let Ok(res) = embed_client.post("http://127.0.0.1:11434/api/chat").json(&ext_payload).send().await {
+                        if let Ok(json) = res.json::<serde_json::Value>().await {
+                            if let Some(content) = json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
+                                if !content.contains("DADO NÃO ENCONTRADO") {
+                                    progressive_dossier.push_str(&format!("### Sobre: {}\n{}\n\n", sq, content));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if !progressive_dossier.trim().is_empty() {
+                final_markdown = progressive_dossier; 
+                let _ = TRAINER_LOGS.send("[Map-Reduce Completo] Dossiê limpo gerado. Encaminhando para Síntese Final...".to_string());
+            } else {
+                let _ = TRAINER_LOGS.send("[Map-Reduce Vazio] Extração rigorosa falhou (dados indiretos). Aplicando fallback...".to_string());
+                // Fallback to top 15 of standard prompt
+                 if let Some(prompt_embed) = get_embedding(&embed_client, &prompt, "llama3.2:latest").await {
+                    let mut scored_chunks: Vec<(f32, String)> = Vec::new();
+                    for chunk in all_chunks {
+                        if wait_or_cancel(2, &token).await { return; }
+                        if let Some(chunk_embed) = get_embedding(&embed_client, &chunk, "llama3.2:latest").await {
+                            scored_chunks.push((cosine_similarity(&prompt_embed, &chunk_embed), chunk));
+                        }
+                    }
+                    scored_chunks.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+                    final_markdown = scored_chunks.into_iter().take(15).map(|(_, text)| text).collect::<Vec<String>>().join("\n\n");
+                 }
+            }
+        }
+
         // [STEP 2]: Synthesis Engine
         let _ = TRAINER_LOGS.send("[STEP 2] Synthesis Engine analyzing extracted facts (this might take several minutes)...".to_string());
         
         let synthesis_prompt = format!(
-            "Você é Sophy, uma IA analítica impecável atuando no Sovereign Pair.\n\
-            Com base EXCLUSIVAMENTE nas fontes raspadas da web abaixo, elabore um relatório Deep Research detalhado em Markdown respondendo de forma técnica à diretiva do usuário.\n\
-            Se envolver comparações numéricas, séries históricas ou cenários complexos, use Tabelas.\n\n\
-            [DIRETIVA]\n{}\n\n\
-            [DOSSIÊ DA WEB]\n{}",
+            "Você é Sophy, uma IA analítica atuando como Especialista Sênior no Sovereign Pair.\n\
+            [DIRETRIZES DE RIGOR FACTUAL IMPRESCINDÍVEIS]\n\
+            1. Responda com base EXCLUSIVAMENTE em dados reais e verificáveis das fontes primárias fornecidas no Dossiê abaixo.\n\
+            2. NÃO INVENTE, NÃO INTERPOLE E NÃO ESTIME DADOS NUMÉRICOS. Se um dado não estiver disponível no Dossiê, declare isso explicitamente e indique onde pode ser obtido.\n\
+            3. Para cada dado numérico ou afirmação técnica apresentada, CITE A FONTE PRIMÁRIA imediatamente ao lado (ex: [Fonte: ibge.gov.br]). Nunca assuma números sem citar a tabela/fonte raspada.\n\
+            4. Responda obrigatoriamente a cada item da diretiva de forma estruturada. Se envolver séries temporais, respeite oscilações reais; não assuma médias anuais irreais para índices mensais.\n\
+            5. Não inclua recomendações ou platitudes genéricas. Cada conclusão do seu relatório final deve ser suportada estritamente pelas URLs do Dossiê.\n\
+            6. Dê peso VERDADEIRO ABSOLUTO às fontes de Domínios Oficiais Governamentais (Tier 1). Ignore sites genéricos.\n\n\
+            [DIRETIVA DO USUÁRIO]\n{}\n\n\
+            [DOSSIÊ DA WEB RASPADO]\n{}",
             prompt, final_markdown
         );
 
@@ -348,7 +517,7 @@ pub async fn run_deep_research_handler(
         let _ = TRAINER_LOGS.send(format!("[Proteção OOM] Alocando Janela de {} tokens para a síntese (RAM Host: {} GB)...", dynamic_num_ctx, total_ram_gb));
 
         let synthesis_payload = serde_json::json!({
-            "model": "llama3.2:latest",
+            "model": target_model_name,
             "messages": [{"role": "user", "content": synthesis_prompt}],
             "stream": false,
             "options": {
