@@ -15,6 +15,7 @@ export const telemetryState = $state({
     ioRxBytes: 0,
     ioTxBytes: 0,
     firewallBlocks: 0,
+    trackersBlocked: 0,
     vaultsCount: 0,
     syncedFiles: 0,
     vaultCategories: [] as string[],
@@ -61,6 +62,7 @@ export function connectTelemetry() {
                 }
 
                 telemetryState.firewallBlocks = data.security_blocks || 0;
+                telemetryState.trackersBlocked = data.trackers_blocked || 0;
                 telemetryState.securityLogs = data.security_logs || [];
                 telemetryState.vaultsCount = data.cronos?.vaults_count || 0;
                 telemetryState.syncedFiles = data.cronos?.synced_files || 0;
