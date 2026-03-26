@@ -55,7 +55,7 @@
         <div class="max-w-7xl mx-auto space-y-8">
 
     <!-- Row 1: Vital Signs -->
-    <div class="grid grid-cols-1 md:grid-cols-2 border border-slate-200/50 bg-white/50 backdrop-blur p-2 rounded-3xl lg:grid-cols-4 gap-4 shrink-0 shadow-sm">
+    <div class="grid grid-cols-1 md:grid-cols-2 border border-slate-200/50 bg-white/50 backdrop-blur p-2 rounded-3xl lg:grid-cols-5 gap-4 shrink-0 shadow-sm">
         <!-- Total Cost -->
         <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:border-blue-200 transition-all flex flex-col group">
             <div class="flex justify-between items-start mb-4">
@@ -109,6 +109,21 @@
             <div class="text-3xl font-extrabold text-rose-600 mb-1 leading-none">{telemetryState.firewallBlocks}</div>
             <div class="flex items-center gap-1.5 text-xs font-bold text-rose-600 mt-4">
                 <AlertCircle class="w-4 h-4" /> Requires Attention
+            </div>
+        </div>
+
+        <!-- Trackers Blocked -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:border-violet-200 transition-all flex flex-col group relative overflow-hidden">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-violet-50 rounded-full blur-2xl opacity-50 group-hover:scale-150 transition-transform duration-700 pointer-events-none"></div>
+            <div class="flex justify-between items-start mb-4 relative z-10">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest group-hover:text-violet-500 transition-colors">Ads Blocked</span>
+                <div class="p-2 bg-violet-50 rounded-lg">
+                  <ShieldCheck class="text-violet-600 w-5 h-5" />
+                </div>
+            </div>
+            <div class="text-3xl font-extrabold text-slate-800 mb-1 leading-none relative z-10">{telemetryState.trackersBlocked}</div>
+            <div class="flex items-center gap-1.5 text-xs font-bold text-violet-500 mt-4 relative z-10">
+                <ShieldCheck class="w-4 h-4" /> Sovereign Pi-Hole
             </div>
         </div>
     </div>

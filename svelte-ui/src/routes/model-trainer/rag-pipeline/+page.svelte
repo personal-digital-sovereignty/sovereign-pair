@@ -51,7 +51,8 @@
                     directive: trainerState.deepResearchPrompt,
                     strict_hallucination: trainerState.deepResearchStrictHallucination,
                     grounding_focus: trainerState.deepResearchGroundingFocus,
-                    query_expansion: trainerState.deepResearchQueryExpansion
+                    query_expansion: trainerState.deepResearchQueryExpansion,
+                    model: trainerState.deepResearchModel
                 })
             });
         } catch (e) {
@@ -139,11 +140,17 @@
                         <div class="space-y-3">
                             <div class="flex justify-between items-center">
                                 <label for="deep-research-prompt" class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Research Directive</label>
-                                {#if trainerState.isDeepResearchActive}
-                                <span class="bg-tertiary-container/20 text-on-tertiary-container text-xs px-3 py-1 rounded-md font-mono font-bold border border-tertiary-container/30 animate-pulse flex items-center gap-2">
-                                    <div class="w-2 h-2 rounded-full bg-on-tertiary-container"></div> Executing
-                                </span>
-                                {/if}
+                                <div class="flex items-center gap-3">
+                                    <select bind:value={trainerState.deepResearchModel} disabled={trainerState.isDeepResearchActive} class="bg-surface-container border border-outline-variant/30 text-[11px] text-on-surface font-bold rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary shadow-sm disabled:opacity-50">
+                                        <option value="llama3.2:latest">Llama 3.2 3B (Fast Triage)</option>
+                                        <option value="qwen2.5:14b">Qwen 2.5 14B (Heavy Analytics)</option>
+                                    </select>
+                                    {#if trainerState.isDeepResearchActive}
+                                    <span class="bg-tertiary-container/20 text-on-tertiary-container text-xs px-3 py-1 rounded-md font-mono font-bold border border-tertiary-container/30 animate-pulse flex items-center gap-2">
+                                        <div class="w-2 h-2 rounded-full bg-on-tertiary-container"></div> Executing
+                                    </span>
+                                    {/if}
+                                </div>
                             </div>
                             <textarea 
                                 id="deep-research-prompt"
