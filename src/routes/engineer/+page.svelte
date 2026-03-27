@@ -3,6 +3,6 @@
     import { onMount } from 'svelte';
 
     onMount(() => {
-        goto('/model-trainer/fine-tuning');
+        goto('/engineer/fine-tuning');
     });
 </script>

@@ -20,6 +20,9 @@ export const telemetryState = $state({
     syncedFiles: 0,
     vaultCategories: [] as string[],
     modelsUsage: {} as Record<string, number>,
+    historicalModels: [] as any[],
+    contentGaps: [] as any[],
+    topTopics: [] as any[],
     securityLogs: [] as any[],
     logs: [] as string[]
 });
@@ -44,6 +47,9 @@ export function connectTelemetry() {
                 telemetryState.avgLatencyMs = data.avg_latency_ms || 0;
                 telemetryState.estimatedCost = data.estimated_cost || 0;
                 telemetryState.modelsUsage = data.models_usage || {};
+                telemetryState.historicalModels = data.historical_models || [];
+                telemetryState.contentGaps = data.content_gaps || [];
+                telemetryState.topTopics = data.top_topics || [];
                 telemetryState.cpuCores = data.hardware?.cpu_cores || [];
                 telemetryState.ramUsageMB = data.hardware?.ram || 0;
                 telemetryState.ramTotalGB = data.hardware?.ram_total_gb || 24;

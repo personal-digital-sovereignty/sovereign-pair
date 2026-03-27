@@ -31,7 +31,7 @@
                     top_k: trainerState.contextDepthTopK
                 })
             });
-            goto('/model-trainer/unsloth');
+            goto('/engineer/unsloth');
         } catch(e) {
             console.error(e);
             isSubmitting = false;
@@ -48,10 +48,11 @@
         </div>
         <div class="flex items-center gap-4 bg-surface-container-low p-1.5 rounded-xl border border-outline-variant/10">
             <button class="px-4 py-2 bg-surface-container-lowest text-primary font-bold text-xs rounded-lg shadow-sm">Fine-Tuning</button>
-            <a href="/model-trainer/distillation" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">Distillation</a>
-            <a href="/model-trainer/reflection" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">Reflection Lab</a>
-            <a href="/model-trainer/rag-pipeline" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">RAG Pipeline</a>
-            <a href="/model-trainer/unsloth" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">Unsloth Monitor</a>
+            <a href="/engineer/distillation" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">Distillation</a>
+            <a href="/engineer/reflection" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">Reflection Lab</a>
+            <a href="/engineer/rag-pipeline" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">RAG Pipeline</a>
+            <a href="/engineer/unsloth" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">Unsloth Monitor</a>
+            <a href="/engineer/analytics" class="px-4 py-2 text-on-surface-variant font-medium text-xs rounded-lg hover:bg-surface-container-high transition-colors">Analytics</a>
         </div>
     </header>
 
@@ -204,7 +205,7 @@
                             <p class="text-on-surface-variant/50 font-medium">[INFO] Engine Sleeping...</p>
                         {/if}
                     </div>
-                    <a href="/model-trainer/unsloth" class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors ml-auto tooltip" title="Open Full Monitor">
+                    <a href="/engineer/unsloth" class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors ml-auto tooltip" title="Open Full Monitor">
                         <span class="material-symbols-outlined text-[20px]">open_in_new</span>
                     </a>
                 </div>
@@ -324,7 +325,7 @@
                         </div>
                     </div>
                     
-                    <a href="/model-trainer/reflection" class="block w-full py-3 bg-surface-container-high text-on-surface-variant text-[11px] font-bold rounded-xl hover:bg-surface-container-highest transition-colors uppercase tracking-widest text-center border border-outline-variant/10">
+                    <a href="/engineer/reflection" class="block w-full py-3 bg-surface-container-high text-on-surface-variant text-[11px] font-bold rounded-xl hover:bg-surface-container-highest transition-colors uppercase tracking-widest text-center border border-outline-variant/10">
                         Visualize Reasoning Chain
                     </a>
                 </div>

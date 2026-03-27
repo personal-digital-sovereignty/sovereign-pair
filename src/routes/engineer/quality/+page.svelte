@@ -204,7 +204,7 @@
             <div class="flex items-center gap-4">
                 <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Data Feed Offline</span>
             </div>
-            <a class="text-indigo-600 text-xs font-bold hover:text-indigo-800 transition-colors" href="#">Full Heatmap &rarr;</a>
+            <button class="text-indigo-600 text-xs font-bold hover:text-indigo-800 transition-colors uppercase tracking-wider">Full Heatmap &rarr;</button>
         </div>
     </div>
 
