@@ -256,17 +256,21 @@ async fn execute_sub_analyst(
 
     if raw_student_md.trim().is_empty() { return "Nenhum dado retornado da web para esta query.".to_string(); }
 
+    let system_prompt = "Você é um Inquisidor Soberano implacável. Seu idioma oficial obrigatório é o PORTUGUÊS (PT-BR). REGRA DE OURO: Se a resposta não estiver LITERALMENTE descrita no texto do contexto, ou se o contexto for vazio, responda ESTRITAMENTE e UNICAMENTE com as palavras em CAIXA ALTA: 'DADO NÃO ENCONTRADO'. NÃO INVENTE DADOS. JAMAIS responda em inglês.";
+
     let extractor_prompt = format!(
         "Responda à pergunta abaixo baseando-se APENAS e RESTRITAMENTE no contexto histórico fornecido raspado da web. \n\
-        Se a resposta não puder ser extraída do texto, responda estritamente: 'DADO NÃO ENCONTRADO no contexto raspado'.\n\
-        CITE A FONTE URL DE ONDE TIROU CADA NÚMERO DIRETAMENTE DO TEXTO. Mantenha resposta curta, direta, jornalística.\n\n\
+        CITE A FONTE URL DE ONDE TIROU CADA NÚMERO DIRETAMENTE DO TEXTO. Se faltar dados, use a Regra de Ouro. Mantenha resposta curta, direta, jornalística.\n\n\
         PERGUNTA A SER RESOLVIDA:\n{}\n\n\
         CONTEXTO RASPADO PELO SEU CRAWLER (FONTES ABAIXO):\n{}", query, raw_student_md
     );
 
     let ext_payload = serde_json::json!({
         "model": sub_agent_model,
-        "messages": [{"role": "user", "content": extractor_prompt}],
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": extractor_prompt}
+        ],
         "stream": false,
         "options": { "temperature": 0.0, "num_ctx": 4096 }
     });
@@ -275,7 +279,24 @@ async fn execute_sub_analyst(
     if let Ok(res) = client.post("http://127.0.0.1:11434/api/chat").json(&ext_payload).send().await
         && let Ok(json) = res.json::<serde_json::Value>().await
             && let Some(content) = json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
-                distilled_text = content.to_string();
+                
+                let mut clean_str = content.to_string();
+                
+                // DeepSeek-R1 Cognitive Sanitization (Remove Chain of Thought)
+                if let Some(start) = clean_str.find("<think>") {
+                    if let Some(end) = clean_str.find("</think>") {
+                        let shift = if clean_str[end..].starts_with("</think>\n\n") { 10 } else { 8 };
+                        clean_str.replace_range(start..end + shift, "");
+                    }
+                }
+                
+                distilled_text = clean_str.trim().to_string();
+                
+                // Auto-Forgiveness Sanitization for edge cases 
+                let upper_check = distilled_text.to_uppercase();
+                if upper_check.contains("DADO NÃO ENCONTRADO") || upper_check.contains("DADOS NÃO ENCONTRADOS") {
+                    distilled_text = "DADO NÃO ENCONTRADO".to_string();
+                }
             }
     
     let mut sources_used = String::new();
@@ -330,13 +351,13 @@ pub async fn run_deep_research_handler(
             "type": "function",
             "function": {
                 "name": "dispatch_sub_researcher",
-                "description": "Faz uma pesquisa profunda na web utilizando um agente especialista (Llama 3B). Use isso infinitas vezes para coletar as provas factuais que necessita ANTES de emitir seu relatório.",
+                "description": "Faz uma pesquisa profunda na web focada ESTRITAMENTE em JORNALISMO TEXTUAL. Dica de Ouro: SEMPRE adicione a palavra 'noticias' a sua query para forçar o buscador a retornar jornais (que nós sabemos extrair perfeitamente). É PROIBIDO pesquisar por 'API', 'Gráfico' ou 'Dashboard'.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "search_query": {
                             "type": "string",
-                            "description": query_example
+                            "description": format!("{} JAMAS use a sigla API.", query_example)
                         }
                     },
                     "required": ["search_query"]
@@ -703,17 +724,7 @@ pub async fn run_deep_research_handler(
         // [STEP 3]: Vault Context Injector
         let _ = TRAINER_LOGS.send("[STEP 3] Vault Context Injector persisting artifact...".to_string());
 
-        // [STEP 4]: Final Artifact Export
-        let artifacts_dir = vault_ptr.join("_agents").join("artifacts");
-        let _ = tokio::fs::create_dir_all(&artifacts_dir).await;
-        
-        let safe_filename = prompt.chars()
-            .map(|c| if c.is_alphanumeric() { c } else { '_' })
-            .collect::<String>()
-            .split_at(std::cmp::min(40, prompt.len())).0.to_string();
-            
-        let md_path = artifacts_dir.join(format!("{}_{}.md", safe_filename, uuid::Uuid::new_v4().to_string().chars().take(4).collect::<String>()));
-        
+        // [STEP 4]: Final Artifact Export -> STAGING DB
         let mut source_links: Vec<String> = all_sources.join("\n").lines()
             .filter(|l| l.starts_with("## Source: "))
             .map(|l| format!("- {}", l.replace("## Source: ", "").trim()))
@@ -733,13 +744,20 @@ pub async fn run_deep_research_handler(
             prompt, final_markdown_report, sources_block
         );
         
-        if let Err(e) = tokio::fs::write(&md_path, md_content).await {
-            tracing::error!("[Vault Router] Failed to persist Deep Research artifact to {:?}: {}", md_path, e);
-        } else {
-            tracing::info!("[Vault Router] Deep Research Artifact Synthesized: {:?}", md_path);
+        let stage_id = uuid::Uuid::new_v4().to_string();
+        if let Some(pool) = &engine_arc.db_pool {
+            if let Err(e) = sqlx::query("INSERT INTO research_staging (id, directive, content) VALUES (?, ?, ?)")
+                .bind(&stage_id)
+                .bind(&prompt)
+                .bind(&md_content)
+                .execute(pool).await {
+                    tracing::error!("[Staging Area] Failed to persist Deep Research artifact to DB: {}", e);
+                } else {
+                    tracing::info!("[Staging Area] Deep Research Artifact Staged via DB: {}", stage_id);
+                }
         }
-
-        let _ = TRAINER_LOGS.send("[STEP 4] Deep Research Protocol Complete.".to_string());
+        
+        let _ = TRAINER_LOGS.send("[STEP 4] Deep Research Protocol Complete (Staged for Human Review).".to_string());
         
         // Clean up Token
         let mut mg = DEEP_RESEARCH_CANCEL_TOKEN.write().unwrap();
@@ -767,6 +785,84 @@ pub async fn cancel_deep_research_handler() -> impl IntoResponse {
     Json(serde_json::json!({
         "status": if dropped { "aborted" } else { "ignored_no_active_task" }
     }))
+}
+
+#[derive(serde::Serialize, sqlx::FromRow)]
+pub struct StagedResearch {
+    pub id: String,
+    pub directive: String,
+    pub content: String,
+    pub created_at: String,
+}
+
+pub async fn get_staged_research_handler(
+    State(state): State<Arc<AppState>>
+) -> impl IntoResponse {
+    let records = sqlx::query_as::<_, StagedResearch>(
+        "SELECT id, directive, content, CAST(created_at AS TEXT) as created_at FROM research_staging ORDER BY created_at DESC"
+    )
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+    
+    Json(serde_json::json!({
+        "status": "success",
+        "staged": records
+    }))
+}
+
+pub async fn discard_staged_research_handler(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(id): axum::extract::Path<String>
+) -> impl IntoResponse {
+    let res = sqlx::query("DELETE FROM research_staging WHERE id = ?")
+        .bind(&id)
+        .execute(&state.db)
+        .await;
+
+    if res.is_ok() {
+        tracing::info!("🗑️ [Staging Area] Rejected and purged artifact: {}", id);
+        let _ = TRAINER_LOGS.send(format!("[Staging Area] O Comandante destruiu o artefato pendente ({}).", id));
+        Json(serde_json::json!({"status": "success", "message": "Artifact discarded"}))
+    } else {
+        Json(serde_json::json!({"status": "error", "message": "Failed to discard artifact"}))
+    }
+}
+
+pub async fn commit_staged_research_handler(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(id): axum::extract::Path<String>
+) -> impl IntoResponse {
+    if let Ok(record) = sqlx::query_as::<_, StagedResearch>(
+        "SELECT id, directive, content, CAST(created_at AS TEXT) as created_at FROM research_staging WHERE id = ?"
+    )
+    .bind(&id)
+    .fetch_one(&state.db)
+    .await {
+        let artifacts_dir = state.vault_path.join("_agents").join("artifacts");
+        let _ = tokio::fs::create_dir_all(&artifacts_dir).await;
+        
+        let safe_filename = record.directive.chars()
+            .map(|c| if c.is_alphanumeric() { c } else { '_' })
+            .collect::<String>()
+            .split_at(std::cmp::min(40, record.directive.len())).0.to_string();
+            
+        let md_path = artifacts_dir.join(format!("{}_{}.md", safe_filename, record.id.chars().take(4).collect::<String>()));
+        
+        if let Err(e) = tokio::fs::write(&md_path, &record.content).await {
+            tracing::error!("Failed to write committed artifact: {}", e);
+            return Json(serde_json::json!({"status": "error", "message": "File system write failed"}));
+        }
+        
+        let _ = sqlx::query("DELETE FROM research_staging WHERE id = ?").bind(&id).execute(&state.db).await;
+        
+        tracing::info!("✅ [Staging Area] Commander approved artifact! Synthesized to Vault: {:?}", md_path);
+        let _ = TRAINER_LOGS.send(format!("[Staging Area] O Comandante APROVOU o artefato! Salvo em: {:?}", md_path));
+        
+        Json(serde_json::json!({"status": "success", "message": "Artifact committed to Vault"}))
+    } else {
+        Json(serde_json::json!({"status": "error", "message": "Artifact not found in staging"}))
+    }
 }
 
 /// Server-Sent Events Endpoint (Puxando dados Reais Nativos do Broadcast)
