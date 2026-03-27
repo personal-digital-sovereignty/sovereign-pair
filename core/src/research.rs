@@ -24,7 +24,7 @@ impl Default for TrustMatrix {
                 "anp.gov.br".into(), "cade.gov.br".into(), "mil.br".into(), ".gov/".into(), ".mil/".into(),
                 "gov.uk".into(), "gob.es".into(), "gob.ar".into(), "gouv.fr".into(), "bund.de".into(), "go.jp".into(),
                 "edu".into(), "edu.br".into(), "usp.br".into(), "mit.edu".into(), "harvard.edu".into(),
-                "docs.microsoft.com".into(), "developer.mozilla.org".into(), "rust-lang.org".into(), "python.org".into(), "github.com".into()
+                "docs.microsoft.com".into(), "developer.mozilla.org".into(), "rust-lang.org".into(), "python.org".into(), "github.com".into(), "brasilindicadores.com.br".into()
             ],
             tier2: vec![
                 "agenciabrasil.ebc.com.br".into(), "estadao.com.br".into(), "folha.uol.com.br".into(), 

@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, tick } from 'svelte';
     import { trainerState } from '$lib/trainer.svelte';
+    import { marked } from 'marked';
     
     let flowStep = $state(0);
     let sseClient: EventSource | null = null;
@@ -8,7 +9,12 @@
     let availableModels = $state<{name: string, isCapable: boolean}[]>([]);
     let hasCapableModel = $state(true);
 
+    let stagedResearch = $state<any[]>([]);
+    let selectedResearch = $state<any>(null);
+    let isStagingModalOpen = $state(false);
+
     onMount(async () => {
+        fetchStagedResearch();
         try {
             const res = await fetch('http://localhost:11434/api/tags');
             const data = await res.json();
@@ -73,6 +79,7 @@
                 flowStep = 4;
                 trainerState.isDeepResearchActive = false;
                 if (sseClient) sseClient.close();
+                fetchStagedResearch();
             } else if (data.includes('[SCRAPED: ')) {
                 // Parse amount e.g. [SCRAPED: 3]
                 const match = data.match(/\[SCRAPED: (\d+)\]/);
@@ -120,6 +127,43 @@
         } catch (e) {
             console.error("Failed to abort deep research process.", e);
         }
+    }
+
+    async function fetchStagedResearch() {
+        try {
+            const res = await fetch('http://localhost:38001/v1/research/staging');
+            const data = await res.json();
+            if (data.status === 'success') {
+                stagedResearch = data.staged;
+            }
+        } catch (e) {
+            console.error("Failed to fetch staged research:", e);
+        }
+    }
+
+    async function approveResearch(id: string) {
+        try {
+            await fetch(`http://localhost:38001/v1/research/staging/${id}/commit`, { method: 'POST' });
+            isStagingModalOpen = false;
+            fetchStagedResearch();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function discardResearch(id: string) {
+        try {
+            await fetch(`http://localhost:38001/v1/research/staging/${id}`, { method: 'DELETE' });
+            isStagingModalOpen = false;
+            fetchStagedResearch();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function openStagingModal(item: any) {
+        selectedResearch = item;
+        isStagingModalOpen = true;
     }
 </script>
 
@@ -402,6 +446,42 @@
         </div>
         {/if}
 
+        <!-- Staging Area (Human-in-the-Loop) -->
+        {#if stagedResearch.length > 0}
+        <div class="w-full mb-12 bg-surface-container p-6 rounded-3xl border border-[#b3261e]/30 shadow-sm relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-8 opacity-5">
+                <span class="material-symbols-outlined text-9xl text-[#b3261e]">shield_locked</span>
+            </div>
+            
+            <div class="relative z-10 w-full">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="material-symbols-outlined text-[#b3261e] text-2xl">admin_panel_settings</span>
+                    <h3 class="text-lg font-bold text-on-surface">Staging Area (Human Review Required)</h3>
+                    <span class="px-2.5 py-0.5 bg-[#b3261e]/10 text-[#b3261e] rounded-full text-[10px] font-bold tracking-widest uppercase border border-[#b3261e]/20">Quarantine</span>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {#each stagedResearch as item}
+                    <button class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/20 hover:border-primary/40 hover:shadow-md cursor-pointer transition-all group flex flex-col justify-between h-40 text-left outline-none" onclick={() => openStagingModal(item)}>
+                        <div class="w-full">
+                            <div class="flex justify-between items-start mb-2 w-full">
+                                <span class="bg-surface-variant text-on-surface-variant text-[10px] px-2 py-0.5 rounded font-mono font-bold">{item.id.substring(0,8)}</span>
+                                <span class="text-[10px] text-on-surface-variant/70 font-medium">{new Date(item.created_at).toLocaleString()}</span>
+                            </div>
+                            <h4 class="text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-primary transition-colors">{item.directive}</h4>
+                        </div>
+                        
+                        <div class="flex items-center justify-between mt-4 justify-self-end w-full">
+                            <span class="text-[11px] font-medium text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">visibility</span> Review Content</span>
+                            <span class="material-symbols-outlined text-on-surface-variant/50 group-hover:text-primary group-hover:-translate-x-1 transition-all text-lg">arrow_forward</span>
+                        </div>
+                    </button>
+                    {/each}
+                </div>
+            </div>
+        </div>
+        {/if}
+
         <!-- Action Footer -->
         <div class="flex justify-end gap-4 border-t border-outline-variant/10 pt-8 pb-4">
             <button onclick={cancelDeepResearch} disabled={!trainerState.isDeepResearchActive} class="cursor-pointer px-8 py-3 bg-white text-on-surface-variant text-xs font-bold uppercase tracking-widest rounded-xl shadow-sm border border-outline-variant/20 hover:bg-surface-container-low transition-colors active:scale-95 disabled:opacity-50">
@@ -432,9 +512,59 @@
         <button aria-label="Dismiss Grounding Alert" onclick={() => trainerState.deepResearchGroundingFocus = false} class="ml-4 pl-4 border-l border-outline-variant/20 text-on-surface-variant hover:text-error transition-colors flex shrink-0">
             <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
-    </div>
+</div>
     {/if}
 </div>
+
+<!-- Markdown Review Modal -->
+{#if isStagingModalOpen && selectedResearch}
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 sm:p-12 transition-all">
+    <div class="bg-surface w-full max-w-5xl h-[85vh] rounded-3xl shadow-2xl flex flex-col border border-outline-variant/20 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <!-- Modal Header -->
+        <div class="px-8 py-5 border-b border-outline-variant/10 bg-surface-container-lowest flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                    <span class="material-symbols-outlined text-xl">policy</span>
+                </div>
+                <div>
+                    <h2 class="text-base font-extrabold text-on-surface tracking-tight">Review Artifact</h2>
+                    <p class="text-[11px] text-on-surface-variant/80 font-mono mt-0.5 leading-none">ID: {selectedResearch.id}</p>
+                </div>
+            </div>
+            <button onclick={() => isStagingModalOpen = false} class="w-8 h-8 rounded-full hover:bg-surface-variant flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+                <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+        </div>
+        
+        <!-- Modal Body (Markdown Content) -->
+        <div class="flex-1 overflow-y-auto p-8 bg-surface prose prose-sm md:prose-base dark:prose-invert max-w-none custom-scrollbar markdown-preview">
+            <div class="mb-4 text-xs font-mono text-on-surface-variant bg-surface-variant/40 p-4 rounded-xl border border-outline-variant/10 break-words font-medium">
+                <strong>Directive:</strong> {selectedResearch.directive}
+            </div>
+            <hr class="border-outline-variant/10 my-6" />
+            {@html marked(selectedResearch.content)}
+        </div>
+        
+        <!-- Modal Footer (Actions) -->
+        <div class="px-8 py-5 bg-surface-container border-t border-outline-variant/10 flex items-center justify-between shrink-0">
+            <p class="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest hidden sm:block">
+                <span class="material-symbols-outlined text-[14px] align-middle mr-1">info</span>
+                Is this artifact safe to enter the Sovereign Vault?
+            </p>
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <button onclick={() => discardResearch(selectedResearch.id)} class="px-6 py-2.5 bg-error-container text-on-error-container hover:bg-error hover:text-on-error hover:shadow-md border border-error/20 font-bold text-xs uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 cursor-pointer active:scale-95">
+                    <span class="material-symbols-outlined text-[18px]">delete_forever</span>
+                    Discard & Purge
+                </button>
+                <button onclick={() => approveResearch(selectedResearch.id)} class="px-6 py-2.5 bg-primary text-on-primary hover:bg-primary-fixed hover:text-on-primary-fixed hover:shadow-md font-bold text-xs uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 cursor-pointer active:scale-95">
+                    <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                    Approve to Vault
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{/if}
 
 <style>
     .material-symbols-outlined {
