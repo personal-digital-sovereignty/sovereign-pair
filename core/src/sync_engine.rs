@@ -46,6 +46,24 @@ impl SyncEngine {
                 },
                 Config::default(),
             ).expect("Sovereign falhou ao criar FSEvent Watcher");
+            // 0. Sovereign Garbage Collector (Remove Orphaned Files)
+            #[derive(sqlx::FromRow)]
+            struct DocRow { id: String, file_path: String }
+            
+            if let Ok(docs) = sqlx::query_as::<_, DocRow>("SELECT id, file_path FROM sensus_documents").fetch_all(&db).await {
+                let mut orphans = 0;
+                for doc in docs {
+                    if !Path::new(&doc.file_path).exists() {
+                        info!("🧹 [Sensus GC] Artefato Órfão Detectado na Inicialização. Purgando: {}", doc.file_path);
+                        let _ = sqlx::query("DELETE FROM sovereign_chunks WHERE file_path = ?").bind(&doc.file_path).execute(&db).await;
+                        let _ = sqlx::query("DELETE FROM sensus_documents WHERE id = ?").bind(&doc.id).execute(&db).await;
+                        orphans += 1;
+                    }
+                }
+                if orphans > 0 {
+                    info!("✅ [Sensus GC] {} artefatos fantasmas expurgados com sucesso da Memória Cíbrida.", orphans);
+                }
+            }
 
             // 1. Coletar e Atrelar todos os Workspaces do Banco de Dados Dinâmico
             #[derive(sqlx::FromRow)]
@@ -169,6 +187,21 @@ impl SyncEngine {
                             tokio::spawn(async move {
                                 Self::process_ingestion_pipeline(job, file_path_clone, process_tx, process_db).await;
                             });
+                        }
+                    }
+                } else if let notify::event::EventKind::Remove(_) = event.kind {
+                    for path in event.paths {
+                        let path_str = path.to_string_lossy().to_string();
+                        
+                        // Garante que só tente purgar se existir no banco (evita spam de pastas excluídas)
+                        let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM sensus_documents WHERE file_path = ?)")
+                            .bind(&path_str)
+                            .fetch_one(&db).await.unwrap_or(false);
+                            
+                        if exists {
+                            info!("🗑️ [Sensus GC] Evento de Remoção Físico Detectado. Erradicando Artefato Cíbrido: {}", path_str);
+                            let _ = sqlx::query("DELETE FROM sovereign_chunks WHERE file_path = ?").bind(&path_str).execute(&db).await;
+                            let _ = sqlx::query("DELETE FROM sensus_documents WHERE file_path = ?").bind(&path_str).execute(&db).await;
                         }
                     }
                 }

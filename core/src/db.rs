@@ -135,6 +135,12 @@ pub async fn init_pool() -> SqlitePool {
             status TEXT DEFAULT 'pending',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS research_staging (
+            id TEXT PRIMARY KEY,
+            directive TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
         CREATE TABLE IF NOT EXISTS remote_models (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
