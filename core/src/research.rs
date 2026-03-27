@@ -1,13 +1,9 @@
-use reqwest::Client;
+use rquest::Client;
+use rquest_util::Emulation;
 use scraper::{Html, Selector};
 use std::time::Duration;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-
-lazy_static::lazy_static! {
-    // 🛡️ [CHROME OOM GUARD] Limita a 2 o número MÁXIMO de Chromium rodando simultaneamente em todos os Requests!
-    static ref CHROME_SEMAPHORE: tokio::sync::Semaphore = tokio::sync::Semaphore::new(2);
-}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct TrustMatrix {
@@ -55,7 +51,7 @@ impl DeepResearchEngine {
     pub fn new(db_pool: Option<sqlx::SqlitePool>, adblock_engine: Option<crate::adblocker::AdblockHandle>, vault_path: Option<std::path::PathBuf>) -> Self {
         let client = Client::builder()
             .timeout(Duration::from_secs(15))
-            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
+            .emulation(Emulation::Chrome131) // 🛡️ Sovereign Stealth: TLS JA3/JA4 Spoofing
             .build()
             .unwrap_or_else(|_| Client::new());
 
@@ -83,67 +79,118 @@ impl DeepResearchEngine {
         let response = self.client.get(url).send().await.map_err(|e| format!("HTTP Request failed: {}", e))?;
         
         if !response.status().is_success() {
+            // WAF Ghost Fallback! Se tomar block da nuvem, não desiste: bate no arquivo morto.
+            if response.status() == 403 || response.status() == 401 || response.status() == 429 || response.status() == 406 {
+                tracing::warn!("🛡️ [WAF Blocked] Defesa Interceptada (HTTP {}). Acionando The Ghost Fallback (Wayback Machine)...", response.status());
+                return self.scrape_via_wayback_machine(url).await;
+            }
             return Err(format!("Server returned HTTP {}", response.status()));
         }
 
         let html_content = response.text().await.map_err(|e| format!("Failed to read HTML body: {}", e))?;
         
+        // --- HYDRATION HUNTER (Phase 4.2) ---
+        // Se a página for um SPA brutalmente ofuscado (Ex: Next.js), aborta o parsing
+        // de DOM (que estaria vazio) e saca diretamente do cofre JSON original!
+        if let Some(json_payload) = self.extract_hydration_json(&html_content) {
+            tracing::info!("🎯 [Ghost Scraper] Payload SSR Interceptado! Ignorando DOM Tree parser e entregando Ouro Puro.");
+            return Ok(json_payload);
+        }
+
         let markdown = self.sanitize_to_markdown(&html_content);
         
         // --- EPISTEMIC FALLBACK (JS/SPA DEFEATER) ---
-        // Se a página retornou menos de 400 caracteres de "texto líquido" OU clamou por javascript
         let is_suspect_spa = markdown.len() < 400 
             || markdown.to_lowercase().contains("enable javascript") 
             || markdown.to_lowercase().contains("javascript is required")
             || markdown.to_lowercase().contains("please wait...");
             
         if is_suspect_spa {
-            tracing::warn!("⚠️ [The Nurse / Scraper] Vazio Epistêmico Detectado! SPA local suspeito ({} bytes extraídos). Invocando Chrome Headless para rendering...", markdown.len());
-            if let Ok(js_markdown) = self.scrape_with_headless_chrome(url).await
-                && js_markdown.len() > markdown.len() {
-                    tracing::info!("✅ [Sovereign Headless Engine] Sucesso: Payload orgânico escalou para {} bytes via V8 Engine.", js_markdown.len());
-                    return Ok(js_markdown);
+            tracing::warn!("⚠️ [The Nurse / Scraper] Vazio Epistêmico Detectado! SPA interceptado ({} bytes extraídos). Acionando The Ghost Fallback...", markdown.len());
+            if let Ok(ghost_markdown) = self.scrape_via_wayback_machine(url).await {
+                if ghost_markdown.len() > markdown.len() {
+                    tracing::info!("✅ [Ghost Protocol] Sucesso! Payload histórico resgatado do Vácuo.");
+                    return Ok(ghost_markdown);
                 }
+            }
         }
         
         Ok(markdown)
     }
 
-    /// Extrator Pesado via Chromium Headless (Puppeteer Rust-Native)
-    async fn scrape_with_headless_chrome(&self, url: &str) -> Result<String, String> {
-        let url_clone = url.to_string();
-        
-        // 🛡️ OOM Guard: Aguarda vaga no Semaphore para impedir RAM Thrashing
-        let _permit = CHROME_SEMAPHORE.acquire().await.map_err(|e| format!("Falha de Semaphore V8: {}", e))?;
-        
-        tokio::task::spawn_blocking(move || {
-            use headless_chrome::{Browser, LaunchOptions};
-            
-            let options = LaunchOptions::default_builder()
-                .headless(true)
-                .sandbox(false)
-                .idle_browser_timeout(std::time::Duration::from_secs(45))
-                .build()
-                .map_err(|e| e.to_string())?;
+    /// O Caçador de Hidratação (SSR Ghost)
+    fn extract_hydration_json(&self, html: &str) -> Option<String> {
+        // 1. Next.js __NEXT_DATA__
+        let next_re = Regex::new(r#"<script id="__NEXT_DATA__" type="application/json">(\{.*?\})</script>"#).unwrap();
+        if let Some(cap) = next_re.captures(html) {
+            if let Some(json_str) = cap.get(1) {
+                // Return formatado para o LLM não precisar lutar com o AST
+                return Some(format!("```json\n{}\n```", json_str.as_str()));
+            }
+        }
 
-            let browser = Browser::new(options).map_err(|e| e.to_string())?;
-            let tab = browser.new_tab().map_err(|e| e.to_string())?;
+        // 2. SEO Microdata (JSON-LD)
+        let ld_re = Regex::new(r#"<script type="application/ld\+json">([\s\S]*?)</script>"#).unwrap();
+        let mut ld_blocks = Vec::new();
+        for cap in ld_re.captures_iter(html) {
+            if let Some(json_str) = cap.get(1) {
+                ld_blocks.push(json_str.as_str().trim().to_string());
+            }
+        }
+        if !ld_blocks.is_empty() {
+             let combined = ld_blocks.join("\n\n");
+             // Se tiver mais de 200 caracteres de metadata rica, consideramos um sucesso sólido
+             if combined.len() > 200 {
+                 return Some(format!("```json\n{}\n```", combined));
+             }
+        }
+
+        None
+    }
+
+    /// Ghost Fallback: Consome o cache passivo do Wayback Machine via CDX API para aniquilar WAFs
+    async fn scrape_via_wayback_machine(&self, url: &str) -> Result<String, String> {
+        tracing::info!("👻 [Ghost Protocol] Invocando arquivo passivo: web.archive.org/cdx");
+        
+        // 1. Busca a captura mais recente em JSON (Status=200 Orgânico apenas)
+        let cdx_url = format!("https://web.archive.org/cdx/search/cdx?url={}&output=json&limit=1&filter=statuscode:200", urlencoding::encode(url));
+        
+        let cdx_req = self.client.get(&cdx_url)
+            .header(rquest::header::USER_AGENT, Self::get_random_user_agent())
+            .send().await.map_err(|e| format!("Wayback CDX API falhou: {}", e))?;
             
-            tab.navigate_to(&url_clone).map_err(|e| e.to_string())?;
-            tab.wait_until_navigated().map_err(|e| e.to_string())?;
-            
-            // Fica dormindo 5.5 segundos para garantir que a Hidratação em React/Vue terminou no frontend alvo
-            std::thread::sleep(std::time::Duration::from_millis(5500)); 
-            
-            // Extraction via Native V8 JS Engine bypassing non-semantic DOM trees
-            let js_eval = tab.evaluate("document.body.innerText", false)
-                .map_err(|e| e.to_string())?;
-                
-            let text = js_eval.value.and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default();
-            Ok(text)
-        })
-        .await
-        .map_err(|e| format!("Thread Panic no Chrome: {}", e))?
+        if !cdx_req.status().is_success() {
+            return Err("Wayback Machine bloqueou ou não respondeu a query CDX.".to_string());
+        }
+        
+        let cdx_json: Vec<Vec<String>> = cdx_req.json().await.map_err(|_| "Falha ao ler cache CDX".to_string())?;
+        
+        if cdx_json.len() < 2 {
+            return Err("Wayback Machine reportou: Nenhum snapshot HTTP 200 encontrado para este domínio.".to_string());
+        }
+        
+        // 2. Extrai o timestamp da resposta
+        let timestamp = &cdx_json[1][1];
+        let original_url = &cdx_json[1][2]; // O target original url pode diferir levemente
+        
+        // 3. Monta a URL de visualização bruta (raw document para evitar o frame HTML do próprio archive)
+        let ghost_url = format!("https://web.archive.org/web/{}id_/{}", timestamp, original_url);
+        tracing::info!("🔗 [Ghost Protocol] Download passivo do snapshot efetuado no Timestamp: {}", timestamp);
+        
+        let ghost_req = self.client.get(&ghost_url).send().await.map_err(|e| format!("Falha no download via proxy fantasma: {}", e))?;
+        
+        if !ghost_req.status().is_success() {
+            return Err("Falha na descompressão do snapshot fantasma.".to_string());
+        }
+        
+        let ghost_html = ghost_req.text().await.unwrap_or_default();
+        
+        // Tenta achar JSON-LD interno no Ghost State primeiro
+        if let Some(json_payload) = self.extract_hydration_json(&ghost_html) {
+             return Ok(json_payload);
+        }
+        
+        Ok(self.sanitize_to_markdown(&ghost_html))
     }
 
     /// Limpa o HTML ruidoso (scripts, estilos, anúncios) e extrai o texto principal em formato Semântico (Markdown-like).
@@ -343,10 +390,10 @@ impl DeepResearchEngine {
         let url = format!("https://search.yahoo.com/search?p={}", urlencoding::encode(query));
         
         let req = self.client.get(&url)
-            .header(reqwest::header::USER_AGENT, Self::get_random_user_agent())
-            .header(reqwest::header::ACCEPT_LANGUAGE, "en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7")
-            .header(reqwest::header::ACCEPT, "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
-            .header(reqwest::header::DNT, "1")
+            .header(rquest::header::USER_AGENT, Self::get_random_user_agent())
+            .header(rquest::header::ACCEPT_LANGUAGE, "en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7")
+            .header(rquest::header::ACCEPT, "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+            .header(rquest::header::DNT, "1")
             .header("Sec-Ch-Ua", "\"Google Chrome\";v=\"123\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"")
             .header("Sec-Ch-Ua-Mobile", "?0")
             .header("Sec-Ch-Ua-Platform", "\"Windows\"")
@@ -500,44 +547,4 @@ mod tests {
         assert!(!markdown.contains("Adverts here"), "Scraper leaked <aside> tags!");
     }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-    async fn test_spa_javascript_escalation() {
-        println!("🚀 [SPA Stress Test] Inicializando o Motor Cíbrido...");
-        let engine = DeepResearchEngine::new(None, None, None);
-        
-        let urls = vec![
-            "https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/cotacoes/cotacoes/",
-            "https://www.bcb.gov.br/",
-        ];
-        
-        let mut tasks = Vec::new();
-
-        for url in urls {
-            let target = url.to_string();
-            
-            let task = tokio::spawn(async move {
-                let engine_local = DeepResearchEngine::new(None, None, None);
-                println!("📡 [SPA Test] Disparando Requisição Assíncrona para: {}", target);
-                let result = engine_local.scrape_url(&target).await;
-                
-                assert!(result.is_ok(), "❌ Falha crítica ao extrair dados de: {}", target);
-                let content = result.unwrap();
-                
-                println!("✅ Extração Completa para {}! Tamanho da Payload Markdown: {} bytes", target, content.len());
-                
-                assert!(content.len() > 200, "⚠️ [SPA Test] O Retorno do Scraper foi microscópico. Renderização falha? Conteúdo: {:?}", content);
-                content
-            });
-            
-            tasks.push(task);
-        }
-        
-        let results = futures_util::future::join_all(tasks).await;
-        
-        for res in results {
-            assert!(res.is_ok(), "Tokio Thread Panic during test");
-        }
-        
-        println!("🏆 [SPA Stress Test] Concluído com Sucesso! Semaphore Headless_Chrome Operacional.");
-    }
 }
