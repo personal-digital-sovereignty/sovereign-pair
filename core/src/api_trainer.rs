@@ -581,11 +581,34 @@ pub async fn run_deep_research_handler(
                             if let (Some(eval_count), Some(eval_duration)) = (
                                 json.get("eval_count").and_then(|v| v.as_u64()),
                                 json.get("eval_duration").and_then(|v| v.as_u64())
-                            )
-                                && let Ok(mut tel) = telemetry_ptr.write() {
-                                    let duration_ms = (eval_duration / 1_000_000) as u128;
+                            ) {
+                                let duration_ms = (eval_duration / 1_000_000) as u128;
+                                if let Ok(mut tel) = telemetry_ptr.write() {
                                     tel.record_session(eval_count as usize, duration_ms, &target_model_name);
                                 }
+                                
+                                if let Some(pool) = &engine_arc.db_pool {
+                                    let sql_model = target_model_name.clone();
+                                    let sql_tokens = eval_count as i64;
+                                    let sql_dur = duration_ms as i64;
+                                    let pool_clone = pool.clone();
+                                    tokio::spawn(async move {
+                                        let _ = sqlx::query(
+                                            "INSERT INTO model_metrics (model_name, total_tokens, total_duration_ms, first_used_at, last_used_at) 
+                                             VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                                             ON CONFLICT(model_name) DO UPDATE SET 
+                                                 total_tokens = total_tokens + excluded.total_tokens,
+                                                 total_duration_ms = total_duration_ms + excluded.total_duration_ms,
+                                                 last_used_at = CURRENT_TIMESTAMP"
+                                        )
+                                        .bind(&sql_model)
+                                        .bind(sql_tokens)
+                                        .bind(sql_dur)
+                                        .execute(&pool_clone)
+                                        .await;
+                                    });
+                                }
+                            }
                             break; // Sai do Agentic Loop!
                         }
                     } else if let Some(err) = json.get("error").and_then(|e| e.as_str()) {

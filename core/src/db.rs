@@ -159,6 +159,13 @@ pub async fn init_pool() -> SqlitePool {
             queries_processed INTEGER DEFAULT 0,
             last_lied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS model_metrics (
+            model_name TEXT PRIMARY KEY,
+            total_tokens INTEGER DEFAULT 0,
+            total_duration_ms INTEGER DEFAULT 0,
+            first_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
         CREATE TABLE IF NOT EXISTS trusted_sources (
             id TEXT PRIMARY KEY,
             domain TEXT UNIQUE NOT NULL,
