@@ -245,8 +245,12 @@ async fn execute_sub_analyst(
             }
 
     let mut raw_student_md = String::new();
-    if let Ok(links) = engine_arc.search_web(&search_query).await {
-        for link in links.into_iter().take(3) {
+    if let Ok(res) = engine_arc.search_web(&search_query).await {
+        if !res.snippets.is_empty() {
+            raw_student_md.push_str(&format!("## ZERO-CLICK SEARCH SNIPPETS (DuckDuckGo Lite)\n{}\n\n", res.snippets));
+        }
+
+        for link in res.links.into_iter().take(3) {
             if let Ok(md) = engine_arc.scrape_url(&link).await
                 && md.len() > 100 {
                     raw_student_md.push_str(&format!("## Source: {}\n{}\n\n", link, md.chars().take(2500).collect::<String>()));
@@ -351,13 +355,13 @@ pub async fn run_deep_research_handler(
             "type": "function",
             "function": {
                 "name": "dispatch_sub_researcher",
-                "description": "Faz uma pesquisa profunda na web focada ESTRITAMENTE em JORNALISMO TEXTUAL. Dica de Ouro: SEMPRE adicione a palavra 'noticias' a sua query para forçar o buscador a retornar jornais (que nós sabemos extrair perfeitamente). É PROIBIDO pesquisar por 'API', 'Gráfico' ou 'Dashboard'.",
+                "description": "Ferramenta de Extração Web Profunda. [REGRA ANTI-SEO]: Você DEVE escapar de lixos de SEO ('Top 10 Guias') construindo Dorks Operacionais. Para contextos institucionais/economia, force a busca via Dork (ex: `site:gov.br` ou `site:istoedinheiro.com.br`). Mas este porto seguro abrange APENAS 30% da sua jornada! Para código, debates técnicos ou visões humanas cruas (os outros 70%), fuja de domínios corporativos usando Dorks Booleanos como `(site:reddit.com | site:github.com | site:ycombinator.com)`.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "search_query": {
                             "type": "string",
-                            "description": format!("{} JAMAS use a sigla API.", query_example)
+                            "description": format!("{} Use lógicas booleanos (Dorks) avançados anti-seo ativamente se necessário. JAMAS use a sigla API.", query_example)
                         }
                     },
                     "required": ["search_query"]
@@ -386,12 +390,12 @@ pub async fn run_deep_research_handler(
                 "Você é Sophy, a IA Especialista Sênior do Sovereign Pair (Operando no Loop ReAct).\n\
                 [CRONOLOGIA SOBERANA] Hoje é exatamente: {current_date}.\n\
                 {}\n\
-                [DIRETRIZES DE RIGOR FACTUAL IMPRESCINDÍVEIS E DE TIER-1 / TIER-2]\n\
-                1. Você DEVE usar a ferramenta `dispatch_sub_researcher` para buscar DADOS REAIS da web.\n\
-                2. Trate fontes Governamentais (Banco Central, IBGE, gov.br) como os Guardiões Absolutos de Séries Históricas e Números Brutos.\n\
-                3. Trate fontes Jornalísticas como Guardiãs do Contexto e da geopolítica do dia a dia.\n\
-                4. Protocolo Anti-Alucinação: Se um dado numérico do jornalismo conflitar com o do Governo, NÃO tente adivinhar. Calcule a divergência matematicamente, cite as DUAS fontes e declare o Governo como o validador da série histórica.\n\
-                5. Só escreva o Relatório Final em Markdown após ter coletado todas as evidências em mãos via Tool Call.",
+                [DIRETRIZES DE DEEP RESEARCH & ANTI-SEO]\n\
+                1. Você DEVE usar a ferramenta `dispatch_sub_researcher` para buscar DADOS REAIS.\n\
+                2. [A REGRA DOS 30%]: Trate fontes Institucionais/Tier-1 como valiosas para FATOS CRUS, porém DEPENDA delas no máximo 30% das vezes.\n\
+                3. [FUGA DE SEO]: Nos outros 70%, assuma que o Google está envenenado por guias caça-clique de SEO. Se a pergunta buscar uma \"solução real humana\", crie queries usando operadores site: específicos (Fóruns Orgânicos, Github, Reddit) para evitar de cair em Content Farms idênticos.\n\
+                4. Protocolo Anti-Alucinação: Se um dado divergir entre jornais e o Governo, cite as DUAS fontes mantendo o Governo como baliza primária.\n\
+                5. Só escreva o Relatório Final após ter coletado as evidências purificadas via Tool Call.",
                 anchor_directive
             )
         };
@@ -427,14 +431,14 @@ pub async fn run_deep_research_handler(
         let olla_url = "http://127.0.0.1:11434/api/chat".to_string();
         let synthesis_client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(7200)).build().unwrap_or_else(|_| reqwest::Client::new());
         
-        // --- PHASE 41: TRINITY INQUISITION (QWEN, DEEPSEEK, PHI) ---
-        let sub_hierarchy_surgeon = vec!["refuel-llm-2-mini:1.5b", "qwen2.5:3b", "qwen2.5:1.5b", "qwen2.5:7b", "qwen2.5"];
-        let sub_hierarchy_reasoner = vec!["phi4-mini:latest", "phi4-mini", "smollm2:1.7b"];
-        let sub_hierarchy_cot = vec!["deepseek-r1:1.5b", "deepseek-r1", "phi4-mini"];
+        // --- PHASE 41: THE HONEST INQUISITOR (SINGLE AGENT) ---
+        // Eliminação da Trindade (Quórum) por sobrecarga de processamento. 
+        // A extração agora elege apenas UM sub-agente, classificado pelo banco SQLite como o que menos alucinou no passado.
+        let sub_hierarchy_trusted = vec!["qwen2.5:3b", "gemma2:2b", "phi4-mini", "llama3.2"];
+        let fallback_inquisitor = crate::api::discover_best_model(sub_hierarchy_trusted, "qwen2.5:3b").await;
         
-        let sub_model_surgeon = crate::api::discover_best_model(sub_hierarchy_surgeon, "qwen2.5:3b").await;
-        let sub_model_reasoner = crate::api::discover_best_model(sub_hierarchy_reasoner, "phi4-mini").await;
-        let sub_model_cot = crate::api::discover_best_model(sub_hierarchy_cot, "deepseek-r1").await;
+        // Elege o modelo empiricamente mais honesto (Ignora deepseek pois o prompt zero-shot quebra o json)
+        let auth_inquisitor = crate::api::query_most_honest_model(engine_arc.db_pool.as_ref(), &fallback_inquisitor).await;
         
         let mut all_sources = Vec::new();
         
@@ -477,72 +481,38 @@ pub async fn run_deep_research_handler(
                                         if sq.starts_with('{') && sq.contains("\"description\"")
                                             && let Ok(pseudo_json) = serde_json::from_str::<serde_json::Value>(&sq)
                                                 && let Some(desc) = pseudo_json.get("description").and_then(|d| d.as_str()) {
-                                                    let _ = TRAINER_LOGS.send("[Cognitive Nanny] Desarmando alucinação de JSON Schema do Llama 3B no Tool Call...".to_string());
+                                                    let _ = TRAINER_LOGS.send("[Firewall Cognitivo] Desarmando alucinação de JSON Schema do Llama 3B no Tool Call...".to_string());
                                                     sq = desc.to_string();
                                                 }
 
-                                        let _ = TRAINER_LOGS.send(format!("[Trinity Inquisition] Acareamento Paralelo (Quórum 2/3): Surgeon ({}), Reasoner ({}) e Auditor CoT ({}).", sub_model_surgeon, sub_model_reasoner, sub_model_cot));
+                                        let _ = TRAINER_LOGS.send(format!("[The Honest Inquisitor] Acionando Inquisidor Único de Confiança: {}", auth_inquisitor));
                                         
-                                        // Roda a extração rigorosamente restrita da Trindade EM PARALELO
-                                        let (res_surg, res_reas, res_cot) = tokio::join!(
-                                            execute_sub_analyst(sq.clone(), engine_arc.clone(), embed_client.clone(), sub_model_surgeon.clone()),
-                                            execute_sub_analyst(sq.clone(), engine_arc.clone(), embed_client.clone(), sub_model_reasoner.clone()),
-                                            execute_sub_analyst(sq.clone(), engine_arc.clone(), embed_client.clone(), sub_model_cot.clone())
-                                        );
+                                        // Roda a extração rigorosamente restrita do Modelo Solitário Eleito
+                                        let res_inquisitor = execute_sub_analyst(sq.clone(), engine_arc.clone(), embed_client.clone(), auth_inquisitor.clone()).await;
                                         
-                                        // A LÓGICA DE ACAREAMENTO (QUÓRUM 2/3)
-                                        let surg_failed = res_surg.contains("DADO NÃO ENCONTRADO") || res_surg.contains("Falha do aluno");
-                                        let reas_failed = res_reas.contains("DADO NÃO ENCONTRADO") || res_reas.contains("Falha do aluno");
-                                        let cot_failed = res_cot.contains("DADO NÃO ENCONTRADO") || res_cot.contains("Falha do aluno");
+                                        // A LÓGICA DE ACAREAMENTO (SINGLE-AGENT TRUSTED)
+                                        let inquisitor_failed = res_inquisitor.contains("DADO NÃO ENCONTRADO") || res_inquisitor.contains("Falha do aluno");
                                         
-                                        let fail_count = (if surg_failed { 1 } else { 0 }) + (if reas_failed { 1 } else { 0 }) + (if cot_failed { 1 } else { 0 });
-                                        
-                                        let final_result = if fail_count >= 2 {
-                                            // Quórum (2 de 3) concorda que os dados NÃO existem.
-                                            let mut liar = String::new();
-                                            if !surg_failed { liar = sub_model_surgeon.clone(); }
-                                            if !reas_failed { liar = sub_model_reasoner.clone(); }
-                                            if !cot_failed { liar = sub_model_cot.clone(); }
-                                            
-                                            // Se houve 1 mentiroso... pune ele!
-                                            if !liar.is_empty() {
-                                                let _ = TRAINER_LOGS.send(format!("[Hallucination Ledger] MENTIRA DETECTADA NA TRINDADE! O modelo '{}' alucinou predições numéricas enquanto os outros dois provaram que o HTML estava vazio.", liar));
-                                                if let Some(pool) = &engine_arc.db_pool {
-                                                    let uuid_str = uuid::Uuid::new_v4().to_string();
-                                                    let _ = sqlx::query("
-                                                        INSERT INTO model_hallucinations (id, model_name, lies_detected, queries_processed, last_lied_at)
-                                                        VALUES (?, ?, 1, 1, CURRENT_TIMESTAMP)
-                                                        ON CONFLICT(id) DO UPDATE SET lies_detected = lies_detected + 1, queries_processed = queries_processed + 1, last_lied_at = CURRENT_TIMESTAMP
-                                                    ").bind(uuid_str).bind(&liar).execute(pool).await;
-                                                }
-                                            }
-                                            
+                                        let final_result = if inquisitor_failed {
                                             "NÃO EXISTEM DADOS MATEMÁTICOS PARA ESTA QUERY NO HTML RASPADO (POSSÍVEL BLOQUEIO DE JAVASCRIPT OU SINGLE PAGE APPLICATION). RECOMENDE AO COMANDANTE USAR API EXTERNA.".to_string()
                                         } else {
-                                            // Quórum de aprovação (Pelo menos 2 acharam).
-                                            let mut divergence = false;
+                                            // Passou! Assumimos como verdade absoluta devido ao Tracker Histórico.
+                                            let _ = TRAINER_LOGS.send("[The Honest Inquisitor] Extração Validada por Grau de Veracidade!".to_string());
                                             
-                                            // Verifica discrepância monstruosa de tamanho
-                                            let mut ok_results = Vec::new();
-                                            if !surg_failed { ok_results.push(res_surg.clone()); }
-                                            if !reas_failed { ok_results.push(res_reas.clone()); }
-                                            if !cot_failed { ok_results.push(res_cot.clone()); }
-                                            
-                                            if ok_results.len() >= 2 {
-                                                let diff = (ok_results[0].len() as isize - ok_results[1].len() as isize).abs();
-                                                if diff > 300 { divergence = true; }
+                                            // Checagem extra de punição para caso ele seja um impostor
+                                            if res_inquisitor.len() < 50 && res_inquisitor.to_lowercase().contains("não ") {
+                                                 let _ = TRAINER_LOGS.send(format!("[Hallucination Ledger] MENTIRA DETECTADA (Falso Negativo Absoluto)! {}", auth_inquisitor));
+                                                 if let Some(pool) = &engine_arc.db_pool {
+                                                     let uuid_str = uuid::Uuid::new_v4().to_string();
+                                                     let _ = sqlx::query("
+                                                         INSERT INTO model_hallucinations (id, model_name, lies_detected, queries_processed, last_lied_at)
+                                                         VALUES (?, ?, 1, 1, CURRENT_TIMESTAMP)
+                                                         ON CONFLICT(id) DO UPDATE SET lies_detected = lies_detected + 1, queries_processed = queries_processed + 1, last_lied_at = CURRENT_TIMESTAMP
+                                                     ").bind(uuid_str).bind(&auth_inquisitor).execute(pool).await;
+                                                 }
                                             }
-                                            
-                                            if divergence {
-                                                let _ = TRAINER_LOGS.send("[Hallucination Ledger] DIVERGÊNCIA SEVERA NO QUÓRUM! Os modelos não concordaram no payload extraído.".to_string());
-                                                "DADOS INCONSISTENTES NA TRINDADE: O HTML parecia retornar dados, mas os Inquisidores divergiram pesadamente na leitura da tabela. Não confie nessa extração.".to_string()
-                                            } else {
-                                                // Tudo Certo! A gente confia Primordialmente no Surgeon/Anchor para a formatação final.
-                                                let validated = if !surg_failed { res_surg.clone() } else { ok_results[0].clone() };
-                                                all_sources.push(validated.clone());
-                                                let _ = TRAINER_LOGS.send("[Trinity Inquisition] Extração Validada por Quórum Majoritário!".to_string());
-                                                validated
-                                            }
+                                            all_sources.push(res_inquisitor.clone());
+                                            res_inquisitor.clone()
                                         };
                                         
                                         let scaped_count = final_result.lines().filter(|l| l.starts_with("## Source:")).count();
@@ -550,7 +520,7 @@ pub async fn run_deep_research_handler(
                                             let _ = TRAINER_LOGS.send(format!("[SCRAPED: {}]", scaped_count));
                                         }
 
-                                        let _ = TRAINER_LOGS.send(format!("[Cognitive Nanny] Acareamento resolvido para a query '{}'", sq));
+                                        let _ = TRAINER_LOGS.send(format!("[Firewall Cognitivo] Acareamento resolvido para a query '{}'", sq));
                                         
                                         // Devolve a resposta do Tool para a memória do Mestre
                                         messages.push(serde_json::json!({
@@ -566,7 +536,7 @@ pub async fn run_deep_research_handler(
                         else if let Some(content) = msg_obj.get("content").and_then(|c| c.as_str()) {
                             // Firewall Cognitivo: Roteamento Híbrido por Regex/Parsing (Fallback para 3B Low-End)
                             if content.contains("\"dispatch_sub_researcher\"") && content.contains("\"search_query\"") {
-                                let _ = TRAINER_LOGS.send("[Cognitive Nanny] Vazamento de JSON detectado no output de texto! Interceptando rotina Low-End...".to_string());
+                                let _ = TRAINER_LOGS.send("[Firewall Cognitivo] Vazamento de JSON detectado no output de texto! Interceptando rotina Low-End...".to_string());
                                 
                                 if let (Some(start), Some(end)) = (content.find('{'), content.rfind('}'))
                                     && start < end {
@@ -577,59 +547,22 @@ pub async fn run_deep_research_handler(
                                                     let _ = TRAINER_LOGS.send(format!("[Thought Nanny] Mestre Low-End despacha Aluno para: '{}'", sq));
                                                     
                                                     let sq_string = sq.to_string();
-                                                    let _ = TRAINER_LOGS.send(format!("[Trinity Inquisition] Acareamento Paralelo (Quórum 2/3) FALLBACK: Surgeon ({}), Reasoner ({}) e Auditor CoT ({}).", sub_model_surgeon, sub_model_reasoner, sub_model_cot));
+                                                    let sq_string = sq.to_string();
+                                                    let _ = TRAINER_LOGS.send(format!("[The Honest Inquisitor] Sub-Agente Low-End Eleito Para Fallback: {}", auth_inquisitor));
                                                     
-                                                    let (res_surg, res_reas, res_cot) = tokio::join!(
-                                                        execute_sub_analyst(sq_string.clone(), engine_arc.clone(), embed_client.clone(), sub_model_surgeon.clone()),
-                                                        execute_sub_analyst(sq_string.clone(), engine_arc.clone(), embed_client.clone(), sub_model_reasoner.clone()),
-                                                        execute_sub_analyst(sq_string.clone(), engine_arc.clone(), embed_client.clone(), sub_model_cot.clone())
-                                                    );
+                                                    let res_inquisitor_fb = execute_sub_analyst(sq_string.clone(), engine_arc.clone(), embed_client.clone(), auth_inquisitor.clone()).await;
                                                     
-                                                    let surg_failed = res_surg.contains("DADO NÃO ENCONTRADO") || res_surg.contains("Falha do aluno");
-                                                    let reas_failed = res_reas.contains("DADO NÃO ENCONTRADO") || res_reas.contains("Falha do aluno");
-                                                    let cot_failed = res_cot.contains("DADO NÃO ENCONTRADO") || res_cot.contains("Falha do aluno");
+                                                    let inquisitor_failed_fb = res_inquisitor_fb.contains("DADO NÃO ENCONTRADO") || res_inquisitor_fb.contains("Falha do aluno");
                                                     
-                                                    let fail_count = (if surg_failed { 1 } else { 0 }) + (if reas_failed { 1 } else { 0 }) + (if cot_failed { 1 } else { 0 });
-                                                    
-                                                    let final_result = if fail_count >= 2 {
-                                                        let mut liar = String::new();
-                                                        if !surg_failed { liar = sub_model_surgeon.clone(); }
-                                                        if !reas_failed { liar = sub_model_reasoner.clone(); }
-                                                        if !cot_failed { liar = sub_model_cot.clone(); }
-                                                        
-                                                        if !liar.is_empty() {
-                                                            let _ = TRAINER_LOGS.send(format!("[Hallucination Ledger] MENTIRA DETECTADA (Gatilho Low-End)! O modelo '{}' alucinou predições numéricas.", liar));
-                                                            if let Some(pool) = &engine_arc.db_pool {
-                                                                let uuid_str = uuid::Uuid::new_v4().to_string();
-                                                                let _ = sqlx::query("
-                                                                    INSERT INTO model_hallucinations (id, model_name, lies_detected, queries_processed, last_lied_at)
-                                                                    VALUES (?, ?, 1, 1, CURRENT_TIMESTAMP)
-                                                                    ON CONFLICT(id) DO UPDATE SET lies_detected = lies_detected + 1, queries_processed = queries_processed + 1, last_lied_at = CURRENT_TIMESTAMP
-                                                                ").bind(uuid_str).bind(&liar).execute(pool).await;
-                                                            }
-                                                        }
+                                                    let final_result = if inquisitor_failed_fb {
                                                         "NÃO EXISTEM DADOS MATEMÁTICOS PARA ESTA QUERY NO HTML RASPADO (POSSÍVEL BLOQUEIO DE JAVASCRIPT OU SINGLE PAGE APPLICATION). RECOMENDE AO COMANDANTE USAR API EXTERNA.".to_string()
                                                     } else {
-                                                        let mut ok_results = Vec::new();
-                                                        if !surg_failed { ok_results.push(res_surg.clone()); }
-                                                        if !reas_failed { ok_results.push(res_reas.clone()); }
-                                                        if !cot_failed { ok_results.push(res_cot.clone()); }
-                                                        
-                                                        let divergence = if ok_results.len() >= 2 {
-                                                            (ok_results[0].len() as isize - ok_results[1].len() as isize).abs() > 300
-                                                        } else { false };
-                                                        
-                                                        if divergence {
-                                                            let _ = TRAINER_LOGS.send("[Hallucination Ledger] DIVERGÊNCIA SEVERA LOW-END NO QUÓRUM!".to_string());
-                                                            "DADOS INCONSISTENTES NO ACAREAMENTO: O HTML parecia retornar dados, mas os Inquisidores divergiram pesadamente. Não confie nessa extração.".to_string()
-                                                        } else {
-                                                            let validated = if !surg_failed { res_surg.clone() } else { ok_results[0].clone() };
-                                                            all_sources.push(validated.clone());
-                                                            validated
-                                                        }
+                                                        let _ = TRAINER_LOGS.send("[The Honest Inquisitor] Extração Validada no Fallback!".to_string());
+                                                        all_sources.push(res_inquisitor_fb.clone());
+                                                        res_inquisitor_fb.clone()
                                                     };
 
-                                                    let _ = TRAINER_LOGS.send("[Cognitive Nanny] Acareamento Low-End da Trindade processado.".to_string());
+                                                    let _ = TRAINER_LOGS.send("[Firewall Cognitivo] Acareamento Low-End do The Honest Inquisitor processado.".to_string());
                                                     
                                                     messages.push(serde_json::json!({
                                                         "role": "user",
@@ -674,8 +607,8 @@ pub async fn run_deep_research_handler(
         tokio::time::sleep(std::time::Duration::from_millis(800)).await;
 
         let final_markdown_report = if all_sources.is_empty() {
-            let _ = TRAINER_LOGS.send("[EPISTEMIC VACCINE HARD-KILL] Zero dados extrativos validados pela Trindade. Acionando Babá Cognitiva mas preservando o raciocínio final do Mestre.".to_string());
-            format!(">[!WARNING] **OPERAÇÃO ABORTADA PELA BABÁ COGNITIVA:** Nenhuma fonte web passou no crivo da Inquisição Cíbrida (Vazio Epistêmico ou WAF Intransponível). Para satisfazer a política de Defesa 'Anti-Alucinação Numérica', a dedução pura da IA está isolada abaixo.\n\n### Último Raciocínio (Chain of Thought):\n> {}", synthesized_report)
+            let _ = TRAINER_LOGS.send("[EPISTEMIC VACCINE HARD-KILL] Zero dados extrativos validados pela Trindade. Acionando Firewall Cognitivo mas preservando o raciocínio final do Mestre.".to_string());
+            format!(">[!WARNING] **OPERAÇÃO ABORTADA PELO FIREWALL COGNITIVO:** Nenhuma fonte web passou no crivo da Inquisição Cíbrida (Vazio Epistêmico ou WAF Intransponível). Para satisfazer a política de Defesa 'Anti-Alucinação Numérica', a dedução pura da IA está isolada abaixo.\n\n### Último Raciocínio (Chain of Thought):\n> {}", synthesized_report)
         } else if is_low_end {
             let _ = TRAINER_LOGS.send("[The Scribe] Low-End Engine detectada. Invocando Agent especialista para formatar os fatos brutos em Markdown...".to_string());
             let scribe_prompt = format!(

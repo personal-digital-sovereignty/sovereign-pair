@@ -38,6 +38,12 @@ struct ScoredUrl {
     score: i32,
 }
 
+/// Struct de Transferência de Conhecimento Zero-Click
+pub struct SovereignSearchResult {
+    pub links: Vec<String>,
+    pub snippets: String, // Texto bruto dos fragmentos de resultado de busca
+}
+
 /// Arquitetura nativa do Sovereign Web-Augmented Generation (WAG)
 /// Blindada via Rust para injetar contexto externo ao RAG Cíbrido.
 pub struct DeepResearchEngine {
@@ -74,16 +80,69 @@ impl DeepResearchEngine {
         Self { client, db_pool, adblock_engine, trust_matrix }
     }
 
+    /// Extrai o domínio principal da URL para servir de chave primaria no Ledger.
+    fn extract_domain(url: &str) -> String {
+        let no_protocol = url.trim_start_matches("https://").trim_start_matches("http://").trim_start_matches("www.");
+        no_protocol.split('/').next().unwrap_or(url).to_string()
+    }
+
+    /// Atualiza o Ledger de Domínios para aplicar as regras de Quarentena de 60 Dias
+    async fn update_domain_ledger(&self, url: &str, html_success: bool, ghost_success: bool) {
+        if let Some(pool) = &self.db_pool {
+            let domain = Self::extract_domain(url);
+            let uuid_str = uuid::Uuid::new_v4().to_string();
+            
+            let quarantine = if !html_success && !ghost_success {
+                "datetime('now', '+60 days')"
+            } else {
+                "NULL"
+            };
+
+            let q = format!("
+                INSERT INTO domain_extraction_ledger (id, domain, technique_html_success, technique_ghost_success, quarantine_until, last_attempted_at)
+                VALUES (?, ?, ?, ?, {}, CURRENT_TIMESTAMP)
+                ON CONFLICT(domain) DO UPDATE SET 
+                    technique_html_success = ?, 
+                    technique_ghost_success = ?, 
+                    quarantine_until = {},
+                    last_attempted_at = CURRENT_TIMESTAMP
+            ", quarantine, quarantine);
+
+            let _ = sqlx::query(&q)
+                .bind(&uuid_str)
+                .bind(&domain)
+                .bind(html_success)
+                .bind(ghost_success)
+                .bind(html_success)
+                .bind(ghost_success)
+                .execute(pool)
+                .await;
+        }
+    }
+
     /// Realiza a varredura e o scrape profundo da URL alvo.
     pub async fn scrape_url(&self, url: &str) -> Result<String, String> {
+        // --- QUARANTINE FIREWALL ---
+        if let Some(pool) = &self.db_pool {
+            let domain = Self::extract_domain(url);
+            if let Ok(Some(date)) = sqlx::query_scalar::<_, String>("SELECT quarantine_until FROM domain_extraction_ledger WHERE domain = ? AND quarantine_until > CURRENT_TIMESTAMP").bind(&domain).fetch_optional(pool).await {
+                tracing::warn!("⛔ [Sovereign Firewall] Domínio '{}' está restrito na Quarentena de WAF até {}. Economizando ciclos de CPU e ignorando URL.", domain, date);
+                return Err(format!("Domain '{}' is currently Quarantined due to WAF Blocks.", domain));
+            }
+        }
+
         let response = self.client.get(url).send().await.map_err(|e| format!("HTTP Request failed: {}", e))?;
         
         if !response.status().is_success() {
-            // WAF Ghost Fallback! Se tomar block da nuvem, não desiste: bate no arquivo morto.
-            if response.status() == 403 || response.status() == 401 || response.status() == 429 || response.status() == 406 {
-                tracing::warn!("🛡️ [WAF Blocked] Defesa Interceptada (HTTP {}). Acionando The Ghost Fallback (Wayback Machine)...", response.status());
-                return self.scrape_via_wayback_machine(url).await;
+            // WAF Ghost Fallback! Se tomar block da nuvem, não desiste: bate no arquivo morto multi-plataforma.
+            if response.status() == 403 || response.status() == 401 || response.status() == 429 || response.status() == 406 || response.status() == 503 {
+                tracing::warn!("🛡️ [WAF Blocked] Defesa Interceptada (HTTP {}). Acionando The Ghost Fallback Protocol...", response.status());
+                if let Ok(ghost_data) = self.scrape_ghost_fallbacks(url).await {
+                    self.update_domain_ledger(url, false, true).await;
+                    return Ok(ghost_data);
+                }
             }
+            self.update_domain_ledger(url, false, false).await;
             return Err(format!("Server returned HTTP {}", response.status()));
         }
 
@@ -94,6 +153,7 @@ impl DeepResearchEngine {
         // de DOM (que estaria vazio) e saca diretamente do cofre JSON original!
         if let Some(json_payload) = self.extract_hydration_json(&html_content) {
             tracing::info!("🎯 [Ghost Scraper] Payload SSR Interceptado! Ignorando DOM Tree parser e entregando Ouro Puro.");
+            self.update_domain_ledger(url, true, false).await;
             return Ok(json_payload);
         }
 
@@ -106,13 +166,17 @@ impl DeepResearchEngine {
             || markdown.to_lowercase().contains("please wait...");
             
         if is_suspect_spa {
-            tracing::warn!("⚠️ [The Nurse / Scraper] Vazio Epistêmico Detectado! SPA interceptado ({} bytes extraídos). Acionando The Ghost Fallback...", markdown.len());
-            if let Ok(ghost_markdown) = self.scrape_via_wayback_machine(url).await {
+            tracing::warn!("⚠️ [The Nurse / Scraper] Vazio Epistêmico Detectado! SPA interceptado ({} bytes extraídos). Acionando The Ghost Fallback Protocol...", markdown.len());
+            if let Ok(ghost_markdown) = self.scrape_ghost_fallbacks(url).await {
                 if ghost_markdown.len() > markdown.len() {
-                    tracing::info!("✅ [Ghost Protocol] Sucesso! Payload histórico resgatado do Vácuo.");
+                    tracing::info!("✅ [Ghost Protocol] Sucesso! Payload histórico resgatado do Vácuo Multi-Plataforma.");
+                    self.update_domain_ledger(url, false, true).await;
                     return Ok(ghost_markdown);
                 }
             }
+            self.update_domain_ledger(url, false, false).await;
+        } else {
+            self.update_domain_ledger(url, true, false).await;
         }
         
         Ok(markdown)
@@ -146,6 +210,55 @@ impl DeepResearchEngine {
         }
 
         None
+    }
+
+    /// O Master Router do Ghost Protocol: Tenta extração simultânea de Caches Globais
+    async fn scrape_ghost_fallbacks(&self, url: &str) -> Result<String, String> {
+        let (wayback, gcache, archive_ph) = tokio::join!(
+            self.scrape_via_wayback_machine(url),
+            self.scrape_via_google_cache(url),
+            self.scrape_via_archive_today(url)
+        );
+
+        if let Ok(md) = wayback {
+            if md.len() > 200 { return Ok(md); }
+        }
+        if let Ok(md) = gcache {
+            if md.len() > 200 { return Ok(md); }
+        }
+        if let Ok(md) = archive_ph {
+            if md.len() > 200 { return Ok(md); }
+        }
+
+        Err("Todas as 3 malhas de The Ghost Fallback Protocol falharam ou retornaram o vácuo.".to_string())
+    }
+
+    async fn scrape_via_google_cache(&self, url: &str) -> Result<String, String> {
+        let cache_url = format!("https://webcache.googleusercontent.com/search?q=cache:{}", urlencoding::encode(url));
+        if let Ok(resp) = self.client.get(&cache_url).header(rquest::header::USER_AGENT, Self::get_random_user_agent()).send().await {
+            if resp.status().is_success() {
+                if let Ok(html) = resp.text().await {
+                    let markdown = self.sanitize_to_markdown(&html);
+                    tracing::info!("👻 [Ghost Protocol] Google Cache Hit: {} bytes resgatados.", markdown.len());
+                    return Ok(markdown);
+                }
+            }
+        }
+        Err("Google Cache Fallback Failed".to_string())
+    }
+
+    async fn scrape_via_archive_today(&self, url: &str) -> Result<String, String> {
+        let archive_url = format!("https://archive.ph/latest/{}", url);
+        if let Ok(resp) = self.client.get(&archive_url).header(rquest::header::USER_AGENT, Self::get_random_user_agent()).send().await {
+            if resp.status().is_success() {
+                if let Ok(html) = resp.text().await {
+                    let markdown = self.sanitize_to_markdown(&html);
+                    tracing::info!("👻 [Ghost Protocol] Archive.today Hit: {} bytes resgatados.", markdown.len());
+                    return Ok(markdown);
+                }
+            }
+        }
+        Err("Archive.today Fallback Failed".to_string())
     }
 
     /// Ghost Fallback: Consome o cache passivo do Wayback Machine via CDX API para aniquilar WAFs
@@ -200,6 +313,7 @@ impl DeepResearchEngine {
         // Remove tags ofensores (Anti-Junk)
         // Isso é uma filtragem em memória antes da decodificação.
         let mut text_blocks = Vec::new();
+        let mut lexical_density_tracker = std::collections::HashMap::new();
         
         // Vamos capturar apenas elementos atômicos contendo texto orgânico e dados tabulares
         let selector = Selector::parse("p, h1, h2, h3, h4, h5, h6, li, td, th").unwrap();
@@ -239,6 +353,18 @@ impl DeepResearchEngine {
                 continue;
             }
             
+            // Filtro 3: Lexical Density (SEO Content Farms Spam)
+            // Lixo SEO tem o péssimo hábito de repetir parágrafos idênticos ("Veja os Melhores X de 2026")
+            if clean_text.len() > 40 {
+                let freq = lexical_density_tracker.entry(clean_text.to_string()).or_insert(0);
+                *freq += 1;
+                
+                if *freq > 4 {
+                    tracing::error!("☣️ [Anti-SEO Firewall] Boilerplate Tóxico Detectado! Parágrafo ({} bytes) repetido 5x. Abortando árvore DOM por completo...", clean_text.len());
+                    return String::new(); // Retorna vazio. Isso fará o scraper classificar como Vazio Epistemico e pular!
+                }
+            }
+            
             // Formata o header
             let formatted = match tag_name {
                 "h1" => format!("# {}\n", clean_text),
@@ -265,52 +391,93 @@ impl DeepResearchEngine {
         markdown
     }
 
-    /// Dispara a busca Multi-Hop com tolerância impecável a falhas WAF/Cloudflare.
-    /// Estratégia 1: Sovereign Meta-Search (Proxy Nativo)
-    /// Estratégia 2: Rotação Cíbrida Global de SearxNGs
-    pub async fn search_web(&self, query: &str) -> Result<Vec<String>, String> {
-        tracing::info!("🔍 [WAG] Inicializando Busca Autônoma Sovereign Meta-Search por: '{}'", query);
+    /// Extrator Semântico Zero-Click: Varre DuckDuckGo Lite para extrair os "Snippets" (Descrição do Resultado) 
+    async fn search_duckduckgo_lite(&self, query: &str) -> String {
+        let url = "https://lite.duckduckgo.com/lite/";
+        let params = [("q", query), ("kl", "br-pt")];
         
-        // 1. O SOVEREIGN PARSER: Tenta raspar via Proxy Native com User-Agent Rotativo
-        match self.search_sovereign_meta(query).await {
+        let req = self.client.post(url)
+            .header(rquest::header::USER_AGENT, Self::get_random_user_agent())
+            .header(rquest::header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+            .header(rquest::header::ACCEPT, "text/html,application/xhtml+xml,application/xml")
+            .header("Sec-Ch-Ua", "\"Google Chrome\";v=\"131\", \"Not:A-Brand\";v=\"8\"")
+            .header("Sec-Ch-Ua-Mobile", "?0")
+            .header("Sec-Ch-Ua-Platform", "\"Windows\"")
+            .form(&params)
+            .send()
+            .await;
+
+        match req {
+            Ok(response) => {
+                if let Ok(html) = response.text().await {
+                    let document = scraper::Html::parse_document(&html);
+                    let selector_snippet = scraper::Selector::parse("td.result-snippet").unwrap();
+                    let mut snippets_markdown = String::new();
+                    
+                    for element in document.select(&selector_snippet).take(8) {
+                        let text: Vec<_> = element.text().collect();
+                        let clean_text = text.join(" ").replace("\n", " ").trim().to_string();
+                        if clean_text.len() > 10 {
+                            snippets_markdown.push_str(&format!("- [DDG Organic Snippet]: {}\n", clean_text));
+                        }
+                    }
+                    return snippets_markdown;
+                }
+            },
+            Err(e) => {
+                tracing::debug!("🚨 DDG Sniper Erro: {}", e);
+            }
+        }
+        String::new()
+    }
+
+    /// Dispara a busca Multi-Hop com tolerância impecável a falhas WAF/Cloudflare.
+    pub async fn search_web(&self, query: &str) -> Result<SovereignSearchResult, String> {
+        tracing::info!("🔍 [WAG] Inicializando Busca Autônoma Sovereign Omni-Scraper por: '{}'", query);
+        
+        // 1. O SOVEREIGN PARSER PARALELO: Tenta raspar Proxy Native + DuckDuckGo Snippets
+        let (yahoo_res, ddg_snippets) = tokio::join!(
+            self.search_sovereign_meta(query),
+            self.search_duckduckgo_lite(query)
+        );
+
+        let mut final_links = Vec::new();
+
+        match yahoo_res {
             Ok(links) if !links.is_empty() => {
-                let clean_links = self.apply_pi_hole_filter(links).await;
-                tracing::info!("✅ [WAG] Sovereign Meta-Search Bem-Sucedido! ({}) links orgânicos purificados.", clean_links.len());
-                return Ok(clean_links);
+                final_links = self.apply_pi_hole_filter(links).await;
+                tracing::info!("✅ [WAG] Sovereign Meta-Search Bem-Sucedido! ({}) links orgânicos purificados.", final_links.len());
             },
             Err(e) => {
                 let msg = format!("⚠️ [WAG Fallback] O motor primário tomou WAF Block. Rotacionando para SearXNG P2P. Erro: {}", e);
                 tracing::warn!("{}", msg);
-                if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open("deep_research_waf_audit.log") {
-                    use std::io::Write;
-                    let _ = writeln!(&mut file, "[Deep Research Agent] {}", msg);
-                }
             },
             _ => {
-                let msg = "⚠️ [WAG Fallback] O motor primário encontrou 0 resultados ou tomou proxy reset.";
-                tracing::warn!("{}", msg);
-                if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open("deep_research_waf_audit.log") {
-                    use std::io::Write;
-                    let _ = writeln!(&mut file, "[Deep Research Agent] {}", msg);
+                tracing::warn!("⚠️ [WAG Fallback] O motor primário encontrou 0 resultados.");
+            }
+        }
+
+        // 2. O FALLBACK SOBERANO: Motores P2P
+        if final_links.is_empty() {
+            match self.search_searxng_public(query).await {
+                Ok(links) if !links.is_empty() => {
+                    final_links = self.apply_pi_hole_filter(links).await;
+                    tracing::info!("✅ [WAG] Busca Cíbrida SearxNG Bem-Sucedida! ({}) links ancorados.", final_links.len());
+                },
+                _ => {
+                    tracing::error!("❌ [WAG Fim de Linha] WAF Absoluto. SearXNG caiu também.");
                 }
             }
         }
 
-        // 2. O FALLBACK SOBERANO: Motores de Busca Descentralizados P2P (Estratégia 2)
-        match self.search_searxng_public(query).await {
-            Ok(links) if !links.is_empty() => {
-                let clean_links = self.apply_pi_hole_filter(links).await;
-                tracing::info!("✅ [WAG] Busca Cíbrida SearxNG Bem-Sucedida! ({}) links limpos ancorados.", clean_links.len());
-                Ok(clean_links)
-            },
-            Err(e) => {
-                tracing::error!("❌ [WAG Fim de Linha] WAF Absoluto. Nenhuma instância pública do SearxNG sobreviveu. Erro: {}", e);
-                Err(format!("Dual-Engine Crash. WAF Block total ativo na malha. {}", e))
-            },
-            _ => {
-                Err("Dual-Engine não achou nenhum resultado útil para a query.".to_string())
-            }
+        if final_links.is_empty() && ddg_snippets.is_empty() {
+             return Err("Dual-Engine Crash. WAF Block total e Snippets falharam.".to_string());
         }
+
+        Ok(SovereignSearchResult {
+            links: final_links,
+            snippets: ddg_snippets,
+        })
     }
 
     /// Implementa o Sovereign Pi-Hole: Trilha a lista inteira contra o motor Bravee C/Rust
@@ -338,27 +505,60 @@ impl DeepResearchEngine {
     }
 
     /// Executa o algoritmo de Vetting Institucional.
-    /// Avalia cada link orgânico extraído e joga fontes Tier-1 e Tier-2 para o Topo do Index, 
-    /// destruindo algoritmos de SEO falsos.
-    fn assign_sovereign_trust_score(&self, links: Vec<String>) -> Vec<String> {
+    /// Avalia cada link orgânico extraído e joga fontes Tier-1 e Tier-2 para o Topo do Index.
+    /// Puxa os domínios PRIMEIRO do Banco de Dados Dinâmico `trusted_sources`.
+    async fn assign_sovereign_trust_score(&self, links: Vec<String>) -> Vec<String> {
+        let mut tier_1_domains = self.trust_matrix.tier1.clone();
+        let mut tier_2_domains = self.trust_matrix.tier2.clone();
+        
+        // Fetch do SQLite (Source DB Primária)
+        if let Some(pool) = &self.db_pool {
+            if let Ok(records) = sqlx::query(
+                "SELECT domain, tier FROM trusted_sources WHERE is_active = 1"
+            ).fetch_all(pool).await {
+                let mut db_t1 = Vec::new();
+                let mut db_t2 = Vec::new();
+                for r in records {
+                    use sqlx::Row;
+                    let domain: String = r.try_get("domain").unwrap_or_default();
+                    let tier: i32 = r.try_get("tier").unwrap_or(2);
+                    if tier == 1 { db_t1.push(domain); }
+                    else if tier == 2 { db_t2.push(domain); }
+                }
+                tier_1_domains.extend(db_t1);
+                tier_2_domains.extend(db_t2);
+            }
+        }
+
         let mut scored_links: Vec<ScoredUrl> = links.into_iter().map(|url| {
             let mut score = 0;
             let url_lower = url.to_lowercase();
             
-            // Check Trust Matrix (Epistemology Rule)
-            if self.trust_matrix.tier1.iter().any(|d| url_lower.contains(d)) {
-                score += 200; // Tier 1: Guardian of Raw Numbers (gov.br, ibge)
-            } else if self.trust_matrix.tier2.iter().any(|d| url_lower.contains(d)) {
-                score += 200; // Tier 2: Guardian of the Narrative (Equal Epistemic weight!)
+            // Phase 7: The 30% Trust Rule (Limiting absolute bias)
+            if tier_1_domains.iter().any(|d| url_lower.contains(d)) {
+                score += 50; // Tier 1: Guardian of Raw Numbers
+            } else if tier_2_domains.iter().any(|d| url_lower.contains(d)) {
+                score += 40; // Tier 2: Guardian of the Narrative
             } else if self.trust_matrix.encyclopedia.iter().any(|d| url_lower.contains(d)) {
-                score += 30;
+                score += 20; // Wikipedia
             } else if url_lower.contains(".org") || url_lower.contains(".io") {
-                score += 10;
+                score += 5;
             }
 
-            // Penalize suspicious SEO trash
+            // Phase 7: Raio Secante Anti-SEO (O Assassinato de Páginas Afiliadas)
+            let seo_toxic_slugs = [
+                "top-10", "top-5", "melhores-", "best-", "-review", "guideline", "tutorial", 
+                "guias-", "comprar", "oferta", "promo", "vs-", "-opiniao", "coupon", "discount",
+                "produto/", "shop/", "affiliate"
+            ];
+            
+            if seo_toxic_slugs.iter().any(|spam| url_lower.contains(spam)) {
+                score -= 500;
+            }
+
+            // Penalize aggregators & Content Farms where genuine authors don't rank organically
             if url_lower.contains("pinterest.") || url_lower.contains("quora.") || url_lower.contains("yahoo.answers") {
-                score -= 100;
+                score -= 500;
             }
 
             ScoredUrl { url, score }
@@ -415,34 +615,38 @@ impl DeepResearchEngine {
             return Err("Honeypot/Captcha nativo engatilhado na camada HTML do Engine Primário".to_string());
         }
 
-        let document = scraper::Html::parse_document(&html);
-        let selector = scraper::Selector::parse("a").unwrap();
-        
         let mut links = Vec::new();
-        for element in document.select(&selector) {
-            if let Some(href_attr) = element.value().attr("href") {
-                if href_attr.contains("RU=") {
-                    let parts: Vec<&str> = href_attr.split("RU=").collect();
-                    if parts.len() > 1 {
-                        let inner = parts[1].split("/RK=").next().unwrap_or("");
-                        if let Ok(decoded) = urlencoding::decode(inner) {
-                            let clean_link = decoded.into_owned();
-                            if clean_link.starts_with("http") && !clean_link.contains("yahoo.com") {
-                                links.push(clean_link);
+        {
+            let document = scraper::Html::parse_document(&html);
+            let selector = scraper::Selector::parse("a").unwrap();
+            
+            for element in document.select(&selector) {
+                if let Some(href_attr) = element.value().attr("href") {
+                    if href_attr.contains("RU=") {
+                        let parts: Vec<&str> = href_attr.split("RU=").collect();
+                        if parts.len() > 1 {
+                            let inner = parts[1].split("/RK=").next().unwrap_or("");
+                            if let Ok(decoded) = urlencoding::decode(inner) {
+                                let clean_link = decoded.into_owned();
+                                if clean_link.starts_with("http") && !clean_link.contains("yahoo.com") {
+                                    links.push(clean_link);
+                                }
                             }
                         }
+                    } else if href_attr.starts_with("http") && !href_attr.contains("yahoo.com") && !href_attr.contains("r.search.yahoo.com") {
+                        links.push(href_attr.to_string());
                     }
-                } else if href_attr.starts_with("http") && !href_attr.contains("yahoo.com") && !href_attr.contains("r.search.yahoo.com") {
-                    links.push(href_attr.to_string());
                 }
             }
         }
 
         links.dedup();
-        let mut prioritized_links = self.assign_sovereign_trust_score(links);
+        let mut prioritized_links = self.assign_sovereign_trust_score(links).await;
         prioritized_links.truncate(20); // Retorna estritamente o Top 20 de Confiabilidade
         Ok(prioritized_links)
     }
+
+
 
     /// Rotação autônoma que pula em instâncias OpenSource pelo mundo pedindo ajuda via API JSON.
     async fn search_searxng_public(&self, query: &str) -> Result<Vec<String>, String> {
@@ -484,7 +688,7 @@ impl DeepResearchEngine {
                                         links.push(url_str.to_string());
                                     }
                                 }
-                                let mut prioritized_links = self.assign_sovereign_trust_score(links);
+                                let mut prioritized_links = self.assign_sovereign_trust_score(links).await;
                                 prioritized_links.truncate(20);
                                 return Ok(prioritized_links);
                             }
