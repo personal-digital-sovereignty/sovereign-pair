@@ -121,14 +121,9 @@
         <Network class="w-4 h-4 mr-3" />
         <span class="font-medium text-sm">Cognitive Graph</span>
       </a>
-      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors {routeId.includes('/rag-engine') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/rag-engine/routing">
-        <span class="font-medium text-sm pl-7">RAG Engine</span>
-      </a>
-      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors {routeId.includes('/model-trainer') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/model-trainer/fine-tuning">
-        <span class="font-medium text-sm pl-7">Model Trainer</span>
-      </a>
-      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors {routeId.includes('/analytics') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/analytics">
-        <span class="font-medium text-sm pl-7">Analytics</span>
+      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors {routeId.includes('/engineer') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/engineer/analytics">
+        <Activity class="w-4 h-4 mr-3" />
+        <span class="font-medium text-sm">Engineer</span>
       </a>
       
       <!-- Sticky Settings Anchor -->
