@@ -411,8 +411,14 @@ pub async fn run_deep_research_handler(
         let olla_url = format!("http://127.0.0.1:11434/api/chat");
         let synthesis_client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(7200)).build().unwrap_or_else(|_| reqwest::Client::new());
         
-        let sub_agent_hierarchy = vec!["qwen2.5:1.5b", "llama3.2:1b", "gemma2:2b", "llama3.2:3b", "llama3.2"];
-        let sub_agent_model = crate::api::discover_best_model(sub_agent_hierarchy, "llama3.2:latest").await;
+        // --- PHASE 41: TRINITY INQUISITION (QWEN, DEEPSEEK, PHI) ---
+        let sub_hierarchy_surgeon = vec!["refuel-llm-2-mini:1.5b", "qwen2.5:3b", "qwen2.5:1.5b", "qwen2.5:7b", "qwen2.5"];
+        let sub_hierarchy_reasoner = vec!["phi4-mini:latest", "phi4-mini", "smollm2:1.7b"];
+        let sub_hierarchy_cot = vec!["deepseek-r1:1.5b", "deepseek-r1", "phi4-mini"];
+        
+        let sub_model_surgeon = crate::api::discover_best_model(sub_hierarchy_surgeon, "qwen2.5:3b").await;
+        let sub_model_reasoner = crate::api::discover_best_model(sub_hierarchy_reasoner, "phi4-mini").await;
+        let sub_model_cot = crate::api::discover_best_model(sub_hierarchy_cot, "deepseek-r1").await;
         
         let mut all_sources = Vec::new();
         
@@ -461,23 +467,81 @@ pub async fn run_deep_research_handler(
                                             }
                                         }
 
-                                        let _ = TRAINER_LOGS.send(format!("🧠 [Thought] Mestre despacha Aluno para: '{}'", sq));
+                                        let _ = TRAINER_LOGS.send(format!("⚖️ [Trinity Inquisition] Acareamento Paralelo (Quórum 2/3): Surgeon ({}), Reasoner ({}) e Auditor CoT ({}).", sub_model_surgeon, sub_model_reasoner, sub_model_cot));
                                         
-                                        // Roda a extração rigorosamente restrita do Sub-Agente
-                                        let result = execute_sub_analyst(sq.clone(), engine_arc.clone(), embed_client.clone(), sub_agent_model.clone()).await;
-                                        all_sources.push(result.clone());
+                                        // Roda a extração rigorosamente restrita da Trindade EM PARALELO
+                                        let (res_surg, res_reas, res_cot) = tokio::join!(
+                                            execute_sub_analyst(sq.clone(), engine_arc.clone(), embed_client.clone(), sub_model_surgeon.clone()),
+                                            execute_sub_analyst(sq.clone(), engine_arc.clone(), embed_client.clone(), sub_model_reasoner.clone()),
+                                            execute_sub_analyst(sq.clone(), engine_arc.clone(), embed_client.clone(), sub_model_cot.clone())
+                                        );
                                         
-                                        let scaped_count = result.lines().filter(|l| l.starts_with("## Source:")).count();
+                                        // A LÓGICA DE ACAREAMENTO (QUÓRUM 2/3)
+                                        let surg_failed = res_surg.contains("DADO NÃO ENCONTRADO") || res_surg.contains("Falha do aluno");
+                                        let reas_failed = res_reas.contains("DADO NÃO ENCONTRADO") || res_reas.contains("Falha do aluno");
+                                        let cot_failed = res_cot.contains("DADO NÃO ENCONTRADO") || res_cot.contains("Falha do aluno");
+                                        
+                                        let fail_count = (if surg_failed { 1 } else { 0 }) + (if reas_failed { 1 } else { 0 }) + (if cot_failed { 1 } else { 0 });
+                                        
+                                        let final_result = if fail_count >= 2 {
+                                            // Quórum (2 de 3) concorda que os dados NÃO existem.
+                                            let mut liar = String::new();
+                                            if !surg_failed { liar = sub_model_surgeon.clone(); }
+                                            if !reas_failed { liar = sub_model_reasoner.clone(); }
+                                            if !cot_failed { liar = sub_model_cot.clone(); }
+                                            
+                                            // Se houve 1 mentiroso... pune ele!
+                                            if !liar.is_empty() {
+                                                let _ = TRAINER_LOGS.send(format!("🚨 [Hallucination Ledger] MENTIRA DETECTADA NA TRINDADE! O modelo '{}' alucinou predições numéricas enquanto os outros dois provaram que o HTML estava vazio.", liar));
+                                                if let Some(pool) = &engine_arc.db_pool {
+                                                    let uuid_str = uuid::Uuid::new_v4().to_string();
+                                                    let _ = sqlx::query("
+                                                        INSERT INTO model_hallucinations (id, model_name, lies_detected, queries_processed, last_lied_at)
+                                                        VALUES (?, ?, 1, 1, CURRENT_TIMESTAMP)
+                                                        ON CONFLICT(id) DO UPDATE SET lies_detected = lies_detected + 1, queries_processed = queries_processed + 1, last_lied_at = CURRENT_TIMESTAMP
+                                                    ").bind(uuid_str).bind(&liar).execute(pool).await;
+                                                }
+                                            }
+                                            
+                                            "NÃO EXISTEM DADOS MATEMÁTICOS PARA ESTA QUERY NO HTML RASPADO (POSSÍVEL BLOQUEIO DE JAVASCRIPT OU SINGLE PAGE APPLICATION). RECOMENDE AO COMANDANTE USAR API EXTERNA.".to_string()
+                                        } else {
+                                            // Quórum de aprovação (Pelo menos 2 acharam).
+                                            let mut divergence = false;
+                                            
+                                            // Verifica discrepância monstruosa de tamanho
+                                            let mut ok_results = Vec::new();
+                                            if !surg_failed { ok_results.push(res_surg.clone()); }
+                                            if !reas_failed { ok_results.push(res_reas.clone()); }
+                                            if !cot_failed { ok_results.push(res_cot.clone()); }
+                                            
+                                            if ok_results.len() >= 2 {
+                                                let diff = (ok_results[0].len() as isize - ok_results[1].len() as isize).abs();
+                                                if diff > 300 { divergence = true; }
+                                            }
+                                            
+                                            if divergence {
+                                                let _ = TRAINER_LOGS.send("🚨 [Hallucination Ledger] DIVERGÊNCIA SEVERA NO QUÓRUM! Os modelos não concordaram no payload extraído.".to_string());
+                                                "🚨 DADOS INCONSISTENTES NA TRINDADE: O HTML parecia retornar dados, mas os Inquisidores divergiram pesadamente na leitura da tabela. Não confie nessa extração.".to_string()
+                                            } else {
+                                                // Tudo Certo! A gente confia Primordialmente no Surgeon/Anchor para a formatação final.
+                                                let validated = if !surg_failed { res_surg.clone() } else { ok_results[0].clone() };
+                                                all_sources.push(validated.clone());
+                                                let _ = TRAINER_LOGS.send("✅ [Trinity Inquisition] Extração Validada por Quórum Majoritário!".to_string());
+                                                validated
+                                            }
+                                        };
+                                        
+                                        let scaped_count = final_result.lines().filter(|l| l.starts_with("## Source:")).count();
                                         if scaped_count > 0 {
                                             let _ = TRAINER_LOGS.send(format!("[SCRAPED: {}]", scaped_count));
                                         }
 
-                                        let _ = TRAINER_LOGS.send(format!("✅ [Sub-Agente] Retornou dados processados para a query '{}'", sq));
+                                        let _ = TRAINER_LOGS.send(format!("✅ [Cognitive Nanny] Acareamento resolvido para a query '{}'", sq));
                                         
                                         // Devolve a resposta do Tool para a memória do Mestre
                                         messages.push(serde_json::json!({
                                             "role": "tool",
-                                            "content": result
+                                            "content": final_result
                                         }));
                                     }
                                 }
@@ -500,14 +564,63 @@ pub async fn run_deep_research_handler(
                                                     let _ = TRAINER_LOGS.send(format!("🧠 [Thought Nanny] Mestre Low-End despacha Aluno para: '{}'", sq));
                                                     
                                                     let sq_string = sq.to_string();
-                                                    let result = execute_sub_analyst(sq_string, engine_arc.clone(), embed_client.clone(), sub_agent_model.clone()).await;
-                                                    all_sources.push(result.clone());
+                                                    let _ = TRAINER_LOGS.send(format!("⚖️ [Trinity Inquisition] Acareamento Paralelo (Quórum 2/3) FALLBACK: Surgeon ({}), Reasoner ({}) e Auditor CoT ({}).", sub_model_surgeon, sub_model_reasoner, sub_model_cot));
+                                                    
+                                                    let (res_surg, res_reas, res_cot) = tokio::join!(
+                                                        execute_sub_analyst(sq_string.clone(), engine_arc.clone(), embed_client.clone(), sub_model_surgeon.clone()),
+                                                        execute_sub_analyst(sq_string.clone(), engine_arc.clone(), embed_client.clone(), sub_model_reasoner.clone()),
+                                                        execute_sub_analyst(sq_string.clone(), engine_arc.clone(), embed_client.clone(), sub_model_cot.clone())
+                                                    );
+                                                    
+                                                    let surg_failed = res_surg.contains("DADO NÃO ENCONTRADO") || res_surg.contains("Falha do aluno");
+                                                    let reas_failed = res_reas.contains("DADO NÃO ENCONTRADO") || res_reas.contains("Falha do aluno");
+                                                    let cot_failed = res_cot.contains("DADO NÃO ENCONTRADO") || res_cot.contains("Falha do aluno");
+                                                    
+                                                    let fail_count = (if surg_failed { 1 } else { 0 }) + (if reas_failed { 1 } else { 0 }) + (if cot_failed { 1 } else { 0 });
+                                                    
+                                                    let final_result = if fail_count >= 2 {
+                                                        let mut liar = String::new();
+                                                        if !surg_failed { liar = sub_model_surgeon.clone(); }
+                                                        if !reas_failed { liar = sub_model_reasoner.clone(); }
+                                                        if !cot_failed { liar = sub_model_cot.clone(); }
+                                                        
+                                                        if !liar.is_empty() {
+                                                            let _ = TRAINER_LOGS.send(format!("🚨 [Hallucination Ledger] MENTIRA DETECTADA (Gatilho Low-End)! O modelo '{}' alucinou predições numéricas.", liar));
+                                                            if let Some(pool) = &engine_arc.db_pool {
+                                                                let uuid_str = uuid::Uuid::new_v4().to_string();
+                                                                let _ = sqlx::query("
+                                                                    INSERT INTO model_hallucinations (id, model_name, lies_detected, queries_processed, last_lied_at)
+                                                                    VALUES (?, ?, 1, 1, CURRENT_TIMESTAMP)
+                                                                    ON CONFLICT(id) DO UPDATE SET lies_detected = lies_detected + 1, queries_processed = queries_processed + 1, last_lied_at = CURRENT_TIMESTAMP
+                                                                ").bind(uuid_str).bind(&liar).execute(pool).await;
+                                                            }
+                                                        }
+                                                        "NÃO EXISTEM DADOS MATEMÁTICOS PARA ESTA QUERY NO HTML RASPADO (POSSÍVEL BLOQUEIO DE JAVASCRIPT OU SINGLE PAGE APPLICATION). RECOMENDE AO COMANDANTE USAR API EXTERNA.".to_string()
+                                                    } else {
+                                                        let mut ok_results = Vec::new();
+                                                        if !surg_failed { ok_results.push(res_surg.clone()); }
+                                                        if !reas_failed { ok_results.push(res_reas.clone()); }
+                                                        if !cot_failed { ok_results.push(res_cot.clone()); }
+                                                        
+                                                        let divergence = if ok_results.len() >= 2 {
+                                                            (ok_results[0].len() as isize - ok_results[1].len() as isize).abs() > 300
+                                                        } else { false };
+                                                        
+                                                        if divergence {
+                                                            let _ = TRAINER_LOGS.send("🚨 [Hallucination Ledger] DIVERGÊNCIA SEVERA LOW-END NO QUÓRUM!".to_string());
+                                                            "🚨 DADOS INCONSISTENTES NO ACAREAMENTO: O HTML parecia retornar dados, mas os Inquisidores divergiram pesadamente. Não confie nessa extração.".to_string()
+                                                        } else {
+                                                            let validated = if !surg_failed { res_surg.clone() } else { ok_results[0].clone() };
+                                                            all_sources.push(validated.clone());
+                                                            validated
+                                                        }
+                                                    };
 
-                                                    let _ = TRAINER_LOGS.send(format!("✅ [Sub-Agente Nanny] Retornou dados processados para a query '{}'", sq));
+                                                    let _ = TRAINER_LOGS.send(format!("✅ [Cognitive Nanny] Acareamento Low-End da Trindade processado."));
                                                     
                                                     messages.push(serde_json::json!({
                                                         "role": "user",
-                                                        "content": format!("[SISTEMA INTERNO]: O Tool Call vazado foi executado manualmente pela Babá Cognitiva. Aqui estão os resultados deste passo:\n\n{}", result)
+                                                        "content": format!("[SISTEMA INTERNO]: O Tool Call vazado foi executado manualmente pela Babá Cognitiva. Aqui estão os resultados deste passo:\n\n{}", final_result)
                                                     }));
                                                     
                                                     continue; // Volta ao Agentic Loop iterativo
@@ -547,12 +660,14 @@ pub async fn run_deep_research_handler(
 
         if wait_or_cancel(500, &token).await { return; }
 
-        // [STEP 2]: Hallucination Filter 
-        let _ = TRAINER_LOGS.send("[STEP 2] Acionando Anti-Hallucination Filter...".to_string());
-        tokio::time::sleep(std::time::Duration::from_millis(800)).await; // Simulation of LLM Validator delay
+        // [STEP 2]: Epistemic Hard-Kill Vaccine & Scribe Formatting
+        let _ = TRAINER_LOGS.send("[STEP 2] Acionando Epistemic Hard-Kill Vaccine & Scribe...".to_string());
+        tokio::time::sleep(std::time::Duration::from_millis(800)).await;
 
-        // --- Scribe Agent (Formatação Isolada para Low-End) ---
-        let final_markdown_report = if is_low_end {
+        let final_markdown_report = if all_sources.is_empty() {
+            let _ = TRAINER_LOGS.send("🚨 [EPISTEMIC VACCINE HARD-KILL] Zero dados reais extraídos. Abortando Scribe para impedir alucinação matemática pesada.".to_string());
+            "OPERAÇÃO ABORTADA PELA BABÁ COGNITIVA: DADOS NUMÉRICOS INACESSÍVEIS. A web retornou tabelas vazias ou bloqueadas por JavaScript. PROIBIDA A INVENÇÃO DE DADOS ESTATÍSTICOS.".to_string()
+        } else if is_low_end {
             let _ = TRAINER_LOGS.send("✍️ [The Scribe] Low-End Engine detectada. Invocando Agent especialista para formatar os fatos brutos em Markdown...".to_string());
             let scribe_prompt = format!(
                 "Você é The Scribe, um formatador técnico de elite do Sovereign Pair.\n\
