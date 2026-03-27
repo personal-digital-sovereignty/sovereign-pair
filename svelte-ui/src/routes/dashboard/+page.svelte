@@ -7,9 +7,21 @@
 
     import { onDestroy } from 'svelte';
 
+    let hallucinations: any[] = $state([]);
+
+    async function fetchHallucinations() {
+        try {
+            const res = await fetch('http://127.0.0.1:38001/v1/analytics/hallucinations');
+            if (res.ok) {
+                hallucinations = await res.json();
+            }
+        } catch(e) { console.error(e); }
+    }
+
     onMount(() => {
         if (projectState.projects.length === 0) fetchProjects();
         connectTelemetry();
+        fetchHallucinations();
     });
 
     onDestroy(() => {
@@ -217,7 +229,49 @@ Bloqueios feitos por políticas de segurança. Inclui tentativas de vazamento PI
                 <ShieldCheck class="w-3.5 h-3.5 text-emerald-500" /> Secured by Guardrails
             </div>
         </div>
+    </div>
+
+    <!-- Epistemic Ledger (Hallucinations) -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm shrink-0">
+        <div class="flex justify-between items-center mb-4">
+            <div class="flex items-center gap-2">
+                <ShieldCheck class="w-5 h-5 text-indigo-600" />
+                <h2 class="text-sm font-bold text-slate-800 tracking-tight">Epistemic Ledger (Hallucinations)</h2>
+            </div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded-full">Quorum Tracker</span>
         </div>
+        {#if hallucinations.length === 0}
+            <div class="flex flex-col items-center justify-center py-6 text-slate-400 text-sm">
+                <ShieldCheck class="w-8 h-8 opacity-20 mb-2" />
+                No mathematical hallucinations recorded yet.
+            </div>
+        {:else}
+            <div class="overflow-x-auto rounded-xl border border-slate-100">
+                <table class="w-full text-left text-xs text-slate-600">
+                    <thead class="bg-slate-50 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-500">
+                        <tr>
+                            <th class="px-4 py-3">Model Engine</th>
+                            <th class="px-4 py-3 text-center">Lies Detected</th>
+                            <th class="px-4 py-3 text-center">Total Queries</th>
+                            <th class="px-4 py-3 text-right">Last Incident (UTC)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100/50">
+                        {#each hallucinations as h}
+                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                <td class="px-4 py-3 font-mono text-indigo-600 font-semibold">{h.model_name}</td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-bold">{h.lies_detected}</span>
+                                </td>
+                                <td class="px-4 py-3 text-center text-slate-500 font-mono">{h.queries_processed}</td>
+                                <td class="px-4 py-3 text-right text-slate-400 font-medium">{h.last_lied_at}</td>
+                            </tr>
+                        {/each}
+                    </tbody>
+                </table>
+            </div>
+        {/if}
+    </div>
 
     <!-- Knowledge & Workspace Hub -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 shrink-0">
