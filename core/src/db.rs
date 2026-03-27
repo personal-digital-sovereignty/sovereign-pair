@@ -159,6 +159,24 @@ pub async fn init_pool() -> SqlitePool {
             queries_processed INTEGER DEFAULT 0,
             last_lied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS trusted_sources (
+            id TEXT PRIMARY KEY,
+            domain TEXT UNIQUE NOT NULL,
+            tier INTEGER NOT NULL,
+            category TEXT,
+            is_active BOOLEAN DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS domain_extraction_ledger (
+            id TEXT PRIMARY KEY,
+            domain TEXT UNIQUE NOT NULL,
+            technique_html_success BOOLEAN DEFAULT 0,
+            technique_js_success BOOLEAN DEFAULT 0,
+            technique_ghost_success BOOLEAN DEFAULT 0,
+            last_search_prompt TEXT,
+            quarantine_until DATETIME,
+            last_attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
                  "
     ).execute(&pool).await;
 
@@ -205,6 +223,33 @@ pub async fn init_pool() -> SqlitePool {
     // Migrations to support Dual-Truth Soft Deletes for Knowledge Gaps (fail silently if already exists)
     let _ = sqlx::query("ALTER TABLE knowledge_gaps ADD COLUMN status TEXT DEFAULT 'pending';").execute(&pool).await;
     let _ = sqlx::query("ALTER TABLE knowledge_gaps ADD COLUMN resolution_content TEXT;").execute(&pool).await;
+
+    // Seed Initial Trusted Sources (Ignora caso o domínio já exista)
+    let initial_tier_1_sources = vec![
+        "istoedinheiro.com.br", "infomoney.com.br", "valorinveste.globo.com", "bloomberg.com", 
+        "reuters.com", "exame.com"
+    ];
+    let initial_tier_2_sources = vec![
+        "g1.globo.com", "cnnbrasil.com.br", "bbc.com", "folha.uol.com.br", "estadao.com.br"
+    ];
+
+    for source in initial_tier_1_sources {
+        let uuid_str = uuid::Uuid::new_v4().to_string();
+        let _ = sqlx::query("INSERT OR IGNORE INTO trusted_sources (id, domain, tier, category) VALUES (?, ?, 1, 'jornalismo_financeiro')")
+            .bind(&uuid_str)
+            .bind(source)
+            .execute(&pool)
+            .await;
+    }
+
+    for source in initial_tier_2_sources {
+        let uuid_str = uuid::Uuid::new_v4().to_string();
+        let _ = sqlx::query("INSERT OR IGNORE INTO trusted_sources (id, domain, tier, category) VALUES (?, ?, 2, 'jornalismo_geral')")
+            .bind(&uuid_str)
+            .bind(source)
+            .execute(&pool)
+            .await;
+    }
 
     let path_str = env::var("RAG_VAULT_PATH").unwrap_or_else(|_| {
         let mut path = env::current_dir().expect("Hostile Environment");
