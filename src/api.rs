@@ -69,6 +69,29 @@ pub async fn discover_best_model(hierarchy: Vec<&str>, fallback: &str) -> String
     fallback.to_string()
 }
 
+use sqlx::Row;
+
+pub async fn query_most_honest_model(db_pool: Option<&sqlx::SqlitePool>, fallback: &str) -> String {
+    if let Some(pool) = db_pool {
+        // Ignoramos Deepseek ativamente baseado no feedback do comandante de que ele não serve como inquisitor factual
+        let row = sqlx::query(
+            "SELECT model_name FROM model_hallucinations WHERE model_name NOT LIKE '%deepseek%' ORDER BY lies_detected ASC, queries_processed DESC LIMIT 1"
+        )
+        .fetch_optional(pool)
+        .await;
+
+        if let Ok(Some(db_row)) = row {
+            if let Ok(name) = db_row.try_get::<String, _>("model_name") {
+                tracing::info!("⚖️ [Inquisidor Solitário] Modelo eleito pelo SQLite (Menos Alucinações): {}", name);
+                return name;
+            }
+        }
+    }
+    
+    tracing::warn!("⚠️ [Inquisidor Solitário] Sem dados históricos suficientes na Tabela de Alucinações. Usando fallback de confiança: {}", fallback);
+    fallback.to_string()
+}
+
 /// O Primeiro Controlador Cíbrido: Recebendo os Pensamentos do VS Code.
 pub async fn chat_completions_handler(
     State(state): State<Arc<AppState>>,
@@ -367,9 +390,12 @@ if payload.deep_research.unwrap_or(false) {
         }
 
         let mut all_links = Vec::new();
+        let mut all_snippets = String::new();
         for res in futures_util::future::join_all(search_handles).await {
-            if let Ok(Ok(links)) = res {
-                all_links.extend(links);
+            if let Ok(Ok(search_res)) = res {
+                all_links.extend(search_res.links);
+                all_snippets.push_str(&search_res.snippets);
+                all_snippets.push_str("\n");
             }
         }
         all_links.sort();
@@ -392,6 +418,10 @@ if payload.deep_research.unwrap_or(false) {
         }
 
         let mut master_dossier = String::new();
+        if !all_snippets.trim().is_empty() {
+             master_dossier.push_str(&format!("## ZERO-CLICK SEARCH SNIPPETS (Multi-Query)\n{}\n\n", all_snippets));
+        }
+
         for res in futures_util::future::join_all(scrape_handles).await {
             if let Ok((link, mut markdown)) = res
                 && markdown.len() > 100 {
