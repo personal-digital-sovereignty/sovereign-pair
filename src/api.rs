@@ -929,6 +929,27 @@ let stream = res.bytes_stream().map(move |result| {
                                     t.record_session(total_real_tokens, duration, &tracking_model);
                                 }
                                 
+                                // 🗄️ Histórico Absoluto: Persistindo Tokens e Uptime no Ledger SQLite
+                                let sql_db = tracking_db.clone();
+                                let sql_model = tracking_model.clone();
+                                let sql_tokens = total_real_tokens as i64;
+                                let sql_dur = duration as i64;
+                                tokio::spawn(async move {
+                                    let _ = sqlx::query(
+                                        "INSERT INTO model_metrics (model_name, total_tokens, total_duration_ms, first_used_at, last_used_at) 
+                                         VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                                         ON CONFLICT(model_name) DO UPDATE SET 
+                                             total_tokens = total_tokens + excluded.total_tokens,
+                                             total_duration_ms = total_duration_ms + excluded.total_duration_ms,
+                                             last_used_at = CURRENT_TIMESTAMP"
+                                    )
+                                    .bind(&sql_model)
+                                    .bind(sql_tokens)
+                                    .bind(sql_dur)
+                                    .execute(&sql_db)
+                                    .await;
+                                });
+                                
                                 let tps = if duration > 0 { (total_real_tokens as f64 / (duration as f64 / 1000.0)).round() } else { 0.0 };
                                 let _ = tracking_log_sender.send(crate::models::LogEntry {
                                     timestamp: chrono::Utc::now().to_rfc3339(),
@@ -1085,6 +1106,53 @@ pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> i
         }
     }
 
+    let historical_models = sqlx::query("SELECT model_name, total_tokens, total_duration_ms, strftime('%Y-%m-%d %H:%M:%S', first_used_at) as first_used_at, strftime('%Y-%m-%d %H:%M:%S', last_used_at) as last_used_at FROM model_metrics ORDER BY total_tokens DESC")
+        .fetch_all(&state.db)
+        .await
+        .map(|rows| {
+            rows.into_iter().map(|row| {
+                serde_json::json!({
+                    "model_name": sqlx::Row::get::<String, _>(&row, "model_name"),
+                    "total_tokens": sqlx::Row::get::<i64, _>(&row, "total_tokens"),
+                    "total_duration_ms": sqlx::Row::get::<i64, _>(&row, "total_duration_ms"),
+                    "first_used_at": sqlx::Row::get::<String, _>(&row, "first_used_at"),
+                    "last_used_at": sqlx::Row::get::<String, _>(&row, "last_used_at"),
+                })
+            }).collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    let content_gaps = sqlx::query("SELECT query, context, frequency, status FROM knowledge_gaps ORDER BY frequency DESC LIMIT 5")
+        .fetch_all(&state.db)
+        .await
+        .map(|rows| {
+            rows.into_iter().map(|row| {
+                serde_json::json!({
+                    "query": sqlx::Row::get::<String, _>(&row, "query"),
+                    "context": sqlx::Row::get::<String, _>(&row, "context"),
+                    "frequency": sqlx::Row::get::<i32, _>(&row, "frequency"),
+                    "status": sqlx::Row::get::<String, _>(&row, "status"),
+                })
+            }).collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    let mut topic_counts: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
+    if let Ok(sessions) = sqlx::query("SELECT tags_json FROM chat_sessions WHERE tags_json IS NOT NULL").fetch_all(&state.db).await {
+        for row in sessions {
+            if let Ok(tags_str) = sqlx::Row::try_get::<String, _>(&row, "tags_json") {
+                if let Ok(tags) = serde_json::from_str::<Vec<String>>(&tags_str) {
+                    for tag in tags {
+                        *topic_counts.entry(tag).or_insert(0) += 1;
+                    }
+                }
+            }
+        }
+    }
+    let mut top_topics: Vec<_> = topic_counts.into_iter().map(|(topic, count)| serde_json::json!({ "topic": topic, "count": count })).collect();
+    top_topics.sort_by(|a, b| b["count"].as_i64().unwrap_or(0).cmp(&a["count"].as_i64().unwrap_or(0)));
+    top_topics.truncate(5);
+
     // Devolve formatado para o Dashboard Svelte
     Json(serde_json::json!({
         "total_tokens": snapshot.total_tokens,
@@ -1092,6 +1160,9 @@ pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> i
         "avg_latency_ms": snapshot.avg_latency_ms,
         "estimated_cost": snapshot.estimated_cost,
         "models_usage": snapshot.models_usage,
+        "historical_models": historical_models,
+        "content_gaps": content_gaps,
+        "top_topics": top_topics,
         "active_models": snapshot.models_usage.keys().len(), 
         "security_blocks": security_blocks_count,
         "trackers_blocked": trackers_blocked_count,
