@@ -119,7 +119,7 @@ export async function sendUnslothControl(action: 'play' | 'pause' | 'stop') {
         });
         await fetchTrainerStats(); // Force refresh UI
     } catch(e) {
-        console.error(`Unsloth RPC failed: ${action}`, e);
+        console.error("Unsloth RPC failed:", action, e);
     }
 }
 
