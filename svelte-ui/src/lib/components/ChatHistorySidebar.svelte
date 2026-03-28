@@ -1,6 +1,6 @@
 <script lang="ts">
     import { MessageSquare, Plus, Folder as FolderIcon, Trash2, Hash, Edit2, Check, X, ChevronDown, ChevronRight } from 'lucide-svelte';
-    import { globalState } from '$lib/state.svelte.js';
+    import { globalState, loadGlobalSession, stopGeneration } from '$lib/state.svelte.js';
     import { onMount } from 'svelte';
 
     let sessions = $state<{id: number, title: string, folder_name: string | null, updated_at: string}[]>([]);
@@ -34,13 +34,17 @@
     });
 
     function createNewSession() {
+        if (globalState.chat.isTyping) stopGeneration();
         globalState.chat.activeSessionId = null;
         globalState.chat.activeSessionTitle = 'Nova Sessão';
+        loadGlobalSession(null);
     }
 
     function selectSession(id: number, title: string) {
+        if (globalState.chat.isTyping) stopGeneration();
         globalState.chat.activeSessionId = id;
         globalState.chat.activeSessionTitle = title;
+        loadGlobalSession(id);
     }
 
     async function deleteSession(e: Event, id: number) {
