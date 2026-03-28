@@ -69,6 +69,15 @@ export const markNotificationsRead = () => {
 // ==========================================
 // BACKGROUND CHAT PROCESSOR (Sensus Engine)
 // ==========================================
+
+let currentAbortController: AbortController | null = null;
+
+export const stopGeneration = () => {
+    if (currentAbortController) {
+        currentAbortController.abort();
+        currentAbortController = null;
+    }
+};
 export const loadGlobalSession = async (id: number | null) => {
     if (!id) {
         globalState.chat.messages = [{ id: Date.now(), role: 'assistant', agent: 'Sovereign Coder', text: 'Sensus Synchronized. Ready for prompt ingestion.', time: new Date().toLocaleTimeString() }];
@@ -135,8 +144,11 @@ export const sendGlobalChatMessage = async (userText: string) => {
             deep_research: globalState.chat.isDeepResearchEnabled
         };
 
+        currentAbortController = new AbortController();
+
         const response = await fetch('http://localhost:38001/v1/chat/completions', {
             method: 'POST',
+            signal: currentAbortController.signal,
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify(payload)
         });
@@ -181,9 +193,14 @@ export const sendGlobalChatMessage = async (userText: string) => {
         addNotification("Análise Concluída", "Sovereign Evaluator encerrou o raciocínio estratégico.", "/chat");
 
     } catch (error: any) {
-        console.error("Global Inference Engine Error:", error);
-        globalState.chat.messages[assistantIdx].text += `\n\n[SYSTEM ERROR]\nDetalhes Técnicos: ${error?.message}\nFalha Sensus Node Loss.`;
+        if (error.name === 'AbortError') {
+            globalState.chat.messages[assistantIdx].text += `\n\n[INFERÊNCIA INTERROMPIDA PELO USUÁRIO]`;
+        } else {
+            console.error("Global Inference Engine Error:", error);
+            globalState.chat.messages[assistantIdx].text += `\n\n[SYSTEM ERROR]\nDetalhes Técnicos: ${error?.message}\nFalha Sensus Node Loss.`;
+        }
     } finally {
         globalState.chat.isTyping = false;
+        currentAbortController = null;
     }
 };
