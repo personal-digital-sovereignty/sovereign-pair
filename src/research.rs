@@ -167,13 +167,12 @@ impl DeepResearchEngine {
             
         if is_suspect_spa {
             tracing::warn!("⚠️ [The Nurse / Scraper] Vazio Epistêmico Detectado! SPA interceptado ({} bytes extraídos). Acionando The Ghost Fallback Protocol...", markdown.len());
-            if let Ok(ghost_markdown) = self.scrape_ghost_fallbacks(url).await {
-                if ghost_markdown.len() > markdown.len() {
+            if let Ok(ghost_markdown) = self.scrape_ghost_fallbacks(url).await
+                && ghost_markdown.len() > markdown.len() {
                     tracing::info!("✅ [Ghost Protocol] Sucesso! Payload histórico resgatado do Vácuo Multi-Plataforma.");
                     self.update_domain_ledger(url, false, true).await;
                     return Ok(ghost_markdown);
                 }
-            }
             self.update_domain_ledger(url, false, false).await;
         } else {
             self.update_domain_ledger(url, true, false).await;
@@ -186,12 +185,11 @@ impl DeepResearchEngine {
     fn extract_hydration_json(&self, html: &str) -> Option<String> {
         // 1. Next.js __NEXT_DATA__
         let next_re = Regex::new(r#"<script id="__NEXT_DATA__" type="application/json">(\{.*?\})</script>"#).unwrap();
-        if let Some(cap) = next_re.captures(html) {
-            if let Some(json_str) = cap.get(1) {
+        if let Some(cap) = next_re.captures(html)
+            && let Some(json_str) = cap.get(1) {
                 // Return formatado para o LLM não precisar lutar com o AST
                 return Some(format!("```json\n{}\n```", json_str.as_str()));
             }
-        }
 
         // 2. SEO Microdata (JSON-LD)
         let ld_re = Regex::new(r#"<script type="application/ld\+json">([\s\S]*?)</script>"#).unwrap();
@@ -220,44 +218,37 @@ impl DeepResearchEngine {
             self.scrape_via_archive_today(url)
         );
 
-        if let Ok(md) = wayback {
-            if md.len() > 200 { return Ok(md); }
-        }
-        if let Ok(md) = gcache {
-            if md.len() > 200 { return Ok(md); }
-        }
-        if let Ok(md) = archive_ph {
-            if md.len() > 200 { return Ok(md); }
-        }
+        if let Ok(md) = wayback
+            && md.len() > 200 { return Ok(md); }
+        if let Ok(md) = gcache
+            && md.len() > 200 { return Ok(md); }
+        if let Ok(md) = archive_ph
+            && md.len() > 200 { return Ok(md); }
 
         Err("Todas as 3 malhas de The Ghost Fallback Protocol falharam ou retornaram o vácuo.".to_string())
     }
 
     async fn scrape_via_google_cache(&self, url: &str) -> Result<String, String> {
         let cache_url = format!("https://webcache.googleusercontent.com/search?q=cache:{}", urlencoding::encode(url));
-        if let Ok(resp) = self.client.get(&cache_url).header(rquest::header::USER_AGENT, Self::get_random_user_agent()).send().await {
-            if resp.status().is_success() {
-                if let Ok(html) = resp.text().await {
+        if let Ok(resp) = self.client.get(&cache_url).header(rquest::header::USER_AGENT, Self::get_random_user_agent()).send().await
+            && resp.status().is_success()
+                && let Ok(html) = resp.text().await {
                     let markdown = self.sanitize_to_markdown(&html);
                     tracing::info!("👻 [Ghost Protocol] Google Cache Hit: {} bytes resgatados.", markdown.len());
                     return Ok(markdown);
                 }
-            }
-        }
         Err("Google Cache Fallback Failed".to_string())
     }
 
     async fn scrape_via_archive_today(&self, url: &str) -> Result<String, String> {
         let archive_url = format!("https://archive.ph/latest/{}", url);
-        if let Ok(resp) = self.client.get(&archive_url).header(rquest::header::USER_AGENT, Self::get_random_user_agent()).send().await {
-            if resp.status().is_success() {
-                if let Ok(html) = resp.text().await {
+        if let Ok(resp) = self.client.get(&archive_url).header(rquest::header::USER_AGENT, Self::get_random_user_agent()).send().await
+            && resp.status().is_success()
+                && let Ok(html) = resp.text().await {
                     let markdown = self.sanitize_to_markdown(&html);
                     tracing::info!("👻 [Ghost Protocol] Archive.today Hit: {} bytes resgatados.", markdown.len());
                     return Ok(markdown);
                 }
-            }
-        }
         Err("Archive.today Fallback Failed".to_string())
     }
 
@@ -512,8 +503,8 @@ impl DeepResearchEngine {
         let mut tier_2_domains = self.trust_matrix.tier2.clone();
         
         // Fetch do SQLite (Source DB Primária)
-        if let Some(pool) = &self.db_pool {
-            if let Ok(records) = sqlx::query(
+        if let Some(pool) = &self.db_pool
+            && let Ok(records) = sqlx::query(
                 "SELECT domain, tier FROM trusted_sources WHERE is_active = 1"
             ).fetch_all(pool).await {
                 let mut db_t1 = Vec::new();
@@ -528,7 +519,6 @@ impl DeepResearchEngine {
                 tier_1_domains.extend(db_t1);
                 tier_2_domains.extend(db_t2);
             }
-        }
 
         let mut scored_links: Vec<ScoredUrl> = links.into_iter().map(|url| {
             let mut score = 0;
