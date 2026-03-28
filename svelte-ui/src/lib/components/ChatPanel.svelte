@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { MessageSquare, Cpu, Shield, Send, Loader2, Paperclip, ThumbsUp, ThumbsDown, Bot, User, BrainCircuit, Copy, RotateCcw, Settings } from 'lucide-svelte';
-    import { globalState, loadGlobalSession, sendGlobalChatMessage } from '$lib/state.svelte.js';
+    import { MessageSquare, Cpu, Shield, Send, Loader2, Paperclip, ThumbsUp, ThumbsDown, Bot, User, BrainCircuit, Copy, RotateCcw, Settings, Square } from 'lucide-svelte';
+    import { globalState, loadGlobalSession, sendGlobalChatMessage, stopGeneration } from '$lib/state.svelte.js';
     import { settingsState } from '$lib/settings.svelte';
     import { marked } from 'marked';
     import DOMPurify from 'dompurify';
@@ -221,13 +221,16 @@
                 }}
             ></textarea>
 
-            <button type="submit" disabled={globalState.chat.isTyping || !message.trim()} class="absolute right-2 bottom-2 p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                {#if globalState.chat.isTyping}
-                    <Loader2 class="w-5 h-5 animate-spin" />
-                {:else}
+            {#if globalState.chat.isTyping}
+                <button type="button" onclick={stopGeneration} class="absolute right-2 bottom-2 px-3 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 group shadow-sm" title="Interromper Raciocínio (Stop)">
+                    <Square class="w-4 h-4 fill-white text-rose-600" />
+                    <span class="text-[10px] font-bold uppercase tracking-widest hidden sm:inline-block">Stop</span>
+                </button>
+            {:else}
+                <button type="submit" disabled={!message.trim()} class="absolute right-2 bottom-2 p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                     <Send class="w-5 h-5" />
-                {/if}
-            </button>
+                </button>
+            {/if}
         </form>
         <div class="text-[10px] text-center text-slate-400 mt-2 font-mono uppercase tracking-widest">
              End-to-End Local Execution • Context Limited to Graph Density
