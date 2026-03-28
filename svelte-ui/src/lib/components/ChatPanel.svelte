@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { MessageSquare, Cpu, Shield, Send, Loader2, Paperclip, ThumbsUp, ThumbsDown, Bot, User, BrainCircuit, Copy, RotateCcw, Settings, Square } from 'lucide-svelte';
+    import { MessageSquare, Cpu, Shield, Send, Loader2, Paperclip, ThumbsUp, ThumbsDown, Bot, User, BrainCircuit, Copy, RotateCcw, Settings, Square, ChevronDown } from 'lucide-svelte';
     import { globalState, loadGlobalSession, sendGlobalChatMessage, stopGeneration } from '$lib/state.svelte.js';
     import { settingsState } from '$lib/settings.svelte';
     import { marked } from 'marked';
@@ -149,6 +149,9 @@
     <main class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-6 custom-scrollbar bg-slate-50">
         
         {#each globalState.chat.messages as msg}
+            {@const thoughtsMatch = msg.text.match(/<thought>([\s\S]*?)(?:<\/thought>|$)/g) || []}
+            {@const thoughts = thoughtsMatch.map((t: string) => t.replace(/<\/?thought>/g, '').trim())}
+            {@const cleanText = msg.text.replace(/<thought>[\s\S]*?(?:<\/thought>|$)/g, '').trim()}
             <div class="flex flex-col max-w-3xl group {msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}">
                 <div class="flex items-center gap-2 mb-1.5 px-1">
                     {#if msg.role === 'assistant'}
@@ -170,9 +173,35 @@
                 </div>
                 
                 <!-- LIGHT THEME COLORS FOR BUBBLES -->
-                <div class="{msg.role === 'user' ? 'bg-slate-200 text-slate-800 rounded-2xl rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.1)] rounded-2xl rounded-tl-none'} p-4 text-[15px] leading-relaxed prose max-w-full overflow-x-auto custom-scrollbar">
-                    {@html parseMarkdown(msg.text)}
-                </div>
+
+                {#if thoughts.length > 0}
+                    <details class="w-full mb-3 bg-slate-100/50 rounded-xl border border-slate-200 overflow-hidden group select-none relative" open={!cleanText}>
+                        <summary class="px-4 py-2.5 text-[11px] font-bold uppercase tracking-widest text-slate-500 cursor-pointer flex items-center gap-2 hover:bg-slate-200/50 transition-colors">
+                            <BrainCircuit class="w-4 h-4 text-blue-500 {(!cleanText && globalState.chat.isTyping && msg.id === globalState.chat.messages[globalState.chat.messages.length - 1].id) ? 'animate-pulse' : ''}" />
+                            Processo Cognitivo ({thoughts.length} {thoughts.length === 1 ? 'fluxo' : 'fluxos'})
+                            <ChevronDown class="w-3 h-3 ml-auto opacity-50 group-open:rotate-180 transition-transform" />
+                        </summary>
+                        <div class="px-4 py-3 text-[11px] font-mono text-slate-600 border-t border-slate-200 space-y-2 opacity-90 custom-scrollbar select-text bg-white/50">
+                            {#each thoughts as thought}
+                                <div class="flex items-start gap-2">
+                                    <span class="text-blue-400 mt-0.5">·</span>
+                                    <span class="leading-relaxed">{@html thought.replace(/\n/g, '<br/>')}</span>
+                                </div>
+                            {/each}
+                            {#if !cleanText && globalState.chat.isTyping && msg.id === globalState.chat.messages[globalState.chat.messages.length - 1].id}
+                                <div class="flex items-center gap-2 mt-2 pt-2 text-blue-500 font-sans tracking-widest uppercase font-bold text-[9px] border-t border-slate-200/50">
+                                    <Loader2 class="w-3 h-3 animate-spin"/> Mapeando Oculto Cíbrido...
+                                </div>
+                            {/if}
+                        </div>
+                    </details>
+                {/if}
+
+                {#if cleanText || (thoughts.length === 0)}
+                    <div class="{msg.role === 'user' ? 'bg-slate-200 text-slate-800 rounded-2xl rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.1)] rounded-2xl rounded-tl-none'} p-4 text-[15px] leading-relaxed prose max-w-full overflow-x-auto custom-scrollbar">
+                        {@html parseMarkdown(cleanText || msg.text)}
+                    </div>
+                {/if}
 
                 <div class="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 {msg.role === 'user' ? 'mr-1 justify-end' : 'ml-1 justify-start'}">
                     <button onclick={() => copyToClipboard(msg.text)} class="p-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 border border-slate-200 transition-all cursor-pointer" title="Copiar Texto">
@@ -233,8 +262,15 @@
             </button>
 
             <button type="button" 
+                onclick={() => globalState.chat.isCognitiveFirewallEnabled = !globalState.chat.isCognitiveFirewallEnabled}
+                class={`absolute left-[88px] bottom-2 p-2.5 rounded-lg transition-colors cursor-pointer ${globalState.chat.isCognitiveFirewallEnabled ? 'text-emerald-600 bg-emerald-100 shadow-inner border border-emerald-200' : 'text-slate-400 hover:text-rose-500 hover:bg-slate-50 border border-transparent'}`} 
+                title={globalState.chat.isCognitiveFirewallEnabled ? 'Firewall Cognitivo: ON (Modo Estrito)' : 'Firewall Cognitivo: OFF (Modo Quarentena)'}>
+                <Shield class="w-5 h-5" />
+            </button>
+
+            <button type="button" 
                 onclick={() => settingsState.isOpen = true}
-                class="absolute left-[88px] bottom-2 p-2.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer" 
+                class="absolute left-[128px] bottom-2 p-2.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer" 
                 title="Parâmetros do Modelo">
                 <Settings class="w-5 h-5" />
             </button>
@@ -242,7 +278,7 @@
             <textarea 
                 bind:value={message}
                 placeholder="Ask the Global Cybrid Council..." 
-                class="flex-1 bg-transparent border-none text-slate-800 text-sm p-4 pl-[140px] h-14 resize-none outline-none custom-scrollbar placeholder:text-slate-400"
+                class="flex-1 bg-transparent border-none text-slate-800 text-sm p-4 pl-[180px] h-14 resize-none outline-none custom-scrollbar placeholder:text-slate-400"
                 onkeydown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
