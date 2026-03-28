@@ -28,7 +28,8 @@ export const globalState = $state({
         inputContext: '',
         messages: [] as any[],
         isTyping: false,
-        isDeepResearchEnabled: false
+        isDeepResearchEnabled: false,
+        isCognitiveFirewallEnabled: true
     },
 
     // Notification Center
@@ -141,7 +142,8 @@ export const sendGlobalChatMessage = async (userText: string) => {
             workspace_id: ws_id,
             session_id: globalState.chat.activeSessionId,
             stream: true,
-            deep_research: globalState.chat.isDeepResearchEnabled
+            deep_research: globalState.chat.isDeepResearchEnabled,
+            firewall_enabled: globalState.chat.isCognitiveFirewallEnabled
         };
 
         currentAbortController = new AbortController();
