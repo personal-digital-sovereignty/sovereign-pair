@@ -9,6 +9,37 @@
 
     let hallucinations: any[] = $state([]);
 
+    let groupedHallucinations = $derived.by(() => {
+        const groups: Record<string, any> = {};
+        for (const h of hallucinations) {
+            if (!groups[h.model_name]) {
+                groups[h.model_name] = {
+                    model_name: h.model_name,
+                    lies_detected: 0,
+                    queries_processed: 0,
+                    incidents: []
+                };
+            }
+            groups[h.model_name].lies_detected += (h.lies_detected || 1);
+            groups[h.model_name].queries_processed += (h.queries_processed || 1);
+            groups[h.model_name].incidents.push(h);
+        }
+        return Object.values(groups).sort((a: any, b: any) => b.lies_detected - a.lies_detected);
+    });
+
+    let isModalOpen = $state(false);
+    let selectedModel = $state<any>(null);
+
+    function openModal(model: any) {
+        selectedModel = model;
+        isModalOpen = true;
+    }
+
+    function closeModal() {
+        isModalOpen = false;
+        selectedModel = null;
+    }
+
     async function fetchHallucinations() {
         try {
             const res = await fetch('http://127.0.0.1:38001/v1/analytics/hallucinations');
@@ -246,25 +277,33 @@ Bloqueios feitos por políticas de segurança. Inclui tentativas de vazamento PI
                 No mathematical hallucinations recorded yet.
             </div>
         {:else}
-            <div class="overflow-x-auto rounded-xl border border-slate-100">
-                <table class="w-full text-left text-xs text-slate-600">
-                    <thead class="bg-slate-50 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-500">
+            <div class="overflow-y-auto max-h-[300px] custom-scrollbar rounded-xl border border-slate-100">
+                <table class="w-full text-left text-xs text-slate-600 relative">
+                    <thead class="bg-slate-50 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-500 sticky top-0 z-10 shadow-sm">
                         <tr>
                             <th class="px-4 py-3">Model Engine</th>
                             <th class="px-4 py-3 text-center">Lies Detected</th>
                             <th class="px-4 py-3 text-center">Total Queries</th>
-                            <th class="px-4 py-3 text-right">Last Incident (UTC)</th>
+                            <th class="px-4 py-3 text-right">Incidents History</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100/50">
-                        {#each hallucinations as h}
+                        {#each groupedHallucinations as h}
                             <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="px-4 py-3 font-mono text-indigo-600 font-semibold">{h.model_name}</td>
-                                <td class="px-4 py-3 text-center">
-                                    <span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-bold">{h.lies_detected}</span>
+                                <td class="px-4 py-3 font-mono font-semibold">
+                                    <button class="text-indigo-600 hover:text-indigo-800 underline decoration-indigo-300 underline-offset-2 transition-colors cursor-pointer text-left" onclick={() => openModal(h)}>
+                                        {h.model_name}
+                                    </button>
                                 </td>
-                                <td class="px-4 py-3 text-center text-slate-500 font-mono">{h.queries_processed}</td>
-                                <td class="px-4 py-3 text-right text-slate-400 font-medium">{h.last_lied_at}</td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-bold shadow-sm border border-rose-200">{h.lies_detected}</span>
+                                </td>
+                                <td class="px-4 py-3 text-center text-slate-500 font-mono font-bold">{h.queries_processed}</td>
+                                <td class="px-4 py-3 text-right text-slate-400 font-medium">
+                                    <button class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md transition-colors text-[10px] font-bold uppercase tracking-widest cursor-pointer" onclick={() => openModal(h)}>
+                                        View {h.incidents.length} dates
+                                    </button>
+                                </td>
                             </tr>
                         {/each}
                     </tbody>
@@ -338,3 +377,38 @@ Bloqueios feitos por políticas de segurança. Inclui tentativas de vazamento PI
     </div>
 </div>
 </div>
+
+{#if isModalOpen && selectedModel}
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick={closeModal} onkeydown={(e) => e.key === 'Escape' && closeModal()} role="presentation">
+        <div class="bg-white rounded-3xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="presentation">
+            <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 tracking-tight">Incident Ledger</h3>
+                    <p class="text-xs text-slate-500 font-mono mt-1 font-semibold">{selectedModel.model_name}</p>
+                </div>
+                <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-400 transition-colors cursor-pointer" onclick={closeModal} aria-label="Close Modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
+                <div class="space-y-3">
+                    {#each selectedModel.incidents as inc}
+                        <div class="flex flex-col p-4 rounded-xl border border-slate-100 bg-white hover:border-indigo-100 hover:shadow-sm transition-all text-left group">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-indigo-500 transition-colors">Incident Timestamp</span>
+                                <span class="text-xs font-mono text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded">{inc.last_lied_at}</span>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="text-xs text-slate-500"><span class="font-semibold text-rose-500">Lies:</span> {inc.lies_detected}</div>
+                                <div class="text-xs text-slate-500"><span class="font-semibold text-blue-500">Queries:</span> {inc.queries_processed}</div>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+                <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer" onclick={closeModal}>Close Details</button>
+            </div>
+        </div>
+    </div>
+{/if}
