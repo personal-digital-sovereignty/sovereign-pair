@@ -8,12 +8,12 @@ A extração das pastas nativas e arquivos em texto (como os formatos `.md` e `.
 
 1.  **Parsing de Documentos:** Etapa inicial para uniformizar e consolidar o conteúdo bruto a ser formatado. A função responsável extrai formatações HTML extras e artefatos de marcação, normalizando os parágrafos convertendo-os em bytes e cadeias textuais semânticas puras com integridade Markdown (UTF-8).
 2.  **Fragmentação (Chunking):** A inserção direta de artigos nativos gigantes nos contextos do backend LLM causa saturação, estourando limites do modelo na verificação local. Todo documento ingerido será fragmentado de acordo com uma janela limite estabelecida estaticamente pela plataforma na sintaxe (`CHUNK_SIZE`), delimitada usualmente aos níveis normativos em 512 a 1024 tokens por partição base. A política de sobreposição residual (`CHUNK_OVERLAP`) atua paralelamente copiando um número fixo das ultimas instâncias (ex: 200 tokens do término anterior) preservando ligações temáticas semânticas coesas e reduzindo interrupções disjuntas dos fragmentos criados.
-3.  **Matriz Vetorial Numérica (Embeddings):** Transforma o componente estruturado (Chunks) numa identificação posicional com plano hiperdimensional gerido por uma malha vetorial contínua (~1024 pontos). Processado de preferência através da rede nativa de suporte a processamento natural (NLP Engine / `bge-m3`), torna possível a inferência multi-idioma desprendendo sua correlação matemática ao texto em múltiplos idiomas. 
-4.  **Gravação no Banco Relacional O.S:** Registro nativamente estruturado acoplando atributos no banco contínuo SQL. Utiliza a biblioteca modular SQLite provida na aplicação física (tabela unificada de persistência Vector Support) consolidando instâncias do conhecimento no drive.
+3.  **Cross-Encoder Reranking (FastEmbed):** Ao invés de depender cegamente de bancos vetoriais gigantes, o Rust aciona o `bge-reranker-base` nativo e avalia os Chunks extraídos em tempo real. Apenas os de ranqueamento de similaridade ótimo (Top-35) são injetados no LLM, obliterando o famoso erro de "Lost in the Middle" (OOM).
+4.  **Gravação no Banco Relacional e Evasão WAF:** Utilizando a *CDX Fallback Chain* (Wayback, Arquivo.pt, Vefsafn, UKWA), o motor contorna bloqueios de Cloudflare passivamente e grava o conteúdo limpo no SQLite Vector O.S.
 
 > [!NOTE] 
-> ▫️ **Serviço de Compilação Vetorial Nativo (Rust):** `src-rust/core/ingest.rs`
-> ▫️ **Serviço Monitor de Sistema de Arquivos (OS Watcher):** `src-rust/core/watcher.rs`
+> ▫️ **Serviço de Reranking Nativo (Rust):** `core/src/api_trainer.rs`
+> ▫️ **Malha de Protocolos Fantasma CDX:** `core/src/research.rs`
 
 ---
 

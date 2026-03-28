@@ -5,6 +5,17 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A série 1.0.0 será ativada unicamente quando o núcleo do ecossistema Sovereign Bare Metal atingir maturidade e estabilidade arquitetural plenas.
 
+## [0.9.7] - 2026-03-28
+
+### 🚀 Enterprise RAG Pipeline & Agentic Search Loop
+
+### Adicionado
+- **Malha Tool Calling em Rust (`api_trainer.rs`)**: A extinta arquitetura serial de Web Scraping retrograda (onde o modelo apanhava passivamente e não tinha controle do escopo temporal de busca) foi morta. Injetado um Loop Agêntico que escuta Schema JSON estrito. O LLM Local agora ativamente clama a requisição na Internet através das Ferramentas da Trindade Soberana, para, e depois continua da onde parou emulando Re-act behavior profundo.
+- **The Ghost Fallback Chain (`research.rs`)**: Para abolir o terror dos Web Application Firewalls (CloudFlare Drop Rate HTTP 403), engenhamos um cascateamento resiliente que apela por milissegundos a Índices Descentralizados (CDX). A varredura agora ataca paralelamente e organicamente o `Internet Archive (Wayback)`, `Arquivo.pt` (Herança Lusófona), `UK Web Archive` e o sub-node Vefsafn Islândico. Se o endpoint alvo primário for negado por robôs, a malha apela pra memória histórica humana do próprio Wayback Cíbrido. Sem limites.
+- **Cross-Encoder Reranker Local Injetado (FastEmbed)**: Instalada a suíte `fastembed` para processamento brutal Anti-OOM. A interface capta 50 urls brutas raspadas, e as corta via macro iteradora `unicode-segmentation`. Com a matriz de micro-chucking na memória volátil, ele rankeia puramente utilizando o BAAI `BGE-M3 Reranker` local. O LLM não engole mais Ads de sites da Web; ele mastiga incialmente apenas as `Top-35` sentenças semanticamente ricas para deduzir suas elaborações, livrando o PC local de latências colossais.
+- **Cognitive Quarantine Ledger**: Toda falha de bloqueamento por firewall da busca não será mais atirada no limbo. O SQL Sensus Registry foi expandido e grava relatórios precisos de incidentes, retro-alimentando o usuário para liberação de Quarentena sem perder fluxos preciosos no WAG.
+- **Inquisitor Safety Sub-Billion Filter**: Extirparam-se ativamente anomalias de Inquisidores "Halucinados". O Llama proíbe a atribuição de modelos abaixo de 3 bilhões de coeficientes para o posto de Juiz da Informação Web (`1.5b`, `smollm`, `deepseek-r1-1.5b`). Um `cargo build` purificado garante a validação tipográfica.
+
 ## [0.9.8] - 2026-03-26
 
 ### 🚀 The Sovereign RAG Trinity (Map-Reduce Architecture)
