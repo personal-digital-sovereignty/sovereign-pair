@@ -8,31 +8,19 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 ## [0.9.7] - 2026-03-28
 
 ### 🚀 Enterprise RAG Pipeline & Agentic Search Loop
-
-### Adicionado
 - **Malha Tool Calling em Rust (`api_trainer.rs`)**: A extinta arquitetura serial de Web Scraping retrograda (onde o modelo apanhava passivamente e não tinha controle do escopo temporal de busca) foi morta. Injetado um Loop Agêntico que escuta Schema JSON estrito. O LLM Local agora ativamente clama a requisição na Internet através das Ferramentas da Trindade Soberana, para, e depois continua da onde parou emulando Re-act behavior profundo.
 - **The Ghost Fallback Chain (`research.rs`)**: Para abolir o terror dos Web Application Firewalls (CloudFlare Drop Rate HTTP 403), engenhamos um cascateamento resiliente que apela por milissegundos a Índices Descentralizados (CDX). A varredura agora ataca paralelamente e organicamente o `Internet Archive (Wayback)`, `Arquivo.pt` (Herança Lusófona), `UK Web Archive` e o sub-node Vefsafn Islândico. Se o endpoint alvo primário for negado por robôs, a malha apela pra memória histórica humana do próprio Wayback Cíbrido. Sem limites.
 - **Cross-Encoder Reranker Local Injetado (FastEmbed)**: Instalada a suíte `fastembed` para processamento brutal Anti-OOM. A interface capta 50 urls brutas raspadas, e as corta via macro iteradora `unicode-segmentation`. Com a matriz de micro-chucking na memória volátil, ele rankeia puramente utilizando o BAAI `BGE-M3 Reranker` local. O LLM não engole mais Ads de sites da Web; ele mastiga incialmente apenas as `Top-35` sentenças semanticamente ricas para deduzir suas elaborações, livrando o PC local de latências colossais.
 - **Cognitive Quarantine Ledger**: Toda falha de bloqueamento por firewall da busca não será mais atirada no limbo. O SQL Sensus Registry foi expandido e grava relatórios precisos de incidentes, retro-alimentando o usuário para liberação de Quarentena sem perder fluxos preciosos no WAG.
 - **Inquisitor Safety Sub-Billion Filter**: Extirparam-se ativamente anomalias de Inquisidores "Halucinados". O Llama proíbe a atribuição de modelos abaixo de 3 bilhões de coeficientes para o posto de Juiz da Informação Web (`1.5b`, `smollm`, `deepseek-r1-1.5b`). Um `cargo build` purificado garante a validação tipográfica.
 
-## [0.9.8] - 2026-03-26
-
 ### 🚀 The Sovereign RAG Trinity (Map-Reduce Architecture)
-
-### Adicionado
 - **Agent 1: RAG Planner**: O motor Rust agora intercepta a Diretiva de Pesquisa Profunda do usuário e aciona silenciosamente o LLM Local para decompor ordens complexas em um Array JSON de Micro-missões específicas, estilhaçando o problema investigativo de acordo com o padrão Plan & Execute.
 - **Agent 2: RAG Extractor (Vector DB)**: O orquestrador injeta puramente em memória (Rust Native) um filtro matemático de *Cosine Similarity* sub-atômico. A malha filtra 30.000 tokens de ruído Web, separa estritamente os "Top-5" parágrafos dourados via vetores, e força o LLM leve a responder *exclusivamente* as micro-perguntas baseadas naquele bloco, erradicando a Alucinação "Lost in the Middle".
 - **Agent 3: RAG Synthesizer (Dynamic Model Selection)**: Construído um Elemento Dropdown no controle de Deep Research (UI Svelte) permitindo permuta tática de LLMs em tempo de execução. O "Dossiê Progressivo" do Agente 2 agora é servido ao `qwen2.5:14b` (Heavy Analytics) ou `llama3.2` para formatação blindada final.
 - **URL Trust Matrix Vetting**: Substituição de strings cegas por um Scoring Engine purista em Rust. Sites .gov, .edu.br e órgãos acadêmicos (Tier 1) agora obliteram fontes amadoras de SEO, subindo forçadamente para o Top-20 ranking de extração RAG.
 
----
-
-## [0.9.7] - 2026-03-24
-
 ### 🤖 RAG Engine Autómaton & Hallucination Radar Convergence
-
-### Adicionado
 - **Self-Healing RAG (Autómaton Node)**: Escrito e executado um script cibernético fora de banda (`auto_resolve.mjs`) que se conectou ao SQLite e invocou localmente a LLM (`llama3.2`) para atuar como Curadora de Conhecimento. O motor sintético escreveu automaticamente explicações densas para todos os Gaps faltantes e injetou fisicamente as resoluções no Vault em Markdown via API REST, zerando a dívida técnica da base de conhecimento da aplicação.
 - **Deep Observability Stream (Axum)**: O interceptador SSE (Server-Sent Events) no gateway de chat em Rust (`api.rs`) foi reconstruído. Agora o sistema clona e despacha ativamente qualquer contexto RAG, Web Search ou Metadados de Sistema *genuínos* e os vincula aos prompts, jogando-os estritamente para a fila da tabela `evaluations`. O bug milenar onde 'The Nurse' não encontrava insumos reais para auditar foi completamente estancado.
 - **Zero-Shot Paperclip Node**: Implementada a injeção volátil de memória na interface de Chat. Arquivos de texto e código (`.md`, `.rs`, `.py`, `.json`, `.csv`) anexados via clipe de papel agora são carregados instantaneamente via `HTML5 FileReader` direto para a malha de contexto (`inputContext`), pulando a indexação massiva do RAG para avaliações ultra-rápidas do LLM.
