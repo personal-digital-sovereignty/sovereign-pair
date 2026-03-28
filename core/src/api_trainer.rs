@@ -1,3 +1,4 @@
+#![allow(clippy::collapsible_if)]
 use axum::{
     extract::State,
     response::{IntoResponse, sse::{Event, Sse}},
