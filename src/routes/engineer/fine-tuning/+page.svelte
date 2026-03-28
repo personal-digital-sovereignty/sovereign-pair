@@ -17,7 +17,7 @@
         if(isSubmitting) return;
         isSubmitting = true;
         try {
-            await fetch('http://localhost:38001/v1/trainer/finetune', {
+            await fetch('http://localhost:38001/v1/engineer/trainer/finetune', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
