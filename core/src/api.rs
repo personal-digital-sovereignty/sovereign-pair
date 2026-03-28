@@ -277,11 +277,44 @@ if human_prompt.to_lowercase().starts_with("/plan") {
 }
 
 // ===== THE NURSE (WEB & SYS AGENTIC BYPASS) =====
-let mut web_context = String::new();
-let mut sys_context = String::new();
+let (tx_sse, mut rx_sse) = tokio::sync::mpsc::unbounded_channel::<axum::response::sse::Event>();
+let tx_sse_clone = tx_sse.clone();
 
-let is_web = human_prompt.to_lowercase().starts_with("/web");
-let is_sys = human_prompt.to_lowercase().starts_with("/sys");
+let payload = payload.clone();
+let state = state.clone();
+let human_prompt = human_prompt.clone();
+let requested_model = requested_model.clone();
+let ollama_model = ollama_model.clone();
+let global_system_prompt = global_system_prompt.clone();
+let sys_temperature = sys_temperature;
+let sys_top_k = sys_top_k;
+
+tokio::spawn(async move {
+    let mut web_context = String::new();
+    let mut sys_context = String::new();
+
+    let send_thought = |text: &str| {
+        let chunk = crate::models::OpenAIChatChunkResponse {
+            id: format!("chatcmpl-thought-{}", uuid::Uuid::new_v4()),
+            object: "chat.completion.chunk".to_string(),
+            created: chrono::Utc::now().timestamp(),
+            model: requested_model.clone(),
+            choices: vec![crate::models::OpenAIChatChunkChoice {
+                index: 0,
+                delta: crate::models::OpenAIChatChunkDelta {
+                    role: Some("assistant".to_string()),
+                    content: Some(text.to_string()),
+                    tool_calls: None,
+                },
+                finish_reason: None,
+            }],
+            usage: None,
+        };
+        let _ = tx_sse_clone.send(axum::response::sse::Event::default().data(serde_json::to_string(&chunk).unwrap()));
+    };
+
+    let is_web = human_prompt.to_lowercase().starts_with("/web");
+    let is_sys = human_prompt.to_lowercase().starts_with("/sys");
 
 if payload.deep_research.unwrap_or(false) {
     let mut url_to_scrape = String::new();
@@ -296,6 +329,7 @@ if payload.deep_research.unwrap_or(false) {
     }
 
     if !url_to_scrape.is_empty() {
+        send_thought(&format!("<thought>🔎 Lendo URL solicitada Diretamente: {}...</thought>\n\n", url_to_scrape));
         tracing::info!("🕸️ [WAG Native] O botão 'Deep Research' estava ATIVO na UI. Acionando raspagem perene p/ {}", url_to_scrape);
         let wag_args = serde_json::json!({ "url": url_to_scrape });
         let wag_result = crate::mcp::execute_mcp_tool(&state, "mcp_deep_research", &wag_args).await;
@@ -303,7 +337,7 @@ if payload.deep_research.unwrap_or(false) {
         web_context = format!("INSTRUÇÃO SISTÊMICA (DEEP RESEARCH/WAG): O motor de Agentic Web-Scraping leu a URL solicitada ({}) e a salvou fisicamente na Sensus Database Vault local do usuário.\n\nEis o PREVIEW direto (Truncado) dos dados limpos recém-extraídos da internet:\n\n{}\n\nAGENTE: Baseado estritamente nestes dados in-locus, responda/analise de forma soberba a: '{}'", url_to_scrape, wag_result, user_question);
     } else {
         tracing::info!("🧠 [WAG Multi-Hop] Nenhuma URL explícita no prompt. Iniciando Deep Research Agentico (Sub-Processo LLM) para Múltiplas Visões: '{}'", user_question);
-        
+        send_thought("<thought>Iniciando Sovereign Search Engine (WAG)...</thought>\n<thought>Acionando Sub-LLM O Doutrinador...</thought>\n");
         // 1. Notifica o Frontend que o Loop Começou
         let _ = state.log_sender.send(crate::models::LogEntry {
             timestamp: chrono::Utc::now().to_rfc3339(),
@@ -379,6 +413,11 @@ if payload.deep_research.unwrap_or(false) {
             level: "agent".to_string(),
             message: format!("📡 [Deep Research] 3 Queries Forjadas: {:?}. Lançando {} Spiders Concurrentes à Malha SearxNG...", extracted_queries, extracted_queries.len()),
         });
+
+        send_thought(&format!("<thought>Desdobramento em {} visões paralelas concluído. Lançando Meta-Spiders Cíbridas...</thought>\n", extracted_queries.len()));
+        for q in &extracted_queries {
+            send_thought(&format!("<thought>🔍 Querying web: \"{}\"</thought>\n", q));
+        }
 
         let engine = std::sync::Arc::new(crate::research::DeepResearchEngine::new(Some(state.db.clone()), Some(state.adblock_engine.clone()), Some(state.vault_path.clone())));
         
@@ -623,8 +662,10 @@ if let Some(global_prompt) = global_system_prompt {
 
 // Injeta a Orquestração do ReWOO (Reasoning Without Observation) Apenas Se Houver Plano
 let workspace_id = payload.workspace_id.clone().unwrap_or_else(|| "default".to_string());
+send_thought("<thought>Consultando Plano de Tarefas Sovereign Hub...</thought>\n");
 let rewoo_observations = crate::rewoo::execute_rewoo_plan(&human_prompt, &workspace_id, &state.db).await;
 if !rewoo_observations.trim().is_empty() && rewoo_observations != "ReWOO Accumulated Observations:\n" {
+    send_thought("<thought>Sovereign ReWOO: Executando nós paralelos mapeados na memória local...</thought>\n<thought>Grafo ReWOO consolidado. Injetando descobertas.</thought>\n\n");
     tracing::debug!("🧠 ReWOO Workflow Executed. Injecting compiled DAG observations.");
     purified_messages.push(json!({
         "role": "system",
@@ -750,11 +791,14 @@ let res = match state
             }],
             usage: None,
         };
-        let stream = futures_util::stream::iter(vec![
+        let mut error_stream = futures_util::stream::iter(vec![
             Ok::<Event, Infallible>(Event::default().data(serde_json::to_string(&err_chunk).unwrap_or_default())),
             Ok::<Event, Infallible>(Event::default().data("[DONE]")),
         ]);
-        return Sse::new(stream).into_response();
+        while let Some(Ok(event)) = futures_util::StreamExt::next(&mut error_stream).await {
+            let _ = tx_sse_clone.send(event);
+        }
+        return;
     },
     Err(e) => {
         if is_custom_cluster {
@@ -784,11 +828,14 @@ let res = match state
                         }],
                         usage: None,
                     };
-                    let stream = futures_util::stream::iter(vec![
+                    let mut error_stream = futures_util::stream::iter(vec![
                         Ok::<Event, Infallible>(Event::default().data(serde_json::to_string(&err_chunk).unwrap_or_default())),
                         Ok::<Event, Infallible>(Event::default().data("[DONE]")),
                     ]);
-                    return Sse::new(stream).into_response();
+                    while let Some(Ok(event)) = futures_util::StreamExt::next(&mut error_stream).await {
+                        let _ = tx_sse_clone.send(event);
+                    }
+                    return;
                 }
             }
         } else {
@@ -811,11 +858,14 @@ let res = match state
                 }],
                 usage: None,
             };
-            let stream = futures_util::stream::iter(vec![
+            let mut error_stream = futures_util::stream::iter(vec![
                 Ok::<Event, Infallible>(Event::default().data(serde_json::to_string(&err_chunk).unwrap_or_default())),
                 Ok::<Event, Infallible>(Event::default().data("[DONE]")),
             ]);
-            return Sse::new(stream).into_response();
+            while let Some(Ok(event)) = futures_util::StreamExt::next(&mut error_stream).await {
+                let _ = tx_sse_clone.send(event);
+            }
+            return;
         }
     }
 };
@@ -839,7 +889,7 @@ let mut accumulator = String::new(); // Memory Builder da Resposta do Agente
 let tracking_log_sender = state.log_sender.clone();
 
 // Extraímos os Bytes Chunk a Chunk e mapeamos pro formato OpenAI SSE:
-let stream = res.bytes_stream().map(move |result| {
+let mut map_stream = res.bytes_stream().map(move |result| {
     match result {
         Ok(bytes) => {
             // Tenta transformar os bytes em string (pode vir linha cortada)
@@ -1021,8 +1071,19 @@ let stream = res.bytes_stream().map(move |result| {
     }
 });
 
+while let Some(Ok(event)) = futures_util::StreamExt::next(&mut map_stream).await {
+    let _ = tx_sse_clone.send(event);
+}
+}); // Fim do tokio::spawn
+
+let final_stream = async_stream::stream! {
+    while let Some(event) = rx_sse.recv().await {
+        yield Ok::<_, std::convert::Infallible>(event);
+    }
+};
+
 // Envolve a Stream num responder SSE do Axum e devolve o header Keep-Alive.
-Sse::new(stream)
+Sse::new(final_stream)
     .keep_alive(axum::response::sse::KeepAlive::new())
     .into_response()
 }

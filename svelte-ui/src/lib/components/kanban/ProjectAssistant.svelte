@@ -6,8 +6,38 @@
 
     function parseMarkdown(text: string) {
         if (!text) return '';
-        const raw = marked.parse(text);
-        return DOMPurify.sanitize(raw as string, { ADD_TAGS: ['svg', 'path', 'circle', 'line', 'g', 'rect', 'span', 'div'] });
+        
+        let processingText = text;
+        const thoughtRegex = /<thought>([\s\S]*?)<\/thought>/g;
+        let originalThoughts = "";
+        
+        processingText = processingText.replace(thoughtRegex, (match, inner) => {
+            originalThoughts += `<li class="flex items-start gap-2 text-[10px] leading-relaxed"><div class="mt-1 w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></div><span class="opacity-90">${inner}</span></li>\n`;
+            return "";
+        });
+
+        const raw = marked.parse(processingText);
+        let sanitizedMarkup = DOMPurify.sanitize(raw as string, { ADD_TAGS: ['svg', 'path', 'circle', 'line', 'g', 'rect', 'span', 'div'], ADD_ATTR: ['target', 'class'] });
+
+        if (originalThoughts) {
+            const safeThoughts = DOMPurify.sanitize(originalThoughts, { ADD_ATTR: ['class'] });
+            const thinkingUI = `
+                <details class="group mb-5 bg-slate-50 border border-slate-200/60 rounded-xl overflow-hidden shadow-sm transition-all duration-300 ease-in-out open:pb-4 w-full mt-2">
+                    <summary class="flex items-center gap-2 px-3 py-2 cursor-pointer list-none text-[10px] font-bold tracking-widest uppercase text-slate-500 select-none hover:bg-slate-100 transition-colors">
+                        <svg class="w-3.5 h-3.5 text-blue-500 origin-center transition-transform group-open:rotate-90" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                        <svg class="w-3.5 h-3.5 text-blue-500 animate-[spin_3s_linear_infinite] group-open:hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
+                        <span class="group-open:hidden text-blue-600 transition-colors">Processo Analítico...</span>
+                        <span class="hidden group-open:inline text-slate-400">Ocultar Estratégia</span>
+                    </summary>
+                    <ul class="flex flex-col gap-1.5 mt-2 px-3 pb-1 text-slate-600 font-medium">
+                        ${safeThoughts}
+                    </ul>
+                </details>
+            `;
+            return thinkingUI + sanitizedMarkup;
+        }
+
+        return sanitizedMarkup;
     }
 
     let { project, isOpen = $bindable(false) }: { project: Project; isOpen?: boolean } = $props();
