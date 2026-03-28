@@ -1,3 +1,4 @@
+#![allow(clippy::collapsible_if)]
 use reqwest::Client;
 use scraper::{Html, Selector};
 use std::time::Duration;
