@@ -4,15 +4,15 @@
     import { settingsState } from '$lib/settings.svelte';
     import { marked } from 'marked';
     import DOMPurify from 'dompurify';
-    import { untrack } from 'svelte';
+    import { onMount, untrack } from 'svelte';
 
     let message = $state('');
 
-    $effect(() => {
-        const sid = globalState.chat.activeSessionId;
-        untrack(() => {
-            loadGlobalSession(sid);
-        });
+    onMount(() => {
+        // Inicializa a sessão uma única vez ao montar caso esteja vasio
+        if (globalState.chat.messages.length === 0) {
+            loadGlobalSession(globalState.chat.activeSessionId);
+        }
     });
 
     function parseMarkdown(text: string) {
