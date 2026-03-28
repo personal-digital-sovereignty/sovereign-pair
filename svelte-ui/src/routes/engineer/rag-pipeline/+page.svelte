@@ -61,7 +61,7 @@
         if (sseClient) {
             sseClient.close();
         }
-        sseClient = new EventSource('http://localhost:38001/v1/trainer/unsloth-monitor');
+        sseClient = new EventSource('http://localhost:38001/v1/engineer/trainer/unsloth-monitor');
         
         sseClient.onmessage = (event) => {
             const data = event.data;
@@ -93,7 +93,7 @@
         };
 
         try {
-            await fetch('http://localhost:38001/v1/trainer/deep-research', {
+            await fetch('http://localhost:38001/v1/engineer/trainer/deep-research', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -121,7 +121,7 @@
         }
 
         try {
-            await fetch('http://localhost:38001/v1/trainer/deep-research/cancel', {
+            await fetch('http://localhost:38001/v1/engineer/trainer/deep-research/cancel', {
                 method: 'POST'
             });
         } catch (e) {

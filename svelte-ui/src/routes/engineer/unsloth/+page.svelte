@@ -12,7 +12,7 @@
         fetchTrainerStats();
         pollingInterval = setInterval(fetchTrainerStats, 10000);
 
-        eventSource = new EventSource('http://localhost:38001/v1/trainer/unsloth-monitor');
+        eventSource = new EventSource('http://localhost:38001/v1/engineer/trainer/unsloth-monitor');
         
         eventSource.onmessage = (event) => {
             logs.push(event.data);

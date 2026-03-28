@@ -80,12 +80,11 @@ pub async fn query_most_honest_model(db_pool: Option<&sqlx::SqlitePool>, fallbac
         .fetch_optional(pool)
         .await;
 
-        if let Ok(Some(db_row)) = row {
-            if let Ok(name) = db_row.try_get::<String, _>("model_name") {
+        if let Ok(Some(db_row)) = row
+            && let Ok(name) = db_row.try_get::<String, _>("model_name") {
                 tracing::info!("⚖️ [Inquisidor Solitário] Modelo eleito pelo SQLite (Menos Alucinações): {}", name);
                 return name;
             }
-        }
     }
     
     tracing::warn!("⚠️ [Inquisidor Solitário] Sem dados históricos suficientes na Tabela de Alucinações. Usando fallback de confiança: {}", fallback);
@@ -395,7 +394,7 @@ if payload.deep_research.unwrap_or(false) {
             if let Ok(Ok(search_res)) = res {
                 all_links.extend(search_res.links);
                 all_snippets.push_str(&search_res.snippets);
-                all_snippets.push_str("\n");
+                all_snippets.push('\n');
             }
         }
         all_links.sort();
@@ -1140,13 +1139,12 @@ pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> i
     let mut topic_counts: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
     if let Ok(sessions) = sqlx::query("SELECT tags_json FROM chat_sessions WHERE tags_json IS NOT NULL").fetch_all(&state.db).await {
         for row in sessions {
-            if let Ok(tags_str) = sqlx::Row::try_get::<String, _>(&row, "tags_json") {
-                if let Ok(tags) = serde_json::from_str::<Vec<String>>(&tags_str) {
+            if let Ok(tags_str) = sqlx::Row::try_get::<String, _>(&row, "tags_json")
+                && let Ok(tags) = serde_json::from_str::<Vec<String>>(&tags_str) {
                     for tag in tags {
                         *topic_counts.entry(tag).or_insert(0) += 1;
                     }
                 }
-            }
         }
     }
     let mut top_topics: Vec<_> = topic_counts.into_iter().map(|(topic, count)| serde_json::json!({ "topic": topic, "count": count })).collect();
