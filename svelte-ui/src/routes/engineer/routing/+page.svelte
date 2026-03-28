@@ -36,18 +36,18 @@
 
     async function deleteRule(id: string) {
         if(!confirm("Tem certeza que deseja remover esta regra de roteamento?")) return;
-        await fetch(`http://localhost:38001/v1/rag-engine/rules/${id}`, { method: 'DELETE' });
+        await fetch(`http://localhost:38001/v1/engineer/rag/rules/${id}`, { method: 'DELETE' });
         fetchData();
     }
 
     async function deleteModel(id: string) {
         if(!confirm("Tem certeza que deseja remover este modelo remoto da arquitetura?")) return;
-        await fetch(`http://localhost:38001/v1/rag-engine/models/${id}`, { method: 'DELETE' });
+        await fetch(`http://localhost:38001/v1/engineer/rag/models/${id}`, { method: 'DELETE' });
         fetchData();
     }
 
     async function saveRule() {
-        await fetch(`http://localhost:38001/v1/rag-engine/rules`, {
+        await fetch(`http://localhost:38001/v1/engineer/rag/rules`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newRule)
@@ -57,7 +57,7 @@
     }
 
     async function saveModel() {
-        await fetch(`http://localhost:38001/v1/rag-engine/models`, {
+        await fetch(`http://localhost:38001/v1/engineer/rag/models`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newModel)
@@ -68,10 +68,10 @@
 
     async function fetchData() {
         try {
-            const resRules = await fetch('http://localhost:38001/v1/rag-engine/rules');
+            const resRules = await fetch('http://localhost:38001/v1/engineer/rag/rules');
             if(resRules.ok) rules = await resRules.json();
 
-            const resModels = await fetch('http://localhost:38001/v1/rag-engine/models');
+            const resModels = await fetch('http://localhost:38001/v1/engineer/rag/models');
             if(resModels.ok) models = await resModels.json();
         } catch(e) {
             console.error("Failed to load RAG engine data", e);

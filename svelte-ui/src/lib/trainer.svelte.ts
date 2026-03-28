@@ -70,7 +70,7 @@ export const AI_MODELS = [
 
 export async function fetchTrainerStats() {
     try {
-        const res = await fetch('http://localhost:38001/v1/trainer/stats');
+        const res = await fetch('http://localhost:38001/v1/engineer/trainer/stats');
         if (res.ok) {
             const data = await res.json();
             trainerState.knowledgeGapPercentage = data.knowledge_gap_percentage || 0;
@@ -111,7 +111,7 @@ export async function fetchTrainerStats() {
 
 export async function sendUnslothControl(action: 'play' | 'pause' | 'stop') {
     try {
-        await fetch('http://localhost:38001/v1/trainer/control', {
+        await fetch('http://localhost:38001/v1/engineer/trainer/control', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action })

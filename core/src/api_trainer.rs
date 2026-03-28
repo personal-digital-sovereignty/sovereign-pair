@@ -287,12 +287,11 @@ async fn execute_sub_analyst(
                 let mut clean_str = content.to_string();
                 
                 // DeepSeek-R1 Cognitive Sanitization (Remove Chain of Thought)
-                if let Some(start) = clean_str.find("<think>") {
-                    if let Some(end) = clean_str.find("</think>") {
+                if let Some(start) = clean_str.find("<think>")
+                    && let Some(end) = clean_str.find("</think>") {
                         let shift = if clean_str[end..].starts_with("</think>\n\n") { 10 } else { 8 };
                         clean_str.replace_range(start..end + shift, "");
                     }
-                }
                 
                 distilled_text = clean_str.trim().to_string();
                 
@@ -546,7 +545,7 @@ pub async fn run_deep_research_handler(
                                                 && let Some(sq) = params.get("search_query").and_then(|q| q.as_str()) {
                                                     let _ = TRAINER_LOGS.send(format!("[Thought Nanny] Mestre Low-End despacha Aluno para: '{}'", sq));
                                                     
-                                                    let sq_string = sq.to_string();
+                                                    let _sq_string = sq.to_string();
                                                     let sq_string = sq.to_string();
                                                     let _ = TRAINER_LOGS.send(format!("[The Honest Inquisitor] Sub-Agente Low-End Eleito Para Fallback: {}", auth_inquisitor));
                                                     
@@ -986,7 +985,7 @@ pub async fn trainer_stats_handler(
     };
 
     let ts_metrics = TrainerStatsResponse {
-        knowledge_gap_percentage: gap_percentage.max(0.0).min(100.0),
+        knowledge_gap_percentage: gap_percentage.clamp(0.0, 100.0),
         sources_scanned: sources_scanned * 12, // Arbitrary amplification for scanned pages vs Vault indexed files
         sources_scanned_delta: if sources_scanned > 0 { 12 } else { 0 },
         recently_acquired,

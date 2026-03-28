@@ -23,7 +23,7 @@ sequenceDiagram
     participant Worker as Unsloth Python / Ollama Engine
     participant Mesh as Teacher Node (Oracle OCI / OpenAI)
 
-    UI->>Backend: /v1/trainer/finetune HTTP POST (LoRA r=16, Batch=4)
+    UI->>Backend: /v1/engineer/trainer/finetune HTTP POST (LoRA r=16, Batch=4)
     activate Backend
     Backend->>Backend: tokio::spawn (Async Worker)
     Backend-->>UI: Retorna HTTP 202 Accepted (job_id)
@@ -40,7 +40,7 @@ sequenceDiagram
     
     loop Server-Sent Events (SSE)
         Worker-->>Backend: Status (VRAM, Epochs, Loss) via STDOUT
-        Backend-->>UI: /v1/trainer/unsloth-monitor (SSE Broadcast)
+        Backend-->>UI: /v1/engineer/trainer/unsloth-monitor (SSE Broadcast)
     end
     
     Worker->>Worker: Mescla LoRA Weights (.gguf)
