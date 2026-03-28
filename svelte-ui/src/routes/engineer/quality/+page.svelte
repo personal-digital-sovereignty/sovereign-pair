@@ -28,8 +28,8 @@
     async function fetchData() {
         try {
             const [resGaps, resRadar] = await Promise.all([
-                fetch('http://localhost:38001/v1/rag-engine/gaps'),
-                fetch('http://localhost:38001/v1/rag-engine/radar')
+                fetch('http://localhost:38001/v1/engineer/rag/gaps'),
+                fetch('http://localhost:38001/v1/engineer/rag/radar')
             ]);
             
             if(resRadar.ok) radar = await resRadar.json();
@@ -81,7 +81,7 @@
             });
 
             // 2. Registra o Dual-Truth Soft Delete na Memória SQLite
-            await fetch(`http://localhost:38001/v1/rag-engine/gaps/${gap.id}`, {
+            await fetch(`http://localhost:38001/v1/engineer/rag/gaps/${gap.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ resolution_content: content })
@@ -101,7 +101,7 @@
         gaps = gaps.filter(g => g.id !== gap.id);
 
         try {
-            await fetch(`http://localhost:38001/v1/rag-engine/gaps/${gap.id}`, { method: 'DELETE' });
+            await fetch(`http://localhost:38001/v1/engineer/rag/gaps/${gap.id}`, { method: 'DELETE' });
         } catch(e) {
             console.error("Failed to Hard Delete gap", e);
             gaps = previousState;

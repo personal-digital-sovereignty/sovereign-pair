@@ -13,7 +13,7 @@ async function resolveGaps() {
     
     let gaps = [];
     try {
-        const res = await fetch(`${AXUM_API}/v1/rag-engine/gaps`);
+        const res = await fetch(`${AXUM_API}/v1/engineer/rag/gaps`);
         if (!res.ok) throw new Error("Falha ao buscar gaps");
         const allGaps = await res.json();
         gaps = allGaps.filter(g => !g.status || g.status === 'pending');
@@ -68,7 +68,7 @@ async function resolveGaps() {
             });
 
             // 2. Registra o Dual-Truth Soft Delete na Memória SQLite
-            const putRes = await fetch(`${AXUM_API}/v1/rag-engine/gaps/${gap.id}`, {
+            const putRes = await fetch(`${AXUM_API}/v1/engineer/rag/gaps/${gap.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ resolution_content: ai_context })
