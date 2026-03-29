@@ -307,8 +307,19 @@ async fn execute_sub_analyst(
                 top_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
                 
                 // Keep the top 35 semantic chunks to build the perfect context (approx 3k-5k tokens)
-                let top_k = top_results.into_iter().take(35);
-                for (i, res) in top_k.enumerate() {
+                let top_k: Vec<_> = top_results.into_iter().take(35).collect();
+                
+                // --- PHASE 3: LongContextReorder (U-Curve Mitigation for SLMs) ---
+                let mut reordered = std::collections::VecDeque::new();
+                for (i, res) in top_k.into_iter().enumerate() {
+                    if i % 2 == 0 {
+                        reordered.push_front(res); // Elementos mais fortes nas bordas (INÍCIO/FIM)
+                    } else {
+                        reordered.push_back(res);
+                    }
+                }
+                
+                for (i, res) in reordered.into_iter().enumerate() {
                     if let Some(text) = res.document {
                         reranked_md.push_str(&format!("[- Chunk {} (Score: {:.2})]: {}\n\n", i, res.score, text));
                     }
@@ -323,14 +334,23 @@ async fn execute_sub_analyst(
         reranked_md = raw_student_md.clone();
     }
 
-    let system_prompt = "Você é um Inquisidor Soberano implacável. Seu idioma oficial obrigatório é o PORTUGUÊS (PT-BR). REGRA DE OURO: Se a resposta não estiver LITERALMENTE descrita no texto do contexto, ou se o contexto for vazio, responda ESTRITAMENTE e UNICAMENTE com as palavras em CAIXA ALTA: 'DADO NÃO ENCONTRADO'. NÃO INVENTE DADOS. JAMAIS responda em inglês.";
+    let is_micro_llama = sub_agent_model.to_lowercase().contains("1b") || sub_agent_model.to_lowercase().contains("1.5b");
 
-    let extractor_prompt = format!(
-        "Responda à pergunta abaixo baseando-se APENAS e RESTRITAMENTE no contexto histórico fornecido raspado da web (Reranked Top-K Segments). \n\
-        CITE A FONTE URL DE ONDE TIROU CADA INFORMAÇÃO DIRETAMENTE DO TEXTO. Se faltar dados, use a Regra de Ouro. Mantenha resposta curta, direta, jornalística.\n\n\
-        PERGUNTA A SER RESOLVIDA:\n{}\n\n\
-        CONTEXTO SEMÂNTICO RERANKED PELO SEU CRAWLER (FONTES ABAIXO):\n{}", query, reranked_md
-    );
+    let system_prompt = if is_micro_llama {
+        "Extract exact answer from <context>. If missing, return exactly {\"status\":\"null\"}. Numbers verbatim. Output ONLY Valid JSON e.g. {\"status\":\"extracted\", \"data\":\"answer\"}."
+    } else {
+        "Você é um Analista Rigoroso. Extraia fatos exatos. REGRA 0: Se faltar texto, DEVOLVA {\"status\":\"null\"}. REGRA 1: Use <scratchpad> ANTES do JSON copiando verbatim a frase que provê a resposta, iniciando com [SRC:chunk_X]. A saída final DEVE obrigatoriamente terminar com o JSON."
+    };
+
+    let extractor_prompt = if is_micro_llama {
+        format!("QUESTION: {}\n<context>\n{}\n</context>\nJSON OUTPUT:", query, reranked_md)
+    } else {
+        format!(
+            "Extraia a resposta baseando-se RESTRITAMENTE nos Chunks. CITE O [- Chunk X] NO <scratchpad>. Dê a saída final em JSON (status e data).\n\n\
+            PERGUNTA:\n{}\n\n\
+            CONTEXTO:\n{}", query, reranked_md
+        )
+    };
 
     let ext_payload = serde_json::json!({
         "model": sub_agent_model,
@@ -342,29 +362,88 @@ async fn execute_sub_analyst(
         "options": { "temperature": 0.0, "num_ctx": 4096 }
     });
 
-    let mut distilled_text = "Falha do aluno ao purificar.".to_string();
+    let mut distilled_text = "DADO NÃO ENCONTRADO".to_string();
     if let Ok(res) = client.post("http://127.0.0.1:11434/api/chat").json(&ext_payload).send().await
         && let Ok(json) = res.json::<serde_json::Value>().await
             && let Some(content) = json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
                 
-                let mut clean_str = content.to_string();
+                let content_str = content.to_string();
                 
-                // DeepSeek-R1 Cognitive Sanitization (Remove Chain of Thought)
-                if let Some(start) = clean_str.find("<think>")
-                    && let Some(end) = clean_str.find("</think>") {
-                        let shift = if clean_str[end..].starts_with("</think>\n\n") { 10 } else { 8 };
-                        clean_str.replace_range(start..end + shift, "");
+                let json_start = content_str.find('{');
+                let json_end = content_str.rfind('}');
+                
+                if let (Some(s), Some(e)) = (json_start, json_end) {
+                    if s < e {
+                        let json_slice = &content_str[s..=e];
+                        if let Ok(v) = serde_json::from_str::<serde_json::Value>(json_slice) {
+                            if let Some(status) = v.get("status").and_then(|st| st.as_str()) {
+                                if status == "null" || status == "INSUFFICIENT_DATA" {
+                                    distilled_text = "DADO NÃO ENCONTRADO".to_string();
+                                } else if let Some(data) = v.get("data").and_then(|d| d.as_str()) {
+                                    distilled_text = data.to_string();
+                                }
+                            } else if let Some(data) = v.get("data").and_then(|d| d.as_str()) {
+                                distilled_text = data.to_string();
+                            }
+                        }
                     }
-                
-                distilled_text = clean_str.trim().to_string();
-                
-                // Auto-Forgiveness Sanitization for edge cases 
-                let upper_check = distilled_text.to_uppercase();
-                if upper_check.contains("DADO NÃO ENCONTRADO") || upper_check.contains("DADOS NÃO ENCONTRADOS") {
-                    distilled_text = "DADO NÃO ENCONTRADO".to_string();
+                } else if !is_micro_llama {
+                    let upper = content_str.to_uppercase();
+                    if !upper.contains("DADO NÃO ENCONTRADO") && !upper.contains("\"NULL\"") {
+                        // Limpeza do DeepSeek (Cai aqui se o modelo não fez o JSON mas trouxe a resposta com think)
+                        let mut clean = content_str.clone();
+                        if let Some(start) = clean.find("<think>") {
+                            if let Some(end) = clean.find("</think>") {
+                                let shift = if clean[end..].starts_with("</think>\n\n") { 10 } else { 8 };
+                                clean.replace_range(start..end + shift, "");
+                            }
+                        }
+                        if let Some(scratch_end) = clean.find("</scratchpad>") {
+                           clean = clean[scratch_end + 13..].to_string(); 
+                        }
+                        distilled_text = clean.trim().to_string();
+                    }
                 }
             }
     
+    // --- PHASE 2: ADVERSARIAL VERIFIER (PHI-3.5 CoVe) ---
+    if firewall_enabled && distilled_text != "DADO NÃO ENCONTRADO" && !is_micro_llama {
+        let _ = TRAINER_LOGS.send("[Adversarial Verifier] Submetendo extração ao Phi-3.5 para validação rigorosa (Zero-Trust)...".to_string());
+        
+        let verifier_prompt = format!(
+            "Você é o Advogado do Diabo (Auditor de Alucinações). Sua ÚNICA função é verificar se a EXTRAÇÃO fornecida é 100% verdadeira e provém LITERALMENTE do CONTEXTO.\n\
+            EXTRAÇÃO A VERIFICAR:\n{}\n\n\
+            CONTEXTO FONTE:\n{}\n\n\
+            Se a extração inventar QUALQUER dado, termo, número ou promessa que não está CLARO no contexto, responda APENAS: REJECTED\n\
+            Se for 100% fundamentada no texto, responda APENAS: APPROVED", distilled_text, reranked_md
+        );
+
+        let verifier_payload = serde_json::json!({
+            "model": "phi3.5",
+            "messages": [
+                {"role": "system", "content": "Você é um auditor rigoroso de dados do Estado. Responda apenas APPROVED ou REJECTED. Nada mais."},
+                {"role": "user", "content": verifier_prompt}
+            ],
+            "stream": false,
+            "options": { "temperature": 0.0, "num_ctx": 4096 }
+        });
+
+        if let Ok(res_verif) = client.post("http://127.0.0.1:11434/api/chat").json(&verifier_payload).send().await
+            && let Ok(v_json) = res_verif.json::<serde_json::Value>().await
+                && let Some(v_content) = v_json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
+                    let v_upper = v_content.to_uppercase();
+                    if v_upper.contains("REJECTED") {
+                        let _ = TRAINER_LOGS.send(format!("[Adversarial Verifier] Phi-3.5 DESTRUIU a extração por alucinação epistêmica: {}", distilled_text));
+                        distilled_text = "DADO NÃO ENCONTRADO".to_string(); // Veto absoluto
+                    } else {
+                        let _ = TRAINER_LOGS.send("[Adversarial Verifier] Phi-3.5 VALIDOU a extração com sucesso e coerência!".to_string());
+                    }
+                } else {
+                    let _ = TRAINER_LOGS.send("[Adversarial Verifier] Falha ao contatar Phi-3.5, assumindo extração como REJECTED por precaução.".to_string());
+                    distilled_text = "DADO NÃO ENCONTRADO".to_string(); // Veto por falta de comunicação (Null-Safe)
+                }
+    }
+
     let mut sources_used = String::new();
     for line in raw_student_md.lines().filter(|l| l.starts_with("## Source: ")) {
         sources_used.push_str(&format!("{}\n", line));
@@ -419,13 +498,13 @@ pub async fn run_deep_research_handler(
             "type": "function",
             "function": {
                 "name": "dispatch_sub_researcher",
-                "description": "Ferramenta de Extração Web Profunda. [REGRA ANTI-SEO]: Você DEVE escapar de lixos de SEO ('Top 10 Guias') construindo Dorks Operacionais. Para contextos institucionais/economia, force a busca via Dork (ex: `site:gov.br` ou `site:istoedinheiro.com.br`). Mas este porto seguro abrange APENAS 30% da sua jornada! Para código, debates técnicos ou visões humanas cruas (os outros 70%), fuja de domínios corporativos usando Dorks Booleanos como `(site:reddit.com | site:github.com | site:ycombinator.com)`.",
+                "description": format!("Ferramenta de Extração Web Profunda. [FILTRO TEMPORAL ABSOLUTO]: O ano atual é {}. Sempre que a pergunta exigir notícias recentes, fatos do dia ou referir-se ao 'último' ou 'mais recente' evento, você DEVE INCLUIR explicitamente o ano {} na sua query de busca para focar os resultados e anular fontes antigas de anos passados! [REGRA ANTI-SEO]: Você DEVE escapar de lixos de SEO ('Top 10 Guias') construindo Dorks Operacionais. Para contextos institucionais/economia, force a busca via Dork (ex: `site:gov.br` ou `site:istoedinheiro.com.br`). Mas este porto seguro abrange APENAS 30% da sua jornada! Para código, debates técnicos ou visões humanas cruas (os outros 70%), fuja de domínios corporativos usando Dorks Booleanos como `(site:reddit.com | site:github.com | site:ycombinator.com)`.", current_year, current_year),
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "search_query": {
                             "type": "string",
-                            "description": format!("{} Use lógicas booleanos (Dorks) avançados anti-seo ativamente se necessário. JAMAS use a sigla API.", query_example)
+                            "description": format!("{} REGRA CRÍTICA DE TEMPO: Se o usuário pedir o 'último' ou 'a mais nova', ENXERTE A FORÇA o ano `{}` literalmente na string de pesquisa para atuar como Filtro Temporal cronológico. Use Dorks avançados anti-seo. JAMAS use a sigla API.", query_example, current_year)
                         }
                     },
                     "required": ["search_query"]
