@@ -673,6 +673,26 @@ if !rewoo_observations.trim().is_empty() && rewoo_observations != "ReWOO Accumul
         "content": rewoo_observations
     }));
 }
+// Injeta a Memória de Estado Dinâmica (Working Memory) para mitigar a amnésia de SLMs em longos diálogos
+let turn_count = payload.messages.len();
+if turn_count > 3 {
+    let working_memory_prompt = format!(
+        "<state_memory>\n\
+        {{\n\
+            \"context_retention\": \"Você está no turno {} da interação. Ative sua Working Memory estrutural. Não levante informações redundantes já explicadas.\",\n\
+            \"task_goal\": \"Sintetizar respostas de fluidez temporal, focando ESTRITAMENTE na fronteira do prompt atual. Considere o histórico como 'established_facts'.\",\n\
+            \"pending_verification\": false\n\
+        }}\n\
+        </state_memory>\n\
+        [SISTEMA INTERNO]: Leia a <state_memory> JSON acima antes de formatar a saída. Não responda baseado unicamente na reatividade do LLM, seja inteligente em não repetir o passado.",
+        turn_count
+    );
+
+    purified_messages.push(json!({
+        "role": "system",
+        "content": working_memory_prompt
+    }));
+}
 
 // Injeta as Mensagens da própria TUI (Código e Prompts)
 purified_messages.extend(payload.messages.into_iter().map(|msg| {
