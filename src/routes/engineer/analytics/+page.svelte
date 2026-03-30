@@ -174,7 +174,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 shrink-0 h-[450px]">
         
         <!-- Live Traffic (Now Real Persistence) -->
-        <div class="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
+        <div class="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-full min-h-0">
             <div class="flex justify-between items-center mb-6">
                 <div>
                     <h2 class="text-xl font-bold text-slate-800">Historical Intelligence Fleet</h2>
