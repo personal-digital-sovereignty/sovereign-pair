@@ -79,6 +79,17 @@
         } catch(e) { console.error("Ollama Daemon unreachable:", e); } finally {
             isLoadingModels = false;
         }
+
+        // Fetch Cold Storage Database
+        try {
+            const csRes = await fetch('http://localhost:38001/v1/settings/cold_storage');
+            if (csRes.ok) {
+                const data = await csRes.json();
+                if (data.corporaVaultPath) corporaVaultPath = data.corporaVaultPath;
+                if (data.offlineCorpora && data.offlineCorpora.length > 0) offlineCorpora = data.offlineCorpora;
+            }
+        } catch(e) { console.error("Cold Storage DB unreachable:", e); }
+
     });
 
     async function saveAiSettings() {
@@ -106,6 +117,23 @@
         } catch(e) { 
             console.error(e);
             alert('Failed to reach Sovereign Core.');
+        }
+    }
+
+    async function saveColdStorage() {
+        try {
+            const res = await fetch('http://localhost:38001/v1/settings/cold_storage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    corporaVaultPath,
+                    offlineCorpora
+                })
+            });
+            if (res.ok) alert('Sovereign Cold Storage Sincronizado com o Vault O.S!');
+        } catch (e) {
+            console.error(e);
+            alert('Falha ao sincronizar Cold Storage.');
         }
     }
 
@@ -467,7 +495,7 @@
                     </div>
                 </div>
 
-                <button class="mt-2 flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-500 text-white py-2.5 rounded-lg transition-colors shadow-lg shadow-teal-500/20 font-medium cursor-pointer">
+                <button onclick={saveColdStorage} class="mt-2 flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-500 text-white py-2.5 rounded-lg transition-colors shadow-lg shadow-teal-500/20 font-medium cursor-pointer">
                     <SlidersHorizontal class="w-4 h-4" />
                     <span>Sincronizar Índices Offline com o Vault</span>
                 </button>
