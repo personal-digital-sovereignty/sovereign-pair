@@ -545,11 +545,12 @@ pub async fn run_deep_research_handler(
                 [CRONOLOGIA SOBERANA] Hoje é exatamente: {current_date}.\n\
                 {}\n\
                 [DIRETRIZES TÁTICAS PARA OMNI-SEARCH E TOOL CALLING]\n\
-                1. Você DEVE obrigatoriamente usar a ferramenta `dispatch_sub_researcher` para extrair os fatos.\n\
+                1. Você DEVE obrigatoriamente usar a ferramenta `dispatch_sub_researcher` para extrair os fatos reais.\n\
                 2. NUNCA restrinja a busca usando diretivas 'site:' nas suas queries (ex: NUNCA USE 'site:gov.br'). O Motor Ghost Tratará das Extrações.\n\
                 3. Sempre que a pergunta exigir notícias recentes ou de um ano específico, você DEVE INCLUIR EXPLICITAMENTE o ano na sua 'search_query' (ex: '{}').\n\
                 4. O Tool Schema aceita APENAS a chave \"search_query\" como string limpa. NUNCA alucine variáveis ou parâmetros não-documentados.\n\
-                5. NÃO ESCREVA RESPOSTAS LONGAS nem invente sínteses sem usar a ferramenta antes.",
+                5. É ESTRITAMENTE PROIBIDO gerar análises teóricas ou relatórios vazios ANTES de usar a ferramenta.\n\
+                6. Quando possuir os dados (após a ferramenta retornar), FORMATE O REPORT MATADOR EM MARKDOWN CORPORATIVO: Crie Índice, Tabelas Comparativas, Títulos de 'Análise Integrada' e 'Validação de Realidade'.",
                 anchor_directive, current_year
             )
         } else {
@@ -558,18 +559,19 @@ pub async fn run_deep_research_handler(
                 [CRONOLOGIA SOBERANA] Hoje é exatamente: {current_date}.\n\
                 {}\n\
                 [DIRETRIZES TÁTICAS PARA OMNI-SEARCH E TOOL CALLING]\n\
-                1. Você DEVE usar a ferramenta `dispatch_sub_researcher` para buscar DADOS REAIS da web.\n\
+                1. Você DEVE usar a ferramenta `dispatch_sub_researcher` ANTES de escrever qualquer análise.\n\
                 2. NUNCA restrinja a busca de forma restritiva usando 'site:gov.br' nas suas queries. O Motor cuidará da filtragem web Global.\n\
                 3. Sempre que a pergunta exigir notícias recentes ou de um ano específico, você DEVE INCLUIR EXPLICITAMENTE o ano (ex: '{}') dentro da sua 'search_query'.\n\
                 4. O schema JSON da ferramenta aceita APENAS a propriedade primária \"search_query\" (contendo a string de busca). NÃO invente chaves extras como \"FILTRO TEMPORAL\" ou \"object\".\n\
-                5. A ferramenta DEVE ser invocada estritamente seguindo o formato JSON paramilitar. Emita o Tool Call da ferramenta pelo menos 1 a 2 vezes se achar as extrações insuficientes.",
+                5. É ESTRITAMENTE PROIBIDO gerar resumos vazios ou 'desculpas' (ex: 'Não tenho dados...'). Extraia a Tool em JSON estrito.\n\
+                6. Ao finalizar a extração de fatos, ESCREVA O MASTER REPORT EM MARKDOWN CORPORATIVO COMPLETO: Use Índices, Tabelas, Seções de 'Análise Integrada' e 'Conclusão/Transparência'. O Output deve ser majestoso.",
                 anchor_directive, current_year
             )
         };
 
         let mut messages = vec![
             serde_json::json!({"role": "system", "content": synthesis_prompt}),
-            serde_json::json!({"role": "user", "content": prompt.clone()})
+            serde_json::json!({"role": "user", "content": format!("{}\n\n[SYSTEM OVERRIDE/SECURITY]: Você AINDA NÃO POSSUI NENHUM DADO EXTRAÍDO. É expressamente PROIBIDO responder com sínteses vazias ou teóricas para o usuário. Sua próxima resposta DEVE ser ÚNICA E EXCLUSIVAMENTE a invocação da ferramenta `dispatch_sub_researcher` para buscar informações factuais.", prompt.clone())})
         ];
 
 
