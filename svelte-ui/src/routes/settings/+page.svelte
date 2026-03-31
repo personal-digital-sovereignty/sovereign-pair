@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ChevronDown, Server, Cpu, Shield, User, GlobeLock, Cloud, Download, Upload, Brain, SlidersHorizontal, Loader2, BookOpen, Printer, X } from 'lucide-svelte';
+    import { ChevronDown, Server, Cpu, Shield, User, GlobeLock, Cloud, Download, Upload, Brain, SlidersHorizontal, Loader2, BookOpen, Printer, X, Database } from 'lucide-svelte';
     import { onMount } from 'svelte';
     import { marked } from 'marked';
 
@@ -24,6 +24,17 @@
         system_prompt: "",
         default_route: "/dashboard"
     });
+
+    // Mock Offline Corpora Settings
+    let corporaVaultPath = $state('/Vault/Offline_Corpus');
+    let offlineCorpora = $state([
+        { id: 'fineweb', name: 'FineWeb / FineWeb-Edu (Parquet)', size: '2.4 TB', active: false, priority: 1, type: 'HuggingFace' },
+        { id: 'oscar', name: 'OSCAR Corpus (JSONL)', size: '850 GB', active: false, priority: 2, type: 'Multilingual' },
+        { id: 'redpajama', name: 'RedPajama-Data-v2', size: '1.2 TB', active: false, priority: 3, type: 'Web Crawl' },
+        { id: 'zim-wiki', name: 'Wikipedia Integral (Kiwix ZIM)', size: '98 GB', active: true, priority: 4, type: 'ZIM Dump' },
+        { id: 'zim-stack', name: 'StackOverflow (Kiwix ZIM)', size: '145 GB', active: false, priority: 5, type: 'ZIM Dump' },
+        { id: 'zim-pubmed', name: 'PubMed Central (Kiwix ZIM)', size: '320 GB', active: false, priority: 6, type: 'ZIM Dump' }
+    ]);
 
     let availableModels = $state<{name: string, size: number}[]>([]);
     let isLoadingModels = $state(true);
@@ -388,6 +399,77 @@
                 <button onclick={saveAiSettings} class="mt-2 flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-500 text-white py-2 rounded-lg transition-colors shadow-lg shadow-primary-500/20 font-medium cursor-pointer">
                     <SlidersHorizontal class="w-4 h-4" />
                     <span>Apply Core Variables</span>
+                </button>
+
+            </div>
+            {/if}
+        </section>
+
+        <!-- CARD 5: Sovereign Cold Storage (Offline Datasets) -->
+        <section class="bg-surface-800/80 backdrop-blur-md rounded-2xl border border-teal-500/30 overflow-hidden shadow-[0_0_20px_rgba(20,184,166,0.05)] transition-all duration-300 relative mt-2">
+            <!-- Active Glow Indicator -->
+            <div class="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 blur-[50px] pointer-events-none"></div>
+
+            <button class="w-full flex items-center justify-between p-5 text-left hover:bg-surface-700/30 cursor-pointer" onclick={() => toggleCard('cold-storage')}>
+                <div class="flex items-center gap-4">
+                    <div class="p-2 bg-teal-500/20 text-teal-400 rounded-lg">
+                        <Database class="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h2 class="font-semibold text-teal-50 text-lg">Sovereign Cold Storage</h2>
+                        <p class="text-sm text-teal-400/80">Gestão de Corpora Massivos Offline (Plan B)</p>
+                    </div>
+                </div>
+                <ChevronDown class="w-5 h-5 text-surface-500 transition-transform duration-300 transform {expandedCard === 'cold-storage' ? 'rotate-180' : ''}" />
+            </button>
+            {#if expandedCard === 'cold-storage'}
+            <div class="p-5 border-t border-surface-700/50 bg-surface-900/30 flex flex-col gap-5">
+                
+                <p class="text-sm text-surface-400">O *Plano B Frio* do mecanismo Sovereign RAG. Defina a rota mestre onde residem dezenas de Terabytes de Dumps Estáticos (ZIM) e Datasets (Parquet/JSONL) para indexação vetorizada invisível e totalmente Air-Gapped.</p>
+                
+                <div class="flex flex-col gap-1.5">
+                    <label for="corpora_vault_path" class="text-xs font-semibold text-teal-400 tracking-wider uppercase">Caminho Absoluto do Vault</label>
+                    <input id="corpora_vault_path" type="text" bind:value={corporaVaultPath} class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2.5 text-surface-200 outline-none focus:border-teal-500 transition-colors font-mono text-sm" placeholder="/home/user/Vault/Offline_Corpus">
+                </div>
+
+                <div class="bg-surface-800 p-4 rounded-xl border border-surface-700 flex flex-col gap-4">
+                    <h3 class="text-surface-200 font-bold text-sm tracking-widest uppercase flex justify-between items-center">
+                        Offline Corpora Mapeados
+                    </h3>
+                    
+                    <div class="flex flex-col gap-3">
+                        {#each offlineCorpora as corpus}
+                            <div class="flex items-center justify-between p-3 rounded-lg border border-surface-700 bg-surface-900/50 hover:bg-surface-700 transition-colors">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs {corpus.active ? 'bg-teal-500/20 text-teal-400 border border-teal-500/50' : 'bg-surface-700 text-surface-500 border border-surface-600'}">
+                                        #{corpus.priority}
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="font-semibold text-sm text-surface-200">{corpus.name}</span>
+                                        <span class="text-xs text-surface-400 flex items-center gap-2">
+                                            {corpus.size}
+                                            <span class="w-1 h-1 rounded-full bg-surface-600"></span>
+                                            {corpus.type}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider {corpus.active ? 'text-teal-400' : 'text-surface-500'}">
+                                        {corpus.active ? 'Visível (Ativo)' : 'Oculto (Inativo)'}
+                                    </span>
+                                    <!-- Toggle Switch -->
+                                    <button aria-label="Ligar/Desligar {corpus.name}" title="Alternar visibilidade do Corpus" class="w-12 h-6 rounded-full p-1 transition-colors {corpus.active ? 'bg-teal-500' : 'bg-surface-600'}" onclick={() => corpus.active = !corpus.active}>
+                                        <div class="w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform {corpus.active ? 'translate-x-6' : 'translate-x-0'}"></div>
+                                    </button>
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                </div>
+
+                <button class="mt-2 flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-500 text-white py-2.5 rounded-lg transition-colors shadow-lg shadow-teal-500/20 font-medium cursor-pointer">
+                    <SlidersHorizontal class="w-4 h-4" />
+                    <span>Sincronizar Índices Offline com o Vault</span>
                 </button>
 
             </div>
