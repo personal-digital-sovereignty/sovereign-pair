@@ -33,6 +33,7 @@ impl Default for TrustMatrix {
     }
 }
 
+#[allow(dead_code)]
 struct ScoredUrl {
     url: String,
     score: i32,
@@ -50,6 +51,7 @@ pub struct DeepResearchEngine {
     client: Client,
     pub db_pool: Option<sqlx::SqlitePool>,
     adblock_engine: Option<crate::adblocker::AdblockHandle>,
+    #[allow(dead_code)]
     trust_matrix: TrustMatrix,
 }
 
