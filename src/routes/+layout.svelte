@@ -11,8 +11,10 @@
   import InlineSpotlight from '$lib/components/InlineSpotlight.svelte';
   import SettingsModal from '$lib/components/SettingsModal.svelte';
   import ChangelogModal from '$lib/components/ChangelogModal.svelte';
+  import ManualModal from '$lib/components/ManualModal.svelte';
   
   let isChangelogOpen = $state(false);
+  let isManualOpen = $state(false);
   import NotificationBell from '$lib/components/NotificationBell.svelte';
   import { settingsState, loadSettings } from '$lib/settings.svelte';
 
@@ -139,6 +141,12 @@
         <Settings class="w-4 h-4 {globalState.isSidebarOpen ? 'mr-3' : ''}" />
         {#if globalState.isSidebarOpen}<span class="font-medium text-sm">System Settings</span>{/if}
       </a>
+
+      <!-- Sovereign Manual (Global Trigger) -->
+      <button onclick={() => isManualOpen = true} class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} py-2.5 rounded-lg transition-colors text-emerald-400 hover:bg-emerald-500/10 cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 {globalState.isSidebarOpen ? 'mr-3' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        {#if globalState.isSidebarOpen}<span class="font-medium text-sm">Sovereign Manual</span>{/if}
+      </button>
       
       <!-- Spacer to prevent Telemetry Widget overlap -->
       {#if globalState.isSidebarOpen}
@@ -289,3 +297,4 @@
 </div>
 <SettingsModal />
 <ChangelogModal bind:isOpen={isChangelogOpen} />
+<ManualModal bind:isOpen={isManualOpen} />
