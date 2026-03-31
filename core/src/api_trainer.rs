@@ -237,7 +237,7 @@ async fn execute_sub_analyst(
     query: String,
     engine_arc: Arc<crate::research::DeepResearchEngine>,
     client: reqwest::Client,
-    sub_agent_model: String,
+    _sub_agent_model: String,
     master_model: String,
     firewall_enabled: bool
 ) -> String {
@@ -535,7 +535,6 @@ pub async fn run_deep_research_handler(
         let current_date = chrono::Local::now().format("%Y-%m-%d").to_string();
         use chrono::Datelike;
         let current_year = chrono::Local::now().year();
-        let current_year_minus_5 = current_year - 5;
         
         // --- PHASE 7: SCHEMA SANITIZATION ---
         let tools_schema = serde_json::json!([{
