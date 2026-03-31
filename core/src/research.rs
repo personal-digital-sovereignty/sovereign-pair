@@ -538,7 +538,7 @@ impl DeepResearchEngine {
                 tracing::info!("✅ [WAG] Sovereign Meta-Search Bem-Sucedido! ({}) links orgânicos purificados.", final_links.len());
             },
             Err(e) => {
-                let msg = format!("⚠️ [WAG Fallback] O motor primário tomou WAF Block. Rotacionando para SearXNG P2P. Erro: {}", e);
+                let msg = format!("⚠️ [WAG Fallback] O motor primário tomou WAF Block. Rotacionando para Brave API. Erro: {}", e);
                 tracing::warn!("{}", msg);
             },
             _ => {
@@ -546,7 +546,20 @@ impl DeepResearchEngine {
             }
         }
 
-        // 2. O FALLBACK SOBERANO: Motores P2P
+        // 1.5. O FALLBACK COMERCIAL (PRIVADO): Brave Search API
+        if final_links.is_empty() {
+            match self.search_brave_api(query).await {
+                Ok(links) if !links.is_empty() => {
+                    final_links = self.apply_pi_hole_filter(links).await;
+                    tracing::info!("✅ [WAG] Busca Cíbrida Brave API Bem-Sucedida! ({}) links ancorados.", final_links.len());
+                },
+                _ => {
+                    tracing::warn!("⚠️ [WAG Fallback] Brave API caiu ou não configurada. Rotacionando para SearXNG P2P...");
+                }
+            }
+        }
+
+        // 2. O FALLBACK SOBERANO PARALELO: Motores P2P
         if final_links.is_empty() {
             match self.search_searxng_public(query).await {
                 Ok(links) if !links.is_empty() => {
@@ -676,6 +689,48 @@ impl DeepResearchEngine {
     }
 
 
+
+    /// Fallback Soberano: Integração nativa com a API do Brave Search para mitigar bloqueios WAF globais.
+    async fn search_brave_api(&self, query: &str) -> Result<Vec<String>, String> {
+        // A API Key deve ser injetada de forma segura na inicialização, mas para o RAG Cíbrido
+        // usaremos a variável de ambiente ou configuração do banco.
+        let api_key = std::env::var("BRAVE_API_KEY").unwrap_or_default();
+        if api_key.is_empty() {
+            return Err("Brave API Key não configurada (SOVEREIGN_BRAVE_API_KEY).".to_string());
+        }
+
+        tracing::info!("🦁 [Brave Search] Invocando API nativa de privacidade para contornar WAF.");
+        let url = format!("https://api.search.brave.com/res/v1/web/search?q={}&count=15", urlencoding::encode(query));
+        
+        let req = self.client.get(&url)
+            .header("Accept", "application/json")
+            .header("Accept-Encoding", "gzip")
+            .header("X-Subscription-Token", api_key)
+            .send()
+            .await;
+
+        match req {
+            Ok(response) => {
+                let status = response.status();
+                if status.is_success() {
+                    if let Ok(json_data) = response.json::<serde_json::Value>().await
+                        && let Some(results) = json_data.get("web").and_then(|w| w.get("results")).and_then(|r| r.as_array()) {
+                            let mut links = Vec::new();
+                            for res in results {
+                                if let Some(url_str) = res.get("url").and_then(|u| u.as_str()) {
+                                    links.push(url_str.to_string());
+                                }
+                            }
+                            let mut prioritized_links = self.assign_sovereign_trust_score(links).await;
+                            prioritized_links.truncate(20);
+                            return Ok(prioritized_links);
+                        }
+                }
+                Err(format!("Brave API falhou com HTTP {}", status))
+            },
+            Err(e) => Err(format!("Falha de conexão com a API do Brave: {}", e))
+        }
+    }
 
     /// Rotação autônoma que pula em instâncias OpenSource pelo mundo pedindo ajuda via API JSON.
     async fn search_searxng_public(&self, query: &str) -> Result<Vec<String>, String> {
