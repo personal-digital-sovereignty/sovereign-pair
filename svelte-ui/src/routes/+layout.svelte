@@ -81,65 +81,76 @@
   
   <InlineSpotlight />
 
-  <aside class="w-[280px] bg-[#2C3E50] text-[#CBD5E1] flex flex-col h-full print:hidden flex-shrink-0 relative z-20 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)] m-2 rounded-2xl overflow-hidden transition-all duration-300">
+  <aside class="{globalState.isSidebarOpen ? 'w-[280px]' : 'w-[80px]'} bg-[#2C3E50] text-[#CBD5E1] flex flex-col h-full print:hidden flex-shrink-0 relative z-20 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)] m-2 rounded-2xl overflow-hidden transition-all duration-300">
     <!-- Sidebar Header (Sovereign Origin Icon Preserved) -->
-    <div class="h-16 flex items-center px-6 border-b border-white/5 shrink-0">
-      <svg class="w-8 h-8 text-indigo-400 mr-3 shrink-0" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="4.5" fill="currentColor"/>
-        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.3"/>
-      </svg>
+    <div class="h-16 flex items-center {globalState.isSidebarOpen ? 'px-6' : 'justify-center'} border-b border-white/5 shrink-0">
+      <button onclick={() => globalState.isSidebarOpen = !globalState.isSidebarOpen} title="Toggle Sidebar" aria-label="Toggle Sidebar" class="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity">
+        <svg class="w-8 h-8 text-indigo-400 {globalState.isSidebarOpen ? 'mr-3' : ''} shrink-0" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="4.5" fill="currentColor"/>
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.3"/>
+        </svg>
+      </button>
+      {#if globalState.isSidebarOpen}
       <div class="flex items-center gap-2">
         <h1 class="text-xl font-bold tracking-wide text-white">Control Hub</h1>
         <button onclick={() => isChangelogOpen = true} class="text-[9px] font-mono font-bold bg-white/10 text-white/50 px-1.5 py-0.5 rounded shadow-inner ml-1 hover:bg-white/20 hover:text-white transition-colors cursor-pointer" title="Ver Changelog de Versões">v{appVersion}</button>
       </div>
+      {/if}
     </div>
 
     <!-- Main Navigation Container -->
-    <nav class="flex-1 overflow-y-auto py-6 flex flex-col px-4 gap-1.5 pt-4">
-      <a class="flex items-center px-4 py-3 rounded-xl transition-colors {routeId.includes('/dashboard') || routeId === '/' ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/dashboard">
-        <Home class="w-5 h-5 mr-4" />
-        <span class="font-medium text-[15px]">Home</span>
+    <nav class="flex-1 overflow-y-auto py-6 flex flex-col {globalState.isSidebarOpen ? 'px-4' : 'px-2 items-center'} gap-1.5 pt-4">
+      <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} rounded-xl transition-colors {routeId.includes('/dashboard') || routeId === '/' ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/dashboard">
+        <Home class="w-5 h-5 {globalState.isSidebarOpen ? 'mr-4' : ''}" />
+        {#if globalState.isSidebarOpen}<span class="font-medium text-[15px]">Home</span>{/if}
       </a>
-      <a class="flex items-center px-4 py-3 rounded-xl transition-colors {routeId.includes('/chat') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/chat">
-        <MessageCircle class="w-5 h-5 mr-4" />
-        <span class="font-medium text-[15px]">Chat</span>
+      <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} rounded-xl transition-colors {routeId.includes('/chat') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/chat">
+        <MessageCircle class="w-5 h-5 {globalState.isSidebarOpen ? 'mr-4' : ''}" />
+        {#if globalState.isSidebarOpen}<span class="font-medium text-[15px]">Chat</span>{/if}
       </a>
-      <a class="flex items-center px-4 py-3 rounded-xl transition-colors {routeId.includes('/vault') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/vault">
-        <Folder class="w-5 h-5 mr-4" />
-        <span class="font-medium text-[15px]">Vault</span>
+      <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} rounded-xl transition-colors {routeId.includes('/vault') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/vault">
+        <Folder class="w-5 h-5 {globalState.isSidebarOpen ? 'mr-4' : ''}" />
+        {#if globalState.isSidebarOpen}<span class="font-medium text-[15px]">Vault</span>{/if}
       </a>
-      <a class="flex items-center px-4 py-3 rounded-xl transition-colors {routeId.includes('/projects') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/projects">
-        <LayoutGrid class="w-5 h-5 mr-4" />
-        <span class="font-medium text-[15px]">Projects</span>
+      <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} rounded-xl transition-colors {routeId.includes('/projects') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/projects">
+        <LayoutGrid class="w-5 h-5 {globalState.isSidebarOpen ? 'mr-4' : ''}" />
+        {#if globalState.isSidebarOpen}<span class="font-medium text-[15px]">Projects</span>{/if}
       </a>
 
       <!-- System Modules Category -->
+      {#if globalState.isSidebarOpen}
       <div class="mt-8 mb-2 px-4">
         <h2 class="text-[11px] font-bold text-[#64748B] uppercase tracking-widest">System Modules</h2>
       </div>
-      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors {routeId.includes('/graph') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/graph">
-        <Network class="w-4 h-4 mr-3" />
-        <span class="font-medium text-sm">Cognitive Graph</span>
+      {:else}
+      <div class="w-10 h-px bg-white/10 my-4 mx-auto"></div>
+      {/if}
+      <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} py-2.5 rounded-lg transition-colors {routeId.includes('/graph') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/graph">
+        <Network class="w-4 h-4 {globalState.isSidebarOpen ? 'mr-3' : ''}" />
+        {#if globalState.isSidebarOpen}<span class="font-medium text-sm">Cognitive Graph</span>{/if}
       </a>
-      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors {routeId.includes('/engineer') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/engineer/analytics">
-        <Activity class="w-4 h-4 mr-3" />
-        <span class="font-medium text-sm">Engineer</span>
+      <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} py-2.5 rounded-lg transition-colors {routeId.includes('/engineer') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/engineer/analytics">
+        <Activity class="w-4 h-4 {globalState.isSidebarOpen ? 'mr-3' : ''}" />
+        {#if globalState.isSidebarOpen}<span class="font-medium text-sm">Engineer</span>{/if}
       </a>
       
       <!-- System Settings -->
-      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors {routeId.includes('/settings') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/settings">
-        <Settings class="w-4 h-4 mr-3" />
-        <span class="font-medium text-sm">System Settings</span>
+      <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} py-2.5 rounded-lg transition-colors {routeId.includes('/settings') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/settings">
+        <Settings class="w-4 h-4 {globalState.isSidebarOpen ? 'mr-3' : ''}" />
+        {#if globalState.isSidebarOpen}<span class="font-medium text-sm">System Settings</span>{/if}
       </a>
       
       <!-- Spacer to prevent Telemetry Widget overlap -->
+      {#if globalState.isSidebarOpen}
       <div class="h-[220px] shrink-0 pointer-events-none"></div>
+      {/if}
     </nav>
   </aside>
   <!-- END: Sidebar Master -->
 
   <!-- BEGIN: Hardware Telemetry Widget Overlay -->
-  <div class="absolute bottom-4 left-4 w-[264px] bg-white rounded-xl shadow-lg p-4 z-30 border border-slate-100 print:hidden">
+  {#if globalState.isSidebarOpen}
+  <div class="absolute bottom-4 left-4 w-[264px] bg-white rounded-xl shadow-lg p-4 z-30 border border-slate-100 print:hidden transition-all duration-300">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Hardware Telemetry</h3>
       <Activity class="w-3 h-3 {telemetryState.connected ? 'text-indigo-500 animate-pulse' : 'text-slate-400'}" />
@@ -225,6 +236,7 @@
       {/if}
     </div>
   </div>
+  {/if}
   <!-- END: Hardware Telemetry Widget -->
 
   <!-- BEGIN: Main Viewport (Header + Route Children) -->
