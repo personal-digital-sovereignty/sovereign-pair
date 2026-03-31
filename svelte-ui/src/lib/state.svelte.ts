@@ -8,6 +8,7 @@ export const globalState = $state({
         active_agents: []
     },
     showRestrictedBanner: false,
+    isManualOpen: false,
 
     // Global Workspaces
     activeWorkspaceId: 'mesh_roaming',
