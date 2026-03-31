@@ -688,12 +688,11 @@ pub async fn run_deep_research_handler(
                                         let final_result = if inquisitor_failed {
                                             "NÃO EXISTEM DADOS CONFIÁVEIS PARA ESTA QUERY NO HTML RASPADO (POSSÍVEL BLOQUEIO DE JAVASCRIPT OU DADOS AUSENTES). RECOMENDE AO COMANDANTE USAR API EXTERNA.".to_string()
                                         } else {
-                                            // Passou! Assumimos como verdade absoluta devido ao Tracker Histórico.
-                                            let _ = TRAINER_LOGS.send("[The Honest Inquisitor] Extração Validada por Grau de Veracidade!".to_string());
-                                            
                                             // Checagem extra de punição para caso ele seja um impostor
                                             if res_inquisitor.len() < 50 && res_inquisitor.to_lowercase().contains("não ") {
                                                  let _ = TRAINER_LOGS.send(format!("[Hallucination Ledger] MENTIRA DETECTADA (Falso Negativo Absoluto)! {}", auth_inquisitor));
+                                                 
+                                                 // Mantemos o Tracker ativo exclusivamente para Telemetria/Analytics do Sistema
                                                  if let Some(pool) = &engine_arc.db_pool {
                                                      let uuid_str = uuid::Uuid::new_v4().to_string();
                                                      let _ = sqlx::query("
