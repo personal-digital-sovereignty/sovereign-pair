@@ -126,13 +126,14 @@
         <span class="font-medium text-sm">Engineer</span>
       </a>
       
-      <!-- Sticky Settings Anchor -->
-      <div class="mt-auto pt-4 mb-2 border-t border-white/5">
-         <a class="flex items-center px-4 py-3 rounded-xl transition-colors {routeId.includes('/settings') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/settings">
-           <Settings class="w-5 h-5 mr-4 shrink-0" />
-           <span class="font-medium text-[15px]">System Settings</span>
-         </a>
-      </div>
+      <!-- System Settings -->
+      <a class="flex items-center px-4 py-2.5 rounded-lg transition-colors {routeId.includes('/settings') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/settings">
+        <Settings class="w-4 h-4 mr-3" />
+        <span class="font-medium text-sm">System Settings</span>
+      </a>
+      
+      <!-- Spacer to prevent Telemetry Widget overlap -->
+      <div class="h-[220px] shrink-0 pointer-events-none"></div>
     </nav>
   </aside>
   <!-- END: Sidebar Master -->
