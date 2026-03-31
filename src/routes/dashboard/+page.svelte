@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Activity, Cpu, Network, Zap, Timer, CheckCircle2, AlertTriangle, AlertCircle, Power, ShieldCheck, Database, FolderSync, FileText, Tags, Briefcase, CheckSquare, Layers } from 'lucide-svelte';
+    import { Activity, Cpu, Network, Zap, Timer, CheckCircle2, AlertTriangle, AlertCircle, Power, ShieldCheck, Database, FolderSync, FileText, Tags, Briefcase, CheckSquare, Layers, BookOpen } from 'lucide-svelte';
     import { globalState } from '$lib/state.svelte';
     import { projectState, fetchProjects } from '$lib/projects.svelte';
     import { telemetryState, connectTelemetry, disconnectTelemetry } from '$lib/telemetry.svelte';
@@ -109,19 +109,29 @@
                 </div>
             </div>
             <div class="h-8 w-px bg-slate-200/80"></div>
-            <!-- Kill Switch Button -->
-            <button class="flex items-center gap-2 px-4 py-2 bg-white border border-rose-200 text-rose-600 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm hover:bg-rose-50 hover:border-rose-300 hover:text-rose-700 transition-all cursor-pointer group" title="🔥 STOP TODOS OS MODELOS
-• Corta imediatamente a inferência LLM
-• Mantém o banco de dados online
-• Salva estado atual na memória">
-                <Power class="w-4 h-4 group-hover:animate-pulse" /> Kill Switch
-            </button>
+            
+            <div class="flex items-center gap-2">
+                <!-- User Manual Button -->
+                <button onclick={() => globalState.isManualOpen = true} class="flex items-center gap-2 px-4 py-2 bg-white border border-emerald-200 text-emerald-700 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-800 transition-all cursor-pointer" title="📖 LER O MANUAL
+                Entenda a arquitetura Cíbrida e os Comandos">
+                    <BookOpen class="w-4 h-4" /> Manual
+                </button>
+
+                <!-- Kill Switch Button -->
+                <button class="flex items-center gap-2 px-4 py-2 bg-white border border-rose-200 text-rose-600 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm hover:bg-rose-50 hover:border-rose-300 hover:text-rose-700 transition-all cursor-pointer group" title="🔥 STOP TODOS OS MODELOS
+    • Corta imediatamente a inferência LLM
+    • Mantém o banco de dados online
+    • Salva estado atual na memória">
+                    <Power class="w-4 h-4 group-hover:animate-pulse" /> Kill Switch
+                </button>
+            </div>
         </div>
     </header>
 
     <!-- Scrollable Content Viewport -->
     <div class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50/50">
         <div class="max-w-[1600px] mx-auto space-y-6">
+
     <!-- KDE-Style Wide System Monitor -->
     <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col gap-6" title="💻 MONITORAMENTO HOST
 Exibe o stress exato da máquina local rodando o Sovereign Core">

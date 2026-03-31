@@ -14,7 +14,6 @@
   import ManualModal from '$lib/components/ManualModal.svelte';
   
   let isChangelogOpen = $state(false);
-  let isManualOpen = $state(false);
   import NotificationBell from '$lib/components/NotificationBell.svelte';
   import { settingsState, loadSettings } from '$lib/settings.svelte';
 
@@ -106,13 +105,6 @@
         <Home class="w-5 h-5 {globalState.isSidebarOpen ? 'mr-4' : ''}" />
         {#if globalState.isSidebarOpen}<span class="font-medium text-[15px]">Home</span>{/if}
       </a>
-
-      <!-- Sovereign Manual (Global Trigger) -->
-      <button onclick={() => isManualOpen = true} class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} py-3 rounded-xl transition-colors text-emerald-400 hover:bg-emerald-500/10 cursor-pointer">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 {globalState.isSidebarOpen ? 'mr-4' : ''} shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-        {#if globalState.isSidebarOpen}<span class="font-medium text-[15px]">Sovereign Manual</span>{/if}
-      </button>
-
       <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} py-3 rounded-xl transition-colors {routeId.includes('/chat') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/chat">
         <MessageCircle class="w-5 h-5 {globalState.isSidebarOpen ? 'mr-4' : ''}" />
         {#if globalState.isSidebarOpen}<span class="font-medium text-[15px]">Chat</span>{/if}
@@ -298,4 +290,4 @@
 </div>
 <SettingsModal />
 <ChangelogModal bind:isOpen={isChangelogOpen} />
-<ManualModal bind:isOpen={isManualOpen} />
+<ManualModal bind:isOpen={globalState.isManualOpen} />
