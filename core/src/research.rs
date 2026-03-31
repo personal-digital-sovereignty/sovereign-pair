@@ -130,7 +130,24 @@ impl DeepResearchEngine {
             }
         }
 
-        let response = self.client.get(url).send().await.map_err(|e| format!("HTTP Request failed: {}", e))?;
+        // --- CPU OFFLOADING (Fase 9: Jina Reader) ---
+        // Desacopla 90% do estresse de processamento do Rust repassando a interpretação do DOM para a nuvem.
+        let jina_url = format!("https://r.jina.ai/{}", url);
+        if let Ok(jina_resp) = self.client.get(&jina_url).header("X-Return-Format", "markdown").send().await {
+            if jina_resp.status().is_success() {
+                if let Ok(markdown) = jina_resp.text().await {
+                    if markdown.len() > 200 && !markdown.to_lowercase().contains("enable javascript") && !markdown.contains("Access Denied") {
+                        tracing::info!("☁️ [Jina Reader Offload] Markdown extraído via Nuvem ({} bytes). CPU Local Salva!", markdown.len());
+                        self.update_domain_ledger(url, true, false).await;
+                        return Ok(markdown);
+                    }
+                }
+            }
+        }
+        
+        tracing::warn!("⚠️ [Jina Offload Falhou] Retornando ao Scraper Nativo em Tela Cheia (Heavy CPU) para: {}", url);
+
+        let response = self.client.get(url).header(reqwest::header::USER_AGENT, Self::get_random_user_agent()).send().await.map_err(|e| format!("HTTP Request failed: {}", e))?;
         
         if !response.status().is_success() {
             // WAF Ghost Fallback! Se tomar block da nuvem, não desiste: bate no arquivo morto multi-plataforma.
