@@ -550,7 +550,7 @@ pub async fn run_deep_research_handler(
                 3. Sempre que a pergunta exigir notícias recentes ou de um ano específico, você DEVE INCLUIR EXPLICITAMENTE o ano na sua 'search_query' (ex: '{}').\n\
                 4. O Tool Schema aceita APENAS a chave \"search_query\" como string limpa. NUNCA alucine variáveis ou parâmetros não-documentados.\n\
                 5. É ESTRITAMENTE PROIBIDO gerar análises teóricas ou relatórios vazios ANTES de usar a ferramenta.\n\
-                6. Quando possuir os dados (após a ferramenta retornar), FORMATE O REPORT MATADOR EM MARKDOWN CORPORATIVO: Crie Índice, Tabelas Comparativas, Títulos de 'Análise Integrada' e 'Validação de Realidade'.",
+                6. Quando possuir os dados reais, ESTRUTURE SEU RELATÓRIO FINAL EM MARKDOWN CORPORATIVO PROFUNDO: Crie um Índice dinâmico, Tabelas de Dados (se aplicável), Títulos e Subtítulos Analíticos gerados ESPECIFICAMENTE para o tema abordado, e uma Conclusão Profissional baseada em evidências.",
                 anchor_directive, current_year
             )
         } else {
@@ -562,9 +562,9 @@ pub async fn run_deep_research_handler(
                 1. Você DEVE usar a ferramenta `dispatch_sub_researcher` ANTES de escrever qualquer análise.\n\
                 2. NUNCA restrinja a busca de forma restritiva usando 'site:gov.br' nas suas queries. O Motor cuidará da filtragem web Global.\n\
                 3. Sempre que a pergunta exigir notícias recentes ou de um ano específico, você DEVE INCLUIR EXPLICITAMENTE o ano (ex: '{}') dentro da sua 'search_query'.\n\
-                4. O schema JSON da ferramenta aceita APENAS a propriedade primária \"search_query\" (contendo a string de busca). NÃO invente chaves extras como \"FILTRO TEMPORAL\" ou \"object\".\n\
+                4. O schema JSON da ferramenta aceita APENAS a propriedade primária \"search_query\" (contendo a string de busca). NÃO invente chaves extras como \"FIL জরিমানা TEMPORAL\" ou \"object\".\n\
                 5. É ESTRITAMENTE PROIBIDO gerar resumos vazios ou 'desculpas' (ex: 'Não tenho dados...'). Extraia a Tool em JSON estrito.\n\
-                6. Ao finalizar a extração de fatos, ESCREVA O MASTER REPORT EM MARKDOWN CORPORATIVO COMPLETO: Use Índices, Tabelas, Seções de 'Análise Integrada' e 'Conclusão/Transparência'. O Output deve ser majestoso.",
+                6. Ao redigir a análise final, APLIQUE UMA ESTRUTURA MARKDOWN CORPORATIVA DE ALTO NÍVEL: O relatório deve ser majestoso, contendo um Índice, Tabelas explicativas, e Seções/Títulos Dinâmicos gerados e adaptados perfeitamente para o tema da pesquisa. Fundamente tudo com os DADOS factuais recebidos.",
                 anchor_directive, current_year
             )
         };
