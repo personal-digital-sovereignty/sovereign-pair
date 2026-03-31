@@ -582,10 +582,12 @@ pub async fn run_deep_research_handler(
         let total_ram_gb = sys.total_memory() / 1024 / 1024 / 1024; // Convert bytes to GB
 
         let dynamic_num_ctx = if total_ram_gb < 12 {
+            4096
+        } else if total_ram_gb < 18 {
             8192
-        } else if total_ram_gb < 24 {
-            16384
-        } else if total_ram_gb < 48 {
+        } else if total_ram_gb < 35 {
+            16384 // Proteção extrema para modelos 14B em painéis de 32GB
+        } else if total_ram_gb < 65 {
             32768
         } else {
             65536
