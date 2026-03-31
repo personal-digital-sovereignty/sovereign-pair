@@ -19,12 +19,31 @@
             const res = await fetch('http://localhost:11434/api/tags');
             const data = await res.json();
             if (data && data.models) {
-                availableModels = data.models.map((m: any) => {
-                    const name = m.name;
-                    // A capable Scribe model needs to be >= 3B parameters. We explicitly blacklist <3B collisions.
-                    const isCapable = !name.includes('1.5b') && !name.includes('1.7b') && !name.includes('2b') && !name.includes('1b') && (name.includes('3b') || name.includes('4b') || name.includes('7b') || name.includes('8b') || name.includes('14b') || name.includes('32b') || name.includes('70b'));
-                    return { name, isCapable };
+                // Filtro Absoluto (Fase 8): O Orquestrador do UI Mestre precisa ser 3B+. Extirpamos embeddings e LLMs miniatura da lista visual.
+                const validScribes = data.models.filter((m: any) => {
+                    const n = m.name.toLowerCase();
+                    return !n.includes('embed') && !n.includes('bge-m3') && !n.includes('1.5b') && !n.includes('1.7b') && !n.includes('1b') && !n.includes('2b');
                 });
+                
+                const checkedModels = await Promise.all(validScribes.map(async (m: any) => {
+                    try {
+                        const showRes = await fetch('http://localhost:11434/api/show', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: m.name })
+                        });
+                        const showData = await showRes.json();
+                        const template = showData.template || "";
+                        // A matriz é considerada Capaz se o fabricante injetou a macro de Tools no seu código genético
+                        const supportsTools = template.includes('.Tools') || template.includes('tool in tools');
+                        return { name: m.name, isCapable: supportsTools };
+                    } catch (e) {
+                        return { name: m.name, isCapable: false }; 
+                    }
+                }));
+                
+                // Elimina cruamente da Interface as mentes que não suportam RAG Cíbrido (ex: Phi-4)
+                availableModels = checkedModels.filter(m => m.isCapable);
                 
                 hasCapableModel = availableModels.some(m => m.isCapable);
                 
