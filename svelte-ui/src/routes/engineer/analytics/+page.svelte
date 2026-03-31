@@ -11,9 +11,11 @@
         { bg: 'bg-emerald-500', bgHover: 'group-hover:bg-emerald-600', text: 'text-emerald-600' }
     ];
 
-    let historicalTotalTokens = $derived(telemetryState.historicalModels.reduce((acc, m) => acc + (parseInt(m.total_tokens) || 0), 0));
+    let validModels = $derived(telemetryState.historicalModels.filter(m => m.model_name && m.model_name.trim() !== '' && m.model_name !== '-'));
+
+    let historicalTotalTokens = $derived(validModels.reduce((acc, m) => acc + (parseInt(m.total_tokens) || 0), 0));
     
-    let historicalModelSplits = $derived(telemetryState.historicalModels.map((m, idx) => {
+    let historicalModelSplits = $derived(validModels.map((m, idx) => {
         let palette = tailwindPalette[idx % tailwindPalette.length];
         let tokens = parseInt(m.total_tokens) || 0;
         return {
@@ -174,8 +176,8 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 shrink-0 h-[450px]">
         
         <!-- Live Traffic (Now Real Persistence) -->
-        <div class="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-full min-h-0">
-            <div class="flex justify-between items-center mb-6">
+        <div class="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-full min-h-0 overflow-hidden">
+            <div class="flex justify-between items-center mb-6 shrink-0">
                 <div>
                     <h2 class="text-xl font-bold text-slate-800">Historical Intelligence Fleet</h2>
                     <p class="text-xs text-slate-500 font-medium mt-1">Total token volume and uptime metrics for all recorded AI models</p>
@@ -225,7 +227,7 @@
         </div>
 
         <!-- Costs & Savings -->
-        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-full">
+        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-full min-h-0 overflow-hidden">
             <h2 class="text-xl font-bold text-slate-800 mb-6 shrink-0">Usage Economics</h2>
             <div class="space-y-6 overflow-y-auto custom-scrollbar flex-1 pr-2 mb-4">
                 {#each historicalModelSplits as split}
@@ -261,13 +263,13 @@
     </div>
 
     <!-- Row 3: Security & Knowledge -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20 shrink-0">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20 shrink-0 h-[450px]">
         <!-- Firewall & Guardrails -->
-        <div class="bg-slate-900 p-8 rounded-3xl shadow-xl border border-slate-800 relative overflow-hidden">
+        <div class="bg-slate-900 p-8 rounded-3xl shadow-xl border border-slate-800 relative overflow-hidden flex flex-col h-full min-h-0">
             <!-- Grid Pattern Background -->
             <div class="absolute inset-0 opacity-10" style="background-image: linear-gradient(#475569 1px, transparent 1px), linear-gradient(90deg, #475569 1px, transparent 1px); background-size: 20px 20px;"></div>
             
-            <div class="flex justify-between items-center mb-8 relative z-10">
+            <div class="flex justify-between items-center mb-6 shrink-0 relative z-10">
                 <div class="flex items-center gap-3">
                     <ShieldAlert class="text-emerald-400 w-6 h-6" />
                     <h2 class="text-xl font-bold text-white tracking-wide">Firewall & Guardrails</h2>
@@ -276,15 +278,15 @@
                     LIVE MONITOR
                 </span>
             </div>
-            <div class="space-y-3 relative z-10 overflow-y-auto max-h-[300px] custom-scrollbar pr-2">
+            <div class="space-y-4 relative z-10 overflow-y-auto custom-scrollbar pr-2 flex-1 pb-4">
                 {#each telemetryState.securityLogs as log}
                 <div class="flex items-start gap-4 p-4 bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 hover:border-slate-600 transition-colors">
                     <div class="mt-1 w-2.5 h-2.5 rounded-full {log.severity === 'Critical' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]' : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]'} shrink-0"></div>
-                    <div>
-                        <p class="text-xs font-mono text-slate-200 font-bold tracking-tight mb-1.5">{log.event_type} {log.blocked ? 'BLOCKED' : 'PASSED'}</p>
-                        <p class="text-[10px] text-slate-400 leading-relaxed">{log.message}<br/>Source: {log.source}</p>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-mono text-slate-200 font-bold tracking-tight mb-1.5 break-words">{log.event_type} {log.blocked ? 'BLOCKED' : 'PASSED'}</p>
+                        <p class="text-[10px] text-slate-400 leading-relaxed font-mono break-words">{log.message}<br/>Source: {log.source}</p>
                     </div>
-                    <span class="ml-auto text-[10px] font-mono text-slate-500">{log.created_at}</span>
+                    <span class="ml-auto text-[10px] font-mono text-slate-500 shrink-0 whitespace-nowrap pl-2">{log.created_at}</span>
                 </div>
                 {/each}
                 {#if telemetryState.securityLogs.length === 0}
@@ -292,7 +294,7 @@
                     <div class="mt-1 w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.4)]"></div>
                     <div>
                         <p class="text-xs font-mono text-slate-200 font-bold tracking-tight mb-1.5">Sovereign Guardrails PASSED</p>
-                        <p class="text-[10px] text-slate-400 leading-relaxed">Nenhuma ameaça identificada.<br/>Policy: Enterprise-Strict</p>
+                        <p class="text-[10px] text-slate-400 leading-relaxed font-mono">Nenhuma ameaça identificada.<br/>Policy: Enterprise-Strict</p>
                     </div>
                 </div>
                 {/if}
@@ -300,22 +302,22 @@
         </div>
 
         <!-- RAG Knowledge Radar -->
-        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-            <div class="flex justify-between items-center mb-8">
+        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-full min-h-0 overflow-hidden">
+            <div class="flex justify-between items-center mb-6 shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
                         <Network class="w-5 h-5" />
                     </div>
                     <h2 class="text-xl font-bold text-slate-800">RAG Knowledge Radar</h2>
                 </div>
-                <a href="/engineer/quality" class="text-indigo-600 text-xs font-bold hover:text-indigo-800 hover:underline transition-all uppercase tracking-wider">Full Audit</a>
+                <a href="/engineer/quality" class="text-indigo-600 text-xs font-bold hover:text-indigo-800 hover:underline transition-all uppercase tracking-wider shrink-0">Full Audit</a>
             </div>
-            <div class="grid grid-cols-2 gap-10">
+            <div class="grid grid-cols-2 gap-10 overflow-y-auto custom-scrollbar pr-2 flex-1 pb-4">
                 <div>
                     <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                         <AlertCircle class="w-3 h-3 text-rose-500" /> Content Gaps
                     </h3>
-                    <div class="space-y-3">
+                    <div class="space-y-4">
                         {#each telemetryState.contentGaps as gap}
                         <div class="p-3 bg-rose-50 border border-rose-100 rounded-xl flex flex-col gap-2 cursor-pointer group hover:bg-rose-100 transition-colors">
                             <div class="flex items-center justify-between">
