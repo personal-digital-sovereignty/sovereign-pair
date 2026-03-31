@@ -345,8 +345,8 @@ async fn execute_sub_analyst(
         reranked_md = raw_student_md.clone();
     }
 
-    // --- PHASE 1.1: SUFFICIENCY GATE (1B/3B) ---
-    let gate_hierarchy = vec!["qwen2.5:1.5b", "llama3.2:1b", "gemma2:2b", "qwen2.5:3b", "llama3.2"];
+    // --- PHASE 1.1: SUFFICIENCY GATE (3B+) ---
+    let gate_hierarchy = vec!["qwen2.5:3b", "llama3.2", "phi4-mini", "llama3.1:8b"];
     let gate_model = crate::api::discover_best_model(gate_hierarchy, "qwen2.5:3b").await;
     
     let gate_system = "You are a data sufficiency checker. Your only job is to answer: 'Does the retrieved context contain enough specific numerical data and facts to answer the query?' Output ONLY valid JSON: {\"sufficient\": true, \"fields_found\": [\"<field1>\"]} or {\"sufficient\": false, \"missing\": [\"<field1>\"], \"reason\": \"<specific gap>\"}. Do NOT attempt to answer the original query. Do NOT generate any analysis.";
