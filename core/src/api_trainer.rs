@@ -568,11 +568,11 @@ pub async fn run_deep_research_handler(
                 {}\n\
                 [DIRETRIZES TÁTICAS PARA OMNI-SEARCH E TOOL CALLING]\n\
                 1. Você DEVE obrigatoriamente usar a ferramenta `dispatch_sub_researcher` para extrair os fatos reais.\n\
-                2. NUNCA restrinja a busca usando diretivas 'site:' nas suas queries (ex: NUNCA USE 'site:gov.br'). O Motor Ghost Tratará das Extrações.\n\
-                3. Sempre que a pergunta exigir notícias recentes ou de um ano específico, você DEVE INCLUIR EXPLICITAMENTE o ano na sua 'search_query' (ex: '{}').\n\
+                2. SE O USUÁRIO FIZER MÚLTIPLAS PERGUNTAS COMPLEXAS (ex: comparar A com B, pedir análises de 2 tópicos), NÃO FAÇA UMA ÚNICA BUSCA GIGANTE! Invoque a ferramenta `dispatch_sub_researcher` MÚLTIPLAS VEZES PARALELAMENTE, quebrando o prompt em sub-tarefas atômicas e curtas (ex: Call 1='valor A 2024', Call 2='valor B 2024').\n\
+                3. Sempre que a pergunta exigir notícias recentes, você DEVE INCLUIR EXPLICITAMENTE o ano na sua 'search_query' (ex: '{}').\n\
                 4. O Tool Schema aceita APENAS a chave \"search_query\" como string limpa. NUNCA alucine variáveis ou parâmetros não-documentados.\n\
                 5. É ESTRITAMENTE PROIBIDO gerar análises teóricas ou relatórios vazios ANTES de usar a ferramenta.\n\
-                6. Quando possuir os dados reais, ESTRUTURE SEU RELATÓRIO FINAL EM MARKDOWN CORPORATIVO PROFUNDO: Crie um Índice dinâmico, Tabelas de Dados (se aplicável), Títulos e Subtítulos Analíticos gerados ESPECIFICAMENTE para o tema abordado, e uma Conclusão Profissional baseada em evidências.",
+                6. Quando possuir os dados reais, ESTRUTURE SEU RELATÓRIO FINAL EM MARKDOWN CORPORATIVO: Crie um Índice, Tabelas de Dados e uma Conclusão Profissional baseada em evidências.",
                 anchor_directive, current_year
             )
         } else {
@@ -582,11 +582,11 @@ pub async fn run_deep_research_handler(
                 {}\n\
                 [DIRETRIZES TÁTICAS PARA OMNI-SEARCH E TOOL CALLING]\n\
                 1. Você DEVE usar a ferramenta `dispatch_sub_researcher` ANTES de escrever qualquer análise.\n\
-                2. NUNCA restrinja a busca de forma restritiva usando 'site:gov.br' nas suas queries. O Motor cuidará da filtragem web Global.\n\
-                3. Sempre que a pergunta exigir notícias recentes ou de um ano específico, você DEVE INCLUIR EXPLICITAMENTE o ano (ex: '{}') dentro da sua 'search_query'.\n\
-                4. O schema JSON da ferramenta aceita APENAS a propriedade primária \"search_query\" (contendo a string de busca). NÃO invente chaves extras como \"FIL জরিমানা TEMPORAL\" ou \"object\".\n\
-                5. É ESTRITAMENTE PROIBIDO gerar resumos vazios ou 'desculpas' (ex: 'Não tenho dados...'). Extraia a Tool em JSON estrito.\n\
-                6. Ao redigir a análise final, APLIQUE UMA ESTRUTURA MARKDOWN CORPORATIVA DE ALTO NÍVEL: O relatório deve ser majestoso, contendo um Índice, Tabelas explicativas, e Seções/Títulos Dinâmicos gerados e adaptados perfeitamente para o tema da pesquisa. Fundamente tudo com os DADOS factuais recebidos.",
+                2. SE O USUÁRIO FIZER MÚLTIPLAS PERGUNTAS (ex: analisar valor da gasolina e analisar inflação), NUNCA FAÇA UMA BUSCA AGREGADA GIGANTE! Você deve gerar MÚLTIPLOS TOOL CALLS para a mesma ferramenta, quebrando o pedido em sub-consultas curtas, atômicas e paralelas (ex: Tool 1='valor gasolina 2024', Tool 2='inflação brasil 2024').\n\
+                3. Sempre que a pergunta exigir contexto temporal, você DEVE INCLUIR o ano (ex: '{}') dentro da 'search_query'.\n\
+                4. O schema JSON aceita APENAS a propriedade \"search_query\". NÃO invente chaves extras como \"object\".\n\
+                5. É ESTRITAMENTE PROIBIDO gerar resumos vazios ou 'desculpas'. Extraia a Tool em JSON estrito.\n\
+                6. Ao redigir a análise final, APLIQUE UMA ESTRUTURA MARKDOWN DE ALTO NÍVEL: O relatório deve conter Índices, Tabelas e Seções Dinâmicas geradas a partir dos DADOS recebidos.",
                 anchor_directive, current_year
             )
         };
@@ -660,6 +660,7 @@ pub async fn run_deep_research_handler(
                             
                             messages.push(msg_obj.clone()); // Adiciona o request do assistant no histórico
 
+                            let mut join_handles = Vec::new();
                             for tc in tool_calls {
                                 if let Some(func) = tc.get("function")
                                     && func.get("name").and_then(|n| n.as_str()) == Some("dispatch_sub_researcher") {
@@ -677,48 +678,64 @@ pub async fn run_deep_research_handler(
                                                     sq = desc.to_string();
                                                 }
 
-                                        let _ = TRAINER_LOGS.send(format!("[The Honest Inquisitor] Acionando Inquisidor Único de Confiança: {}", auth_inquisitor));
+                                        let _ = TRAINER_LOGS.send(format!("[The Honest Inquisitor] Acionando Inquisidor Único (Thread Paralela): '{}'", sq));
                                         
-                                        // Roda a extração rigorosamente restrita do Modelo Solitário Eleito
-                                        let res_inquisitor = execute_sub_analyst(sq.clone(), engine_arc.clone(), embed_client.clone(), auth_inquisitor.clone(), target_model_name.clone(), is_firewall_enabled).await;
+                                        // Clone arcs for the Tokio green thread
+                                        let engine_clone = engine_arc.clone();
+                                        let embed_clone = embed_client.clone();
+                                        let auth_clone = auth_inquisitor.clone();
+                                        let target_clone = target_model_name.clone();
                                         
-                                        // A LÓGICA DE ACAREAMENTO (SINGLE-AGENT TRUSTED)
-                                        let inquisitor_failed = if is_firewall_enabled { res_inquisitor.contains("DADO NÃO ENCONTRADO") || res_inquisitor.contains("Falha do aluno") } else { false };
-                                        
-                                        let final_result = if inquisitor_failed {
-                                            "NÃO EXISTEM DADOS CONFIÁVEIS PARA ESTA QUERY NO HTML RASPADO (POSSÍVEL BLOQUEIO DE JAVASCRIPT OU DADOS AUSENTES). RECOMENDE AO COMANDANTE USAR API EXTERNA.".to_string()
-                                        } else {
-                                            // Checagem extra de punição para caso ele seja um impostor
-                                            if res_inquisitor.len() < 50 && res_inquisitor.to_lowercase().contains("não ") {
-                                                 let _ = TRAINER_LOGS.send(format!("[Hallucination Ledger] MENTIRA DETECTADA (Falso Negativo Absoluto)! {}", auth_inquisitor));
-                                                 
-                                                 // Mantemos o Tracker ativo exclusivamente para Telemetria/Analytics do Sistema
-                                                 if let Some(pool) = &engine_arc.db_pool {
-                                                     let uuid_str = uuid::Uuid::new_v4().to_string();
+                                        // Dispatch concurrently!
+                                        join_handles.push(tokio::spawn(async move {
+                                            let res_inquisitor = execute_sub_analyst(sq.clone(), engine_clone, embed_clone, auth_clone.clone(), target_clone, is_firewall_enabled).await;
+                                            (sq, res_inquisitor, auth_clone)
+                                        }));
+                                    }
+                            }
+
+                            for handle in join_handles {
+                                if let Ok((sq, res_inquisitor, auth_clone)) = handle.await {
+                                    // A LÓGICA DE ACAREAMENTO (SINGLE-AGENT TRUSTED)
+                                    let inquisitor_failed = if is_firewall_enabled { res_inquisitor.contains("DADO NÃO ENCONTRADO") || res_inquisitor.contains("Falha do aluno") } else { false };
+                                    
+                                    let final_result = if inquisitor_failed {
+                                        "NÃO EXISTEM DADOS CONFIÁVEIS PARA ESTA QUERY NO HTML RASPADO (POSSÍVEL BLOQUEIO DE JAVASCRIPT OU DADOS AUSENTES). RECOMENDE AO COMANDANTE USAR API EXTERNA.".to_string()
+                                    } else {
+                                        // Checagem extra de punição para caso ele seja um impostor
+                                        if res_inquisitor.len() < 50 && res_inquisitor.to_lowercase().contains("não ") {
+                                             let _ = TRAINER_LOGS.send(format!("[Hallucination Ledger] MENTIRA DETECTADA (Falso Negativo Absoluto)! {}", auth_clone));
+                                             
+                                             // Mantemos o Tracker ativo exclusivamente para Telemetria/Analytics do Sistema
+                                             if let Some(pool) = &engine_arc.db_pool {
+                                                 let uuid_str = uuid::Uuid::new_v4().to_string();
+                                                 let pool_clone = pool.clone();
+                                                 tokio::spawn(async move {
                                                      let _ = sqlx::query("
                                                          INSERT INTO model_hallucinations (id, model_name, lies_detected, queries_processed, last_lied_at)
                                                          VALUES (?, ?, 1, 1, CURRENT_TIMESTAMP)
                                                          ON CONFLICT(id) DO UPDATE SET lies_detected = lies_detected + 1, queries_processed = queries_processed + 1, last_lied_at = CURRENT_TIMESTAMP
-                                                     ").bind(uuid_str).bind(&auth_inquisitor).execute(pool).await;
-                                                 }
-                                            }
-                                            all_sources.push(res_inquisitor.clone());
-                                            res_inquisitor.clone()
-                                        };
-                                        
-                                        let scaped_count = final_result.lines().filter(|l| l.starts_with("## Source:")).count();
-                                        if scaped_count > 0 {
-                                            let _ = TRAINER_LOGS.send(format!("[SCRAPED: {}]", scaped_count));
+                                                     ").bind(uuid_str).bind(&auth_clone).execute(&pool_clone).await;
+                                                 });
+                                             }
                                         }
-
-                                        let _ = TRAINER_LOGS.send(format!("[Firewall Cognitivo] Acareamento resolvido para a query '{}'", sq));
-                                        
-                                        // Devolve a resposta do Tool para a memória do Mestre
-                                        messages.push(serde_json::json!({
-                                            "role": "tool",
-                                            "content": final_result
-                                        }));
+                                        all_sources.push(res_inquisitor.clone());
+                                        res_inquisitor.clone()
+                                    };
+                                    
+                                    let scaped_count = final_result.lines().filter(|l| l.starts_with("## Source:")).count();
+                                    if scaped_count > 0 {
+                                        let _ = TRAINER_LOGS.send(format!("[SCRAPED: {}]", scaped_count));
                                     }
+
+                                    let _ = TRAINER_LOGS.send(format!("[Firewall Cognitivo] Parcela de Busca Paralela resolvida para a sub-query '{}'", sq));
+                                    
+                                    // Devolve a resposta do Tool para a memória do Mestre
+                                    messages.push(serde_json::json!({
+                                        "role": "tool",
+                                        "content": final_result
+                                    }));
+                                }
                             }
                             // O loop continuará para a próxima inferência (o Qwen lerá a tool response e decidirá)
                             continue;
