@@ -318,19 +318,8 @@
                                 </button>
                             </div>
                             
-                            <!-- Toggle 4: Query Expansion -->
+                            <!-- Toggle 4: Cognitive Firewall -->
                             <div class="flex items-center justify-between p-5 bg-surface-container-low rounded-2xl group border border-outline-variant/5 hover:border-outline-variant/20 transition-colors">
-                                <div class="flex flex-col">
-                                    <span class="text-[13px] font-bold text-on-surface">Query Expansion</span>
-                                    <span class="text-[10px] text-on-surface-variant mt-0.5">Multi-hop decomposition</span>
-                                </div>
-                                <button aria-label="Toggle Query Expansion" disabled={trainerState.isDeepResearchActive} onclick={() => trainerState.deepResearchQueryExpansion = !trainerState.deepResearchQueryExpansion} class="w-12 h-6 rounded-full relative cursor-pointer border transition-colors disabled:opacity-50 {trainerState.deepResearchQueryExpansion ? 'bg-primary ring-4 ring-primary-fixed/50 border-transparent' : 'bg-surface-variant hover:bg-outline-variant border-outline-variant/30'}">
-                                    <span class="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all {trainerState.deepResearchQueryExpansion ? 'right-1' : 'left-1'}"></span>
-                                </button>
-                            </div>
-                            
-                            <!-- Toggle 5: Cognitive Firewall -->
-                            <div class="flex items-center justify-between p-5 bg-surface-container-low rounded-2xl group border border-outline-variant/5 hover:border-outline-variant/20 transition-colors md:col-span-2">
                                 <div class="flex flex-col">
                                     <span class="text-[13px] font-bold text-on-surface">Cognitive Firewall</span>
                                     <span class="text-[10px] text-on-surface-variant mt-0.5">Strict Epistemic Vaccine Validations</span>
