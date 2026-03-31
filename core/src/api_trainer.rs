@@ -345,9 +345,31 @@ async fn execute_sub_analyst(
         reranked_md = raw_student_md.clone();
     }
 
-    // --- PHASE 1.1: SUFFICIENCY GATE (3B+) ---
-    let gate_hierarchy = vec!["qwen2.5:3b", "llama3.2", "phi4-mini", "llama3.1:8b"];
-    let gate_model = crate::api::discover_best_model(gate_hierarchy, "qwen2.5:3b").await;
+    // --- PHASE 1.1: COGNITIVE SQUAD DISPATCHING (MATH-BASED ROUTING) ---
+    // User Request: Allocate the Right Agent based on Context Payload Size!
+    let payload_size = reranked_md.len();
+    
+    let routed_sub_agent = if payload_size < 15_000 { // Estagiário
+        let _ = TRAINER_LOGS.send(format!("📊 [Cognitive Routing] {} bytes: Escalonando Estagiário (1B-2B)", payload_size));
+        crate::api::discover_best_model(vec!["gemma2:2b", "qwen2.5:1.5b", "llama3.2:1b"], &sub_agent_model).await
+    } else if payload_size < 50_000 { // Júnior/Pleno
+        let _ = TRAINER_LOGS.send(format!("📊 [Cognitive Routing] {} bytes: Escalonando Analista Júnior (3B)", payload_size));
+        crate::api::discover_best_model(vec!["qwen2.5:3b", "llama3.2", "phi4-mini"], "qwen2.5:3b").await
+    } else if payload_size < 120_000 { // Sênior
+        let _ = TRAINER_LOGS.send(format!("📊 [Cognitive Routing] {} bytes: Escalonando Desenvolvedor Sênior (7B-9B)", payload_size));
+        crate::api::discover_best_model(vec!["llama3.1:8b", "qwen2.5:7b", "gemma2:9b"], "llama3.1:8b").await
+    } else { // Especialista
+        let _ = TRAINER_LOGS.send(format!("📊 [Cognitive Routing] {} bytes (MASSIVO!): Escalonando Especialista (14B+)", payload_size));
+        crate::api::discover_best_model(vec!["qwen2.5:14b", "phi4:14b", "llama3.1:8b", "qwen2.5:7b"], "llama3.1:8b").await
+    };
+
+    // A Sufficiency Gate JAMAIS pode ser um Estagiário, pois julgar suficiência factual exige raciocínio dedutivo mínimo (3B min).
+    // Se a carga for massiva (>50k), o gate também sobe para Sênior.
+    let gate_model = if payload_size < 50_000 {
+        crate::api::discover_best_model(vec!["qwen2.5:3b", "llama3.2", "phi4-mini"], "qwen2.5:3b").await
+    } else {
+        crate::api::discover_best_model(vec!["llama3.1:8b", "qwen2.5:7b", "gemma2:9b"], "llama3.1:8b").await
+    };
     
     let gate_system = "You are a data sufficiency checker. Your only job is to answer: 'Does the retrieved context contain enough specific numerical data and facts to answer the query?' Output ONLY valid JSON: {\"sufficient\": true, \"fields_found\": [\"<field1>\"]} or {\"sufficient\": false, \"missing\": [\"<field1>\"], \"reason\": \"<specific gap>\"}. Do NOT attempt to answer the original query. Do NOT generate any analysis.";
     
@@ -387,13 +409,13 @@ async fn execute_sub_analyst(
         return "DADO NÃO ENCONTRADO".to_string();
     }
 
-    // --- PHASE 1.2: LITERAL EXTRACTOR (3B) ---
+    // --- PHASE 1.2: LITERAL EXTRACTOR (DYNAMIC SQUAD RUTING) ---
     let system_prompt = "Você é um Extrator Literal Estrito.\nFORBIDDEN outputs:\n- Any sentence without an attached [- Chunk X] citation\n- Rounded numbers (flag as suspicious)\n- Phrases: 'aproximadamente', 'em torno de', 'cerca de', 'significativamente' -> these are fabrication markers = HALT\n- Any claim about absence of evidence.\n\nSeu ÚNICO TRABALHO é copiar os valores textuais ou numéricos VERBATIM do [CONTEXTO], apensando na frente a citação exata de onde tirou (ex: 'Segundo os dados do [- Chunk 2]...'). NÃO GERE PROSA, não analise, não conclua. Apenas liste os fatos crus.";
     
     let extractor_prompt = format!("PERGUNTA:\n{}\n\n[CONTEXTO]:\n{}", query, reranked_md);
 
     let ext_payload = serde_json::json!({
-        "model": sub_agent_model,
+        "model": routed_sub_agent,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": extractor_prompt}
