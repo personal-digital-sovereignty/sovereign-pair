@@ -1,56 +1,56 @@
-# 📜 O Manifesto Soberano (Sovereign Pair v0.9.9)
+# O Manifesto Soberano (Sovereign Pair v0.9.9)
 
-O **Sovereign Pair** transita de um mero assistente para um **Ecossistema Cíbrido Local-First**. Sua fundação técnica repudia a dependência servil de infraestruturas em nuvem comerciais de terceiros. Seu corpo é construído em Rust, modelando o paradigma Zero-Trust onde os dados sensíveis da sua corporação ou vida pessoal jamais alcançam provedores abstratos.
+O **Sovereign Pair** evoluiu de um assistente convencional para um **Ecossistema Local-First**. O projeto prioriza a execução de processos na máquina do usuário, reduzindo a dependência de infraestruturas em nuvem de terceiros e garantindo que dados corporativos ou pessoais não precisem ser enviados para fora da sua rede.
 
-Este documento consolida os 5 Pilares Arquiteturais definitivos da Plataforma (v0.9.9+), sucedendo e obliterando os velhos dogmas da era *Python Puro* e *LlamaIndex*.
+Este documento consolida os 5 pilares arquiteturais da versão 0.9.9+, refletindo a transição da antiga arquitetura baseada em Python e LlamaIndex para a nova estrutura unificada.
 
 ---
 
 ## Pilar I: Filosofia Soberana e Topologia Híbrida
 
-A arquitetura do Sovereing Pair garante controle biológico sobre o ciclo de vida dos dados gerenciados.
+A arquitetura do Sovereing Pair foi pensada para manter o controle total sobre os dados.
 
-1. **Privacidade Criptográfica:** O processamento inferencial LLM ocorre primariamente em ambientes isolados na máquina física do usuário ou sob VPN proprietária (WireGuard).
-2. **Topologia Híbrida (Fat-Daemon / Thin-Client):** O motor relacional em **Rust (`sovereign-core`)** roda de modo Headless como um "Daemon Gordo" acoplado ao Banco de Dados. A Interface de Usuário Desktop (**Tauri / Svelte v5**) atua apenas como "Cliente Fino" remoto (Systray Responsivo), comunicando-se estritamente pela porta assíncrona `38001`. Essa dicotomia encerra conflitos mortais entre privilégios Root de banco de dados e usuários comuns no Desktop Linux/Mac/Win.
-3. **Malha Overlay (Tailscale 100.x.x.x):** Para proteger o processamento O.S inferencial delegado a um node remoto ARM64 (Como a Cloud OCI Oracle Ampere A1), nenhuma porta (Ex: 11434, 8000) abre escuta em IP Público (WAN). Toda inferência roda silenciosamente em IPs restritos do túnel Tailscale (`100.x.x.x`), varrendo scanners civis e ataques DDoS das placas de rede.
-
----
-
-## Pilar II: O Motor Cíbrido (Rust Axum & Python Nodes)
-
-Ao longo de 2026, a Arquitetura livrou-se do peso do Node.js backend, C++ sujo e LlamaIndex, focando na performance brutal "Memory-Safe" provida pelo Cíbrido O.S.
-
-- **Gateway Universal (Axum/Tokio):** O coração da rede pulsa assincronamente gerenciando requisições REST/SSE simultâneas de usuários e LLMs.
-- **SQLite Vector Nativo:** Matamos o oneroso `ChromaDB`. Todo texto lido pelas sentinelas de arquivo Markdown (`The Mom`) no Vault é fagocitado nativamente e convertido ao SQLite O.S usando a sub-arquitetura C nativa `sqlite-vec` indexando tensores vetoriais com isolamento Multi-Tenant corporativo perfeito.
-- **Nodes O.S CLI Desacoplados (Python):** Para transacionar Mídia (Vision OCR e Audio) e livrar o Rust de dependências caóticas de compilação (*Bindgen / Clang 22*), criamos instanciadores puros (Ex: `faster-whisper`, `paddleocr`). O Rust é o general, sub-invocando via IPC esses binários temporários Python para ler blobs de microfone e devolvendo as strings imediatamente para a Engine na Memória em Milissegundos, antes que se multipliquem em VRAM ociosa.
-- **Reranking Local M3:** Extraindo OOM's (Out of Memory), o `fastembed` cruza milhares de leituras do Vault isoladamente usando Similaridade Cossenoidal e BM25, garantindo que o seu LLM receba apenas as `Top-35` sentenças de ouro na inferência final do Socket.
+1. **Privacidade por Padrão:** O processamento dos modelos de linguagem (LLMs) ocorre primariamente em ambientes isolados, seja na máquina física do usuário ou protegido sob uma VPN privada (WireGuard/Tailscale).
+2. **Topologia Híbrida (Daemon / Cliente):** O backend principal em **Rust (`sovereign-core`)** roda em segundo plano (Headless) acoplado ao Banco de Dados. A Interface de Usuário Desktop (**Tauri / Svelte v5**) atua como um cliente leve, comunicando-se de forma assíncrona pela porta `38001`. Essa divisão evita problemas de permissões de sistema e melhora a experiência e estabilidade do usuário no Linux, macOS e Windows.
+3. **Rede Isolada (Tailscale 100.x.x.x):** Para proteger o processamento delegado a nós remotos (como uma instância gratuita ARM64 na Oracle Cloud), portas de serviço (como 11434 ou 8000) nunca são expostas na internet pública. Toda a comunicação ocorre de forma invisível nos IPs restritos do túnel Tailscale, prevenindo ataques externos tradicionais.
 
 ---
 
-## Pilar III: Agentic RAG e Malha Anti-WAF Fantasma
+## Pilar II: O Motor Cíbrido (Rust e Python)
 
-O "Scraping" bobo da internet cível do século 20 foi engolido pela Trindade dos Agentes no Sovereign Pair e pelo roteamento das bibliotecas de Herança Histórica Humana (CDX).
+A arquitetura moderna foi reescrita para garantir performance e segurança de memória, minimizando os gargalos de antigas bibliotecas.
 
-- **Inquisidores Restritos:** Agentes como *The Coder*, *The Nurse*, ou *The Sentinel* dissecam e policiam nativamente (em Rust) alucinações de modelos sub-bilionários, paralisando saídas falsas sob correntes de Chain-of-Verification antes que manchem o output conversacional HTTP.
-- **Micro-Chunking Supersônico:** O conteúdo massivo lido não polui mais a LLM. Tudo é rasgado cirurgicamente pela rotina `unicode-segmentation` em tokens justos preservando referências semânticas e o residual estrito.
-- **O Fim do Cloudflare (The Ghost Network):** Requisições na internet livre que respondam IP-BAN (HTTP 403) deslancham na IA um contorno P2P relâmpago: O Rust engole a URL punitiva e pesquisa *paralelamente* sobre o Wayback Machine (US), Arquivo.pt (Ibérico) e Vefsafn (Islândia) em Bancos RoxDB ultrarrápidos, bypassando o robô comercial e entregando a leitura pura do site morto.
-
----
-
-## Pilar IV: Tool Calling & Interoperabilidade (MCP)
-
-Sua produtividade não está acorrentada apenas à janela oficial da UI do Svelte. O Motor Core se estende para sua malha dev diária:
-
-- **Protocolo MCP (Model Context Protocol):** Operando em modo *Stdio IPC* puro (eliminando buracos de Socket TCP Inseguros), a Engine atua como servidor Anthropic Server passivo. Sua IDE local (VS Code/Cursor/Cline) solicita leitura vetorial de código sob demanda direto do seu motor SQLite sem intermediação do exterior. 
-- **OpenCode TUI Proxy:** Desenvolvedores Linux/Unix Terminal-Focados conectam a command-line interface estendendo chamadas OpenAI (`http://127.0.0.1:38001/v1/opencode`) para o servidor Sovereign Bypass, mascarando 100% da telemetria Coder sob o Qwen/Llama hospedado internamente nas GPUs próprias ou na Oracle Cloud.
+- **Gateway Universal (Axum/Tokio):** O núcleo da rede processa simultaneamente requisições REST e Server-Sent Events (SSE) de maneira responsiva.
+- **SQLite Vector Nativo:** O uso do `ChromaDB` foi descontinuado. Agora, todos os textos processados são armazenados nativamente no SQLite usando a extensão `sqlite-vec`. Isso garante isolamento entre usuários e facilidade de backup com um único arquivo de banco de dados (`sovereign_memory.db`).
+- **Nós Multimodais Modulares (Python):** Para integração de visão computacional e transcrição de áudio sem complicar a compilação do Rust, criamos scripts independentes (ex: `faster-whisper`, `paddleocr`). O Rust atua como orquestrador, chamando esses binários locais apenas quando necessário. O resultado retorna em milissegundos e o processo Python é encerrado, liberando recursos e evitando uso contínuo de memória RAM/VRAM.
+- **Reranker Local Otimizado:** Usando o `fastembed`, o sistema avalia resultados de busca usando métricas como similaridade de cosseno e BM25 em milissegundos. Assim, o LLM recebe apenas os trechos mais relevantes, evitando consumo desnecessário de contexto e reduzindo custos computacionais (Out of Memory).
 
 ---
 
-## Pilar V: SecOps, Testes e Convergência (Unsloth)
+## Pilar III: RAG Inteligente e Pesquisa Resiliente
 
-A infraestrutura repousa sob pipelines implacáveis em Github Actions integrados aos princípios modernos DevSecOps para impedir vulnerabilidades severas de software.
+As buscas passaram a ser ativas e otimizadas, indo além do simples "scraping" tradicional de páginas web.
 
-- Ações implacáveis barram deploys de Rust/Svelte que não passem zerados nos testes anti-infiltração do `Gitleaks`, lint `cargo clippy`, Memory-Safe Validation e UI-Automations `Playwright` Headless Svelte DOM Renders.
-- **Fine-Tuning Remoto Integrado (Unsloth JSONL):** O histórico de comandos do seu usuário local transborda dados limpos ao `sovereign_memory.db`. Usando os scripts empacotados `export_unsloth_dataset`, o projeto viabiliza compilações GGUF otimizadas nos tensores LoRA 4-bit na Nuvem para instruir seu Modêlo 3B Cíbrido (Ex: *Sovereign-Thinking-3B*) a falar exclusivamente no seu jargão de negócio, abdicando para sempre da alucinação comercial padronizada.
+- **Automação Auxiliar:** Agentes de verificação (como *The Coder* ou *The Nurse*) validam as informações recebidas dos modelos de linguagem menores antes que a resposta seja entregue na interface do usuário final, reduzindo o risco de alucinações.
+- **Processamento de Textos:** Conteúdos longos são quebrados usando `unicode-segmentation` de forma equilibrada, mantendo as ligações semânticas vitais sem poluir a janela de contexto.
+- **Resiliência contra Bloqueios:** Se uma pesquisa convencional falha por bloqueio de servidores (como retornos HTTP 403 do Cloudflare), o sistema busca a informação paralelamente em arquivos históricos públicos (como Wayback Machine, Arquivo.pt e Vefsafn). Isso garante a leitura de páginas indexadas diretamente da memória global confiável, contornando proteções comerciais contra robôs.
 
-*(Esta arquitetura purificada anula o legado dos antigos Manifestos 01 a 12, outrora corrompidos pelo monólito FastAPI, erguendo o Cíbrido O.S Final como tese fundamental do Repositório Limitante v0.9.)*
+---
+
+## Pilar IV: Interoperabilidade e Protocolo MCP
+
+A integração do sistema não se limita apenas à sua própria interface web, expandindo-se para o dia a dia do desenvolvedor:
+
+- **Protocolo MCP (Model Context Protocol):** Operando em modo de comunicação inter-processos segura (*Stdio IPC*), o motor pode atuar como servidor passivo para IDEs locais (VS Code, Cursor, Cline). Isso permite que seu editor de código pesquise informações vetorizadas do projeto direto do SQLite sem precisar de APIs na nuvem.
+- **Proxy OpenCode Integrado:** Os desenvolvedores que utilizam linha de comando (CLI) podem redirecionar suas requisições tradicionais OpenAI para o proxy rodando na porta local (`http://127.0.0.1:38001/v1/opencode`). Dessa forma, a integração de código flui pelo modelo LLM local do usuário, mantendo a privacidade durante o desenvolvimento de software.
+
+---
+
+## Pilar V: Segurança, Automação e Ajuste Fino
+
+A infraestrutura é mantida por pipelines automatizados no GitHub Actions para impedir a introdução de falhas de segurança durante a evolução do código.
+
+- **Validação Contínua:** Deploys só são autorizados após passarem por verificações preventivas como o varredor de chaves `Gitleaks`, o analisador estático `cargo clippy`, e testes de interface no `Playwright`.
+- **Treinamento Contínuo (Unsloth e LoRA):** O banco de dados SQLite exporta dados organizados das suas próprias conversas em formatos simples (`export_unsloth_dataset`). A partir daí, é possível aplicar ajustes finos na nuvem treinando um pequeno modelo base. O resultado (exportado em GGUF) será um modelo especializado no vocabulário e nas convenções da sua empresa, oferecendo resultados superiores em vez de usar modelos corporativos generalistas padrão.
+
+*(Este manifesto atua como a única fonte de arquitetura consolidada a partir da versão 0.9.9, descontinuando documentos antigos da fase inicial de desenvolvimento.)*
