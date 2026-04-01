@@ -1,56 +1,56 @@
-# 📜 The Sovereign Manifesto (Sovereign Pair v0.9.9)
+# The Sovereign Manifesto (Sovereign Pair v0.9.9)
 
-**Sovereign Pair** transitions from a mere assistant to a **Local-First Cybrid Ecosystem**. Its technical foundation repudiates the servile dependency on third-party commercial cloud infrastructures. Its core is built in Rust, modeling the Zero-Trust paradigm where your corporation's or personal life's sensitive data never reaches abstract providers.
+**Sovereign Pair** has evolved from a standard assistant to a robust **Local-First Ecosystem**. The project prioritizes executing processes on the user's local machine, reducing reliance on third-party cloud infrastructure, and ensuring that corporate or personal data never needs to leave your network.
 
-This document consolidates the 5 definitive Architectural Pillars of the Platform (v0.9.9+), succeeding and obliterating the old dogmas of the *Pure Python* and *LlamaIndex* era.
+This document outlines the 5 architectural pillars of version 0.9.9+, reflecting the transition from the legacy Python and LlamaIndex-based architecture to the new, unified structure.
 
 ---
 
 ## Pillar I: Sovereign Philosophy and Hybrid Topology
 
-The architecture of Sovereign Pair guarantees biological control over the lifecycle of managed data.
+The Sovereign Pair architecture ensures users retain full control over their data lifecycle.
 
-1. **Cryptographic Privacy:** Inferential LLM processing occurs primarily in isolated environments on the user's physical machine or under a proprietary VPN (WireGuard).
-2. **Hybrid Topology (Fat-Daemon / Thin-Client):** The relational engine in **Rust (`sovereign-core`)** runs Headless as a "Fat Daemon" coupled to the Database. The Desktop User Interface (**Tauri / Svelte v5**) acts only as a remote "Thin Client" (Responsive Systray), communicating strictly through asynchronous port `38001`. This dichotomy ends deadly conflicts between Root database privileges and common users on Desktop Linux/Mac/Win.
-3. **Overlay Mesh (Tailscale 100.x.x.x):** To protect the inferential O.S processing delegated to a remote ARM64 node (Like the Oracle OCI Ampere A1 Cloud), no port (e.g., 11434, 8000) opens listening on a Public IP (WAN). All inference runs silently on restricted Tailscale tunnel IPs (`100.x.x.x`), sweeping civil scanners and DDoS attacks off the network cards.
-
----
-
-## Pillar II: The Cybrid Engine (Rust Axum & Python Nodes)
-
-Throughout 2026, the Architecture shed the weight of the Node.js backend, dirty C++, and LlamaIndex, focusing on the brutal "Memory-Safe" performance provided by the Cybrid O.S.
-
-- **Universal Gateway (Axum/Tokio):** The heart of the network beats asynchronously, managing simultaneous REST/SSE requests from users and LLMs.
-- **Native SQLite Vector:** We killed the costly `ChromaDB`. All text read by the Markdown file sentinels (`The Mom`) in the Vault is natively phagocytized and converted to the SQLite O.S using the native C sub-architecture `sqlite-vec`, indexing vector tensors with perfect corporate Multi-Tenant isolation.
-- **Decoupled O.S CLI Nodes (Python):** To transact Media (Vision OCR and Audio) and free Rust from chaotic compilation dependencies (*Bindgen / Clang 22*), we created pure instantiators (e.g., `faster-whisper`, `paddleocr`). Rust is the general, sub-invoking via IPC these temporary Python binaries to read microphone blobs and returning the strings immediately to the Engine in Memory in Milliseconds, before they multiply in idle VRAM.
-- **Local Reranking M3:** Extracting OOMs (Out of Memory), `fastembed` crosses thousands of Vault readings in isolation using Cosine Similarity and BM25, ensuring that your LLM receives only the `Top-35` golden sentences in the final Socket inference.
+1. **Privacy by Default:** Large Language Model (LLM) inference processing occurs primarily in isolated environments—either on the user's physical machine or securely behind a proprietary VPN (WireGuard/Tailscale).
+2. **Hybrid Topology (Daemon / Client):** The core backend, built in **Rust (`sovereign-core`)**, runs in the background (Headless) alongside the database. The Desktop User Interface (**Tauri / Svelte v5**) acts as a lightweight remote client (Responsive Systray), communicating asynchronously via port `38001`. This separation prevents permission issues between database processes and everyday Desktop users on Linux, macOS, and Windows.
+3. **Isolated Networking (Tailscale 100.x.x.x):** To protect processing tasks assigned to remote nodes (like an Oracle Ampere A1 ARM64 cloud instance), service ports (such as 11434 or 8000) are never exposed to the public internet. All remote communication securely traverses the Tailscale tunnel's restricted IPs (`100.x.x.x`), protecting against traditional external attacks and scanners.
 
 ---
 
-## Pillar III: Agentic RAG and Ghost Anti-WAF Mesh
+## Pillar II: The Cybrid Engine (Rust and Python)
 
-The silly "Scraping" of the civil internet of the 20th century was swallowed by the Trinity of Agents in Sovereign Pair and by the routing of the libraries of Human Historical Heritage (CDX).
+The modern architecture was largely rewritten to provide high performance and memory safety, leaving behind the bottlenecks of older libraries.
 
-- **Restricted Inquisitors:** Agents like *The Coder*, *The Nurse*, or *The Sentinel* natively dissect and police (in Rust) hallucinations of sub-billion models, paralyzing false outputs under Chain-of-Verification currents before they stain the HTTP conversational output.
-- **Supersonic Micro-Chunking:** The massive content read no longer pollutes the LLM. Everything is surgically ripped by the `unicode-segmentation` routine into fair tokens, preserving semantic references and the strict residual.
-- **The End of Cloudflare (The Ghost Network):** Requests on the free internet that respond with IP-BAN (HTTP 403) unleash a lightning P2P bypass on the AI: Rust swallows the punitive URL and searches *in parallel* on the Wayback Machine (US), Arquivo.pt (Iberian), and Vefsafn (Iceland) in Lightning-fast RoxDB Databases, bypassing the commercial robot and delivering the pure reading of the dead site.
-
----
-
-## Pillar IV: Tool Calling & Interoperability (MCP)
-
-Your productivity is not chained only to the official Svelte UI window. The Core Engine extends to your daily dev mesh:
-
-- **MCP Protocol (Model Context Protocol):** Operating in pure *Stdio IPC* mode (eliminating Unsafe TCP Socket holes), the Engine acts as a passive Anthropic Server. Your local IDE (VS Code/Cursor/Cline) requests vector code reading on demand straight from your SQLite engine without intermediation from the outside.
-- **OpenCode TUI Proxy:** Terminal-Focused Linux/Unix developers connect the command-line interface extending OpenAI calls (`http://127.0.0.1:38001/v1/opencode`) to the Sovereign Bypass server, masking 100% of the Coder telemetry under the Qwen/Llama hosted internally on their own GPUs or in the Oracle Cloud.
+- **Universal Gateway (Axum/Tokio):** The core router asynchronously manages REST requests and Server-Sent Events (SSE) with high responsiveness.
+- **Native SQLite Vector:** `ChromaDB` has been discontinued. Now, all text processed by the local Markdown file agents (`The Mom`) is natively stored in the OS's SQLite using the `sqlite-vec` extension. This guarantees isolation between multiple users and simplifies backups into a single relational file (`sovereign_memory.db`).
+- **Modular Multimodal Nodes (Python):** To support Computer Vision and Audio Transcription without overcomplicating the Rust codebase, we created decoupled, standalone scripts (e.g., `faster-whisper`, `paddleocr`). Rust orchestrates the system, dynamically calling these local binaries only when needed. The result is returned in milliseconds, and the Python process is immediately closed, freeing up RAM and VRAM.
+- **Optimized Local Reranker:** Using `fastembed`, the system evaluates search results via metrics like cosine similarity and BM25. Consequently, the LLM is fed only the most relevant text chunks, improving context relevance and significantly reducing compute costs (Out of Memory).
 
 ---
 
-## Pillar V: SecOps, Testing, and Convergence (Unsloth)
+## Pillar III: Intelligent RAG and Resilient Search
 
-The infrastructure rests under relentless Github Actions pipelines integrated with modern DevSecOps principles to prevent severe software vulnerabilities.
+Searches have become proactive and structured, moving beyond traditional basic web scraping.
 
-- Relentless actions block Rust/Svelte deploys that do not pass unscathed in `Gitleaks` anti-infiltration tests, `cargo clippy` lint, Memory-Safe Validation, and Headless Svelte DOM Renders `Playwright` UI-Automations.
-- **Integrated Remote Fine-Tuning (Unsloth JSONL):** Your local user's command history overflows clean data to `sovereign_memory.db`. Using the packaged `export_unsloth_dataset` scripts, the project enables optimized GGUF compilations in 4-bit LoRA tensors in the Cloud to instruct your 3B Cybrid Model (e.g., *Sovereign-Thinking-3B*) to speak exclusively in your business jargon, forever abdicating standardized commercial hallucination.
+- **Automated Verification:** Support agents (like *The Coder* or *The Nurse*) perform rapid background evaluations of answers generated by smaller language models, filtering hallucinations before the response reaches the user interface.
+- **Smart Text Segmentation:** Massive documents are split smoothly using `unicode-segmentation`, preserving crucial semantic references without bloating the contextual window.
+- **IP-Block Resilience:** If a standard internet request fails due to server blocking (e.g., Cloudflare HTTP 403 errors), the system parallelizes the search query into public historical archives (like Wayback Machine, Arquivo.pt, and Vefsafn). This bypasses commercial bot-protection by safely reading archived versions of the dead sites.
 
-*(This purified architecture completely nullifies the legacy of old Manifestos 01 to 12, once corrupted by the FastAPI monolith, erecting the Final Cybrid O.S as the fundamental thesis of the Limiting v0.9 Repository.)*
+---
+
+## Pillar IV: Interoperability and MCP Protocol
+
+The system's integration operates beyond its own web interface, expanding directly into developer workflows:
+
+- **MCP Protocol (Model Context Protocol):** Running via secure inter-process communication (*Stdio IPC*), the engine functions as a passive server for local IDEs (VS Code, Cursor, Cline). This facilitates real-time, vector-oriented repository inquiries from your code editor straight into your SQLite database without cloud APIs.
+- **Integrated OpenCode Proxy:** Developers utilizing Command-Line Interfaces (CLI) can bypass default OpenAI limits by redirecting requests through the local proxy (`http://127.0.0.1:38001/v1/opencode`). This ensures all code suggestions and interactions are processed entirely by the user's local LLM model, maintaining absolute privacy during software development.
+
+---
+
+## Pillar V: Security, Automation, and Fine-Tuning
+
+The infrastructure relies on automated GitHub Actions pipelines to defend against the introduction of security misconfigurations during deployment.
+
+- **Continuous Validation:** Deploys are only authorized if they successfully pass preventive steps, including the `Gitleaks` key-scanner, the `cargo clippy` static analyzer, and automated visual interface evaluation tests via `Playwright`.
+- **Continuous Training (Unsloth and LoRA):** The SQLite database provides an avenue to export organized conversational records natively into simple datasets (`export_unsloth_dataset`). This sets the stage for cloud-based Fine-Tuning by training a nimble base model. The resulting GGUF-exported model will become specialized in your company's proprietary vocabulary and conventions, delivering tailored answers superior to standard, generalized corporate models.
+
+*(This manifesto serves as the single source of truth for the consolidated architecture as of version 0.9.9, discontinuing all prior documentation files from the initial development phase.)*
