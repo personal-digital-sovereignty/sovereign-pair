@@ -1,8 +1,6 @@
 <script lang="ts">
   import '../app.css';
   import { globalState } from '$lib/state.svelte.js';
-  
-  let appVersion = "0.9.8";
   import { telemetryState, connectTelemetry, disconnectTelemetry } from '$lib/telemetry.svelte';
   import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, Activity, Database, Bell, Network, User } from 'lucide-svelte';
   import { page } from '$app/state';
@@ -12,11 +10,11 @@
   import SettingsModal from '$lib/components/SettingsModal.svelte';
   import ChangelogModal from '$lib/components/ChangelogModal.svelte';
   import ManualModal from '$lib/components/ManualModal.svelte';
-  
-  let isChangelogOpen = $state(false);
   import NotificationBell from '$lib/components/NotificationBell.svelte';
   import { settingsState, loadSettings } from '$lib/settings.svelte';
 
+  let appVersion = "0.9.8";
+  let isChangelogOpen = $state(false);
   let { children } = $props();
 
   onMount(async () => {
