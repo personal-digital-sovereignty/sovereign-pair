@@ -28,6 +28,7 @@ pub mod os_installer;
 pub mod guardrails;
 pub mod research;
 pub mod adblocker;
+pub mod multimodal;
 
 use axum::{routing::post, Router, response::IntoResponse, http::{header, StatusCode, Uri}};
 use reqwest::Client;
