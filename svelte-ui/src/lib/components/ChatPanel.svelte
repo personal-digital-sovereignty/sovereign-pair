@@ -204,24 +204,24 @@
                 {/if}
 
                 <div class="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 {msg.role === 'user' ? 'mr-1 justify-end' : 'ml-1 justify-start'}">
-                    <button onclick={() => copyToClipboard(msg.text)} class="p-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 border border-slate-200 transition-all cursor-pointer" title="Copiar Texto">
+                    <button onclick={() => copyToClipboard(msg.text)} class="p-1.5 rounded-lg bg-white dark:bg-[#12192b] hover:bg-slate-50 dark:hover:bg-[#1d253b] text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 border border-slate-200 dark:border-slate-800/60 transition-all cursor-pointer" title="Copiar Texto">
                         <Copy class="w-3.5 h-3.5" />
                     </button>
 
                     {#if msg.role === 'user'}
-                        <button onclick={() => replayMessage(msg.id)} class="p-1.5 rounded-lg bg-white hover:bg-blue-50 hover:text-blue-600 text-slate-400 border border-slate-200 hover:border-blue-200 transition-all cursor-pointer" title="Replay / Editar Pergunta">
+                        <button onclick={() => replayMessage(msg.id)} class="p-1.5 rounded-lg bg-white dark:bg-[#12192b] hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800/60 transition-all cursor-pointer" title="Replay / Editar Pergunta">
                             <RotateCcw class="w-3.5 h-3.5" />
                         </button>
                     {/if}
 
                     {#if msg.role === 'assistant'}
-                        <button id="feedback-btn-{msg.id}-up" onclick={() => triggerFeedback(msg.id, 'up')} class="p-1.5 rounded-lg bg-white hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 border border-slate-200 hover:border-emerald-200 transition-all cursor-pointer" title="Boa resposta (Like)">
+                        <button id="feedback-btn-{msg.id}-up" onclick={() => triggerFeedback(msg.id, 'up')} class="p-1.5 rounded-lg bg-white dark:bg-[#12192b] hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200 dark:border-slate-800/60 transition-all cursor-pointer" title="Boa resposta (Like)">
                             <ThumbsUp class="w-3.5 h-3.5" />
                         </button>
-                        <button id="feedback-btn-{msg.id}-down" onclick={() => triggerFeedback(msg.id, 'down')} class="p-1.5 rounded-lg bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-200 transition-all cursor-pointer" title="Resposta Incorreta (Dislike)">
+                        <button id="feedback-btn-{msg.id}-down" onclick={() => triggerFeedback(msg.id, 'down')} class="p-1.5 rounded-lg bg-white dark:bg-[#12192b] hover:bg-rose-50 dark:hover:bg-rose-900/30 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-800/60 transition-all cursor-pointer" title="Resposta Incorreta (Dislike)">
                             <ThumbsDown class="w-3.5 h-3.5" />
                         </button>
-                        <button onclick={() => replayMessage(msg.id)} class="p-1.5 rounded-lg bg-white hover:bg-amber-50 text-slate-400 hover:text-amber-600 border border-slate-200 hover:border-amber-200 transition-all cursor-pointer" title="Copiar para Input">
+                        <button onclick={() => replayMessage(msg.id)} class="p-1.5 rounded-lg bg-white dark:bg-[#12192b] hover:bg-amber-50 dark:hover:bg-amber-900/30 text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 border border-slate-200 dark:border-slate-800/60 transition-all cursor-pointer" title="Copiar para Input">
                             <RotateCcw class="w-3.5 h-3.5" />
                         </button>
                     {/if}

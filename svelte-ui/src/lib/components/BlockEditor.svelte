@@ -630,9 +630,13 @@
         font-size: 0.9em;
     }
     :global(.callout-info), :global(.callout-note) { border-left-color: #3b82f6 !important; background-color: #eff6ff !important; color: #1e3a8a !important; }
+    :global(.dark .callout-info), :global(.dark .callout-note) { border-left-color: #3b82f6 !important; background-color: rgba(59, 130, 246, 0.1) !important; color: #93c5fd !important; }
     :global(.callout-warning) { border-left-color: #f59e0b !important; background-color: #fffbeb !important; color: #78350f !important; }
+    :global(.dark .callout-warning) { border-left-color: #f59e0b !important; background-color: rgba(245, 158, 11, 0.1) !important; color: #fcd34d !important; }
     :global(.callout-danger) { border-left-color: #ef4444 !important; background-color: #fef2f2 !important; color: #7f1d1d !important; }
+    :global(.dark .callout-danger) { border-left-color: #ef4444 !important; background-color: rgba(239, 68, 68, 0.1) !important; color: #fca5a5 !important; }
     :global(.callout-success), :global(.callout-tip) { border-left-color: #10b981 !important; background-color: #ecfdf5 !important; color: #064e3b !important; }
+    :global(.dark .callout-success), :global(.dark .callout-tip) { border-left-color: #10b981 !important; background-color: rgba(16, 185, 129, 0.1) !important; color: #6ee7b7 !important; }
 
     /* TipTap Table Styles */
     :global(.tiptap table) {
