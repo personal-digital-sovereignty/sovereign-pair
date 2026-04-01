@@ -14,7 +14,7 @@ Sendo um VLM massivamente adotado, o Gemma 3 4B pode ser servido primariamente v
 **Opção A: Via Ollama (Recomendado para Svelte UI / API unificada)**
 ```bash
 # Inicia o download da versão quantizada oficial e registra no host local
-ollama pull gemma:4b
+ollama pull gemma3:4b
 ```
 
 **Opção B: Via HuggingFace CLI (Para engine isolada em Python/Rust)**
