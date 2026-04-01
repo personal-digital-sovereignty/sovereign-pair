@@ -54,3 +54,29 @@ Consumo máximo alocado de estático + KV Cache fica entre 4 GB a 5 GB de RAM.
 ## 🛠️ Validação do Manifesto
 
 Este documento foi forjado com o auxílio do **Loop de Deep Research do Google Gemini 3 Pro** (Artefato Fase 41), além de validação cruzada entre Claude 3.5 Sonnet, MS Copilot e testes autônomos locais.
+
+---
+
+## 👁️ Tier 3: Sovereign Multimodal (Vision & Audio)
+**Hardware Alvo:** Máquinas Edge (como os Mini PCs Beelink) aproveitando o processamento otimizado em CPU + RAM. Esta camada é estrategicamente isolada das inferências textuais pesadas e possui sua própria taxonomia arquitetural otimizada.
+
+### 🖼️ The Eyes (Vision & OCR)
+A extração visual contemporânea migrou do antigo *pipeline* fracionado (detecção → reconhecimento → layout) para VLMs *end-to-end*, engolindo documentos inteiros complexos num único passe.
+1. **Natividade em Imagens Naturais / VQA:**
+   * **Modelo:** `gemma-3-4b`
+   * **Papel:** O mais forte VLM em faixa sub-5B para contexto contínuo. Utiliza o poderoso encoder SigLIP com o algoritmo *Pan & Scan* (segmentando altíssima resolução de imagens não-quadradas em recortes de 896x896). Suporta fluido **Português Brasileiro** e contexto colossal, servindo brutalmente para tarefas arbitrárias tipo "descreva essa imagem detalhadamente".
+2. **Especialista em Documentos e OCR Estruturado:**
+   * **Modelo:** `paddleocr-vl-0.9b`
+   * **Papel:** Incrível **Score de 92.86 no OmniDocBench** (destruindo modelos pesados como GPT-4o e Gemini 2.5 Pro no parsing absoluto das tabelas e equações). O fator decisivo é que por ter apenas 0.9B, roda magnificamente em **CPU pura**, isentando o host machine de estresse de RAM e libertando GPUs para o RAG textual principal.
+
+> 💡 **Estratégia Recomendada para o Beelink:** O intercâmbio tático entre **PaddleOCR-VL 0.9B** (Extração bruta pesada em CPU de relatórios do IBGE e tabelas densas) operando junto ao **Gemma 3 4B** (Raciocínio complexo em cima do log transcrito ou imagens naturais). Somados, ancoram em limitados ~3.8 GB.
+
+### 🎙️ The Ears (Audio, Speech & Signals)
+Neste domínio, a estúpida correlação "parâmetros globais vs transcrição" morre. Especialistas minúsculos de áudio dizimam LLMs generalistas tentanto fazer *Speech-to-Text*, devido aos regimes agressivos de horas unicamente orais na esteira de dados.
+1. **Transcrição de Voz Pura (ASR):**
+   * **Modelo:** `whisper-large-v3-turbo` (~800M parâmetros)
+   * **Papel:** Padrão ouro. Condensou absurdamente o encoder clássico do Whisper (4 decoder layers em oposição a 32). Transcreve fluentemente Português do Brasil com acurácia ditatorial comparado ao original e velocidade próxima à vertente "tiny".
+   * **Motor de Inferência Mandatório:** Jamais rodar como modelo puro Python. Exige obrigatoriamente *faster-whisper* (CTranslate2) ou *whisper.cpp* para velocidade sub-segundo sem comprometer as VRAMs reservadas do RAG.
+2. **Transcrição de Sinal Polifônico / Musical:**
+   * **Algoritmo:** `basic-pitch` (Spotify Research)
+   * **Papel:** Conversão mágica de mp3/wav em puro MIDI matemático com rastreamento polifônico (notas conjuntas simultâneas). Pesa ridiculamente **5MB** e despacha processamento de áudio exclusivamente na **CPU**, blindado de gargalos.
