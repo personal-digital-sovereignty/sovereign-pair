@@ -221,11 +221,11 @@
                     <h3 class="text-surface-200 font-bold text-sm tracking-widest uppercase mb-1">Hub Preferences & Output</h3>
                     <div class="flex flex-col gap-1.5 mb-2">
                         <label for="default_route" class="text-[10px] font-bold uppercase tracking-widest text-surface-400">Startup Landing Page</label>
-                        <select id="default_route" bind:value={aiSettings.default_route} class="w-full bg-surface-900 border border-surface-600 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-primary-500 transition-colors cursor-pointer">
-                            <option value="/dashboard" class="bg-surface-900 text-surface-200">Home (Dashboard)</option>
-                            <option value="/chat" class="bg-surface-900 text-surface-200">Chat Interface</option>
-                            <option value="/vault" class="bg-surface-900 text-surface-200">Vault Explorer</option>
-                            <option value="/projects" class="bg-surface-900 text-surface-200">Projects (Kanban)</option>
+                        <select id="default_route" bind:value={aiSettings.default_route} class="w-full bg-slate-50 dark:bg-[#080e1d] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 text-sm outline-none focus:border-primary-500 transition-colors cursor-pointer">
+                            <option value="/dashboard" class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">Home (Dashboard)</option>
+                            <option value="/chat" class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">Chat Interface</option>
+                            <option value="/vault" class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">Vault Explorer</option>
+                            <option value="/projects" class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">Projects (Kanban)</option>
                         </select>
                         <p class="text-xs text-surface-500 mt-1">Sovereign Pair will boot directly to this page. Requires applying the 'Core Variables' physically at the bottom of the Sovereign Core card below to save into DB.</p>
                     </div>
@@ -336,33 +336,33 @@
                     <div class="flex flex-col md:flex-row gap-4">
                         <div class="flex flex-col gap-1.5 flex-1">
                             <label for="nurse_model" class="text-xs font-semibold text-primary-400">The Nurse (Scraping/Triage)</label>
-                            <select id="nurse_model" bind:value={aiSettings.nurse_model} class="w-full bg-surface-900 border border-surface-600 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-primary-500 transition-colors">
+                            <select id="nurse_model" bind:value={aiSettings.nurse_model} class="w-full bg-slate-50 dark:bg-[#080e1d] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 text-sm outline-none focus:border-primary-500 transition-colors">
                                 {#each availableModels as model}
-                                    <option value={model.name} class="bg-surface-900 text-surface-200">{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
+                                    <option value={model.name} class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
                                 {:else}
-                                    <option value={aiSettings.nurse_model} class="bg-surface-900 text-surface-200">{aiSettings.nurse_model}</option>
+                                    <option value={aiSettings.nurse_model} class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">{aiSettings.nurse_model}</option>
                                 {/each}
                             </select>
                         </div>
 
                         <div class="flex flex-col gap-1.5 flex-1">
                             <label for="doctor_model" class="text-xs font-semibold text-sky-400">The Doctor (Planning/Chat)</label>
-                            <select id="doctor_model" bind:value={aiSettings.doctor_model} class="w-full bg-surface-900 border border-surface-600 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-primary-500 transition-colors">
+                            <select id="doctor_model" bind:value={aiSettings.doctor_model} class="w-full bg-slate-50 dark:bg-[#080e1d] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 text-sm outline-none focus:border-primary-500 transition-colors">
                                 {#each availableModels as model}
-                                    <option value={model.name} class="bg-surface-900 text-surface-200">{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
+                                    <option value={model.name} class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
                                 {:else}
-                                    <option value={aiSettings.doctor_model} class="bg-surface-900 text-surface-200">{aiSettings.doctor_model}</option>
+                                    <option value={aiSettings.doctor_model} class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">{aiSettings.doctor_model}</option>
                                 {/each}
                             </select>
                         </div>
 
                         <div class="flex flex-col gap-1.5 flex-1">
                             <label for="coder_model" class="text-xs font-semibold text-rose-400">The Coder (Execution/Scripting)</label>
-                            <select id="coder_model" bind:value={aiSettings.coder_model} class="w-full bg-surface-900 border border-surface-600 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-primary-500 transition-colors">
+                            <select id="coder_model" bind:value={aiSettings.coder_model} class="w-full bg-slate-50 dark:bg-[#080e1d] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 text-sm outline-none focus:border-primary-500 transition-colors">
                                 {#each availableModels as model}
-                                    <option value={model.name} class="bg-surface-900 text-surface-200">{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
+                                    <option value={model.name} class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
                                 {:else}
-                                    <option value={aiSettings.coder_model} class="bg-surface-900 text-surface-200">{aiSettings.coder_model}</option>
+                                    <option value={aiSettings.coder_model} class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">{aiSettings.coder_model}</option>
                                 {/each}
                             </select>
                         </div>
