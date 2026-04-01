@@ -1,0 +1,144 @@
+SOVEREIGN PAIR - THIRD-PARTY SOFTWARE LICENSES
+================================================
+
+This software, "Sovereign Pair", incorporates and relies upon several open-source libraries, frameworks, and foundation models. In compliance with the licensing terms of these open-source projects, the copyrights and licenses of all third-party properties are acknowledged and reproduced below.
+
+We extend our sincere gratitude to the thousands of developers and researchers worldwide who dedicate their lives to advancing human knowledge through open-source software and open-weight models. You are the shoulders upon which Sovereign Pair stands.
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1. MIT License Dependencies
+2. Apache License 2.0 Dependencies
+3. ISC License Dependencies
+4. Mozilla Public License 2.0 (MPL) Dependencies
+5. Specific Model & AI Foundation Licenses
+6. Standard License Texts
+
+--------------------------------------------------------------------------------
+1. MIT LICENSE DEPENDENCIES
+--------------------------------------------------------------------------------
+The following software components are distributed under the MIT License:
+
+# RUST ECOSYSTEM
+- tokio (https://github.com/tokio-rs/tokio) - Copyright (c) 2014-2024 Tokio Contributors
+- axum (https://github.com/tokio-rs/axum) - Copyright (c) 2021 Tokio Contributors
+- tower-http (https://github.com/tower-rs/tower-http) - Copyright (c) 2018 Tower Contributors
+- serde (https://github.com/serde-rs/serde) - Copyright (c) 2018 Serde Contributors
+- reqwest (https://github.com/seanmonstar/reqwest) - Copyright (c) 2016 Sean McArthur
+- rusqlite (https://github.com/rusqlite/rusqlite) - Copyright (c) 2015-2024 The rusqlite developers
+- fastembed-rs (https://github.com/Anush008/fastembed-rs) - Copyright (c) 2024 Anush
+- rust-embed (https://github.com/pyrossh/rust-embed) - Copyright (c) 2018 Pyrossh
+
+# JAVASCRIPT / NODE.JS / SVELTE ECOSYSTEM
+- svelte (https://github.com/sveltejs/svelte) - Copyright (c) 2016-24 Svelte Contributors
+- vite (https://github.com/vitejs/vite) - Copyright (c) 2019-present, Yuxi (Evan) You and Vite contributors
+- tailwindcss (https://github.com/tailwindlabs/tailwindcss) - Copyright (c) Tailwind Labs, Inc.
+- tiptap (https://github.com/ueberdosis/tiptap) - Copyright (c) 2023 überdosis GbR
+- marked (https://github.com/markedjs/marked) - Copyright (c) 2011-2024 Christopher Jeffrey
+- js-yaml (https://github.com/nodeca/js-yaml) - Copyright (c) 2011-2015 by Vitaly Puzrin
+
+# PYTHON AND MACHINE LEARNING
+- faster-whisper (https://github.com/SYSTRAN/faster-whisper) - Copyright (c) 2023 SYSTRAN
+- whisper (https://github.com/openai/whisper) - Copyright (c) 2022 OpenAI
+
+--------------------------------------------------------------------------------
+2. APACHE LICENSE 2.0 DEPENDENCIES
+--------------------------------------------------------------------------------
+The following software components are distributed under the Apache License 2.0:
+
+# RUST ECOSYSTEM
+- sqlx (https://github.com/launchbadge/sqlx) - Copyright (c) 2020 LaunchBadge LLC
+- ort (https://github.com/pykeio/ort) - Copyright (c) 2023 Pyke.io
+
+# PYTHON ECOSYSTEM
+- PaddleOCR (https://github.com/PaddlePaddle/PaddleOCR) - Copyright (c) 2020 PaddlePaddle Authors
+- basic-pitch (https://github.com/spotify/basic-pitch) - Copyright (c) 2022 Spotify AB
+
+# UI ECOSYSTEM
+- DOMPurify (https://github.com/cure53/DOMPurify) - Copyright (c) 2014-2024 Dr.-Ing. Mario Heiderich, Cure53
+
+--------------------------------------------------------------------------------
+3. ISC LICENSE DEPENDENCIES
+--------------------------------------------------------------------------------
+The following software components are distributed under the ISC License:
+
+# UI ECOSYSTEM
+- lucide-svelte (https://github.com/lucide-icons/lucide) - Copyright (c) 2024 Lucide Contributors
+- d3 (https://github.com/d3/d3) - Copyright (c) 2010-2024 Mike Bostock
+
+--------------------------------------------------------------------------------
+4. MOZILLA PUBLIC LICENSE 2.0 (MPL-2.0)
+--------------------------------------------------------------------------------
+The following software components are distributed under the MPL-2.0:
+
+# RUST ECOSYSTEM
+- adblock (https://github.com/brave/adblock-rust) - Copyright (c) 2019 Brave Software
+- symphonia (https://github.com/pdeljanov/Symphonia) - Copyright (c) 2023 Philip Deljanov
+
+Under the terms of the MPL 2.0, the original source code for these libraries remains under MPL 2.0, while the larger work (Sovereign Pair) operates under its respective proprietary license. 
+
+--------------------------------------------------------------------------------
+5. SPECIFIC MODEL & AI FOUNDATION LICENSES
+--------------------------------------------------------------------------------
+Sovereign Pair orchestrates several local Foundation Models whose weights and source are governed by their creators:
+
+- Llama 3 / 3.2 Family (Meta Platforms, Inc.): Licensed under the Llama 3 Community License. Copyright (c) Meta Platforms, Inc. All Rights Reserved.
+- Gemma Family (Google LLC): Licensed under the Gemma License Agreement. Copyright (c) Google LLC.
+- Qwen Family (Alibaba Cloud): Licensed under the Qwen Research License / Apache 2.0. Copyright (c) Alibaba Cloud.
+- BGE-Reranker (BAAI): Licensed under the MIT License. Copyright (c) 2023 BAAI.
+
+--------------------------------------------------------------------------------
+6. STANDARD LICENSE TEXTS
+--------------------------------------------------------------------------------
+
+-------------------------
+THE MIT LICENSE (MIT)
+-------------------------
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+-------------------------
+APACHE LICENSE, VERSION 2.0
+-------------------------
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use these files except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-------------------------
+ISC LICENSE
+-------------------------
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
