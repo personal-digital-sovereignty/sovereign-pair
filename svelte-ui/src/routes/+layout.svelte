@@ -44,6 +44,16 @@
     }
   });
 
+  $effect(() => {
+    if (typeof document !== 'undefined') {
+        if (settingsState.theme === 'Dark Mode') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }
+  });
+
   async function fetchWorkspaces() {
       try {
           const res = await fetch('http://localhost:38001/v1/workspaces', { headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` } });
@@ -78,11 +88,11 @@
   let routeId = $derived(page.route.id || '');
 </script>
 
-<div class="h-screen print:h-auto print:overflow-visible w-full flex overflow-hidden antialiased text-slate-800 bg-[#F4F5F7] font-sans">
+<div class="h-screen print:h-auto print:overflow-visible w-full flex overflow-hidden antialiased text-slate-800 dark:text-slate-200 bg-[#F4F5F7] dark:bg-[#080e1d] font-sans">
   
   <InlineSpotlight />
 
-  <aside class="{globalState.isSidebarOpen ? 'w-[280px]' : 'w-[80px]'} bg-[#2C3E50] text-[#CBD5E1] flex flex-col h-full print:hidden flex-shrink-0 relative z-20 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)] m-2 rounded-2xl overflow-hidden transition-all duration-300">
+  <aside class="{globalState.isSidebarOpen ? 'w-[280px]' : 'w-[80px]'} bg-[#2C3E50] dark:bg-[#0c1324] text-[#CBD5E1] flex flex-col h-full print:hidden flex-shrink-0 relative z-20 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.1)] m-2 rounded-2xl overflow-hidden transition-all duration-300">
     <!-- Sidebar Header (Sovereign Origin Icon Preserved) -->
     <div class="h-16 flex items-center {globalState.isSidebarOpen ? 'px-6' : 'justify-center'} border-b border-white/5 shrink-0">
       <button onclick={() => globalState.isSidebarOpen = !globalState.isSidebarOpen} title="Toggle Sidebar" aria-label="Toggle Sidebar" class="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity">
@@ -151,10 +161,10 @@
 
   <!-- BEGIN: Hardware Telemetry Widget Overlay -->
   {#if globalState.isSidebarOpen}
-  <div class="absolute bottom-4 left-4 w-[264px] bg-white rounded-xl shadow-lg p-4 z-30 border border-slate-100 print:hidden transition-all duration-300">
+  <div class="absolute bottom-4 left-4 w-[264px] bg-white dark:bg-[#1d253b] rounded-xl shadow-lg dark:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)] p-4 z-30 border border-slate-100 dark:border-[#424859]/20 print:hidden transition-all duration-300">
     <div class="flex items-center justify-between mb-4">
-      <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Hardware Telemetry</h3>
-      <Activity class="w-3 h-3 {telemetryState.connected ? 'text-indigo-500 animate-pulse' : 'text-slate-400'}" />
+      <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Hardware Telemetry</h3>
+      <Activity class="w-3 h-3 {telemetryState.connected ? 'text-indigo-500 dark:text-[#74b0ff] animate-pulse' : 'text-slate-400 dark:text-slate-600'}" />
     </div>
 
     <div class="space-y-4">
@@ -194,21 +204,21 @@
       <div>
         <div class="flex justify-between items-end mb-1">
           <div>
-            <div class="text-[10px] text-slate-500 font-medium">SYS RAM:</div>
-            <div class="text-lg font-bold leading-none text-slate-800">{telemetryState.ramUsageMB.toFixed(0)} MB <span class="text-sm font-normal text-slate-500">/ {telemetryState.ramTotalGB} GB</span></div>
+            <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">SYS RAM:</div>
+            <div class="text-lg font-bold leading-none text-slate-800 dark:text-slate-200">{telemetryState.ramUsageMB.toFixed(0)} MB <span class="text-sm font-normal text-slate-500 dark:text-slate-400">/ {telemetryState.ramTotalGB} GB</span></div>
           </div>
         </div>
-        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-          <div class="bg-indigo-400 h-full rounded-full transition-all duration-300" style="width: {Math.min(100, (telemetryState.ramUsageMB / (telemetryState.ramTotalGB * 1024)) * 100)}%"></div>
+        <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+          <div class="bg-indigo-400 dark:bg-[#5ea3f8] h-full rounded-full transition-all duration-300" style="width: {Math.min(100, (telemetryState.ramUsageMB / (telemetryState.ramTotalGB * 1024)) * 100)}%"></div>
         </div>
       </div>
       
       <!-- Tokens/Sec Simulated Bar -->
       <div class="flex items-center justify-between">
         <div>
-          <div class="text-[10px] text-slate-500 font-medium">TOKENS/SEC:</div>
-          <div class="text-lg font-bold leading-none {telemetryState.tokensPerSecond > 20 ? 'text-emerald-500' : 'text-slate-800'}">
-            {telemetryState.tokensPerSecond.toFixed(1)} <span class="text-sm font-normal text-slate-500">T/s</span>
+          <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">TOKENS/SEC:</div>
+          <div class="text-lg font-bold leading-none {telemetryState.tokensPerSecond > 20 ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'}">
+            {telemetryState.tokensPerSecond.toFixed(1)} <span class="text-sm font-normal text-slate-500 dark:text-slate-400">T/s</span>
           </div>
         </div>
         <div class="flex items-end h-6 gap-[2px]">
@@ -221,10 +231,10 @@
       </div>
 
       <!-- GPU / Temp Mock with active model name -->
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between mt-2">
         <div>
-          <div class="text-[10px] text-slate-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis w-[120px]">MODEL:</div>
-          <div class="text-sm font-bold leading-none text-slate-800 truncate max-w-[120px]" title={telemetryState.activeModel}>{telemetryState.activeModel || 'Idle'}</div>
+          <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis w-[120px]">MODEL:</div>
+          <div class="text-sm font-bold leading-none text-slate-800 dark:text-slate-300 truncate max-w-[120px]" title={telemetryState.activeModel}>{telemetryState.activeModel || 'Idle'}</div>
         </div>
         <div class="flex items-end h-6 gap-[2px]">
           <div class="w-1.5 bg-emerald-400 h-[40%] rounded-t-sm"></div>
@@ -246,12 +256,12 @@
     <!-- Top Main Header -->
     <header class="h-16 flex items-center justify-between px-6 shrink-0 mt-2 z-[100] relative print:hidden">
       <!-- Active Workspace Selector -->
-      <label for="workspace-select" class="flex items-center bg-white rounded-lg shadow-sm px-4 py-2 border border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors max-w-sm flex-shrink min-w-0">
+      <label for="workspace-select" class="flex items-center bg-white dark:bg-[#12192b] rounded-lg shadow-sm px-4 py-2 border border-slate-100 dark:border-[#424859]/20 cursor-pointer hover:bg-slate-50 dark:hover:bg-[#1d253b] transition-colors max-w-sm flex-shrink min-w-0">
         <div class="flex flex-col mr-4 w-full">
-          <span class="text-[10px] text-slate-500 uppercase tracking-wide font-medium leading-none mb-1">Active Workspace</span>
+          <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide font-medium leading-none mb-1">Active Workspace</span>
           <select 
             id="workspace-select"
-            class="text-sm font-semibold text-slate-700 leading-none bg-transparent outline-none appearance-none cursor-pointer p-0 border-0 focus:ring-0 truncate w-full"
+            class="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-none bg-transparent outline-none appearance-none cursor-pointer p-0 border-0 focus:ring-0 truncate w-full"
             value={globalState.activeWorkspaceId}
             onchange={handleWorkspaceChange}
           >
@@ -260,23 +270,23 @@
             {/each}
           </select>
         </div>
-        <Database class="w-4 h-4 text-slate-400 shrink-0 pointer-events-none" />
+        <Database class="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0 pointer-events-none" />
       </label>
 
       <!-- Account / Notifications Actions -->
-      <div class="flex items-center bg-white rounded-full shadow-sm pr-2 pl-4 py-1.5 border border-slate-100 h-12 flex-shrink-0">
+      <div class="flex items-center bg-white dark:bg-[#12192b] rounded-full shadow-sm pr-2 pl-4 py-1.5 border border-slate-100 dark:border-[#424859]/20 h-12 flex-shrink-0">
         <NotificationBell />
-        <button onclick={() => settingsState.isOpen = true} class="text-slate-400 hover:text-slate-600 mr-4 transition-colors focus:outline-none">
+        <button onclick={() => settingsState.isOpen = true} class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 mr-4 transition-colors focus:outline-none">
           <Settings class="w-5 h-5" />
         </button>
-        <div class="h-6 w-px bg-slate-200 mr-4"></div>
+        <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 mr-4"></div>
         <div class="flex items-center">
-          <div class="w-9 h-9 rounded-full bg-slate-900 border-[1.5px] border-indigo-400/50 flex items-center justify-center mr-3 hidden sm:flex shrink-0 shadow-[0_0_15px_rgba(99,102,241,0.2)]" title="System Operator">
-             <User class="w-5 h-5 text-indigo-300" />
+          <div class="w-9 h-9 rounded-full bg-slate-900 border-[1.5px] border-indigo-400/50 flex items-center justify-center mr-3 hidden sm:flex shrink-0 shadow-[0_0_15px_rgba(99,102,241,0.2)] dark:shadow-[0_0_15px_rgba(116,176,255,0.1)]" title="System Operator">
+             <User class="w-5 h-5 text-indigo-300 dark:text-[#74b0ff]" />
           </div>
           <div class="flex flex-col pr-2">
-            <span class="text-sm font-bold text-slate-800 leading-none mb-1">{settingsState.userName}</span>
-            <span class="text-[10px] text-slate-500 leading-none tracking-widest uppercase">{settingsState.userProfession}</span>
+            <span class="text-sm font-bold text-slate-800 dark:text-slate-200 leading-none mb-1">{settingsState.userName}</span>
+            <span class="text-[10px] text-slate-500 dark:text-slate-400 leading-none tracking-widest uppercase">{settingsState.userProfession}</span>
           </div>
         </div>
       </div>

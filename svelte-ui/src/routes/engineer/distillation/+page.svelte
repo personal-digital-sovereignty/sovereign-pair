@@ -255,9 +255,9 @@
             <div class="col-span-12 xl:col-span-8 bg-surface-container-high rounded-3xl overflow-hidden flex flex-col border border-outline-variant/10 shadow-inner">
                 <div class="px-6 py-4 bg-surface-container-highest border-b border-outline-variant/20 flex justify-between items-center">
                     <h3 class=" font-bold text-sm text-on-surface">Dataset Generation Log</h3>
-                    <div class="flex items-center gap-2 px-3 py-1 bg-white/50 rounded-full border border-outline-variant/30 text-surface-container-highest shadow-sm">
+                    <div class="flex items-center gap-2 px-3 py-1 bg-white/50 dark:bg-slate-800/50 rounded-full border border-outline-variant/30 text-surface-container-highest dark:text-slate-300 shadow-sm">
                          <span class="w-2 h-2 rounded-full bg-on-tertiary-container animate-pulse shadow-[0_0_8px_rgba(79,175,110,0.8)]"></span>
-                        <span class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">Active Process</span>
+                        <span class="text-[9px] font-bold text-on-surface-variant dark:text-slate-300 uppercase tracking-widest">Active Process</span>
                     </div>
                 </div>
                 <div class="p-6 font-mono text-[11px] overflow-y-auto h-[220px] bg-[#1a1b1e] text-slate-300 custom-scrollbar leading-relaxed">

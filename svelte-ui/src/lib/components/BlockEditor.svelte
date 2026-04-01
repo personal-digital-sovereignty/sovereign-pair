@@ -416,8 +416,7 @@
             content: contentMarkdown,
             editorProps: {
                 attributes: {
-                    // Removed prose-invert for Light Theme
-                    class: 'prose max-w-none focus:outline-none min-h-[500px] text-slate-800'
+                    class: 'prose dark:prose-invert max-w-none focus:outline-none min-h-[500px] text-slate-800 dark:text-slate-200'
                 }
             },
             onUpdate: ({ editor: e }) => {
@@ -476,44 +475,44 @@
 
 </script>
 
-<div class="h-full bg-white text-slate-800 relative flex flex-col pt-16">
+<div class="h-full bg-white dark:bg-[#0c1324] text-slate-800 dark:text-slate-200 relative flex flex-col pt-16 transition-colors">
     
     <!-- Floating Header Toolbar -->
-    <div class="absolute top-4 left-6 z-40 bg-white rounded-lg border border-slate-200 p-1 flex gap-1 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.1)] pointer-events-auto">
-        <button onclick={() => viewMode = 'visual'} class="px-3 py-1 text-xs rounded font-medium transition-colors {viewMode === 'visual' ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:text-slate-700'}">Visual</button>
-        <button onclick={() => viewMode = 'split'} class="px-3 py-1 text-xs rounded font-medium transition-colors {viewMode === 'split' ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:text-slate-700'}">Split</button>
-        <button onclick={() => viewMode = 'source'} class="px-3 py-1 text-xs rounded font-medium transition-colors {viewMode === 'source' ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:text-slate-700'}">Código</button>
+    <div class="absolute top-4 left-6 z-40 bg-white dark:bg-[#12192b] rounded-lg border border-slate-200 dark:border-slate-800 p-1 flex gap-1 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.1)] dark:shadow-none pointer-events-auto">
+        <button onclick={() => viewMode = 'visual'} class="px-3 py-1 text-xs rounded font-medium transition-colors {viewMode === 'visual' ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}">Visual</button>
+        <button onclick={() => viewMode = 'split'} class="px-3 py-1 text-xs rounded font-medium transition-colors {viewMode === 'split' ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}">Split</button>
+        <button onclick={() => viewMode = 'source'} class="px-3 py-1 text-xs rounded font-medium transition-colors {viewMode === 'source' ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}">Código</button>
         
-        <div class="w-px h-4 bg-slate-200 mx-1 self-center"></div>
-        <button onclick={() => showProperties = !showProperties} class="px-3 py-1 text-xs rounded font-medium transition-colors {showProperties ? 'bg-blue-50 text-blue-600' : 'text-blue-500 hover:bg-slate-50'}">Props</button>
+        <div class="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1 self-center"></div>
+        <button onclick={() => showProperties = !showProperties} class="px-3 py-1 text-xs rounded font-medium transition-colors {showProperties ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400' : 'text-blue-500 dark:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800'}">Props</button>
     </div>
 
     <!-- Toolbar for Formatting -->
     {#if editor && (viewMode === 'visual' || viewMode === 'split')}
       <div class="w-full flex justify-center mb-4">
-        <div class="flex items-center gap-1 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm overflow-x-auto max-w-full">
-            <button onclick={() => editor?.chain().focus().toggleBold().run()} class="p-1.5 rounded hover:bg-slate-50 {editor.isActive('bold') ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}"><Bold class="w-4 h-4"/></button>
-            <button onclick={() => editor?.chain().focus().toggleItalic().run()} class="p-1.5 rounded hover:bg-slate-50 {editor.isActive('italic') ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}"><Italic class="w-4 h-4"/></button>
-            <button onclick={() => editor?.chain().focus().toggleStrike().run()} class="p-1.5 rounded hover:bg-slate-50 {editor.isActive('strike') ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}"><Strikethrough class="w-4 h-4"/></button>
-            <button onclick={() => editor?.chain().focus().toggleCode().run()} class="p-1.5 rounded hover:bg-slate-50 {editor.isActive('code') ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}"><Code class="w-4 h-4"/></button>
+        <div class="flex items-center gap-1 bg-white dark:bg-[#12192b] border border-slate-200 dark:border-slate-800 px-2 py-1.5 rounded-xl shadow-sm dark:shadow-none overflow-x-auto max-w-full">
+            <button onclick={() => editor?.chain().focus().toggleBold().run()} class="p-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800 {editor.isActive('bold') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40' : 'text-slate-400 dark:text-slate-500'}"><Bold class="w-4 h-4"/></button>
+            <button onclick={() => editor?.chain().focus().toggleItalic().run()} class="p-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800 {editor.isActive('italic') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40' : 'text-slate-400 dark:text-slate-500'}"><Italic class="w-4 h-4"/></button>
+            <button onclick={() => editor?.chain().focus().toggleStrike().run()} class="p-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800 {editor.isActive('strike') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40' : 'text-slate-400 dark:text-slate-500'}"><Strikethrough class="w-4 h-4"/></button>
+            <button onclick={() => editor?.chain().focus().toggleCode().run()} class="p-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800 {editor.isActive('code') ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/40' : 'text-slate-400 dark:text-slate-500'}"><Code class="w-4 h-4"/></button>
             
-            <div class="w-px h-5 bg-slate-200 mx-1"></div>
+            <div class="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1"></div>
             
-            <button onclick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()} class="p-1.5 rounded hover:bg-slate-50 {editor.isActive('heading', { level: 1 }) ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}"><Heading1 class="w-4 h-4"/></button>
-            <button onclick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} class="p-1.5 rounded hover:bg-slate-50 {editor.isActive('heading', { level: 2 }) ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}"><Heading2 class="w-4 h-4"/></button>
-            <button onclick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} class="p-1.5 rounded hover:bg-slate-50 {editor.isActive('heading', { level: 3 }) ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}"><Heading3 class="w-4 h-4"/></button>
+            <button onclick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()} class="p-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800 {editor.isActive('heading', { level: 1 }) ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40' : 'text-slate-400 dark:text-slate-500'}"><Heading1 class="w-4 h-4"/></button>
+            <button onclick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} class="p-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800 {editor.isActive('heading', { level: 2 }) ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40' : 'text-slate-400 dark:text-slate-500'}"><Heading2 class="w-4 h-4"/></button>
+            <button onclick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} class="p-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800 {editor.isActive('heading', { level: 3 }) ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40' : 'text-slate-400 dark:text-slate-500'}"><Heading3 class="w-4 h-4"/></button>
 
-            <div class="w-px h-5 bg-slate-200 mx-1"></div>
+            <div class="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1"></div>
 
-            <button onclick={() => editor?.chain().focus().toggleBulletList().run()} class="p-1.5 rounded hover:bg-slate-50 {editor.isActive('bulletList') ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}"><List class="w-4 h-4"/></button>
-            <button onclick={() => editor?.chain().focus().toggleOrderedList().run()} class="p-1.5 rounded hover:bg-slate-50 {editor.isActive('orderedList') ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}"><ListOrdered class="w-4 h-4"/></button>
-            <button onclick={() => editor?.chain().focus().toggleTaskList().run()} class="p-1.5 rounded hover:bg-slate-50 {editor.isActive('taskList') ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}"><CheckSquare class="w-4 h-4"/></button>
-            <button onclick={() => editor?.chain().focus().toggleBlockquote().run()} class="p-1.5 rounded hover:bg-slate-50 {editor.isActive('blockquote') ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}"><Quote class="w-4 h-4"/></button>
+            <button onclick={() => editor?.chain().focus().toggleBulletList().run()} class="p-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800 {editor.isActive('bulletList') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40' : 'text-slate-400 dark:text-slate-500'}"><List class="w-4 h-4"/></button>
+            <button onclick={() => editor?.chain().focus().toggleOrderedList().run()} class="p-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800 {editor.isActive('orderedList') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40' : 'text-slate-400 dark:text-slate-500'}"><ListOrdered class="w-4 h-4"/></button>
+            <button onclick={() => editor?.chain().focus().toggleTaskList().run()} class="p-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800 {editor.isActive('taskList') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40' : 'text-slate-400 dark:text-slate-500'}"><CheckSquare class="w-4 h-4"/></button>
+            <button onclick={() => editor?.chain().focus().toggleBlockquote().run()} class="p-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800 {editor.isActive('blockquote') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40' : 'text-slate-400 dark:text-slate-500'}"><Quote class="w-4 h-4"/></button>
 
-            <div class="w-px h-5 bg-slate-200 mx-1"></div>
+            <div class="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1"></div>
 
-            <button onclick={() => editor?.chain().focus().setHorizontalRule().run()} class="p-1.5 rounded hover:bg-slate-50 text-slate-400"><Minus class="w-4 h-4"/></button>
-            <button onclick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} class="p-1.5 rounded hover:bg-slate-50 text-blue-500"><TableIcon class="w-4 h-4"/></button>
+            <button onclick={() => editor?.chain().focus().setHorizontalRule().run()} class="p-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500"><Minus class="w-4 h-4"/></button>
+            <button onclick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} class="p-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-blue-500 dark:text-blue-400"><TableIcon class="w-4 h-4"/></button>
         </div>
       </div>
     {/if}
@@ -522,7 +521,7 @@
         
         <!-- Source Code View -->
         {#if viewMode === 'source' || viewMode === 'split'}
-            <div class="{viewMode === 'split' ? 'w-1/2 border-r border-slate-200' : 'w-full max-w-4xl mx-auto'} h-full flex flex-col p-8 overflow-y-auto">
+            <div class="{viewMode === 'split' ? 'w-1/2 border-r border-slate-200 dark:border-slate-800' : 'w-full max-w-4xl mx-auto'} h-full flex flex-col p-8 overflow-y-auto">
                 <textarea 
                     bind:value={rawMarkdown} 
                     oninput={() => {
@@ -546,27 +545,27 @@
              class="{viewMode === 'split' ? 'w-1/2' : 'w-full max-w-4xl mx-auto'} h-full flex-col p-8 overflow-y-auto custom-scrollbar relative">
             
             {#if showProperties}
-                <div class="absolute top-20 right-8 w-[450px] p-5 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] z-50">
-                    <h3 class="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-4 flex items-center gap-2">
-                        <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                <div class="absolute top-20 right-8 w-[450px] p-5 rounded-2xl bg-white/95 dark:bg-[#12192b]/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] dark:shadow-none z-50">
+                    <h3 class="text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-slate-500 mb-4 flex items-center gap-2">
+                        <div class="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400"></div>
                         Frontmatter YAML
                     </h3>
                     <div class="flex flex-col gap-3">
                         {#each Object.entries(documentProperties) as [key, value]}
                            <div class="flex items-center gap-2">
-                               <input value={key} readonly class="text-xs bg-transparent text-slate-500 border border-slate-200 rounded px-2 py-1 w-32 outline-none" />
-                               <span class="text-slate-400">:</span>
+                               <input value={key} readonly class="text-xs bg-transparent text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 w-32 outline-none" />
+                               <span class="text-slate-400 dark:text-slate-500">:</span>
                                <input value={value} oninput={e => {
                                    documentProperties[key] = (e.currentTarget as HTMLInputElement).value;
                                    syncToSource();
-                               }} class="flex-1 text-sm bg-white border border-slate-200 rounded px-3 py-1 text-slate-700 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 outline-none transition-all" />
+                               }} class="flex-1 text-sm bg-white dark:bg-[#0c1324] border border-slate-200 dark:border-slate-700 rounded px-3 py-1 text-slate-700 dark:text-slate-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 dark:focus:ring-blue-900/40 outline-none transition-all" />
                            </div>
                         {/each}
                     </div>
                 </div>
             {/if}
 
-            <h1 class="text-4xl font-bold tracking-tight text-slate-900 placeholder:text-slate-400 outline-none mb-8 border-b border-slate-200 pb-4">
+            <h1 class="text-4xl font-bold tracking-tight text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
                 {displayName}
             </h1>
 
@@ -575,22 +574,22 @@
             <!-- Right Click Context Menu -->
             {#if contextMenu && contextMenu.show}
                 <div 
-                    class="fixed z-50 bg-white/95 backdrop-blur-xl border border-slate-200 shadow-xl rounded-xl w-64 flex flex-col py-2 text-sm text-slate-700"
+                    class="fixed z-50 bg-white/95 dark:bg-[#12192b]/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-xl dark:shadow-none rounded-xl w-64 flex flex-col py-2 text-sm text-slate-700 dark:text-slate-300"
                     style="top: {contextMenu.y}px; left: {contextMenu.x}px;"
                 >
-                    <button class="px-4 py-2 text-left hover:bg-slate-100 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().toggleBold().run()}><Bold class="w-4 h-4 text-slate-400"/> Negrito</button>
-                    <button class="px-4 py-2 text-left hover:bg-slate-100 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().toggleItalic().run()}><Italic class="w-4 h-4 text-slate-400"/> Itálico</button>
-                    <button class="px-4 py-2 text-left hover:bg-slate-100 flex items-center gap-3 transition-colors" onclick={() => navigator.clipboard.writeText(editor?.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, ' ') || '')}><Copy class="w-4 h-4 text-slate-400"/> Copiar</button>
-                    <div class="h-px bg-slate-200 my-1 mx-2"></div>
-                    <button class="px-4 py-2 text-left hover:bg-blue-50 text-blue-700 font-medium flex items-center gap-3 transition-colors" onclick={() => sendToChat(editor?.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, ' ') || '')}><BrainCircuit class="w-4 h-4 text-blue-500"/> Consultar IA</button>
+                    <button class="px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().toggleBold().run()}><Bold class="w-4 h-4 text-slate-400 dark:text-slate-500"/> Negrito</button>
+                    <button class="px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().toggleItalic().run()}><Italic class="w-4 h-4 text-slate-400 dark:text-slate-500"/> Itálico</button>
+                    <button class="px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors" onclick={() => navigator.clipboard.writeText(editor?.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, ' ') || '')}><Copy class="w-4 h-4 text-slate-400 dark:text-slate-500"/> Copiar</button>
+                    <div class="h-px bg-slate-200 dark:bg-slate-700 my-1 mx-2"></div>
+                    <button class="px-4 py-2 text-left hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium flex items-center gap-3 transition-colors" onclick={() => sendToChat(editor?.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, ' ') || '')}><BrainCircuit class="w-4 h-4 text-blue-500 dark:text-blue-400"/> Consultar IA</button>
                     
                     {#if contextMenu.isTable}
-                        <div class="h-px bg-slate-200 my-1 mx-2"></div>
-                        <div class="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50/50">Ferramentas de Planilha</div>
-                        <button class="px-4 py-2 text-left hover:bg-slate-100 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().addColumnAfter().run()}>+ Inserir Coluna (Direita)</button>
-                        <button class="px-4 py-2 text-left hover:bg-slate-100 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().addRowAfter().run()}>+ Inserir Linha (Baixo)</button>
-                        <button class="px-4 py-2 text-left hover:bg-rose-50 text-rose-600 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().deleteRow().run()}>✖ Deletar Linha</button>
-                        <button class="px-4 py-2 text-left hover:bg-rose-50 text-rose-600 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().deleteColumn().run()}>✖ Deletar Coluna</button>
+                        <div class="h-px bg-slate-200 dark:bg-slate-700 my-1 mx-2"></div>
+                        <div class="px-4 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest bg-slate-50/50 dark:bg-[#0c1324]/50">Ferramentas de Planilha</div>
+                        <button class="px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().addColumnAfter().run()}>+ Inserir Coluna (Direita)</button>
+                        <button class="px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().addRowAfter().run()}>+ Inserir Linha (Baixo)</button>
+                        <button class="px-4 py-2 text-left hover:bg-rose-50 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().deleteRow().run()}>✖ Deletar Linha</button>
+                        <button class="px-4 py-2 text-left hover:bg-rose-50 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center gap-3 transition-colors" onclick={() => editor?.chain().focus().deleteColumn().run()}>✖ Deletar Coluna</button>
                     {/if}
                 </div>
             {/if}
@@ -599,16 +598,16 @@
     </div>
 
     <!-- Status Bar Footer -->
-    <footer class="h-8 border-t border-slate-200 bg-slate-50 flex items-center justify-between px-4 text-[11px] text-slate-500 font-mono shrink-0 z-50">
+    <footer class="h-8 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0c1324] flex items-center justify-between px-4 text-[11px] text-slate-500 dark:text-slate-400 font-mono shrink-0 z-50">
         <div class="flex items-center gap-3 truncate max-w-[60%]">
             <span class="truncate" title={documentId}>{documentId}</span>
         </div>
         <div class="flex items-center gap-3 shrink-0">
             <span>{wordCount} words</span>
-            <span class="text-slate-300">|</span>
+            <span class="text-slate-300 dark:text-slate-700">|</span>
             <span>{byteCount} bytes</span>
-            <span class="text-slate-300">|</span>
-            <span class="text-emerald-600/80 font-bold uppercase tracking-widest text-[9px]">Sovereign Sync</span>
+            <span class="text-slate-300 dark:text-slate-700">|</span>
+            <span class="text-emerald-600/80 dark:text-emerald-500/80 font-bold uppercase tracking-widest text-[9px]">Sovereign Sync</span>
         </div>
     </footer>
 </div>
