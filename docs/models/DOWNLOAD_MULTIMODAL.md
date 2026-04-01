@@ -23,48 +23,39 @@ ollama pull gemma3:4b
 huggingface-cli download google/gemma-3-4b-it-GGUF gemma-3-4b-it-Q4_K_M.gguf --local-dir ./models/vlm --local-dir-use-symlinks False
 ```
 
-### 1.2. PaddleOCR-VL 0.9B (Extração Rígida em CPU)
-Este modelo foge do padrão GGUF/Ollama pois utiliza arquitetura otimizada pontual para leitura de documentos. Deve ser instalado o framework oficial.
+### 1.2. PaddleOCR-VL 0.9B (ONNX / Rust Native)
+Para mantermos o *Sovereign Pair* livre de Python, nós interceptaremos a rede neural do PaddleOCR exportada matematicamente para **ONNX**. A inferência do modelo ocorrerá nativamente em Rust usando a crate `ort` (ONNX Runtime) com execução direta na CPU.
 
-**Instalação do CLI/Pipeline e Download Automático:**
+**Download dos Pesos ONNX:**
 ```bash
-# Instala o ecossistema do PaddleOCR via Python
-pip install paddlepaddle paddleocr
-
-# Comando inicial de aquisição do modelo (Força o download dos pesos de 0.9B)
-# Ao rodar pela primeira vez contra uma imagem teste, os pesos seram baixados para ~/.paddleocr/
-paddleocr --image_dir ./teste.png --use_angle_cls true --lang pt --precision float16
+mkdir -p ./models/ocr && cd ./models/ocr
+# Baixa os modelos otimizados de Detecção (Det) e Reconhecimento (Rec) em formato ONNX
+wget https://huggingface.co/neulab/omni-doc-bench-weights/resolve/main/ch_PP-OCRv4_det_infer.onnx
+wget https://huggingface.co/neulab/omni-doc-bench-weights/resolve/main/ch_PP-OCRv4_rec_infer.onnx
 ```
-*(Nota: Substitua `./teste.png` pelo caminho de qualquer imagem genérica presente no sistema apenas para deflagrar o gatilho de download).*
 
 ---
 
 ## 🎙️ 2. The Ears (Modelos de Áudio e Sinais)
 
-### 2.1. Whisper Large-v3 Turbo (Speech-to-Text ASR)
-Para máxima velocidade na CPU ou iGPU, não usaremos o modelo "puro" da OpenAI, mas sim a conversão otimizada em CTranslate2 rodando sob o motor `faster-whisper`.
+### 2.1. Whisper Large-v3 Turbo (Speech-to-Text via whisper.cpp)
+Ignoraremos a dependência Python do `faster-whisper`. Usaremos o monstruoso **`whisper.cpp`** com a crate `whisper-rs` em Rust. Precisamos do formato de peso nativo GGML.
 
-**Instalação e Aquisição:**
+**Aquisição do Modelo GGML:**
 ```bash
-# Instala a engine de inferência acelerada
-pip install faster-whisper
-
-# Baixa os pesos quantizados específicos do modelo Large-v3 Turbo 
-# (Baixa para o diretório de cache padrão do HuggingFace)
-huggingface-cli download Systran/faster-whisper-large-v3-turbo --local-dir ~/.cache/huggingface/hub/models--Systran--faster-whisper-large-v3-turbo
+mkdir -p ./models/audio
+# Baixa diretamente o binário GGML do Large-v3 Turbo convertido por Georgi Gerganov
+wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin -O ./models/audio/ggml-large-v3-turbo.bin
 ```
 
-### 2.2. Basic Pitch (Transcrição Musical / MIDI)
-Desenvolvido pelo Spotify Research, este modelo é minúsculo (~5MB) e opera maravilhosamente bem em CPU.
+### 2.2. Basic Pitch (Transcrição Musical / MIDI via TensorFlow Lite)
+Em vez da biblioteca Python do Spotify, baixaremos o grafo computacional puro exportado para TensorFlow Lite (`.tflite`). Esse formato minúsculo (5MB) será rodado via bindings C++ nativas pelo Rust.
 
-**Instalação e Aquisição:**
+**Aquisição do Grafo TensorFlow Lite:**
 ```bash
-# Instala o software pip
-pip install basic-pitch
-
-# O modelo TensorFlow Liteweight de 5MB é empacotado e baixado automaticamente junto com a instalação da biblioteca via pip. Nenhuma ação adicional ou HuggingFace CLI é necessária.
-# Exemplo de comando local gerando midi:
-basic-pitch ./output_folder ./audio_file.wav
+mkdir -p ./models/audio
+# Transfere o modelo TFLite de 5MB que realiza a magia polifônica
+wget https://raw.githubusercontent.com/spotify/basic-pitch/main/basic_pitch/saved_models/icassp_2022/model.tflite -O ./models/audio/basic_pitch.tflite
 ```
 
 ---
