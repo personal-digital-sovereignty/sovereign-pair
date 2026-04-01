@@ -61,6 +61,34 @@ pub fn get_mcp_tools() -> Vec<serde_json::Value> {
                     "required": ["url"]
                 }
             }
+        }),
+        json!({
+            "type": "function",
+            "function": {
+                "name": "mcp_transcribe_audio",
+                "description": "[MCP] Transcreve arquivos de áudio locais usando o cluster ASR (Whisper). Excelente para processar voz humana.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "path": { "type": "string", "description": "Caminho absoluto do arquivo de áudio local" }
+                    },
+                    "required": ["path"]
+                }
+            }
+        }),
+        json!({
+            "type": "function",
+            "function": {
+                "name": "mcp_ocr_image",
+                "description": "[MCP] Extrai todo o texto estruturado de uma imagem ou fotografia de documento usando a engine de Visão.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "path": { "type": "string", "description": "Caminho absoluto do arquivo da imagem local" }
+                    },
+                    "required": ["path"]
+                }
+            }
         })
     ]
 }
@@ -168,6 +196,32 @@ pub async fn execute_mcp_tool(state: &std::sync::Arc<crate::AppState>, tool_name
                     }
                 },
                 Err(e) => format!("MCP Web Scraping Error: {}", e)
+            }
+        },
+        "mcp_transcribe_audio" => {
+            let path_str = args.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            match crate::multimodal::extract_text_from_audio(path_str).await {
+                Ok(res) => {
+                    if res.success {
+                        format!("Audio Transcrito em {}: {}", res.language.unwrap_or("PT".into()), res.text.unwrap_or("".into()))
+                    } else {
+                        format!("Erro na transcrição: {:?}", res.error)
+                    }
+                },
+                Err(e) => format!("Falha ao invocar pipeline Whisper: {}", e)
+            }
+        },
+        "mcp_ocr_image" => {
+            let path_str = args.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            match crate::multimodal::extract_text_from_image(path_str).await {
+                Ok(res) => {
+                    if res.success {
+                        format!("Texto Extraído da Imagem:\n{}", res.text.unwrap_or("".into()))
+                    } else {
+                        format!("Erro no OCR: {:?}", res.error)
+                    }
+                },
+                Err(e) => format!("Falha ao invocar pipeline de Visão: {}", e)
             }
         },
         _ => format!("MCP Tool unrecognized by Engine: {}", tool_name)
