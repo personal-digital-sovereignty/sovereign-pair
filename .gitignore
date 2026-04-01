@@ -205,3 +205,4 @@ infra/terraform/.terraform.lock.hcl
 
 # Gitleaks Local License File
 .gitleaks.key
+core/.fastembed_cache/

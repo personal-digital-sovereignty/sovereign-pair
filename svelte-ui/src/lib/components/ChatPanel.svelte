@@ -198,7 +198,7 @@
                 {/if}
 
                 {#if cleanText || (thoughts.length === 0)}
-                    <div class="{msg.role === 'user' ? 'bg-slate-200 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 border border-transparent dark:border-slate-600/30 rounded-2xl rounded-tr-none' : 'bg-white dark:bg-[#12192b] border border-slate-200 dark:border-[#424859]/30 text-slate-700 dark:text-slate-300 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.1)] dark:shadow-none rounded-2xl rounded-tl-none'} p-4 text-[15px] leading-relaxed prose dark:prose-invert max-w-full overflow-x-auto custom-scrollbar">
+                    <div class="{msg.role === 'user' ? 'bg-slate-200 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 border border-transparent dark:border-slate-600/30 rounded-2xl rounded-tr-none' : 'bg-white dark:bg-[#12192b] border border-slate-200 dark:border-[#424859]/30 text-slate-700 dark:text-slate-300 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.1)] dark:shadow-none rounded-2xl rounded-tl-none'} p-4 text-[15px] leading-relaxed prose dark:prose-invert prose-th:bg-slate-50 dark:prose-th:bg-[#0c1324] dark:prose-th:text-slate-200 dark:prose-td:border-[#424859]/50 dark:prose-th:border-[#424859]/50 dark:prose-tr:border-[#424859]/50 max-w-full overflow-x-auto custom-scrollbar">
                         {@html parseMarkdown(cleanText || msg.text)}
                     </div>
                 {/if}
