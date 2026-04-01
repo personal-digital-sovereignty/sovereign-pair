@@ -657,10 +657,17 @@
         box-sizing: border-box;
         position: relative;
     }
+    :global(.dark .tiptap td), :global(.dark .tiptap th) {
+        border-color: rgba(66, 72, 89, 0.4);
+    }
     :global(.tiptap th) {
         font-weight: bold;
         text-align: left;
         background-color: #f8fafc;
+    }
+    :global(.dark .tiptap th) {
+        background-color: rgba(12, 19, 36, 0.6);
+        color: #e2e8f0;
     }
     :global(.tiptap .selectedCell:after) {
         z-index: 2;
