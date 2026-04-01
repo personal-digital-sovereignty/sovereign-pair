@@ -29,7 +29,7 @@
             <KanbanColumn {colStatus} {project} {columns} />
         {/each}
 
-        <button onclick={addColumn} class="w-80 h-16 flex items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 font-bold hover:bg-slate-50 hover:border-slate-400 hover:text-slate-600 transition shrink-0 cursor-pointer">
+        <button onclick={addColumn} class="w-80 h-16 flex items-center justify-center gap-2 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-600 dark:hover:text-slate-300 transition shrink-0 cursor-pointer">
             <Plus class="w-5 h-5" />
             Nova Categoria
         </button>

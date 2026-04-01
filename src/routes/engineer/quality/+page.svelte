@@ -109,7 +109,7 @@
     }
 </script>
 
-<header class="h-20 border-b border-slate-200/60 bg-white flex items-center px-6 shrink-0 justify-between mb-8 rounded-2xl shadow-sm border">
+<header class="h-20 border-b border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-[#12192b] flex items-center px-6 shrink-0 justify-between mb-8 rounded-2xl shadow-sm border transition-colors">
     <div class="flex items-center gap-4">
         <div class="bg-emerald-600/10 p-2.5 rounded-xl border border-emerald-100/50">
             <svg class="w-6 h-6 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
@@ -124,11 +124,11 @@
     </div>
     
     <div class="flex items-center gap-3">
-        <div class="bg-indigo-50 px-4 py-2 rounded-xl flex items-center gap-2 border border-indigo-100/50">
+        <div class="bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-xl flex items-center gap-2 border border-indigo-100/50 dark:border-indigo-800/50">
             <div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
-            <span class="text-xs font-bold text-indigo-700">System Optimal</span>
+            <span class="text-xs font-bold text-indigo-700 dark:text-indigo-400">System Optimal</span>
         </div>
-        <button onclick={() => window.print()} class="bg-white shadow-sm border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-2 hover:bg-slate-50 transition-colors print:hidden">
+        <button onclick={() => window.print()} class="bg-white dark:bg-[#0c1324] shadow-sm border border-slate-200 dark:border-slate-800 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors print:hidden">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg>
             Export PDF
         </button>
@@ -181,11 +181,11 @@
     </div>
 
     <!-- Intent Clustering (Heatmap/Trends) -->
-    <div class="col-span-12 lg:col-span-7 bg-white rounded-3xl p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+    <div class="col-span-12 lg:col-span-7 bg-white dark:bg-[#12192b] rounded-3xl p-8 border border-slate-100 dark:border-slate-800/50 shadow-sm relative overflow-hidden transition-colors">
         <div class="flex justify-between items-start mb-8 relative z-10">
             <div>
-                <h3 class="font-manrope font-bold text-xl text-slate-800">Intent Clustering</h3>
-                <p class="text-xs text-slate-500 mt-1">Query density & real-time shifts</p>
+                <h3 class="font-manrope font-bold text-xl text-slate-800 dark:text-slate-200">Intent Clustering</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Query density & real-time shifts</p>
             </div>
             <div class="flex gap-2">
                 <span class="px-3 py-1 bg-rose-100 text-rose-700 border border-rose-200 text-[10px] font-bold rounded-full flex items-center justify-center gap-1"><div class="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></div>LIVE</span>
@@ -209,18 +209,18 @@
     </div>
 
     <!-- Knowledge Gaps -->
-    <div class="col-span-12 bg-white rounded-3xl p-8 border border-slate-100 shadow-sm mt-2">
+    <div class="col-span-12 bg-white dark:bg-[#12192b] rounded-3xl p-8 border border-slate-100 dark:border-slate-800/50 shadow-sm mt-2 transition-colors">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
-                <h3 class="font-manrope font-bold text-2xl text-slate-800">Knowledge Gaps</h3>
-                <p class="text-sm text-slate-500 mt-1">Missing source documentation identified automatically from user queries.</p>
+                <h3 class="font-manrope font-bold text-2xl text-slate-800 dark:text-slate-200">Knowledge Gaps</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Missing source documentation identified automatically from user queries.</p>
             </div>
             <div class="flex items-center gap-3">
-                <div class="flex items-center gap-1 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
-                    <button onclick={() => currentTab = 'pending'} class="px-4 py-1.5 text-xs font-bold rounded-lg transition-colors {currentTab === 'pending' ? 'bg-white shadow-sm text-slate-800 border border-slate-200/50' : 'text-slate-500 hover:text-slate-700'}">Pendentes</button>
-                    <button onclick={() => currentTab = 'resolved'} class="px-4 py-1.5 text-xs font-bold rounded-lg transition-colors {currentTab === 'resolved' ? 'bg-white shadow-sm text-slate-800 border border-slate-200/50' : 'text-slate-500 hover:text-slate-700'}">Resolvidos</button>
+                <div class="flex items-center gap-1 bg-slate-50 dark:bg-[#0c1324] p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <button onclick={() => currentTab = 'pending'} class="px-4 py-1.5 text-xs font-bold rounded-lg transition-colors {currentTab === 'pending' ? 'bg-white dark:bg-[#1e293b] shadow-sm text-slate-800 dark:text-slate-200 border border-slate-200/50 dark:border-slate-700/50' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}">Pendentes</button>
+                    <button onclick={() => currentTab = 'resolved'} class="px-4 py-1.5 text-xs font-bold rounded-lg transition-colors {currentTab === 'resolved' ? 'bg-white dark:bg-[#1e293b] shadow-sm text-slate-800 dark:text-slate-200 border border-slate-200/50 dark:border-slate-700/50' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}">Resolvidos</button>
                 </div>
-                <select class="appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-100 outline-none cursor-pointer">
+                <select class="appearance-none bg-slate-50 dark:bg-[#0c1324] border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 outline-none cursor-pointer">
                     <option>High Priority</option>
                     <option>Most Recent</option>
                     <option>Volume</option>
@@ -251,9 +251,9 @@
                         <tr><td colspan="5" class="py-12 text-center text-slate-400 font-medium">{currentTab === 'pending' ? 'All hallucination gaps resolved. System optimal.' : 'No resolved logs recorded yet.'}</td></tr>
                     {:else}
                         {#each filteredGaps as gap}
-                            <tr class="group hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
+                            <tr class="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-50 dark:border-slate-800/50 last:border-0">
                                 <td class="py-5 px-3">
-                                    <span class="font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">"{gap.query}"</span>
+                                    <span class="font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">"{gap.query}"</span>
                                 </td>
                                 <td class="py-5 px-3 text-center">
                                     {#if gap.frequency > 100}
@@ -282,7 +282,7 @@
                                         {#if expandedGapId === gap.id}
                                             <button 
                                                 onclick={() => expandedGapId = null} 
-                                                class="text-xs text-slate-700 bg-slate-100 border border-slate-200 p-3 rounded-xl max-w-xl text-left hover:bg-slate-200 transition-colors cursor-pointer leading-relaxed"
+                                                class="text-xs text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-3 rounded-xl max-w-xl text-left hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer leading-relaxed"
                                             >
                                                 {gap.resolution_content}
                                             </button>

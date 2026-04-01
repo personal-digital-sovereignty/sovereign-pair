@@ -89,7 +89,7 @@
 </script>
 
 <!-- Header Section -->
-<header class="h-20 border-b border-slate-200/60 bg-white flex items-center px-6 shrink-0 justify-between mb-8 rounded-2xl shadow-sm border">
+<header class="h-20 border-b border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-[#12192b] flex items-center px-6 shrink-0 justify-between mb-8 rounded-2xl shadow-sm border transition-colors">
     <div class="flex items-center gap-4">
         <div class="bg-indigo-600/10 p-2.5 rounded-xl border border-indigo-100/50">
             <svg class="w-6 h-6 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.5" r="2.5"/><path d="m10.2 6.3-3.9 3.9"/><circle cx="4.5" cy="12" r="2.5"/><path d="M7 12h10"/><circle cx="19.5" cy="12" r="2.5"/><path d="m13.8 17.7 3.9-3.9"/><circle cx="12" cy="19.5" r="2.5"/></svg>
@@ -108,7 +108,7 @@
 <div class="grid grid-cols-12 gap-8 mb-8 font-inter">
     
     <!-- Section 1: Regras de Roteamento -->
-    <section class="col-span-12 lg:col-span-7 bg-white shadow-sm rounded-2xl p-8 border border-slate-100">
+    <section class="col-span-12 lg:col-span-7 bg-white dark:bg-[#12192b] shadow-sm rounded-2xl p-8 border border-slate-100 dark:border-slate-800/50 transition-colors">
         <div class="flex justify-between items-center mb-6">
             <div>
                 <h3 class="text-xl font-bold text-indigo-900 font-manrope">Regras de Roteamento</h3>
@@ -160,7 +160,7 @@
     </section>
 
     <!-- Section 2: Monitor de Auto-Fallback -->
-    <section class="col-span-12 lg:col-span-5 bg-gradient-to-b from-white to-slate-50/50 shadow-sm rounded-2xl p-8 border border-slate-100">
+    <section class="col-span-12 lg:col-span-5 bg-gradient-to-b from-white dark:from-[#12192b] to-slate-50/50 dark:to-[#0c1324]/50 shadow-sm rounded-2xl p-8 border border-slate-100 dark:border-slate-800/50 transition-colors">
         <h3 class="text-xl font-bold text-indigo-900 mb-6 font-manrope">Monitor de Auto-Fallback</h3>
         
         <!-- Fallback Alert Card -->
@@ -175,7 +175,7 @@
         <!-- Health Status List -->
         <div class="space-y-4">
             {#each models as model}
-            <div class="flex items-center justify-between p-3 bg-white rounded-lg">
+            <div class="flex items-center justify-between p-3 bg-white dark:bg-[#0c1324] rounded-lg border border-transparent dark:border-slate-800/50 transition-colors">
                 <div class="flex items-center gap-3">
                     {#if model.status === 'Operational'}
                         <div class="w-2 h-2 rounded-full bg-on-tertiary-container shadow-[0_0_8px_rgba(79,175,110,0.6)]"></div>
@@ -210,7 +210,7 @@
 </div>
 
 <!-- Section 3: Gestão de Modelos Remotos -->
-<section class="bg-white border border-slate-100 rounded-2xl p-8 shadow-sm font-inter">
+<section class="bg-white dark:bg-[#12192b] border border-slate-100 dark:border-slate-800/50 rounded-2xl p-8 shadow-sm font-inter transition-colors">
     <div class="flex justify-between items-end mb-8">
         <div>
             <h3 class="text-2xl font-bold text-slate-800 font-manrope">Gestão de Modelos Remotos</h3>
@@ -291,7 +291,7 @@
 <!-- Modals -->
 {#if isNewRuleModalOpen}
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl relative font-inter border border-slate-100">
+    <div class="bg-white dark:bg-[#12192b] rounded-2xl p-8 w-full max-w-lg shadow-2xl relative font-inter border border-slate-100 dark:border-slate-700">
         <h3 class="text-2xl font-bold text-indigo-950 mb-6 font-manrope">Nova Regra de Lógica</h3>
         
         <div class="space-y-4">
@@ -325,7 +325,7 @@
 
 {#if isNewModelModalOpen}
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl relative font-inter border border-slate-100">
+    <div class="bg-white dark:bg-[#12192b] rounded-2xl p-8 w-full max-w-lg shadow-2xl relative font-inter border border-slate-100 dark:border-slate-700">
         <h3 class="text-2xl font-bold text-indigo-950 mb-6 font-manrope">Acoplar Novo Modelo API</h3>
         
         <div class="space-y-4">

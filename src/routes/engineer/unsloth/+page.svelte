@@ -35,7 +35,7 @@
             <h2 class=" font-bold text-xl text-[#191c1d] tracking-tight">Unsloth Monitor</h2>
             <div class="h-4 w-[1px] bg-outline-variant"></div>
             <div class="flex bg-surface-container-high rounded-full p-1 text-[12px] font-semibold">
-                <button class="px-4 py-1 rounded-full bg-white text-primary shadow-sm font-bold">Local Compute</button>
+                <button class="px-4 py-1 rounded-full bg-white dark:bg-[#1e293b] text-primary dark:text-slate-200 shadow-sm font-bold">Local Compute</button>
                 <button class="px-4 py-1 rounded-full text-on-surface-variant hover:text-on-surface transition-colors">Remote Cluster</button>
             </div>
         </div>
