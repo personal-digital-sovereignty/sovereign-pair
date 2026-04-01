@@ -2,7 +2,7 @@
   import '../app.css';
   import { globalState } from '$lib/state.svelte.js';
   
-  let appVersion = "0.9.7";
+  let appVersion = "0.9.8";
   import { telemetryState, connectTelemetry, disconnectTelemetry } from '$lib/telemetry.svelte';
   import { Home, MessageCircle, Folder, LayoutGrid, Settings, Cloud, Activity, Database, Bell, Network, User } from 'lucide-svelte';
   import { page } from '$app/state';
