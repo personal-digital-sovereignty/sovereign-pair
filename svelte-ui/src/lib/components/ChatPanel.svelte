@@ -2,6 +2,7 @@
     import { MessageSquare, Cpu, Shield, Send, Loader2, Paperclip, ThumbsUp, ThumbsDown, Bot, User, BrainCircuit, Copy, RotateCcw, Settings, Square, ChevronDown } from 'lucide-svelte';
     import { globalState, loadGlobalSession, sendGlobalChatMessage, stopGeneration } from '$lib/state.svelte.js';
     import { settingsState } from '$lib/settings.svelte';
+    import MicrophoneButton from './ui/actions/MicrophoneButton.svelte';
     import { marked } from 'marked';
     import DOMPurify from 'dompurify';
     import { onMount, untrack } from 'svelte';
@@ -275,10 +276,17 @@
                 <Settings class="w-5 h-5" />
             </button>
 
+            <div class="absolute left-[170px] bottom-2">
+                <MicrophoneButton 
+                    disabled={globalState.chat.isTyping} 
+                    on:transcription={(e) => message += (message ? ' ' : '') + e.detail} 
+                />
+            </div>
+
             <textarea 
                 bind:value={message}
                 placeholder="Ask the Global Cybrid Council..." 
-                class="flex-1 bg-transparent border-none text-slate-800 dark:text-slate-200 text-sm p-4 pl-[180px] h-14 resize-none outline-none custom-scrollbar placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                class="flex-1 bg-transparent border-none text-slate-800 dark:text-slate-200 text-sm p-4 pl-[220px] h-14 resize-none outline-none custom-scrollbar placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 onkeydown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
