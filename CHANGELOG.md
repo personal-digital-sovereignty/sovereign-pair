@@ -3,7 +3,21 @@
 All notable changes to the Sovereign Pair project will be documented in this file.
 
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
-> Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A série 1.0.0 será ativada unicamente quando o núcleo do ecossistema Sovereign Bare Metal atingir maturidade e estabilidade arquitetural plenas.
+> Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A série 1.0.0 será ativada unicamente quando o núcleo do ecossistema Sovereign Bare Main atingir maturidade e estabilidade arquitetural plenas.
+
+## [0.9.8] - 2026-03-31
+
+### 🚀 Sovereign Neural Architect (Dark Mode UI)
+- **Universal Dark Theme Architecture**: Finalização completa da topologia `darkMode: 'class'` no Tailwind V4. O usuário agora orquestra e persiste globalmente as paletas de cores entre Dark/Light diretamente via `System Settings`, injetadas dinamicamente na `document.documentElement`.
+- **Modals & Document Rendering (SSR)**: Removida a dependência cliente do `DOMPurify` dinâmico em favor de pré-processamento `marked` robusto das modais `ChangelogModal` e `ManualModal`, blindando a renderização nativa tipográfica e aderindo aos contrastes invertidos perfeitos.
+- **Engineer Matrix Polish**: Todo o conglomerado de sub-rotas do Hub de Engenharia (`Analytics`, `Quality`, `Routing`, `RAG Pipeline`, `Fine-Tuning`, `Unsloth` e `Reflection Lab`) teve suas interfaces de cor M3 semânticas transmutadas, erradicando telas brancas hostis aos olhos no Modo Escuro. O sistema injeta coerência total do header à seleção de abas (com cores de destaque azuis sutis no texto e backgrounds amenos).
+
+### 🎨 Refinamento Cirúrgico & Polimento Visual
+- **Obsidian Callouts Dark Mode**: Integrados estilos reversos para os Callouts do *TipTap/Markdown* (`[!info]`, `[!warning]`, `[!danger]`, `[!success]`). As glosas da Máquina e do Editor agora absorvem a luminosidade da Vault, exibindo backgrounds translúcidos discretos sob tema noturno.
+- **Telemetry Hardware UI Widget**: A sobreposição isolada do monitor em tempo-real (T/s, Model e VRAM) obteve tratamentos de refratância nativos `dark:bg-[#1d253b]` e contorno refinado para encaixe visual absoluto acima das barras de navegação.
+- **Sovereign Chat Actions Refine**: Reestilizados assincronamente os botões atômicos dinâmicos (`Copy`, `Replay`, `ThumbsUp`, `ThumbsDown`) que aparecem flutuando em hover sobre as mensagens de LLM. Eles agora invocam discretamente fundos azuis e cinzas foscos, preservando a imersão na resposta textual.
+- **Sidebar Spacing Consistency**: O espaçamento (`gap`) e as caixas (`py-3`) das rotas cruciais (`Vault`, `Projects`, `Chat`, `Home`) no Control Hub foram rigorosamente ajustados. No estado Colapsado (minificado) eles respiram amplamente, e no modo Expandido mantêm a harmonia vertical sem sobreposições grosseiras como estavam originalmente.
+- **Tri-Agent & Dropdowns Visibility**: As seleções de IA no *System Settings* (`The Doctor`, `The Coder`, `The Nurse`) agora manifestam visibilidade perfeita de background preta contra os formulários dinâmicos.
 
 ## [0.9.7] - 2026-03-28
 

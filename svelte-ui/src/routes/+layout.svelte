@@ -110,7 +110,7 @@
     </div>
 
     <!-- Main Navigation Container -->
-    <nav class="flex-1 overflow-y-auto py-6 flex flex-col {globalState.isSidebarOpen ? 'px-4' : 'px-2 items-center'} gap-1.5 pt-4">
+    <nav class="flex-1 overflow-y-auto flex flex-col {globalState.isSidebarOpen ? 'px-4 py-6 gap-2' : 'px-2 items-center py-4 gap-3'}">
       <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} py-3 rounded-xl transition-colors {routeId.includes('/dashboard') || routeId === '/' ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/dashboard">
         <Home class="w-5 h-5 {globalState.isSidebarOpen ? 'mr-4' : ''}" />
         {#if globalState.isSidebarOpen}<span class="font-medium text-[15px]">Home</span>{/if}
@@ -119,11 +119,11 @@
         <MessageCircle class="w-5 h-5 {globalState.isSidebarOpen ? 'mr-4' : ''}" />
         {#if globalState.isSidebarOpen}<span class="font-medium text-[15px]">Chat</span>{/if}
       </a>
-      <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} rounded-xl transition-colors {routeId.includes('/vault') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/vault">
+      <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} py-3 rounded-xl transition-colors {routeId.includes('/vault') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/vault">
         <Folder class="w-5 h-5 {globalState.isSidebarOpen ? 'mr-4' : ''}" />
         {#if globalState.isSidebarOpen}<span class="font-medium text-[15px]">Vault</span>{/if}
       </a>
-      <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} rounded-xl transition-colors {routeId.includes('/projects') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/projects">
+      <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} py-3 rounded-xl transition-colors {routeId.includes('/projects') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/projects">
         <LayoutGrid class="w-5 h-5 {globalState.isSidebarOpen ? 'mr-4' : ''}" />
         {#if globalState.isSidebarOpen}<span class="font-medium text-[15px]">Projects</span>{/if}
       </a>
