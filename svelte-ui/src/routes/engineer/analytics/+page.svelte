@@ -79,17 +79,17 @@
         <!-- Title Section -->
         <section class="flex justify-between items-end mb-10">
             <div>
-                <p class="text-primary font-semibold text-sm tracking-wide mb-1 uppercase">Model Trainer</p>
+                <p class="text-primary dark:text-blue-400 font-semibold text-sm tracking-wide mb-1 uppercase">Model Trainer</p>
                 <div class="flex items-center gap-2">
-                    <h1 class="font-extrabold text-3xl tracking-tight text-on-surface">Nexus Command Center</h1>
-                    <span class="px-2 py-0.5 bg-emerald-100/50 text-emerald-700 text-[9px] uppercase tracking-widest font-bold rounded-full border border-emerald-200/50 relative -top-2">PROD</span>
+                    <h1 class="font-extrabold text-3xl tracking-tight text-on-surface dark:text-white">Nexus Command Center</h1>
+                    <span class="px-2 py-0.5 bg-emerald-100/50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-[9px] uppercase tracking-widest font-bold rounded-full border border-emerald-200/50 dark:border-emerald-800/50 relative -top-2">PROD</span>
                 </div>
             </div>
             <div class="flex gap-3">
-                <button class="px-5 py-2.5 rounded-xl border border-outline-variant/30 text-on-surface-variant font-bold text-xs hover:bg-surface-container-high transition-colors cursor-pointer active:scale-95 flex items-center gap-2">
+                <button class="px-5 py-2.5 rounded-xl border border-outline-variant/30 dark:border-slate-700 text-on-surface-variant dark:text-slate-300 font-bold text-xs hover:bg-surface-container-high dark:hover:bg-slate-800 transition-colors cursor-pointer active:scale-95 flex items-center gap-2">
                     <DownloadCloud class="w-4 h-4" /> Export Report
                 </button>
-                <button class="px-5 py-2.5 rounded-xl bg-gradient-to-br from-[#001360] to-[#002395] text-white font-bold text-xs shadow-md shadow-primary/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer">
+                <button class="px-5 py-2.5 rounded-xl bg-gradient-to-br from-[#001360] to-[#002395] dark:from-blue-600 dark:to-blue-800 text-white font-bold text-xs shadow-md shadow-primary/20 dark:shadow-none active:scale-95 transition-transform flex items-center gap-2 cursor-pointer">
                     <RefreshCw class="w-4 h-4" /> Global Refresh
                 </button>
             </div>
@@ -99,55 +99,55 @@
         <div class="space-y-8">
 
     <!-- Row 1: Vital Signs -->
-    <div class="grid grid-cols-1 md:grid-cols-2 border border-slate-200/50 bg-white/50 backdrop-blur p-2 rounded-3xl lg:grid-cols-5 gap-4 shrink-0 shadow-sm">
+    <div class="grid grid-cols-1 md:grid-cols-2 border border-slate-200/50 dark:border-slate-800/50 bg-white/50 dark:bg-[#12192b]/50 backdrop-blur p-2 rounded-3xl lg:grid-cols-5 gap-4 shrink-0 shadow-sm">
         <!-- Total Cost -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:border-blue-200 transition-all flex flex-col group">
+        <div class="bg-white dark:bg-[#0c1324] p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50 shadow-sm hover:border-blue-200 dark:hover:border-blue-900/50 transition-all flex flex-col group">
             <div class="flex justify-between items-start mb-4">
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-widest group-hover:text-blue-500 transition-colors">Total Cost</span>
-                <div class="p-2 bg-blue-50 rounded-lg">
-                  <CircleDollarSign class="text-blue-600 w-5 h-5" />
+                <div class="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                  <CircleDollarSign class="text-blue-600 dark:text-blue-400 w-5 h-5" />
                 </div>
             </div>
-            <div class="text-3xl font-extrabold text-slate-800 mb-1 leading-none">US$ {telemetryState.estimatedCost.toFixed(4)}</div>
+            <div class="text-3xl font-extrabold text-slate-800 dark:text-slate-200 mb-1 leading-none">US$ {telemetryState.estimatedCost.toFixed(4)}</div>
             <div class="flex items-center gap-1.5 text-xs font-bold text-rose-500 mt-4">
                 <TrendingUp class="w-4 h-4" /> 5% vs last 24h
             </div>
         </div>
 
         <!-- Latency -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:border-indigo-200 transition-all flex flex-col group">
+        <div class="bg-white dark:bg-[#0c1324] p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50 shadow-sm hover:border-indigo-200 dark:hover:border-indigo-900/50 transition-all flex flex-col group">
             <div class="flex justify-between items-start mb-4">
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-widest group-hover:text-indigo-500 transition-colors">Avg Latency</span>
-                <div class="p-2 bg-indigo-50 rounded-lg">
-                  <Timer class="text-indigo-600 w-5 h-5" />
+                <div class="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
+                  <Timer class="text-indigo-600 dark:text-indigo-400 w-5 h-5" />
                 </div>
             </div>
-            <div class="text-3xl font-extrabold text-slate-800 mb-1 leading-none">{telemetryState.avgLatencyMs} <span class="text-lg text-slate-400 font-medium">ms</span></div>
+            <div class="text-3xl font-extrabold text-slate-800 dark:text-slate-200 mb-1 leading-none">{telemetryState.avgLatencyMs} <span class="text-lg text-slate-400 font-medium">ms</span></div>
             <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-500 mt-4">
                 <CheckCircle2 class="w-4 h-4" /> Rapid • Healthy
             </div>
         </div>
 
         <!-- Throughput -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:border-teal-200 transition-all flex flex-col group">
+        <div class="bg-white dark:bg-[#0c1324] p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50 shadow-sm hover:border-teal-200 dark:hover:border-teal-900/50 transition-all flex flex-col group">
             <div class="flex justify-between items-start mb-4">
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-widest group-hover:text-teal-500 transition-colors">Throughput</span>
-                <div class="p-2 bg-teal-50 rounded-lg">
-                  <Gauge class="text-teal-600 w-5 h-5" />
+                <div class="p-2 bg-teal-50 dark:bg-teal-900/30 rounded-lg">
+                  <Gauge class="text-teal-600 dark:text-teal-400 w-5 h-5" />
                 </div>
             </div>
-            <div class="text-3xl font-extrabold text-slate-800 mb-1 leading-none">{telemetryState.tokensPerSecond} <span class="text-lg text-slate-400 font-medium">t/s</span></div>
+            <div class="text-3xl font-extrabold text-slate-800 dark:text-slate-200 mb-1 leading-none">{telemetryState.tokensPerSecond} <span class="text-lg text-slate-400 font-medium">t/s</span></div>
             <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-500 mt-4">
                 <Zap class="w-4 h-4" /> Peak Performance
             </div>
         </div>
 
         <!-- Security Alerts -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:border-rose-200 transition-all flex flex-col group">
+        <div class="bg-white dark:bg-[#0c1324] p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50 shadow-sm hover:border-rose-200 dark:hover:border-rose-900/50 transition-all flex flex-col group">
             <div class="flex justify-between items-start mb-4">
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-widest group-hover:text-rose-500 transition-colors">Security Alerts</span>
-                <div class="p-2 bg-rose-50 rounded-lg">
-                  <AlertTriangle class="text-rose-600 w-5 h-5" />
+                <div class="p-2 bg-rose-50 dark:bg-rose-900/30 rounded-lg">
+                  <AlertTriangle class="text-rose-600 dark:text-rose-400 w-5 h-5" />
                 </div>
             </div>
             <div class="text-3xl font-extrabold text-rose-600 mb-1 leading-none">{telemetryState.firewallBlocks}</div>
@@ -157,15 +157,15 @@
         </div>
 
         <!-- Trackers Blocked -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:border-violet-200 transition-all flex flex-col group relative overflow-hidden">
+        <div class="bg-white dark:bg-[#0c1324] p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50 shadow-sm hover:border-violet-200 dark:hover:border-violet-900/50 transition-all flex flex-col group relative overflow-hidden">
             <div class="absolute -right-4 -top-4 w-24 h-24 bg-violet-50 rounded-full blur-2xl opacity-50 group-hover:scale-150 transition-transform duration-700 pointer-events-none"></div>
             <div class="flex justify-between items-start mb-4 relative z-10">
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-widest group-hover:text-violet-500 transition-colors">Ads Blocked</span>
-                <div class="p-2 bg-violet-50 rounded-lg">
-                  <ShieldCheck class="text-violet-600 w-5 h-5" />
+                <div class="p-2 bg-violet-50 dark:bg-violet-900/30 rounded-lg">
+                  <ShieldCheck class="text-violet-600 dark:text-violet-400 w-5 h-5" />
                 </div>
             </div>
-            <div class="text-3xl font-extrabold text-slate-800 mb-1 leading-none relative z-10">{telemetryState.trackersBlocked}</div>
+            <div class="text-3xl font-extrabold text-slate-800 dark:text-slate-200 mb-1 leading-none relative z-10">{telemetryState.trackersBlocked}</div>
             <div class="flex items-center gap-1.5 text-xs font-bold text-violet-500 mt-4 relative z-10">
                 <ShieldCheck class="w-4 h-4" /> Sovereign Pi-Hole
             </div>
@@ -176,48 +176,48 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 shrink-0 h-[450px]">
         
         <!-- Live Traffic (Now Real Persistence) -->
-        <div class="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-full min-h-0 overflow-hidden">
+        <div class="lg:col-span-2 bg-white dark:bg-[#12192b] p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-full min-h-0 overflow-hidden">
             <div class="flex justify-between items-center mb-6 shrink-0">
                 <div>
-                    <h2 class="text-xl font-bold text-slate-800">Historical Intelligence Fleet</h2>
-                    <p class="text-xs text-slate-500 font-medium mt-1">Total token volume and uptime metrics for all recorded AI models</p>
+                    <h2 class="text-xl font-bold text-slate-800 dark:text-slate-200">Historical Intelligence Fleet</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">Total token volume and uptime metrics for all recorded AI models</p>
                 </div>
             </div>
             
             <div class="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                 {#each historicalModelSplits as model}
-                <div class="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:border-slate-200 transition-colors">
+                <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#0c1324] border border-slate-100 dark:border-slate-800 rounded-2xl hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 rounded-full {model.palette.bg} bg-opacity-20 flex items-center justify-center border border-{model.palette.bg.replace('bg-', 'border-')} shadow-sm">
                             <Network class="w-5 h-5 {model.palette.text}" />
                         </div>
                         <div>
-                            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                                 {model.name}
                                 {#if telemetryState.modelsUsage[model.name]}
                                     <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" title="Model Currently Active in Matrix"></span>
                                 {/if}
                             </h3>
-                            <p class="text-[11px] font-medium text-slate-500 mt-0.5">
-                                First Boot: <span class="font-bold text-slate-600">{formatTimeAgo(model.firstUsed)}</span>
+                            <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                                First Boot: <span class="font-bold text-slate-600 dark:text-slate-300">{formatTimeAgo(model.firstUsed)}</span>
                             </p>
                         </div>
                     </div>
                     
                     <div class="flex items-center gap-8 text-right">
                         <div>
-                            <p class="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">Time Active</p>
-                            <p class="text-xs font-bold text-slate-700">{formatDuration(model.durationMs)}</p>
+                            <p class="text-[10px] uppercase font-black tracking-widest text-slate-400 dark:text-slate-500 mb-1">Time Active</p>
+                            <p class="text-xs font-bold text-slate-700 dark:text-slate-300">{formatDuration(model.durationMs)}</p>
                         </div>
                         <div class="min-w-[100px]">
-                            <p class="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">Tokens Burnt</p>
-                            <p class="text-xs font-extrabold text-slate-800">{model.tokens.toLocaleString()}</p>
+                            <p class="text-[10px] uppercase font-black tracking-widest text-slate-400 dark:text-slate-500 mb-1">Tokens Burnt</p>
+                            <p class="text-xs font-extrabold text-slate-800 dark:text-slate-100">{model.tokens.toLocaleString()}</p>
                         </div>
                     </div>
                 </div>
                 {/each}
                 {#if historicalModelSplits.length === 0}
-                <div class="h-full flex flex-col items-center justify-center text-slate-400 py-10">
+                <div class="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-10">
                     <Database class="w-10 h-10 mb-3 opacity-20" />
                     <p class="text-sm font-bold">No Neural Fleet Data</p>
                     <p class="text-xs font-medium mt-1">Awaiting first generation cycle to record metrics.</p>
@@ -227,35 +227,35 @@
         </div>
 
         <!-- Costs & Savings -->
-        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-full min-h-0 overflow-hidden">
-            <h2 class="text-xl font-bold text-slate-800 mb-6 shrink-0">Usage Economics</h2>
+        <div class="bg-white dark:bg-[#12192b] p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-full min-h-0 overflow-hidden">
+            <h2 class="text-xl font-bold text-slate-800 dark:text-slate-200 mb-6 shrink-0">Usage Economics</h2>
             <div class="space-y-6 overflow-y-auto custom-scrollbar flex-1 pr-2 mb-4">
                 {#each historicalModelSplits as split}
                 <div>
-                    <div class="flex justify-between text-xs font-bold mb-2 text-slate-700">
+                    <div class="flex justify-between text-xs font-bold mb-2 text-slate-700 dark:text-slate-300">
                         <span>{split.name}</span>
-                        <span class="text-slate-500">{split.percent.toFixed(1)}% Volume</span>
+                        <span class="text-slate-500 dark:text-slate-400">{split.percent.toFixed(1)}% Volume</span>
                     </div>
-                    <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                         <div class="h-full {split.palette.bg} rounded-full shadow-[inset_0_-1px_2px_rgba(0,0,0,0.1)]" style="width: {split.percent}%"></div>
                     </div>
                 </div>
                 {/each}
                 {#if historicalModelSplits.length === 0}
-                <div class="flex flex-col items-center justify-center py-6 text-slate-400">
+                <div class="flex flex-col items-center justify-center py-6 text-slate-400 dark:text-slate-500">
                     <Network class="w-8 h-8 mb-2 opacity-50" />
                     <p class="text-xs font-medium text-center">Awaiting intelligence routing to compile economics.</p>
                 </div>
                 {/if}
             </div>
-            <div class="mt-auto pt-5 border-t border-slate-100 shrink-0">
+            <div class="mt-auto pt-5 border-t border-slate-100 dark:border-slate-800 shrink-0">
                 <div class="flex items-center gap-5">
-                    <div class="w-16 h-16 rounded-full border-[5px] border-emerald-100 flex items-center justify-center bg-white shadow-inner">
-                        <span class="text-lg font-black text-emerald-600">34%</span>
+                    <div class="w-16 h-16 rounded-full border-[5px] border-emerald-100 dark:border-emerald-900/50 flex items-center justify-center bg-white dark:bg-[#12192b] shadow-inner">
+                        <span class="text-lg font-black text-emerald-600 dark:text-emerald-400">34%</span>
                     </div>
                     <div>
-                        <h3 class="text-sm font-bold text-slate-800 mb-1">Semantic Cache Hit</h3>
-                        <p class="text-[11px] text-emerald-600 font-bold tracking-wide uppercase">Est. savings: $124.20/day</p>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">Semantic Cache Hit</h3>
+                        <p class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold tracking-wide uppercase">Est. savings: $124.20/day</p>
                     </div>
                 </div>
             </div>
@@ -302,54 +302,54 @@
         </div>
 
         <!-- RAG Knowledge Radar -->
-        <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-full min-h-0 overflow-hidden">
+        <div class="bg-white dark:bg-[#12192b] p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-full min-h-0 overflow-hidden">
             <div class="flex justify-between items-center mb-6 shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <div class="p-2 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-lg">
                         <Network class="w-5 h-5" />
                     </div>
-                    <h2 class="text-xl font-bold text-slate-800">RAG Knowledge Radar</h2>
+                    <h2 class="text-xl font-bold text-slate-800 dark:text-slate-200">RAG Knowledge Radar</h2>
                 </div>
-                <a href="/engineer/quality" class="text-indigo-600 text-xs font-bold hover:text-indigo-800 hover:underline transition-all uppercase tracking-wider shrink-0">Full Audit</a>
+                <a href="/engineer/quality" class="text-indigo-600 dark:text-indigo-400 text-xs font-bold hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-all uppercase tracking-wider shrink-0">Full Audit</a>
             </div>
             <div class="grid grid-cols-2 gap-10 overflow-y-auto custom-scrollbar pr-2 flex-1 pb-4">
                 <div>
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <h3 class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                         <AlertCircle class="w-3 h-3 text-rose-500" /> Content Gaps
                     </h3>
                     <div class="space-y-4">
                         {#each telemetryState.contentGaps as gap}
-                        <div class="p-3 bg-rose-50 border border-rose-100 rounded-xl flex flex-col gap-2 cursor-pointer group hover:bg-rose-100 transition-colors">
+                        <div class="p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/50 rounded-xl flex flex-col gap-2 cursor-pointer group hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors">
                             <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-rose-700 group-hover:text-rose-900 transition-colors pr-2 break-words leading-tight">{gap.query}</span>
+                                <span class="text-xs font-bold text-rose-700 dark:text-rose-400 group-hover:text-rose-900 dark:group-hover:text-rose-300 transition-colors pr-2 break-words leading-tight">{gap.query}</span>
                                 <AlertTriangle class="text-rose-500 w-3.5 h-3.5 shrink-0" />
                             </div>
-                            <span class="text-[10px] text-rose-600/80 font-bold uppercase tracking-wider mt-1">Freq: {gap.frequency}x • {gap.status}</span>
+                            <span class="text-[10px] text-rose-600/80 dark:text-rose-500 font-bold uppercase tracking-wider mt-1">Freq: {gap.frequency}x • {gap.status}</span>
                         </div>
                         {/each}
                         {#if telemetryState.contentGaps.length === 0}
-                        <p class="text-xs text-slate-400 font-medium p-3 bg-slate-50 rounded-xl border border-slate-100">No content gaps recorded.</p>
+                        <p class="text-xs text-slate-400 dark:text-slate-500 font-medium p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">No content gaps recorded.</p>
                         {/if}
                     </div>
                 </div>
                 <div>
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <h3 class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                         <TrendingUp class="w-3 h-3 text-indigo-500" /> Top Topics
                     </h3>
                     <div class="space-y-5">
                         {#each telemetryState.topTopics as topic}
                         <div>
-                            <div class="flex justify-between text-xs font-bold mb-1.5 text-slate-700">
+                            <div class="flex justify-between text-xs font-bold mb-1.5 text-slate-700 dark:text-slate-300">
                                 <span class="capitalize">{topic.topic}</span>
-                                <span class="text-indigo-600">{topic.count}</span>
+                                <span class="text-indigo-600 dark:text-indigo-400">{topic.count}</span>
                             </div>
-                            <div class="h-1.5 bg-slate-100 rounded-full">
+                            <div class="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
                                 <div class="h-full bg-indigo-500 rounded-full shadow-[inset_0_-1px_2px_rgba(0,0,0,0.1)]" style="width: {Math.max(10, Math.min(100, topic.count * 15))}%"></div>
                             </div>
                         </div>
                         {/each}
                         {#if telemetryState.topTopics.length === 0}
-                        <p class="text-xs text-slate-400 font-medium p-3 bg-slate-50 rounded-xl border border-slate-100">No topic clusters extracted yet.</p>
+                        <p class="text-xs text-slate-400 dark:text-slate-500 font-medium p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">No topic clusters extracted yet.</p>
                         {/if}
                     </div>
                 </div>

@@ -6,7 +6,7 @@
 <div class="flex h-full w-full gap-6 px-2 pb-4">
 
     <!-- Main Content Canvas -->
-    <div class="flex-1 min-w-0 h-full overflow-y-auto custom-scrollbar bg-white rounded-2xl border border-slate-200/50 shadow-sm">
+    <div class="flex-1 min-w-0 h-full overflow-y-auto custom-scrollbar bg-white dark:bg-[#0c1324] rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm transition-colors">
         {@render children()}
     </div>
 </div>
