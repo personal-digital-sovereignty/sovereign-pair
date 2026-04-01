@@ -5,6 +5,14 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A série 1.0.0 será ativada unicamente quando o núcleo do ecossistema Sovereign Bare Main atingir maturidade e estabilidade arquitetural plenas.
 
+## [0.9.9] - 2026-04-01
+
+### 🚀 Sovereign Multimodal Hybrid Architecture
+- **Ultra-lightweight Python Nodes**: Pivotamos a arquitetura de processamento visual e auditivo para fora da monolitização pesada em C++. Criamos e isolamos micro-scripts em Python estrito (`audio_transcriber.py`, `vision_ocr.py`, `midi_transcriber.py`) para operar como nós independentes de Sistema Operacional invocados silenciosamente via IPC sub-processos.
+- **Svelte Native Microphone (ASR)**: Desenvolvido o componente UI `MicrophoneButton.svelte` alocado estrategicamente na `textarea` principal do Chat. Ao alcance de um toque, ele instiga a API `MediaRecorder` do navegador, captura blob arrays compactos em `audio/webm` e dispara transparentemente para a porta HTTP local do Rust.
+- **Axum Multipart Gateway**: O backend em Rust foi expandido estruturalmente. Criamos o `api_multimodal.rs` equipado para devorar uploads de dados corrompidos (Multipart), salvá-los volatilmente no SO temp-dir, extrair o texto instanciando dinamicamente o *faster-whisper* da CPU Local, e entregar a transcrição cirúrgica direto na input do usuário via Svelte Event Dispatchers.
+- **Zero-Bindgen Constraint**: Foram debelados os fantasmas mortíferos de compilação do Rust com o Clang 22. Removemos imperativamente a macro `whisper-rs`. O Sovereign Pair consolida sua tese Cíbrida: O Rust gerencia inteligentemente todo o Estado e P2P Network, mas delega a sujeira matemática densa às IAs do ecossistema Python modular (executáveis limpos de boot efêmero = Dano Zero à Memória Ociosa).
+
 ## [0.9.8] - 2026-03-31
 
 ### 🚀 Sovereign Neural Architect (Dark Mode UI)
