@@ -29,7 +29,7 @@ Para isolar responsabilidades no processamento do RAG (Geração Aumentada por R
     *   **Modelos Moderados:** `phi4-mini` (excelente para dedução lógica estrutural) ou `deepseek-r1:1.5b` (ótimo para racionalizar passo a passo reduzindo erros prévios).
 *   **The Coder (Extensão de Desenvolvimento):**
     *   Totalmente isolado do chat coloquial, atende de forma passiva através do Proxy OpenCode (`127.0.0.1:38001`) às solicitações de IDEs de mercado como o VS Code ou Cursor.
-    *   **Modelo Recomendado:** `qwen2.5:7b-coder` ou `qwen2.5-coder:14b` (de acordo com a memória de hardware / GPU disponível).
+    *   **Modelo Recomendado:** `qwen2.5-coder:7b` ou `qwen2.5-coder:14b` (de acordo com a memória de hardware / GPU disponível).
 *   **The Accountant (Auditoria Estrutural):**
     *   Garante que formatos de JSON exigidos por certas etapas ou tabelas cruzadas respeitem a integridade estrutural O.S sem predições errôneas.
 
