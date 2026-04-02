@@ -57,6 +57,7 @@
 		"dompurify": "^3.3.3",
 		"force-graph": "^1.51.2",
 		"js-yaml": "^4.1.1",
+		"lodash-es": "^4.18.1",
 		"lucide-svelte": "^0.577.0",
 		"marked": "^17.0.5",
 		"svelte-dnd-action": "^0.9.69",
