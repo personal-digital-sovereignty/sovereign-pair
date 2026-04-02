@@ -483,18 +483,18 @@
                 
                 <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                     {#each stagedResearch as item}
-                    <button class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/20 hover:border-primary/40 hover:shadow-md cursor-pointer transition-all group flex flex-col justify-between h-40 text-left outline-none" onclick={() => openStagingModal(item)}>
+                    <button class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/20 hover:border-primary/40 dark:hover:border-blue-400/40 hover:shadow-md cursor-pointer transition-all group flex flex-col justify-between h-40 text-left outline-none" onclick={() => openStagingModal(item)}>
                         <div class="w-full">
                             <div class="flex justify-between items-start mb-2 w-full">
                                 <span class="bg-surface-variant text-on-surface-variant text-[10px] px-2 py-0.5 rounded font-mono font-bold">{item.id.substring(0,8)}</span>
                                 <span class="text-[10px] text-on-surface-variant/70 font-medium">{new Date(item.created_at).toLocaleString()}</span>
                             </div>
-                            <h4 class="text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-primary transition-colors">{item.directive}</h4>
+                            <h4 class="text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-primary dark:group-hover:text-blue-400 transition-colors">{item.directive}</h4>
                         </div>
                         
                         <div class="flex items-center justify-between mt-4 justify-self-end w-full">
                             <span class="text-[11px] font-medium text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">visibility</span> Review Content</span>
-                            <span class="material-symbols-outlined text-on-surface-variant/50 group-hover:text-primary group-hover:-translate-x-1 transition-all text-lg">arrow_forward</span>
+                            <span class="material-symbols-outlined text-on-surface-variant/50 group-hover:text-primary dark:group-hover:text-blue-400 group-hover:-translate-x-1 transition-all text-lg">arrow_forward</span>
                         </div>
                     </button>
                     {/each}
