@@ -1,7 +1,7 @@
 [package]
-name = "app"
-version = "0.9.8"
-description = "A Tauri App"
+name = "sovereign-desktop"
+version = "0.9.9"
+description = "Sovereign Pair Linux Agent"
 authors = ["you"]
 license = ""
 repository = ""

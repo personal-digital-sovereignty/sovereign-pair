@@ -127,7 +127,7 @@ export async function sendUnslothControl(action: 'play' | 'pause' | 'stop') {
 export function exportTrainerConfig() {
     const payload = {
         model: "Llama-3-8B-Instruct-v0.1",
-        version: "0.9.8",
+        version: "0.9.9",
         timestamp: new Date().toISOString(),
         config: {
             internet_to_rag: trainerState.internetToRagActive,
@@ -158,7 +158,7 @@ export function getSelfCorrectRatio() {
 export function exportReflectionLogs(liveStreamData: any[] = []) {
     const payload = {
         model: "Llama-3-8B-Instruct-v0.1",
-        version: "0.9.8",
+        version: "0.9.9",
         timestamp: new Date().toISOString(),
         reflection_state: {
             think_before_response: trainerState.internalMonologue,

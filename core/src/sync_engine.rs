@@ -210,20 +210,36 @@ impl SyncEngine {
     }
 
     async fn process_ingestion_pipeline(mut job: IngestionJob, file_path: String, tx: broadcast::Sender<IngestionJob>, db: sqlx::SqlitePool) {
-        // Step 1: O OCR/Parse (File I/O Nativo)
+        // Step 1: O OCR/Parse (File I/O Nativo com Retry Loop anti-race-condition)
         job.status = "processing".to_string();
         job.current_step = 0;
         let _ = tx.send(job.clone());
         
-        let content = match fs::read_to_string(&file_path) {
-            Ok(c) => c,
-            Err(e) => {
-                error!("❌ [The Dad] Falha Nativa ao ler {}: {}", file_path, e);
-                job.status = "error".to_string();
-                let _ = tx.send(job);
-                return;
+        let mut content = String::new();
+        let mut parse_success = false;
+        
+        // Loop de resiliência: o File Watcher pode atirar eventos milissegundos ANTES do O.S 
+        // terminar de colar/flushear um arquivo gigante (ZIP/DOCX/XLSX), causando erro `Could not find EOCD`.
+        for attempts in 1..=10 {
+            match crate::office_parser::parse_file(&file_path) {
+                Ok(c) => {
+                    content = c;
+                    parse_success = true;
+                    break;
+                },
+                Err(e) => {
+                    if attempts == 10 {
+                        error!("❌ [The Dad] Falha Definitiva ao ler/parsear {}: {}", file_path, e);
+                        job.status = "error".to_string();
+                        let _ = tx.send(job);
+                        return;
+                    }
+                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                }
             }
-        };
+        }
+        
+        if !parse_success { return; }
 
         // Step 2: Doc Chunking (Rayon Multithread Ciber-Paralelismo)
         job.current_step = 1;
