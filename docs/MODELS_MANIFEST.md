@@ -1,82 +1,66 @@
-# Sovereign RAG: Official Models Manifest & Hardware Tiers
+# Manifesto de Modelos e Arquitetura de Agentes (Sovereign Pair)
 
-Este documento estabelece o padrão arquitetural oficial para o instanciamento local de modelos de linguagem (LLMs) dentro do **Sovereign Agentic Loop**. A topologia do sistema depende matematicamente da "Inquisição da Trindade" (Consenso de 3 Sub-Agentes) para mitigar a Alucinação Preditiva e garantir a integridade dos dados extraídos offline.
+Este documento estabelece a taxonomia oficial para a escolha e uso dos modelos de linguagem (LLMs) dentro do sistema corporativo **Sovereign Pair v0.9.9+**. 
 
-A escolha dos modelos abaixo **não é intercambiável aleatoriamente**, pois foi formulada sobre o princípio matemático dos **Erros Ortogonais** (arquiteturas e treinamentos alienígenas entre si para evitar colusão de alucinação em grupo).
-
-Todos os modelos estão especificados em suas versões GGUF/Ollama (quantização recomendada: Q4_K_M).
+A plataforma não foca em um único modelo "faz-tudo". Em vez disso, ela segmenta os recursos através de um sistema multi-agente, onde modelos menores e especializados atuam em conjunto, minimizando custos computacionais e fornecendo resultados altamente precisos em ambientes locais (Edge Computing).
 
 ---
 
-## 🚀 Tier 1: Sovereign Edge (Recomendado)
-**Hardware Alvo:** Máquinas com 32 GB de RAM Unificada (Teto de pico de \~27 GB no Host).
-Este setup é o estado da arte para extração offline e capacidade analítica profunda.
+## 1. A Malha de Agentes Cognitivos (Processamento de Texto)
 
-### 🧠 A Trindade da Extração (The Inquisition Layer)
-Despachados simultaneamente para análise de HTML via `tokio::join!`. A alocação estática dos 3 é inferior a 5GB VRAM.
-1. **O Bisturi (The Surgeon):**
-   * **Modelo:** `qwen2.5:3b` (ou o industrial `refuel-llm-2-mini:1.5b`)
-   * **Papel:** Extração estrutural rígida. Resiliente a quebras de formato JSON.
-2. **O Árbitro Lógico (The Reasoner):**
-   * **Modelo:** `phi4-mini:latest`
-   * **Papel:** Altíssimo poder de raciocínio. Excelente em identificar premissas ausentes e "confessar" o vazio (`NOT_FOUND`).
-3. **O Freio de Emergência CoT (The CoT Auditor):**
-   * **Modelo:** `deepseek-r1:1.5b`
-   * **Papel:** Destilado do DeepSeek v3, utiliza internamente a trilha `<think>` para racionalizar o texto antes de tentar emitir uma resposta final estruturada. Aniquila o viés preditivo "Pleaser".
+Para isolar responsabilidades no processamento do RAG (Geração Aumentada por Recuperação) e prevenir que alucinações afetem o texto final, a arquitetura Rust aciona dinamicamente os seguintes perfis especialistas:
 
-### 👑 O Mestre e Especialistas (Supervisor Layer)
-1. **The Scribe / Orquestrador:** `qwen2.5:14b` (\~9.0 GB RAM) para a síntese final impecável, ou `llama3.1:8b` como backup geral.
-2. **The Coder:** `qwen2.5:7b` (Substitui com brutal vantagem as antigas vertentes CodeLlama).
-3. **O Contador / The Vector DB:** `nomic-embed-text:latest` (Embeddings leves) ou `bge-m3:latest` (Multilinguístico denso).
+### 1.1 Indexação e Banco Vetorial
+*   **The Mom / The Dad (Monitores de Arquivo e Vetorizadores):**
+    *   Sempre que os arquivos Markdown ou PDFs locais são modificados, esses agentes entram em cena.
+    *   **Modelos de Embeddings Recomendados:** `nomic-embed-text:latest` (compacto e veloz) ou `bge-m3:latest` (ideal para indexação multilíngue de alta densidade). Transformam parágrafos de texto em coordenadas numéricas para o banco de dados `sqlite-vec`.
 
----
+### 1.2 Triagem e Qualidade
+*   **The Sentinel (Filtro de Ameaças):**
+    *   Opera inspecionando nativamente a estrutura dos *prompts* e reações do banco antes de enviar para o gerador final. Funciona bem com modelos ultra-rápidos e leves, como o `qwen2.5:1.5b`.
+*   **The Nurse (Roteador Semântico):**
+    *   Classifica a intenção do usuário da interface. Ele decide se uma mensagem exige pesquisa no banco de dados, se é uma simples conversa trivial ou se necessita invocar componentes na tela.
+    *   **Modelos Recomendados:** `smollm2:1.7b` ou `qwen2.5:1.5b`.
 
-## 💻 Tier 2: Sovereign Minimal (Low End)
-**Hardware Alvo:** Máquinas com 16 GB (ou extremo 8 GB) de RAM.
-Este setup visa manter o consenso da Trindade rodando pacificamente sem incorrer em saturação do barramento (Out-Of-Memory/Swap), utilizando exclusivamente modelos da classe \~1.5B (SLMs ultraleves).
-
-> ⚠️ **Diretiva de Restrição (Banimento Llama):** Modelos ultraleves da série Llama (ex: Llama 3.2 1B ou 3B) estão **ESTRITAMENTE PROIBIDOS** neste tier para o papel de Inquisidores de Extração. Diante de dados ausentes (falhas de raspagem), os modelos Llama sofrem da "Síndrome de Agradar" (Sycophancy) e inventam predições matemáticas irreais.
-
-### 🧠 A Trindade Minimalista (The Inquisition Layer)
-Consumo máximo alocado de estático + KV Cache fica entre 4 GB a 5 GB de RAM.
-1. **O Bisturi (The Surgeon):**
-   * **Modelo:** `qwen2.5:1.5b` (O bisturi oriental em sua versão mínima).
-2. **O Árbitro Lógico (The Reasoner):**
-   * **Modelo:** `smollm2:1.7b` (Uma alternativa excepcional treinada em datasets ultra-curados de altíssima qualidade).
-3. **O Freio de Emergência CoT (The CoT Auditor):**
-   * **Modelo:** `deepseek-r1:1.5b` (Mantido do Tier 1 por seu minúsculo peso de 1.0 GB em Q4).
-
-### 👑 O Mestre e Especialistas (Supervisor Layer Minimal)
-1. **The Scribe / Orquestrador:** `qwen2.5:7b` (\~4.7 GB RAM). Se a máquina constar com absolutos 8GB de RAM totais, recomenda-se "espremer" o Mestre com `gemma2:2b` ou `qwen2.5:3b`.
+### 1.3 Inferência e Geração
+*   **The Doctor (Motor de Resposta Base):**
+    *   A "mente" por trás do fluxo conversacional principal. Trabalha unindo os blocos de texto trazidos pelos Rerankers (FastEmbed) para formular a conclusão.
+    *   **Modelos de Alto Desempenho (Workstations > 16GB RAM):** `qwen2.5:14b` ou `llama3.1:8b`.
+    *   **Modelos Moderados:** `phi4-mini` (excelente para dedução lógica estrutural) ou `deepseek-r1:1.5b` (ótimo para racionalizar passo a passo reduzindo erros prévios).
+*   **The Coder (Extensão de Desenvolvimento):**
+    *   Totalmente isolado do chat coloquial, atende de forma passiva através do Proxy OpenCode (`127.0.0.1:38001`) às solicitações de IDEs de mercado como o VS Code ou Cursor.
+    *   **Modelo Recomendado:** `qwen2.5:7b-coder` ou `qwen2.5-coder:14b` (de acordo com a memória de hardware / GPU disponível).
+*   **The Accountant (Auditoria Estrutural):**
+    *   Garante que formatos de JSON exigidos por certas etapas ou tabelas cruzadas respeitem a integridade estrutural O.S sem predições errôneas.
 
 ---
 
-## 🛠️ Validação do Manifesto
+## 2. A Camada Cíbrida (Nós Multimodais de Visão e Áudio)
 
-Este documento foi forjado com o auxílio do **Loop de Deep Research do Google Gemini 3 Pro** (Artefato Fase 41), além de validação cruzada entre Claude 3.5 Sonnet, MS Copilot e testes autônomos locais.
+Com a versão 0.9.9, o Sovereign Pair removeu bibliotecas complexas ligadas à compilação direta do Rust (como as antigas pontes `whisper-rs` em C++). Isso impedia problemas de desempenho e falhas de ambiente entre sistemas operacionais diferentes.
 
----
+Para processar mídias, o sistema adota agora o modelo Cíbrido (Rust + Nodes independentes em Python):
 
-## 👁️ Tier 3: Sovereign Multimodal (Vision & Audio)
-**Hardware Alvo:** Máquinas Edge (como os Mini PCs Beelink) aproveitando o processamento otimizado em CPU + RAM. Esta camada é estrategicamente isolada das inferências textuais pesadas e possui sua própria taxonomia arquitetural otimizada.
+### 2.1 O Modelo de "Despertar Efêmero"
+Em vez de manter pesados processos de GPU carregados em repouso 100% do tempo, o motor Rust gerencia a infraestrutura. Quando tarefas multimídia são solicitadas (como por exemplo o upload de um extrato via UI ou um botão Svelte de gravação via microfone), o Rust invoca scripts independentes de linha de comando operados sob Python. Tais processos executam as suas bibliotecas nativamente em silêncio, devolvem o valor final calculado (texto transcrito/vetorizado), e se excluem da memória VRAM assim que o processo encerra.
 
-### 🖼️ The Eyes (Vision & OCR)
-A extração visual contemporânea migrou do antigo *pipeline* fracionado (detecção → reconhecimento → layout) para VLMs *end-to-end*, engolindo documentos inteiros complexos num único passe.
-1. **Natividade em Imagens Naturais / VQA:**
-   * **Modelo:** `gemma-3-4b`
-   * **Papel:** O mais forte VLM em faixa sub-5B para contexto contínuo. Utiliza o poderoso encoder SigLIP com o algoritmo *Pan & Scan* (segmentando altíssima resolução de imagens não-quadradas em recortes de 896x896). Suporta fluido **Português Brasileiro** e contexto colossal, servindo brutalmente para tarefas arbitrárias tipo "descreva essa imagem detalhadamente".
-2. **Especialista em Documentos e OCR Estruturado:**
-   * **Modelo:** `paddleocr-vl-0.9b` (pesos matemáticos em formato `.onnx`)
-   * **Papel:** Incrível **Score de 92.86 no OmniDocBench** (destruindo modelos pesados como GPT-4o e Gemini 2.5 Pro no parsing absoluto das tabelas e equações). Sendo puramente 0.9B, nós importaremos a sua topologia nativamente em Rust via **ONNX Runtime (Crate `ort`)**. Isto elimina o `paddlepaddle` (Python) do host e executa inferências massivas diretamente na CPU em C++.
+### 2.2 Nós e Ferramentas Empregadas
 
-> 💡 **Estratégia Recomendada para o Beelink:** O intercâmbio tático entre **PaddleOCR-VL 0.9B via ONNX** (Extração bruta pesada em CPU de relatórios do IBGE e tabelas densas) operando junto ao **Gemma 3 4B via Ollama** (Raciocínio complexo em cima do log transcrito ou imagens naturais). Somados, ancoram em limitados ~3.8 GB de footprint nativo C/Go/Rust.
+1.  **Transcrição de Voz (Microfone Svelte):**
+    *   **Nó Python Instalado:** `faster-whisper`
+    *   **Modelo Base Utilizado:** `whisper-large-v3-turbo` (~800M parâmetros).
+    *   Garante transcrições excelentes em Português-BR com latência quase em tempo real, sem a necessidade das antigas bibliotecas de C++ sobrepostas ao instalador do core do Rust.
 
-### 🎙️ The Ears (Audio, Speech & Signals)
-Neste domínio, a estúpida correlação "parâmetros globais vs transcrição" morre. Especialistas minúsculos de áudio dizimam LLMs generalistas tentanto fazer *Speech-to-Text*, devido aos regimes agressivos de horas unicamente orais na esteira de dados.
-1. **Transcrição de Voz Pura (ASR):**
-   * **Modelo:** `whisper-large-v3-turbo` (~800M parâmetros)
-   * **Papel:** Padrão ouro absoluto otimizado para a nossa stack Cibrid. Baixado nativamente no formato `GGML`.
-   * **Motor de Inferência Mandatório:** Rodará integrado ao monólito Rust usando a biblioteca nativa C++ `whisper.cpp` através das *bindings* `whisper-rs`. Isso aniquila dependências Python como `faster-whisper`, rodando rente ao metal e entregando latência sub-segundo em PT-BR sem sujar o sistema com pacotes PIP.
-2. **Transcrição de Sinal Polifônico / Musical:**
-   * **Algoritmo:** `basic-pitch` (Spotify Research)
-   * **Papel:** Conversão mágica de mp3/wav em puro MIDI matemático com rastreamento polifônico. O arquivo de modelo pesa ridículos **5MB** encapsulados em formato TensorFlow Lite (`.tflite`) que nossa engine de matriz também engolirá nativamente através das bindings C++.
+2.  **Visão e Leitura de Imagens Gerais (VLM):**
+    *   **Serviço:** Instanciado convencionalmente na GPU pelo daemon `Ollama`.
+    *   **Modelo Tático Recomendado:** `gemma-3-4b`. Esse modelo possui um contexto avançado de análise utilizando o encoder *SigLIP*. É incrivelmente efetivo para classificar fotos ou extrair percepções visuais sem consumir toda a memória de vídeo de uma GPU convencional de desktop.
+
+3.  **Processamento de Documentos de Texto Pesados (OCR Estrito):**
+    *   **Nó Python Instalado:** `paddleocr` ou dependências relativas mantidas na subpasta `/nodes/`.
+    *   **Utilidade Prática:** Sublinha extrema eficácia em quebrar layouts de tabelas e recibos fiscais. Onde as *LLMs* visuais convencionais (VLMs) começam a alucinar tentando "adivinhar" letras borradas, a extração autônoma do Paddle resolve a estrutura pura do texto com validação clássica antes de repassá-lo ao vetorizador SQLite.
+
+4.  **Midi Trancoder Engine:**
+    *   **Nó Python Embutido:** `basic-pitch` da Spotify API.
+    *   Analisa frequências captadas remotamente da máquina, sem corromper memória alocada das funções conversacionais Rust da IDE do usuário.
+
+ *(A presente taxonomia reflete a maturidade plena da versão 0.9.9+, orientada para ecossistemas sustentáveis, modulares e isentos de lock-in tecnológico em hardware oneroso).*
