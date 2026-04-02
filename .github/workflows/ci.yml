@@ -291,7 +291,7 @@ jobs:
           npm run build
 
       - name: Build Tauri Universal Installers
-        uses: tauri-apps/tauri-action@9816b49a0578c5711c6e0c340fedd192414fd8d8 # v0.2.0
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
