@@ -5,7 +5,17 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A série 1.0.0 será ativada unicamente quando o núcleo do ecossistema Sovereign Bare Main atingir maturidade e estabilidade arquitetural plenas.
 
-## [0.9.9] - 2026-04-01
+## [0.9.9] - 2026-04-02
+
+### 🚀 Sovereign WAG Multi-Hop & Pure Rust Office Ecosystem
+- **The Recursion Extractor (Thought Nanny)**: O Extrator nativo na `api_trainer.rs` foi reconstruído de base para caçar assincronamente Arrays JSON em profundidade. O pipeline de Deep Research resolve e esteriliza completamente as alucinações cognitivas multiferramentas do LLM orgânico, impedindo inferências de invocar o `dispatch_sub_researcher` e entrar em um loop infinito narcisista retro-alimentar ("A Vacina Anti-Narcisismo").
+- **Agnostic & Dependency-Free Office Ingestion (`office_parser.rs`)**: Erradicada sumariamente a dependência colateral do LlamaIndex e conversores pesados de OS como `pandoc`/`LibreOffice` em host local. Injeção letal, limpa e estática das crátes hipervelozes `quick-xml` e `calamine`. 
+  - **Extração Semântica Nível XML:** O compilador disseca recursivamente instâncias estruturais (`<w:tbl>`, `<w:numPr>`, `w:val="Ttulo1"`) transformando matrizes em Tabelas perfeitas em texto, detectando Bullet Points `- `, Cabeçalhos `#`, Sublinhados, Itálicos e Negritos nos núcleos `.docx/xlsx`. O VectoDB consegue enxergar a ênfase tipográfica do autor agnósticamente sem destruir as relações da frase.
+  - **Sovereign UI Read-Only Gateway:** Extensão de salvamento bloqueada na API. O Editor Web converte os ZIPs binários online no TipTap para leitura limpa com os estilos em Markdown vivo e preserva 100% da integridade do arquivo Microsoft Original contra gravações corruptas de reescrita pura.
+  - **Tailwind Prose Typography Restored:** Injeção arquitetural no SvelteKit UI com `@tailwindcss/typography`. O CSS "preflight" destructivo que tornava o Markdown estrutural invisível (`h1..h6`, `ul`, `strong`) foi dominado, forçando a visibilidade real das marcações ricas vindas do VectorDB (`office_parser.rs`).
+- **Race Condition Immunity (IO Resilience Watchdog)**: Incorporada a "Proteção 5 Segundos Cíbrida" no File Watcher (`sync_engine.rs`) orquestrando uma repetição logarítmica de parseamento. Esta trave absorve a letalidade de arquivos nulos, arquivos "dummy" de Desktop e protege blindamente a malha assíncrona se o Sistema Operacional demorar a flushear bytes inteiriços puros pro HD durante transferências massivas em drag-and-drop.
+
+## [0.9.8] - 2026-03-31
 
 ### 🚀 Sovereign Multimodal Hybrid Architecture
 - **Ultra-lightweight Python Nodes**: Pivotamos a arquitetura de processamento visual e auditivo para fora da monolitização pesada em C++. Criamos e isolamos micro-scripts em Python estrito (`audio_transcriber.py`, `vision_ocr.py`, `midi_transcriber.py`) para operar como nós independentes de Sistema Operacional invocados silenciosamente via IPC sub-processos.
