@@ -175,11 +175,11 @@
                                 {#if editingSessionId === s.id}
                                     <!-- Formulário de Edição (Rename e Mover Pasta) -->
                                     <div class="w-full flex flex-col gap-2 p-3 bg-white dark:bg-[#12192b] border border-blue-200 dark:border-blue-500/30 rounded-xl shadow-md z-10 relative mt-1 mb-1">
-                                        <label class="text-[9px] uppercase font-bold tracking-widest text-blue-600 dark:text-[#74b0ff]">Título do Chat</label>
-                                        <input bind:value={editTitle} class="bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-[#424859]/50 rounded-lg px-2 py-1.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:focus:border-[#74b0ff] dark:focus:ring-[#74b0ff] w-full" placeholder="Nome do Chat" />
+                                        <label for="edit_title_{s.id}" class="text-[9px] uppercase font-bold tracking-widest text-blue-600 dark:text-[#74b0ff]">Título do Chat</label>
+                                        <input id="edit_title_{s.id}" bind:value={editTitle} class="bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-[#424859]/50 rounded-lg px-2 py-1.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:focus:border-[#74b0ff] dark:focus:ring-[#74b0ff] w-full" placeholder="Nome do Chat" />
                                         
-                                        <label class="text-[9px] uppercase font-bold tracking-widest text-blue-600 dark:text-[#74b0ff] mt-1">Mover para Projeto/Pasta</label>
-                                        <input bind:value={editFolder} class="bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-[#424859]/50 rounded-lg px-2 py-1.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:focus:border-[#74b0ff] dark:focus:ring-[#74b0ff] w-full" placeholder="(Vazio = Chats Recentes)" />
+                                        <label for="edit_folder_{s.id}" class="text-[9px] uppercase font-bold tracking-widest text-blue-600 dark:text-[#74b0ff] mt-1">Mover para Projeto/Pasta</label>
+                                        <input id="edit_folder_{s.id}" bind:value={editFolder} class="bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-[#424859]/50 rounded-lg px-2 py-1.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:focus:border-[#74b0ff] dark:focus:ring-[#74b0ff] w-full" placeholder="(Vazio = Chats Recentes)" />
 
                                         <div class="flex items-center gap-2 mt-2 self-end">
                                             <button onclick={cancelEdit} class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors cursor-pointer" title="Cancelar">

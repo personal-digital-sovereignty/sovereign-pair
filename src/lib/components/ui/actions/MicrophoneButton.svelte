@@ -3,16 +3,16 @@
     import { createEventDispatcher, onDestroy, onMount } from 'svelte';
     import { fly } from 'svelte/transition';
 
-    export let disabled: boolean = false;
+    let { disabled = false }: { disabled?: boolean } = $props();
     
     const dispatch = createEventDispatcher();
     
-    let isRecording = false;
-    let isTranscribing = false;
+    let isRecording = $state(false);
+    let isTranscribing = $state(false);
     let mediaRecorder: MediaRecorder | null = null;
     let audioChunks: Blob[] = [];
     let stream: MediaStream | null = null;
-    let recordingTime = 0;
+    let recordingTime = $state(0);
     let timerInterval: any = null;
 
     async function startRecording() {
@@ -126,7 +126,7 @@
     {/if}
 
     <button type="button" 
-        on:click={toggleRecording}
+        onclick={toggleRecording}
         disabled={disabled && !isRecording && !isTranscribing}
         class="p-2.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2 group {isRecording ? 'text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10' : 'text-slate-400 dark:text-slate-500 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-[#1d253b]'}" 
         title={isRecording ? 'Stop Recording' : 'Voice Typing (Whisper)'}>
