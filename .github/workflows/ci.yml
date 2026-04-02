@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check workflow YAML syntax (Actionlint)
-        uses: raven-actions/actionlint@v2
+        uses: raven-actions/actionlint@205b530c5d9fa8f44ae9ed59f341a0db994aa6f8 # v2.1.2
 
       - name: Analyze workflow security logic (Zizmor)
         env:
@@ -72,7 +72,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy vulnerability scanner on repo (Requirements / Package.json / Dockerfile)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           scan-type: 'fs'
           ignore-unfixed: true
@@ -291,7 +291,7 @@ jobs:
           npm run build
 
       - name: Build Tauri Universal Installers
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@9816b49a0578c5711c6e0c340fedd192414fd8d8 # v0.2.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -326,7 +326,7 @@ jobs:
         uses: actions/download-artifact@v4
       
       - name: Update Nightly Tag
-        uses: richardsimko/update-tag@v1
+        uses: richardsimko/update-tag@aab2434e9a5040687874aa39d1c6377ec0cb0d94 # v1.1.6
         with:
           tag_name: nightly
         env:
@@ -340,7 +340,7 @@ jobs:
           mv sovereign-core-macos-arm64/sovereign-core sovereign-core-macos-arm64-binary
           
       - name: Generate Nightly Pre-Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
           tag_name: nightly
           name: "Sovereign Pair Nightly (Unstable)"
@@ -383,7 +383,7 @@ jobs:
           mv sovereign-core-macos-arm64/sovereign-core sovereign-core-macos-arm64-binary
           
       - name: Generate Stable Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
           generate_release_notes: true
           files: |
