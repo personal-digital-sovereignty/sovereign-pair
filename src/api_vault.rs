@@ -324,7 +324,19 @@ pub async fn vault_document_read(
         ws_root.join::<PathBuf>(decoded_id.strip_prefix('/').unwrap_or(&decoded_id).into())
     };
 
-    match fs::read_to_string(&abs_path).await {
+    let content_result = match abs_path.extension().unwrap_or_default().to_string_lossy().to_lowercase().as_str() {
+        "md" | "txt" | "json" | "yaml" | "yml" | "csv" | "py" | "rs" | "js" | "ts" | "log" => {
+            fs::read_to_string(&abs_path).await.map_err(|e| e.to_string())
+        },
+        _ => {
+            let path_str = abs_path.to_string_lossy().to_string();
+            tokio::task::spawn_blocking(move || crate::office_parser::parse_file(&path_str))
+                .await
+                .unwrap_or_else(|e| Err(e.to_string()))
+        }
+    };
+
+    match content_result {
         Ok(content) => {
             let file_name = abs_path.file_name().unwrap_or_default().to_string_lossy().to_string();
             let res = serde_json::json!({
@@ -590,6 +602,12 @@ pub async fn vault_document_write(
     // Segurança (O Cíbrido só escreve Arquivos em Zonas Vermelhas Autorizadas do Host)
     if !abs_path.starts_with(&ws_root) {
         return (axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({"detail":"Malicious Write Attempt Prevented O.S"}))).into_response();
+    }
+
+    // Prevents overwriting binary Office files with plaintext Markdown, which corrupts them
+    let ext = abs_path.extension().unwrap_or_default().to_string_lossy().to_lowercase();
+    if ["docx", "xlsx", "pptx", "odt", "odp", "pdf", "zip"].contains(&ext.as_str()) {
+        return (axum::http::StatusCode::BAD_REQUEST, Json(serde_json::json!({"detail":"Este documento Office é Somente Leitura (Read-Only) no Vault Central."}))).into_response();
     }
 
     if let Err(e) = fs::write(&abs_path, req.content).await {

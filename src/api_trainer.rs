@@ -541,16 +541,17 @@ pub async fn run_deep_research_handler(
             "type": "function",
             "function": {
                 "name": "dispatch_sub_researcher",
-                "description": "Ferramenta para buscar fatos e dados na internet em tempo real.",
+                "description": "Ferramenta para buscar fatos e dados na internet em tempo real. Deve receber múltiplas consultas curtas e atômicas (Google Dorks) de uma vez.",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "search_query": {
-                            "type": "string",
-                            "description": "As palavras-chave curtas e objetivas para a busca no mecanismo de varredura."
+                        "search_queries": {
+                            "type": "array",
+                            "items": { "type": "string" },
+                            "description": "Array OBRIGATÓRIO contendo as buscas. Cada string (Dork) deve ser curta, contendo APENAS as palavras-chave vitais. Se a diretriz for complexa cruzando vários tópicos, quebre-a em buscas atômicas."
                         }
                     },
-                    "required": ["search_query"]
+                    "required": ["search_queries"]
                 }
             }
         }]);
@@ -567,11 +568,10 @@ pub async fn run_deep_research_handler(
                 {}\n\
                 [DIRETRIZES TÁTICAS PARA OMNI-SEARCH E TOOL CALLING]\n\
                 1. Você DEVE obrigatoriamente usar a ferramenta `dispatch_sub_researcher` para extrair os fatos reais.\n\
-                2. SE O USUÁRIO FIZER MÚLTIPLAS PERGUNTAS COMPLEXAS (ex: comparar A com B, pedir análises de 2 tópicos), NÃO FAÇA UMA ÚNICA BUSCA GIGANTE! Invoque a ferramenta `dispatch_sub_researcher` MÚLTIPLAS VEZES PARALELAMENTE, quebrando o prompt em sub-tarefas atômicas e curtas (ex: Call 1='valor A 2024', Call 2='valor B 2024').\n\
-                3. Sempre que a pergunta exigir notícias recentes, você DEVE INCLUIR EXPLICITAMENTE o ano na sua 'search_query' (ex: '{}').\n\
-                4. O Tool Schema aceita APENAS a chave \"search_query\" como string limpa. NUNCA alucine variáveis ou parâmetros não-documentados.\n\
-                5. É ESTRITAMENTE PROIBIDO gerar análises teóricas ou relatórios vazios ANTES de usar a ferramenta.\n\
-                6. Quando possuir os dados reais, ESTRUTURE SEU RELATÓRIO FINAL EM MARKDOWN CORPORATIVO: Crie um Índice, Tabelas de Dados e uma Conclusão Profissional baseada em evidências.",
+                2. O Tool Schema exige APENAS a chave \"search_queries\" contendo um ARRAY de strings restritas a palavras-chave vitais. Decomponha problemas matriciais em listas atômicas (ex: `{{\"search_queries\": [\"entidade A conceito\", \"entidade B ano\"]}}`).\n\
+                3. Sempre que a pergunta exigir dados recentes, você DEVE INCLUIR o ano (ex: '{}') dentro de CADA string da query.\n\
+                4. É ESTRITAMENTE PROIBIDO gerar análises teóricas vazias ANTES de usar a ferramenta.\n\
+                5. Quando possuir os dados, ESTRUTURE SEU RELATÓRIO FINAL: Crie Índices e Conclusões baseadas em evidências.",
                 anchor_directive, current_year
             )
         } else {
@@ -580,12 +580,11 @@ pub async fn run_deep_research_handler(
                 [CRONOLOGIA SOBERANA] Hoje é exatamente: {current_date}.\n\
                 {}\n\
                 [DIRETRIZES TÁTICAS PARA OMNI-SEARCH E TOOL CALLING]\n\
-                1. Você DEVE usar a ferramenta `dispatch_sub_researcher` ANTES de escrever qualquer análise.\n\
-                2. SE O USUÁRIO FIZER MÚLTIPLAS PERGUNTAS (ex: analisar valor da gasolina e analisar inflação), NUNCA FAÇA UMA BUSCA AGREGADA GIGANTE! Você deve gerar MÚLTIPLOS TOOL CALLS para a mesma ferramenta, quebrando o pedido em sub-consultas curtas, atômicas e paralelas (ex: Tool 1='valor gasolina 2024', Tool 2='inflação brasil 2024').\n\
-                3. Sempre que a pergunta exigir contexto temporal, você DEVE INCLUIR o ano (ex: '{}') dentro da 'search_query'.\n\
-                4. O schema JSON aceita APENAS a propriedade \"search_query\". NÃO invente chaves extras como \"object\".\n\
-                5. É ESTRITAMENTE PROIBIDO gerar resumos vazios ou 'desculpas'. Extraia a Tool em JSON estrito.\n\
-                6. Ao redigir a análise final, APLIQUE UMA ESTRUTURA MARKDOWN DE ALTO NÍVEL: O relatório deve conter Índices, Tabelas e Seções Dinâmicas geradas a partir dos DADOS recebidos.",
+                1. Você DEVE usar a ferramenta `dispatch_sub_researcher` ANTES de escrever análises.\n\
+                2. A ferramenta exige ESTRITAMENTE um ARRAY de strings (Chave: \"search_queries\"). QUEBRE o prompt original em múltiplas buscas curtas e analíticas focadas apenas em palavras-chave brutas (ex: `{{\"search_queries\": [\"topico principal ano foco\", \"assunto cruzado secundário ano\"]}}`).\n\
+                3. Sempre que a pergunta exigir contexto temporal, INCLUA o ano (ex: '{}') em todas as strings chaves.\n\
+                4. É ESTRITAMENTE PROIBIDO gerar resumos rasos ou sentenças em linguagem natural ali dentro. Extraia palavras-chave atômicas precisas na Tool.\n\
+                5. Ao redigir a análise final, APLIQUE UMA ESTRUTURA MARKDOWN DE ALTO NÍVEL suportando seus fatos.",
                 anchor_directive, current_year
             )
         };
@@ -663,33 +662,68 @@ pub async fn run_deep_research_handler(
                             for tc in tool_calls {
                                 if let Some(func) = tc.get("function")
                                     && func.get("name").and_then(|n| n.as_str()) == Some("dispatch_sub_researcher") {
-                                        let mut sq = func.get("arguments")
-                                            .and_then(|args| args.get("search_query"))
-                                            .and_then(|sq| sq.as_str())
-                                            .unwrap_or("general query")
-                                            .to_string();
+                                        let mut queries_extracted: Vec<String> = Vec::new();
 
-                                        // Fallback para modelos menores (Llama 3B) que podem cuspir o JSON Schema
-                                        if sq.starts_with('{') && sq.contains("\"description\"")
-                                            && let Ok(pseudo_json) = serde_json::from_str::<serde_json::Value>(&sq)
-                                                && let Some(desc) = pseudo_json.get("description").and_then(|d| d.as_str()) {
-                                                    let _ = TRAINER_LOGS.send("[Firewall Cognitivo] Desarmando alucinação de JSON Schema do Llama 3B no Tool Call...".to_string());
-                                                    sq = desc.to_string();
-                                                }
+                                        fn extract_arrays(val: &serde_json::Value, out: &mut Vec<String>) {
+                                            match val {
+                                                serde_json::Value::Object(map) => {
+                                                    if let Some(sq) = map.get("search_queries").and_then(|s| s.as_array()) {
+                                                        for item in sq {
+                                                            if let Some(s) = item.as_str() { out.push(s.to_string()); }
+                                                        }
+                                                    } else if let Some(sq) = map.get("search_query").and_then(|s| s.as_str()) {
+                                                        out.push(sq.to_string());
+                                                    } else {
+                                                        for (_, v) in map {
+                                                            if let Some(v_str) = v.as_str() {
+                                                                if v_str.trim().starts_with('{') {
+                                                                    if let Ok(inner) = serde_json::from_str::<serde_json::Value>(v_str) {
+                                                                        extract_arrays(&inner, out);
+                                                                    }
+                                                                }
+                                                            }
+                                                            extract_arrays(v, out);
+                                                        }
+                                                    }
+                                                },
+                                                serde_json::Value::Array(arr) => {
+                                                    for item in arr { extract_arrays(item, out); }
+                                                },
+                                                _ => {}
+                                            }
+                                        }
 
-                                        let _ = TRAINER_LOGS.send(format!("[The Honest Inquisitor] Acionando Inquisidor Único (Thread Paralela): '{}'", sq));
-                                        
-                                        // Clone arcs for the Tokio green thread
-                                        let engine_clone = engine_arc.clone();
-                                        let embed_clone = embed_client.clone();
-                                        let auth_clone = auth_inquisitor.clone();
-                                        let target_clone = target_model_name.clone();
-                                        
-                                        // Dispatch concurrently!
-                                        join_handles.push(tokio::spawn(async move {
-                                            let res_inquisitor = execute_sub_analyst(sq.clone(), engine_clone, embed_clone, auth_clone.clone(), target_clone, is_firewall_enabled).await;
-                                            (sq, res_inquisitor, auth_clone)
-                                        }));
+                                        extract_arrays(&tc, &mut queries_extracted);
+                                        queries_extracted.retain(|q| q != "dispatch_sub_researcher" && !q.trim().is_empty());
+
+                                        if queries_extracted.is_empty() {
+                                            let _ = TRAINER_LOGS.send("[Firewall Cognitivo] Nenhuma query válida extraída do JSON. Forçando Fallback Base!".to_string());
+                                            queries_extracted.push("latest global news".to_string());
+                                        }
+
+                                        for mut sq in queries_extracted {
+                                            // Fallback para modelos menores (Llama 3B) que podem cuspir o JSON Schema
+                                            if sq.starts_with('{') && sq.contains("\"description\"")
+                                                && let Ok(pseudo_json) = serde_json::from_str::<serde_json::Value>(&sq)
+                                                    && let Some(desc) = pseudo_json.get("description").and_then(|d| d.as_str()) {
+                                                        let _ = TRAINER_LOGS.send("[Firewall Cognitivo] Desarmando alucinação do JSON Schema LLama 3B...".to_string());
+                                                        sq = desc.to_string();
+                                                    }
+
+                                            let _ = TRAINER_LOGS.send(format!("[The Honest Inquisitor] Acionando Inquisidor Único (Thread Paralela): '{}'", sq));
+                                            
+                                            // Clone arcs for the Tokio green thread
+                                            let engine_clone = engine_arc.clone();
+                                            let embed_clone = embed_client.clone();
+                                            let auth_clone = auth_inquisitor.clone();
+                                            let target_clone = target_model_name.clone();
+                                            
+                                            // Dispatch concurrently!
+                                            join_handles.push(tokio::spawn(async move {
+                                                let res_inquisitor = execute_sub_analyst(sq.clone(), engine_clone, embed_clone, auth_clone.clone(), target_clone, is_firewall_enabled).await;
+                                                (sq, res_inquisitor, auth_clone)
+                                            }));
+                                        }
                                     }
                             }
 
@@ -742,89 +776,97 @@ pub async fn run_deep_research_handler(
                         // 2. O Modelo entregou a resposta final em plain text!
                         else if let Some(content) = msg_obj.get("content").and_then(|c| c.as_str()) {
                             // Firewall Cognitivo: Fallback se vazar nome da tool, assuma que ele está alucinando JSON
-                            if content.contains("\"dispatch_sub_researcher\"") {
+                            if content.contains("\"dispatch_sub_researcher\"") || content.contains("\"search_queries\"") {
                                 let _ = TRAINER_LOGS.send("[Firewall Cognitivo] Vazamento de Tool Call detectado no texto! Interceptando e curando a alucinação (Phase 7)...".to_string());
                                 
                                 if let (Some(start), Some(end)) = (content.find('{'), content.rfind('}'))
                                     && start < end {
                                         let json_str = &content[start..=end];
-                                        // Extração agressiva da string mais longa do json ignorando se o payload é um Object ou Array!
-                                        let mut sq_extracted = "".to_string();
+                                        let mut queries_extracted: Vec<String> = Vec::new();
                                         
-                                        // 1. Tenta varrer parametricamente caso seja válido (Array ou Object)
                                         if let Ok(pseudo_json) = serde_json::from_str::<serde_json::Value>(json_str) {
-                                            // Se for um Array vazado (ex: Mistral / Qwen 14B)
-                                            let iter_objs = if let Some(arr) = pseudo_json.as_array() {
-                                                arr.clone()
-                                            } else { vec![pseudo_json.clone()] };
-                                            
-                                            for obj in iter_objs {
-                                                // Se tiver estrutura aninhada (function.parameters)
-                                                if let Some(func_obj) = obj.get("function") {
-                                                    if let Some(params) = func_obj.get("parameters") {
-                                                        if let Some(sq) = params.get("search_query").and_then(|q| q.as_str()) {
-                                                            sq_extracted = sq.to_string(); break;
-                                                        }
-                                                    }
-                                                }
-                                                // Se for estrutura plana
-                                                if let Some(params) = obj.get("parameters") {
-                                                    if let Some(sq) = params.get("search_query").and_then(|q| q.as_str()) {
-                                                        sq_extracted = sq.to_string(); break;
-                                                    }
-                                                }
-                                                // Fallback lendo qualquer chave grande não-URL
-                                                if let Some(obj_map) = obj.as_object() {
-                                                    for (_, v) in obj_map {
-                                                        if let Some(v_str) = v.as_str() {
-                                                            if !v_str.starts_with("http") && v_str.len() > sq_extracted.len() {
-                                                                sq_extracted = v_str.to_string();
+                                            fn extract_arrays(val: &serde_json::Value, out: &mut Vec<String>) {
+                                                match val {
+                                                    serde_json::Value::Object(map) => {
+                                                        if let Some(sq) = map.get("search_queries").and_then(|s| s.as_array()) {
+                                                            for item in sq {
+                                                                if let Some(s) = item.as_str() { out.push(s.to_string()); }
+                                                            }
+                                                        } else if let Some(sq) = map.get("search_query").and_then(|s| s.as_str()) {
+                                                            out.push(sq.to_string());
+                                                        } else {
+                                                            for (_, v) in map {
+                                                                if let Some(v_str) = v.as_str() {
+                                                                    if v_str.trim().starts_with('{') {
+                                                                        if let Ok(inner) = serde_json::from_str::<serde_json::Value>(v_str) {
+                                                                            extract_arrays(&inner, out);
+                                                                        }
+                                                                    }
+                                                                }
+                                                                extract_arrays(v, out);
                                                             }
                                                         }
-                                                    }
+                                                    },
+                                                    serde_json::Value::Array(arr) => {
+                                                        for item in arr { extract_arrays(item, out); }
+                                                    },
+                                                    _ => {}
                                                 }
                                             }
+                                            extract_arrays(&pseudo_json, &mut queries_extracted);
                                         }
 
-                                        // Extrema Urgência: Se o Parser do Rust falhou violentamente, quebre tudo via sub-strings (Regex-free)
-                                        if sq_extracted.is_empty() {
-                                            if let Some(idx) = content.find("\"search_query\"") {
-                                                let sub = &content[idx..];
-                                                let tokens: Vec<&str> = sub.split('"').collect();
-                                                if tokens.len() >= 4 { // ["search_query", ": ", "A B C", ...]
-                                                    sq_extracted = tokens[3].to_string();
-                                                }
-                                            }
+                                        queries_extracted.retain(|q| q != "dispatch_sub_researcher" && !q.trim().is_empty());
+
+                                        if queries_extracted.is_empty() {
+                                            queries_extracted.push("latest global news".to_string());
                                         }
 
-                                        if sq_extracted.len() > 3 {
-                                            let sq = sq_extracted;
+                                        let mut join_handles_fb = Vec::new();
+
+                                        for sq in queries_extracted {
+                                            if sq.trim().is_empty() { continue; }
                                             let _ = TRAINER_LOGS.send(format!("[Thought Nanny] O Mestre alucinado foi domado e teve seu Schema expurgado. Disparando pesquisa curada: '{}'", sq));
                                             
                                             let sq_string = sq.to_string();
-                                            let _ = TRAINER_LOGS.send(format!("[The Honest Inquisitor] Sub-Agente Low-End Eleito Para Fallback: {}", auth_inquisitor));
+                                            let engine_clone = engine_arc.clone();
+                                            let embed_clone = embed_client.clone();
+                                            let auth_clone = auth_inquisitor.clone();
+                                            let target_clone = target_model_name.clone();
                                             
-                                            let res_inquisitor_fb = execute_sub_analyst(sq_string.clone(), engine_arc.clone(), embed_client.clone(), auth_inquisitor.clone(), target_model_name.clone(), is_firewall_enabled).await;
-                                            
-                                            let inquisitor_failed_fb = if is_firewall_enabled { res_inquisitor_fb.contains("DADO NÃO ENCONTRADO") || res_inquisitor_fb.contains("Falha do aluno") } else { false };
-                                            
-                                            let final_result = if inquisitor_failed_fb {
-                                                "NÃO EXISTEM DADOS MATEMÁTICOS PARA ESTA QUERY NO HTML RASPADO (POSSÍVEL BLOQUEIO OU SINGLE PAGE APPLICATION). RECOMENDE API EXTERNA.".to_string()
-                                            } else {
-                                                let _ = TRAINER_LOGS.send("[The Honest Inquisitor] Extração Validada no Fallback!".to_string());
-                                                all_sources.push(res_inquisitor_fb.clone());
-                                                res_inquisitor_fb.clone()
-                                            };
-
-                                            let _ = TRAINER_LOGS.send("[Firewall Cognitivo] Acareamento Low-End do The Honest Inquisitor processado com Guardrails.".to_string());
-                                            
-                                            messages.push(serde_json::json!({
-                                                "role": "user",
-                                                "content": format!("[SISTEMA INTERNO]: O Tool Call alucinado foi curado e executado através dos Guardrails Nanny. Aqui estão os fatos minerados para essa etapa:\n\n{}", final_result)
+                                            join_handles_fb.push(tokio::spawn(async move {
+                                                let res_inquisitor_fb = execute_sub_analyst(sq_string.clone(), engine_clone, embed_clone, auth_clone.clone(), target_clone, is_firewall_enabled).await;
+                                                (sq_string, res_inquisitor_fb, auth_clone)
                                             }));
-                                            
-                                            continue; // Volta ao Agentic Loop iterativo sem quebrar a pipeline!
                                         }
+
+                                        let mut final_reports = Vec::new();
+
+                                        for handle in join_handles_fb {
+                                            if let Ok((_sq, res_inquisitor_fb, _auth_clone)) = handle.await {
+                                                let inquisitor_failed_fb = if is_firewall_enabled { res_inquisitor_fb.contains("DADO NÃO ENCONTRADO") || res_inquisitor_fb.contains("Falha do aluno") } else { false };
+                                                
+                                                if !inquisitor_failed_fb {
+                                                    final_reports.push(res_inquisitor_fb);
+                                                }
+                                            }
+                                        }
+                                        
+                                        let final_result = if final_reports.is_empty() {
+                                            "NÃO EXISTEM DADOS MATEMÁTICOS PARA ESTAS QUERIES NO HTML RASPADO (POSSÍVEL BLOQUEIO OU SINGLE PAGE APPLICATION). RECOMENDE API EXTERNA.".to_string()
+                                        } else {
+                                            let _ = TRAINER_LOGS.send("[The Honest Inquisitor] Extração Validada no Fallback Nanny!".to_string());
+                                            final_reports.join("\n\n---\n\n")
+                                        };
+
+                                        let _ = TRAINER_LOGS.send("[Firewall Cognitivo] Acareamento Low-End do The Honest Inquisitor processado com Guardrails.".to_string());
+                                        
+                                        messages.push(serde_json::json!({
+                                            "role": "user",
+                                            "content": format!("[SISTEMA INTERNO]: O Tool Call alucinado foi curado e executado através dos Guardrails Nanny. Aqui estão os fatos minerados para essa etapa:\n\n{}", final_result)
+                                        }));
+                                        
+                                        continue; // Volta ao Agentic Loop iterativo sem quebrar a pipeline!
                                     }
                             }
                             
