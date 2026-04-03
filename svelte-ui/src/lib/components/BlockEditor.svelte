@@ -9,6 +9,7 @@
     import TableHeader from '@tiptap/extension-table-header';
     import TableCell from '@tiptap/extension-table-cell';
     import { Markdown } from 'tiptap-markdown';
+    import Image from '@tiptap/extension-image';
     import yaml from 'js-yaml';
     import { globalState } from '$lib/state.svelte.js';
 
@@ -409,6 +410,7 @@
                 TableHeader,
                 TableCell,
                 ObsidianLinks,
+                Image.configure({ inline: true, allowBase64: true }),
                 ObsidianImages,
                 ObsidianCallouts,
                 TheAccountantMath,
