@@ -19,12 +19,12 @@
 
     import { Code, Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, CheckSquare, Quote, Minus, Table as TableIcon, Copy, BrainCircuit } from 'lucide-svelte';
 
-    export const ObsidianLinks = Extension.create({
-        name: 'obsidianLinks',
+    export const SovereignLinks = Extension.create({
+        name: 'sovereignLinks',
         addProseMirrorPlugins() {
             return [
                 new Plugin({
-                    key: new PluginKey('obsidianLinks'),
+                    key: new PluginKey('sovereignLinks'),
                     state: {
                         init(_, { doc }) { return getDecorations(doc); },
                         apply(tr, old) { return tr.docChanged ? getDecorations(tr.doc) : old; },
@@ -56,12 +56,12 @@
         return DecorationSet.create(doc, decorations);
     }
 
-    export const ObsidianImages = Extension.create({
-        name: 'obsidianImages',
+    export const SovereignImages = Extension.create({
+        name: 'sovereignImages',
         addProseMirrorPlugins() {
             return [
                 new Plugin({
-                    key: new PluginKey('obsidianImages'),
+                    key: new PluginKey('sovereignImages'),
                     state: {
                         init(_, { doc }) { return getImageDecorations(doc); },
                         apply(tr, old) { return tr.docChanged ? getImageDecorations(tr.doc) : old; },
@@ -95,21 +95,20 @@
                     decorations.push(
                         Decoration.inline(pos + match.index, pos + match.index + match[0].length, {
                             style: 'display: none;',
-                            class: 'hidden-obsidian-image-tag'
+                            class: 'hidden-sovereign-image-tag'
                         })
                     );
                 }
 
-                // 2. Match Native Chart Standard Markdown: ![...](data:image/...)
-                const regexData = /!\[([^\]]*)\]\((data:image\/[^)]+)\)/g;
+                // 2. Match Native Chart Custom Syntax: ![[CHART_BASE64:...]]
+                const regexData = /!\[\[CHART_BASE64:([^\]]+)\]\]/g;
                 let matchData;
                 while ((matchData = regexData.exec(node.text)) !== null) {
-                    const altText = matchData[1];
-                    const dataUri = matchData[2];
+                    const b64Payload = matchData[1];
                     const img = document.createElement('img');
-                    img.src = dataUri;
+                    img.src = `data:image/svg+xml;base64,${b64Payload}`;
                     img.className = 'max-w-full rounded-lg shadow-sm border border-slate-700 block my-4 bg-slate-900';
-                    img.alt = altText;
+                    img.alt = 'Native Chart';
                     
                     decorations.push(
                         Decoration.widget(pos + matchData.index, () => img)
@@ -128,12 +127,12 @@
     }
 
 
-    export const ObsidianCallouts = Extension.create({
-        name: 'obsidianCallouts',
+    export const SovereignCallouts = Extension.create({
+        name: 'sovereignCallouts',
         addProseMirrorPlugins() {
             return [
                 new Plugin({
-                    key: new PluginKey('obsidianCallouts'),
+                    key: new PluginKey('sovereignCallouts'),
                     state: {
                         init(_, { doc }) { return getCalloutDecorations(doc); },
                         apply(tr, old) { return tr.docChanged ? getCalloutDecorations(tr.doc) : old; },
@@ -433,10 +432,10 @@
                 TableRow,
                 TableHeader,
                 TableCell,
-                ObsidianLinks,
+                SovereignLinks,
                 Image.configure({ inline: true, allowBase64: true }),
-                ObsidianImages,
-                ObsidianCallouts,
+                SovereignImages,
+                SovereignCallouts,
                 TheAccountantMath,
             ],
             content: contentMarkdown,
