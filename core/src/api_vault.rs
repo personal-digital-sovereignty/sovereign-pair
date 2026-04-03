@@ -606,7 +606,7 @@ pub async fn vault_document_write(
 
     // Prevents overwriting binary Office files with plaintext Markdown, which corrupts them
     let ext = abs_path.extension().unwrap_or_default().to_string_lossy().to_lowercase();
-    if ["docx", "xlsx", "pptx", "odt", "odp", "pdf", "zip"].contains(&ext.as_str()) {
+    if ["docx", "xlsx", "pptx", "odt", "odp", "ods", "doc", "xls", "ppt", "pdf", "zip"].contains(&ext.as_str()) {
         return (axum::http::StatusCode::BAD_REQUEST, Json(serde_json::json!({"detail":"Este documento Office é Somente Leitura (Read-Only) no Vault Central."}))).into_response();
     }
 
