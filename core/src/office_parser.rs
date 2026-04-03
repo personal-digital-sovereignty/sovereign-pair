@@ -104,9 +104,9 @@ fn extract_text_from_xml(xml: &str, target_tag: &[u8]) -> Result<String, String>
                 let name = e.name();
                 if name.as_ref() == target_tag {
                     in_target = true;
-                } else if target_tag == b"w:t" {
+                } else {
                     match name.as_ref() {
-                        b"w:p" => {
+                        b"w:p" | b"a:p" | b"text:p" => {
                             heading_level = 0;
                             is_list = false;
                             new_paragraph = true;
@@ -116,7 +116,7 @@ fn extract_text_from_xml(xml: &str, target_tag: &[u8]) -> Result<String, String>
                                 txt.push_str(" ");
                             }
                         },
-                        b"w:r" => {
+                        b"w:r" | b"a:r" => {
                             is_bold = false;
                             is_italic = false;
                             is_underline = false;
@@ -142,11 +142,13 @@ fn extract_text_from_xml(xml: &str, target_tag: &[u8]) -> Result<String, String>
             }
             Ok(Event::Empty(ref e)) => {
                 let name = e.name();
-                if target_tag == b"w:t" {
-                    match name.as_ref() {
-                        b"w:b" => is_bold = true,
-                        b"w:i" => is_italic = true,
-                        b"w:u" => is_underline = true,
+                match name.as_ref() {
+                        b"w:br" | b"a:br" => {
+                            txt.push_str("\n");
+                        },
+                        b"w:b" | b"a:b" => is_bold = true,
+                        b"w:i" | b"a:i" => is_italic = true,
+                        b"w:u" | b"a:u" => is_underline = true,
                         b"w:pStyle" => {
                             for attr in e.attributes().filter_map(|a| a.ok()) {
                                 if attr.key.as_ref() == b"w:val" {
@@ -162,15 +164,14 @@ fn extract_text_from_xml(xml: &str, target_tag: &[u8]) -> Result<String, String>
                         },
                         _ => {}
                     }
-                }
             }
             Ok(Event::End(ref e)) => {
                 let name = e.name();
                 if name.as_ref() == target_tag {
                     in_target = false;
-                } else if target_tag == b"w:t" {
+                } else {
                     match name.as_ref() {
-                        b"w:p" => {
+                        b"w:p" | b"a:p" | b"text:p" => {
                             if !in_table {
                                 txt.push_str("\n");
                             }
