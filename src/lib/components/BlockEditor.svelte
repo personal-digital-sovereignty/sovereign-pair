@@ -402,7 +402,7 @@
             element: editorElement,
             extensions: [
                 StarterKit,
-                Markdown,
+                Markdown.configure({ html: true, transformPastedText: true, transformCopiedText: true }),
                 TaskList,
                 TaskItem.configure({ nested: true }),
                 Table.configure({ resizable: true }),
