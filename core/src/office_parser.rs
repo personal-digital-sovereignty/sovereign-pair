@@ -237,8 +237,112 @@ fn extract_text_from_xml(xml: &str, target_tag: &[u8]) -> Result<String, String>
     Ok(txt.trim().to_string())
 }
 
+fn is_matrix_chart_capable(matrix: &[Vec<String>]) -> bool {
+    if matrix.len() < 2 || matrix[0].len() < 2 { return false; }
+    // Check if the top row contains strings (series names)
+    // and if all subsequent rows have a string label on index 0, and parseable numbers on 1..
+    for i in 1..matrix.len() {
+        for j in 1..matrix[i].len() {
+            let cell = matrix[i][j].trim();
+            if cell.is_empty() { continue; } // ignore empty
+            if cell.parse::<f64>().is_err() {
+                return false; // Found a non-number in the data grid
+            }
+        }
+    }
+    // Limit to reasonable chart sizes
+    if matrix.len() > 30 || matrix[0].len() > 15 { return false; }
+    true
+}
+
+fn generate_svg_bar_chart(matrix: &[Vec<String>], title: &str) -> String {
+    let num_categories = matrix.len() - 1;
+    let num_series = matrix[0].len() - 1;
+    
+    let mut max_val: f64 = 0.0;
+    for i in 1..=num_categories {
+        for j in 1..=num_series {
+            if j < matrix[i].len() {
+                if let Ok(val) = matrix[i][j].trim().parse::<f64>() {
+                    if val > max_val { max_val = val; }
+                }
+            }
+        }
+    }
+    if max_val == 0.0 { max_val = 1.0; } 
+    
+    let width = 800;
+    let height = 400;
+    let pad_left = 60;
+    let pad_bottom = 60;
+    let pad_top = 60;
+    let pad_right = 160; 
+    
+    let chart_w = width - pad_left - pad_right;
+    let chart_h = height - pad_top - pad_bottom;
+    
+    let mut svg = String::new();
+    svg.push_str(&format!(r##"<svg width="{}" height="{}" xmlns="http://www.w3.org/2000/svg" style="background:#0f172a; font-family:sans-serif; border-radius: 8px;">"##, width, height));
+    
+    svg.push_str(r##"<rect width="100%" height="100%" fill="#0f172a" rx="8" />"##);
+    svg.push_str(&format!(r##"<text x="{}" y="35" fill="#f8fafc" font-size="20" font-weight="bold" text-anchor="middle">{}</text>"##, pad_left + chart_w/2, title));
+    
+    let num_ticks = 5;
+    for t in 0..=num_ticks {
+        let val = max_val * (t as f64) / (num_ticks as f64);
+        let y = pad_top + chart_h - (chart_h * t / num_ticks);
+        svg.push_str(&format!(r##"<line x1="{}" y1="{}" x2="{}" y2="{}" stroke="#334155" stroke-dasharray="4" />"##, pad_left, y, pad_left + chart_w, y));
+        svg.push_str(&format!(r##"<text x="{}" y="{}" fill="#94a3b8" font-size="12" text-anchor="end" dominant-baseline="middle">{}</text>"##, pad_left - 10, y, val.round()));
+    }
+    
+    svg.push_str(&format!(r##"<line x1="{}" y1="{}" x2="{}" y2="{}" stroke="#94a3b8" stroke-width="2" />"##, pad_left, pad_top + chart_h, pad_left + chart_w, pad_top + chart_h));
+    
+    let colors = ["#3b82f6", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6", "#14b8a6", "#f43f5e", "#0ea5e9", "#eab308"];
+    let group_width = chart_w / num_categories;
+    let bar_width = (group_width - 20) / num_series;
+    
+    for i in 1..=num_categories {
+        let group_x = pad_left + (i - 1) * group_width;
+        let cat_name = &matrix[i][0];
+        
+        let center_x = group_x + (group_width / 2);
+        svg.push_str(&format!(r##"<text x="{}" y="{}" fill="#cbd5e1" font-size="12" text-anchor="middle">{}</text>"##, center_x, pad_top + chart_h + 20, escape_xml(cat_name)));
+        
+        for j in 1..=num_series {
+            if j < matrix[i].len() {
+                if let Ok(val) = matrix[i][j].trim().parse::<f64>() {
+                    let bar_h = ((val / max_val) * (chart_h as f64)) as usize;
+                    let bar_x = group_x + 10 + (j - 1) * bar_width;
+                    let bar_y = pad_top + chart_h - bar_h;
+                    let color = colors[(j - 1) % colors.len()];
+                    
+                    svg.push_str(&format!(r##"<rect x="{}" y="{}" width="{}" height="{}" fill="{}" rx="3" />"##, bar_x, bar_y, bar_width.saturating_sub(2), bar_h, color));
+                }
+            }
+        }
+    }
+    
+    let legend_x = pad_left + chart_w + 20;
+    for j in 1..=num_series {
+        let series_name = &matrix[0][j];
+        let color = colors[(j - 1) % colors.len()];
+        let leg_y = pad_top + (j - 1) * 25;
+        
+        svg.push_str(&format!(r##"<rect x="{}" y="{}" width="15" height="15" fill="{}" rx="3" />"##, legend_x, leg_y - 12, color));
+        svg.push_str(&format!(r##"<text x="{}" y="{}" fill="#cbd5e1" font-size="12" dominant-baseline="middle">{}</text>"##, legend_x + 25, leg_y - 4, escape_xml(series_name)));
+    }
+    
+    svg.push_str("</svg>");
+    svg
+}
+
+fn escape_xml(s: &str) -> String {
+    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
+}
+
 fn parse_spreadsheet(path: &str) -> Result<String, String> {
     use calamine::{open_workbook_auto, Reader, Data};
+    use base64::{Engine as _, engine::general_purpose::STANDARD};
 
     let mut workbook = open_workbook_auto(path).map_err(|e| format!("Failed to open workbook: {}", e))?;
     let mut result_md = String::new();
@@ -248,27 +352,38 @@ fn parse_spreadsheet(path: &str) -> Result<String, String> {
     for sheet in sheet_names {
         result_md.push_str(&format!("## Sheet: {}\n\n", sheet));
         if let Ok(range) = workbook.worksheet_range(&sheet) {
-            let mut rows = range.rows();
+            let mut matrix: Vec<Vec<String>> = Vec::new();
             
-            // Extract Headers
-            if let Some(headers) = rows.next() {
-                let header_row = headers.iter().map(|c| format!("{}", c)).collect::<Vec<String>>().join(" | ");
-                result_md.push_str(&format!("| {} |\n", header_row));
-                let sep_row = headers.iter().map(|_| "---".to_string()).collect::<Vec<String>>().join(" | ");
-                result_md.push_str(&format!("| {} |\n", sep_row));
-            }
-
-            for row in rows {
-                let md_row = row.iter().map(|c| match c {
+            for row in range.rows() {
+                let text_row: Vec<String> = row.iter().map(|c| match c {
                     Data::Empty => String::new(),
-                    Data::String(s) => s.replace('\n', " ").replace('|', "\\|"),
+                    Data::String(s) => s.replace('\n', " "),
                     Data::Float(f) => f.to_string(),
                     Data::Int(i) => i.to_string(),
                     Data::DateTime(_) | Data::DateTimeIso(_) | Data::DurationIso(_) => format!("{}", c),
                     Data::Bool(b) => b.to_string(),
-                    Data::Error(e) => format!("ERR_{:?}", e),
-                }).collect::<Vec<String>>().join(" | ");
-                result_md.push_str(&format!("| {} |\n", md_row));
+                    Data::Error(_) => String::new(),
+                }).collect();
+                matrix.push(text_row);
+            }
+
+            if is_matrix_chart_capable(&matrix) {
+                let svg = generate_svg_bar_chart(&matrix, &sheet);
+                let b64 = STANDARD.encode(svg.as_bytes());
+                result_md.push_str(&format!("![Chart]({b64})\n\n", b64 = format!("data:image/svg+xml;base64,{}", b64)));
+            }
+
+            if !matrix.is_empty() {
+                let headers = &matrix[0];
+                let header_row = headers.iter().map(|c| c.replace('|', "\\|")).collect::<Vec<String>>().join(" | ");
+                result_md.push_str(&format!("| {} |\n", header_row));
+                let sep_row = headers.iter().map(|_| "---".to_string()).collect::<Vec<String>>().join(" | ");
+                result_md.push_str(&format!("| {} |\n", sep_row));
+
+                for r in matrix.iter().skip(1) {
+                    let md_row = r.iter().map(|c| c.replace('|', "\\|")).collect::<Vec<String>>().join(" | ");
+                    result_md.push_str(&format!("| {} |\n", md_row));
+                }
             }
             result_md.push_str("\n");
         }
