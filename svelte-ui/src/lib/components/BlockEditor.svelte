@@ -101,7 +101,7 @@
                 }
 
                 // 2. Match Native Chart Custom Syntax: __CHART_BASE64_START__...__CHART_BASE64_END__
-                const regexData = /__CHART_BASE64_START__(.*?)__CHART_BASE64_END__/g;
+                const regexData = /__CHART_BASE64_START__([\s\S]*?)__CHART_BASE64_END__/g;
                 let matchData;
                 while ((matchData = regexData.exec(node.text)) !== null) {
                     const b64Payload = matchData[1];
