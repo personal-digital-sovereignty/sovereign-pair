@@ -29,6 +29,7 @@ All notable changes to the Sovereign Pair project will be documented in this fil
   - Retraído o limite serial do Ollama (`tokio::sync::Semaphore::new(1)`) matando a concorrência autofágica na memória DDR4 e no L3 Cache.
   - Expurgo nos Filtros BM25/Semantic. A injeção vetorial caiu de Top-35 blocos para Top-15 blocos (Max 4096 tokens).
   - Isolamento do `reqwest` timeout forçado a 1200 Segundos, blindando inferências extensas.
+- **Thought Nanny Mestre Cure (Anti-Hallucination Regex)**: Implementada uma cura agressiva contra modelos Mestre sem suporte nativo a JSON Tool-Calling (ex: `Qwen`). Se a "Mente Mestra" abortar a tool no Ciclo 1 e responder em linguagem natural "Plain-Text" pura (pulando o *WAG Omni-Scraper* direto para o Epistemic Wall), a Nanny intercepta o prompt original do usuário e força a pesquisa web impiedosamente via Rust para evitar "0 Fontes" na largada.
 
 ## [0.9.8] - 2026-03-31
 
