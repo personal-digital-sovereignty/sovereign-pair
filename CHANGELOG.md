@@ -5,7 +5,7 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A série 1.0.0 será ativada unicamente quando o núcleo do ecossistema Sovereign Bare Main atingir maturidade e estabilidade arquitetural plenas.
 
-## [0.9.9] - 2026-04-04 (Upcoming)
+## [0.9.9] - 2026-04-04
 
 ### 🚀 Sovereign WAG TurboQuant Evolution & OOM Prevention
 - **TurboQuant Context Emulation**: Injeção da engenharia de compressão de Memória Curta inspirada pelo laboratório do Google. Parametrização forçada no orquestrador Ollama (`OLLAMA_FLASH_ATTENTION=1` e `OLLAMA_KV_CACHE_TYPE=q4_0`) para quantizar nativamente o Cache KV em 4-bits e usar alocação exclusiva na memória L1 da GPU (Flash Attention).
@@ -22,6 +22,13 @@ All notable changes to the Sovereign Pair project will be documented in this fil
   - **Native SVG Chart Generation (Zero-Base64):** O sistema agora desenha gráficos estatísticos complexos interceptados de planilhas (.ods/.xlsx) renderizando SVG de altíssima performance em memória diretamente via API on-demand (`/v1/vault/office_chart`). Extirpando correntes pesadas e corruptíveis de strings `base64` injetadas no Markdown e aplicando alinhamento estrito "LibreOffice-Orthogonal" anti-truncação para coerência visual.
   - **Tailwind Prose Typography Restored:** Injeção arquitetural no SvelteKit UI com `@tailwindcss/typography`. O CSS "preflight" destructivo que tornava o Markdown estrutural invisível (`h1..h6`, `ul`, `strong`) foi dominado, forçando a visibilidade real das marcações ricas vindas do VectorDB (`office_parser.rs`).
 - **Race Condition Immunity (IO Resilience Watchdog)**: Incorporada a "Proteção 5 Segundos Cíbrida" no File Watcher (`sync_engine.rs`) orquestrando uma repetição logarítmica de parseamento. Esta trave absorve a letalidade de arquivos nulos, arquivos "dummy" de Desktop e protege blindamente a malha assíncrona se o Sistema Operacional demorar a flushear bytes inteiriços puros pro HD durante transferências massivas em drag-and-drop.
+
+### 🛡️ Hotfixes de Estabilidade & OOM (Memory Leaks)
+- **POSIX Signal Interceptor (Instant Port Release)**: Injetado um "botão do pânico" (`SIGINT/SIGTERM`) cravado direto na malha de eventos do `axum::serve`. Ao cancelar (`Ctrl+C`), o Rust executa um agressivo `std::process::exit(0)` mitigando processos Zumbis, devolvendo instantaneamente a RAM para o S.O e ejetando o *lock* da porta 38001. EADDRINUSE foi erradicado.
+- **RAG Ryzen KV Cache Thrashing (Timeouts Fatais)**: Mitigada cirurgicamente uma anomalia que causava 40 minutos de bloqueio e timeouts infinitos (300s):
+  - Retraído o limite serial do Ollama (`tokio::sync::Semaphore::new(1)`) matando a concorrência autofágica na memória DDR4 e no L3 Cache.
+  - Expurgo nos Filtros BM25/Semantic. A injeção vetorial caiu de Top-35 blocos para Top-15 blocos (Max 4096 tokens).
+  - Isolamento do `reqwest` timeout forçado a 1200 Segundos, blindando inferências extensas.
 
 ## [0.9.8] - 2026-03-31
 
