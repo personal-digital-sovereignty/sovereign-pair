@@ -30,7 +30,7 @@ cat > "$SYSTEMD_DIR/override.conf" << 'CONF'
 # Threads físicas vs virtuais: 16 threads para extrair 100% dos núcleos do 5800H
 Environment="OLLAMA_NUM_THREADS=16"
 # Paralelização das requests do Sovereign Pair
-Environment="OLLAMA_NUM_PARALLEL=2"
+Environment="OLLAMA_NUM_PARALLEL=1"
 # Modelos na RAM simultaneamente
 Environment="OLLAMA_MAX_LOADED_MODELS=2"
 
