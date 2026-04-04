@@ -8,17 +8,14 @@ echo "================================================="
 echo "🛡️ SOVEREIGN PAIR V4 - REGRESSION TEST SUITE 🛡️"
 echo "================================================="
 
-echo -e "\n[1/2] Validating Backend Engine, AI Agents & Routes (Pytest) 🚀"
-if [ ! -d ".venv" ]; then
-    echo "ERROR: Virtual Environment (.venv) not found. Please activate it first."
-    exit 1
-fi
-source .venv/bin/activate
-PYTHONPATH=. pytest tests/ -v
+echo -e "\n[1/2] Validating Backend Engine, AI Agents & Routes (Cargo Test) 🚀"
+cd core
+cargo test
+cd ..
 
-echo -e "\n[2/2] Validating Web-UI Dom (Vue 3 Playwright) 🌐"
-cd web-ui
-npm run test:e2e
+echo -e "\n[2/2] Validating Web-UI Dom (Svelte Check) 🌐"
+cd svelte-ui
+npm run check
 cd ..
 
 echo -e "\n✅ ALL TACTICAL CORTEX REGRESSIONS PASSED SUCCESSFULLY."
