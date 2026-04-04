@@ -94,7 +94,7 @@ impl DeepResearchEngine {
             let uuid_str = uuid::Uuid::new_v4().to_string();
             
             let quarantine = if !html_success && !ghost_success {
-                "datetime('now', '+60 days')"
+                "datetime('now', '+2 hours')"
             } else {
                 "NULL"
             };
@@ -132,22 +132,47 @@ impl DeepResearchEngine {
             }
         }
 
-        // --- CPU OFFLOADING (Fase 9: Jina Reader) ---
+        // --- CPU OFFLOADING (Fase 9: Cloud Readers Múltiplos) ---
         // Desacopla 90% do estresse de processamento do Rust repassando a interpretação do DOM para a nuvem.
-        let jina_url = format!("https://r.jina.ai/{}", url);
-        if let Ok(jina_resp) = self.client.get(&jina_url).header("X-Return-Format", "markdown").send().await {
-            if jina_resp.status().is_success() {
-                if let Ok(markdown) = jina_resp.text().await {
-                    if markdown.len() > 200 && !markdown.to_lowercase().contains("enable javascript") && !markdown.contains("Access Denied") {
-                        tracing::info!("☁️ [Jina Reader Offload] Markdown extraído via Nuvem ({} bytes). CPU Local Salva!", markdown.len());
-                        self.update_domain_ledger(url, true, false).await;
-                        return Ok(markdown);
+        let cloud_readers = vec![
+            format!("https://r.jina.ai/{}", url),
+            format!("https://md.dita.to/{}", url),
+            format!("https://txtify.it/{}", url), // Fallback 1: Txtify Reader
+            format!("https://urltomarkdown.com/api?url={}", urlencoding::encode(url)), // Fallback 2: General URL to MD
+            format!("https://api.firecrawl.dev/v0/scrape?url={}", urlencoding::encode(url)), // Fallback 3: Firecrawl Public Tier
+        ];
+
+        for reader_url in cloud_readers {
+            if let Ok(resp) = self.client.get(&reader_url).header("X-Return-Format", "markdown").send().await {
+                if resp.status().is_success() {
+                    if let Ok(mut markdown) = resp.text().await {
+                        // Trata proxies que devolvem JSON (ex: Firecrawl Public Tier ou WebIT)
+                        if markdown.starts_with('{') && markdown.contains("\"markdown\"") {
+                            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&markdown) {
+                                if let Some(md_data) = parsed.get("data").and_then(|d| d.get("markdown")).and_then(|m| m.as_str()) {
+                                    markdown = md_data.to_string();
+                                } else if let Some(md_text) = parsed.get("markdown").and_then(|m| m.as_str()) {
+                                    markdown = md_text.to_string();
+                                }
+                            }
+                        }
+                        
+                        // Trata proxies que devolvem HTML puro ao invés de Markdown
+                        if markdown.trim().starts_with('<') {
+                             markdown = self.sanitize_to_markdown(&markdown);
+                        }
+
+                        if markdown.len() > 200 && !markdown.to_lowercase().contains("enable javascript") && !markdown.contains("Access Denied") && !markdown.contains("Just a moment...") {
+                            tracing::info!("☁️ [Cloud Reader Offload] Markdown resgatado com sucesso via {} ({} bytes). CPU protegida!", reader_url.split('/').nth(2).unwrap_or("Proxy"), markdown.len());
+                            self.update_domain_ledger(url, true, false).await;
+                            return Ok(markdown);
+                        }
                     }
                 }
             }
         }
         
-        tracing::warn!("⚠️ [Jina Offload Falhou] Retornando ao Scraper Nativo em Tela Cheia (Heavy CPU) para: {}", url);
+        tracing::warn!("⚠️ [Cloud Offload Falhou] Retornando ao Scraper Nativo em Tela Cheia (Heavy CPU) para: {}", url);
 
         let response = self.client.get(url).header(reqwest::header::USER_AGENT, Self::get_random_user_agent()).send().await.map_err(|e| format!("HTTP Request failed: {}", e))?;
         

@@ -270,9 +270,11 @@ async fn execute_sub_analyst(
         }
     }
 
+    let mut web_scraped_data_found = false;
     if let Ok(res) = engine_arc.search_web(&search_query).await {
         if !res.snippets.is_empty() {
             raw_student_md.push_str(&format!("## ZERO-CLICK SEARCH SNIPPETS (DuckDuckGo Lite)\n{}\n\n", res.snippets));
+            web_scraped_data_found = true;
         }
 
         let mut scrape_handles = Vec::new();
@@ -292,26 +294,44 @@ async fn execute_sub_analyst(
         for res_task in results {
             if let Ok(Some(md_content)) = res_task {
                 raw_student_md.push_str(&md_content);
+                web_scraped_data_found = true;
             }
         }
     }
 
-    if raw_student_md.trim().is_empty() { return "Nenhum dado retornado da web para esta query.".to_string(); }
+    if !web_scraped_data_found && firewall_enabled && !search_query.contains("wiki") {
+        let _ = TRAINER_LOGS.send("[Firewall Cognitivo] Web Scraper retornou VAZIO (Erro de Rede/WAF). Bloqueando alucinação baseada em Memória Morta...".to_string());
+        return "DADO NÃO ENCONTRADO NA INTERNET. O MOTOR DE BUSCA WEB FALHOU.".to_string();
+    }
 
     let _ = TRAINER_LOGS.send(format!("Chunking & Semantic Reranking: Processando {} bytes de puro HTML Extrativo...", raw_student_md.len()));
     
-    // Chunking Context: Split by unicode sentences and group by 3 to form dense semantic blocks
+    // Chunking Context: Split by unicode sentences and group by 10 to form dense semantic blocks
     let sentence_chunks: Vec<String> = raw_student_md
         .unicode_sentences()
         .collect::<Vec<_>>()
-        .chunks(4)
+        .chunks(10)
         .map(|chunk| chunk.join(" "))
         .filter(|c| c.len() > 30) // Drop useless micro chunks
         .collect();
 
+    // --- PRE-FILTER LEXICAL (TurboQuant Efficiency Emulator) ---
+    let query_lower = query.to_lowercase();
+    let query_words: Vec<&str> = query_lower.split_whitespace().filter(|w| w.len() > 3).collect();
+    
+    let mut relevant_chunks = Vec::new();
+    for chunk in sentence_chunks {
+        let chunk_lower = chunk.to_lowercase();
+        // Simple Lexical Filter: if it contains at least one significant word from the query, keep it.
+        let has_keyword = query_words.is_empty() || query_words.iter().any(|&w| chunk_lower.contains(w));
+        if has_keyword || relevant_chunks.len() < 5 { // Always keep at least 5 chunks to avoid empty semantic matrix
+            relevant_chunks.push(chunk);
+        }
+    }
+
     let mut reranked_md = String::new();
-    if !sentence_chunks.is_empty() {
-        let chunk_refs: Vec<&str> = sentence_chunks.iter().map(|c| c.as_str()).collect();
+    if !relevant_chunks.is_empty() {
+        let chunk_refs: Vec<&str> = relevant_chunks.iter().map(|c| c.as_str()).collect();
         if let Ok(mut rlock) = RERANKER.lock() {
             if let Ok(results) = rlock.rerank(query.as_str(), chunk_refs, true, None) {
                 let mut top_results = results;
