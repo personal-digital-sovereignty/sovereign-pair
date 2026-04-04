@@ -45,6 +45,10 @@ Environment="GOMP_CPU_AFFINITY=0-15"
 Environment="OLLAMA_MAX_QUEUE=512"
 Environment="OLLAMA_KEEP_ALIVE=5m"
 
+# The Ghost Optimization: Emulando o comportamento TurboQuant (Google Research)
+Environment="OLLAMA_FLASH_ATTENTION=1"
+Environment="OLLAMA_KV_CACHE_TYPE=q4_0"
+
 # Host Binding (Permitir acesso Docker/Tailscale se necessário)
 Environment="OLLAMA_HOST=0.0.0.0:11434"
 CONF
