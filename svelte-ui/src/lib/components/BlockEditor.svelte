@@ -100,27 +100,7 @@
                     );
                 }
 
-                // 2. Match Native Chart Custom Syntax: __CHART_BASE64_START__...__CHART_BASE64_END__
-                const regexData = /__CHART_BASE64_START__([\s\S]*?)__CHART_BASE64_END__/g;
-                let matchData;
-                while ((matchData = regexData.exec(node.text)) !== null) {
-                    const b64Payload = matchData[1];
-                    const img = document.createElement('img');
-                    img.src = `data:image/svg+xml;base64,${b64Payload}`;
-                    img.className = 'max-w-full rounded-lg shadow-sm border border-slate-700 block my-4 bg-slate-900';
-                    img.alt = 'Native Chart';
-                    
-                    decorations.push(
-                        Decoration.widget(pos + matchData.index, () => img)
-                    );
-                    
-                    decorations.push(
-                        Decoration.inline(pos + matchData.index, pos + matchData.index + matchData[0].length, {
-                            style: 'display: none;',
-                            class: 'hidden-data-image-tag'
-                        })
-                    );
-                }
+
             }
         });
         return DecorationSet.create(doc, decorations);
