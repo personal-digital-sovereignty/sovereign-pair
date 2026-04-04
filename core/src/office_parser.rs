@@ -312,23 +312,7 @@ fn find_chartable_subgrid(matrix: &[Vec<String>]) -> Option<SubGrid> {
     if best_size >= 2 { best_grid } else { None }
 }
 
-fn extract_subgrid_matrix(matrix: &[Vec<String>], grid: &SubGrid) -> Vec<Vec<String>> {
-    let mut sub = Vec::new();
-    for r in grid.row_start..=grid.row_end {
-        if r < matrix.len() {
-            let mut sub_row = Vec::new();
-            for c in grid.col_start..=grid.col_end {
-                if c < matrix[r].len() {
-                    sub_row.push(matrix[r][c].clone());
-                } else {
-                    sub_row.push(String::new());
-                }
-            }
-            sub.push(sub_row);
-        }
-    }
-    sub
-}
+
 
 fn generate_svg_bar_chart(matrix: &[Vec<String>], title: &str) -> String {
     let num_categories = matrix.len() - 1;
