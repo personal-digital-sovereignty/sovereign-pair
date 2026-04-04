@@ -347,7 +347,7 @@ fn generate_svg_bar_chart(matrix: &[Vec<String>], title: &str) -> String {
         chart_h + pad_top + pad_bottom
     );
     svg.push_str(r##"<rect width="100%" height="100%" fill="#0f172a" rx="8" />"##);
-    svg.push_str(&format!(r##"<text x="{}" y="35" fill="#f8fafc" font-size="20" font-weight="bold" text-anchor="middle">{}</text>"##, pad_left + chart_w/2, title));
+    svg.push_str(&format!(r##"<text x="{}" y="35" fill="#f8fafc" font-size="20" font-weight="bold" text-anchor="middle">{}</text>"##, pad_left + chart_w/2, escape_xml(title)));
     
     let num_ticks = 5;
     for t in 0..=num_ticks {
