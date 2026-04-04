@@ -500,12 +500,23 @@ pub fn parse_spreadsheet_chart(path: &str, target_sheet: &str) -> Result<String,
 
         if let Some(subgrid) = find_chartable_subgrid(&matrix) {
             let mut chart_matrix: Vec<Vec<String>> = Vec::new();
-            for r in subgrid.row_start..subgrid.row_end {
+            for r in subgrid.row_start..=subgrid.row_end {
                 let mut row = Vec::new();
-                for c in subgrid.col_start..subgrid.col_end {
-                    row.push(matrix[r][c].clone());
+                for c in subgrid.col_start..=subgrid.col_end {
+                    let cell = if c < matrix[r].len() { matrix[r][c].clone() } else { String::new() };
+                    row.push(cell);
                 }
                 chart_matrix.push(row);
+            }
+
+            // Orient axes to match LibreOffice typical defaults (Columns = X Axis, Rows = Data Series)
+            let mut transposed_matrix = vec![vec![String::new(); chart_matrix.len()]; chart_matrix[0].len()];
+            for r in 0..chart_matrix.len() {
+                for c in 0..chart_matrix[0].len() {
+                    if c < chart_matrix[r].len() {
+                        transposed_matrix[c][r] = chart_matrix[r][c].clone();
+                    }
+                }
             }
 
             let mut title = "Native Chart".to_string();
@@ -523,7 +534,7 @@ pub fn parse_spreadsheet_chart(path: &str, target_sheet: &str) -> Result<String,
                 if found { break; }
             }
 
-            let svg = generate_svg_bar_chart(&chart_matrix, &title);
+            let svg = generate_svg_bar_chart(&transposed_matrix, &title);
             return Ok(svg);
         } else {
             return Err("No chartable data matrix found in this sheet.".to_string());
