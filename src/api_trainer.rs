@@ -611,6 +611,23 @@ pub async fn run_deep_research_handler(
                     "required": ["search_queries"]
                 }
             }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "dispatch_visual_artist",
+                "description": "Ferramenta para desenhar ilustrações, criar quadros ou arte visual (Text-to-Image) quando o usuário pedir para 'desenhar', 'criar imagem' ou gerar arte.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                            "type": "string",
+                            "description": "O prompt cinematográfico MÁXIMAMENTE DETALHADO EM INGLÊS descrevendo a cena visual desejada para o Stable Diffusion."
+                        }
+                    },
+                    "required": ["prompt"]
+                }
+            }
         }]);
 
         let target_model_name = req.model.clone().unwrap_or_else(|| "qwen2.5:7b".to_string());
@@ -688,6 +705,46 @@ pub async fn run_deep_research_handler(
         // --- THE AGENTIC LOOP (MAX 5 ITERATIONS TO PREVENT INFINITE LOOPS) ---
         for cycle in 1..=5 {
             if wait_or_cancel(200, &token).await { return; }
+            
+            // --- G.2: THE MOM/DAD (Zero-Shot Rust Router) ---
+            if cycle == 1 && is_firewall_enabled {
+                let _ = TRAINER_LOGS.send("[The Mom (Router)] Vetorizando o Prompt nativamente (Zero LLM Overhead)...".to_string());
+                
+                let stopwords = ["desenhe", "crie", "imagem", "arte", "analise", "busque", "procure", "encontre", "dados", "quais", "qual", "como", "sobre", "para", "este", "esse", "esta", "essa", "pelo", "pela", "onde", "quando"];
+                let keywords: Vec<String> = prompt.split(|c: char| !c.is_alphanumeric())
+                    .map(|s| s.trim().to_lowercase())
+                    .filter(|s| s.len() > 3 && !stopwords.contains(&s.as_str()))
+                    .take(6)
+                    .collect();
+                
+                let sq = keywords.join(" ");
+                if !sq.is_empty() {
+                    let _ = TRAINER_LOGS.send(format!("[The Mom (Router)] Keywords extraídas em <1ms: '{}'", sq));
+                    
+                    let engine_clone = engine_arc.clone();
+                    let embed_clone = embed_client.clone();
+                    let auth_clone = auth_inquisitor.clone();
+                    let target_clone = target_model_name.clone();
+                    
+                    let res_slm = execute_sub_analyst(sq.clone(), engine_clone, embed_clone, auth_clone.clone(), target_clone, true).await;
+                    
+                    if !res_slm.contains("DADO NÃO ENCONTRADO") && !res_slm.contains("Falha do aluno") {
+                        all_sources.push(res_slm.clone());
+                        messages.push(serde_json::json!({
+                            "role": "user",
+                            "content": format!("[Zero-Shot Router]: O Omni-Scraper rastreou a internet instantaneamente e encontrou estes fatos soberanos. Use-os para formatar sua resposta se necessário:\n\n{}", res_slm)
+                        }));
+                        let _ = TRAINER_LOGS.send("[The Mom (Router)] Fatos injetados nas veias do pipeline. A Mente Mestra finalmente vai despertar para avaliar.".to_string());
+                        
+                        let scaped_count = res_slm.lines().filter(|l| l.starts_with("## Source:")).count();
+                        if scaped_count > 0 { let _ = TRAINER_LOGS.send(format!("[Omni-Scraper] {} Fontes Capturadas no Roteamento Prévio.", scaped_count)); }
+                        
+                        continue; // SKIP MASTER LLM ON CYCLE 1 - JUMP TRIGGER
+                    } else {
+                        let _ = TRAINER_LOGS.send("[The Mom (Router)] Zero-Shot RAG não convergiu (possível prompt criativo). Delegando orquestração original para a Mente Mestra.".to_string());
+                    }
+                }
+            }
             
             let _ = TRAINER_LOGS.send(format!("[Loop ReAct - Ciclo {}/5] Invocando Mente Mestra ({})...", cycle, target_model_name));
 
@@ -780,6 +837,40 @@ pub async fn run_deep_research_handler(
                                                 let res_inquisitor = execute_sub_analyst(sq.clone(), engine_clone, embed_clone, auth_clone.clone(), target_clone, is_firewall_enabled).await;
                                                 (sq, res_inquisitor, auth_clone)
                                             }));
+                                        }
+                                    } else if let Some(func) = tc.get("function") {
+                                        if func.get("name").and_then(|n| n.as_str()) == Some("dispatch_visual_artist") {
+                                            let mut visual_prompt = String::new();
+                                            if let Some(args) = tc.get("arguments").and_then(|a| a.as_object()) {
+                                                if let Some(p) = args.get("prompt").and_then(|s| s.as_str()) { visual_prompt = p.to_string(); }
+                                            } else if let Some(args_str) = tc.get("arguments").and_then(|a| a.as_str()) {
+                                                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
+                                                    if let Some(p) = parsed.get("prompt").and_then(|s| s.as_str()) { visual_prompt = p.to_string(); }
+                                                }
+                                            }
+
+                                            if !visual_prompt.is_empty() {
+                                                let _ = TRAINER_LOGS.send(format!("[Visual Artist] Inicializando motor de pintura cibernética: '{}'", visual_prompt));
+                                                let payload = serde_json::json!({ "prompt": visual_prompt.clone() });
+                                                join_handles.push(tokio::spawn(async move {
+                                                    let client = reqwest::Client::new();
+                                                    let img_res = match client.post("http://127.0.0.1:38001/v1/images/generations").json(&payload).send().await {
+                                                        Ok(r) => {
+                                                            if let Ok(j) = r.json::<serde_json::Value>().await {
+                                                                if let Some(url) = j.get("data").and_then(|arr| arr.as_array()).and_then(|a| a.first()).and_then(|f| f.get("url")).and_then(|u| u.as_str()) {
+                                                                    format!("\n\n![Sovereign Vault Artefact]({})\n\n", url)
+                                                                } else {
+                                                                    "FALHA: Nenhuma imagem validada retornada pela Engine Visual.".to_string()
+                                                                }
+                                                            } else {
+                                                                "FALHA: Formato desconhecido no gerador Txt2Img local.".to_string()
+                                                            }
+                                                        },
+                                                        Err(e) => format!("FALHA na conexão Multimodal Engine: {}", e)
+                                                    };
+                                                    (visual_prompt, img_res, "Doutrinador Visual".to_string())
+                                                }));
+                                            }
                                         }
                                     }
                             }
