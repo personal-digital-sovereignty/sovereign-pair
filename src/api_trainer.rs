@@ -658,16 +658,12 @@ pub async fn run_deep_research_handler(
         sys.refresh_memory();
         let total_ram_gb = sys.total_memory() / 1024 / 1024 / 1024; // Convert bytes to GB
 
-        let dynamic_num_ctx = if total_ram_gb < 12 {
-            4096
-        } else if total_ram_gb < 18 {
-            8192
-        } else if total_ram_gb < 35 {
-            16384 // Proteção extrema para modelos 14B em painéis de 32GB
+        let dynamic_num_ctx = if total_ram_gb < 35 {
+            4096 // Limitado draconianamente a 4096 para Ryzen (27GB RAM) para evitar CPU KV Cache Thrashing Extremo
         } else if total_ram_gb < 65 {
-            32768
+            8192
         } else {
-            65536
+            16384
         };
 
         tracing::info!("[Host OS] Total RAM: {} GB -> Allocating {} tokens context to Ollama.", total_ram_gb, dynamic_num_ctx);
@@ -836,14 +832,14 @@ pub async fn run_deep_research_handler(
                         } 
                         // 2. O Modelo entregou a resposta final em plain text!
                         else if let Some(content) = msg_obj.get("content").and_then(|c| c.as_str()) {
-                            // Firewall Cognitivo: Fallback se vazar nome da tool, assuma que ele está alucinando JSON
-                            if content.contains("\"dispatch_sub_researcher\"") || content.contains("\"search_queries\"") {
-                                let _ = TRAINER_LOGS.send("[Firewall Cognitivo] Vazamento de Tool Call detectado no texto! Interceptando e curando a alucinação (Phase 7)...".to_string());
+                            // Firewall Cognitivo: Fallback se o ciclo for 1 (ele DEVE buscar dados) ou se vazou JSON
+                            if cycle == 1 || content.contains("\"dispatch_sub_researcher\"") || content.contains("\"search_queries\"") {
+                                let _ = TRAINER_LOGS.send("[Firewall Cognitivo] Interceptando plain-text! Curando a alucinação do LLM (Phase 7)...".to_string());
+                                let mut queries_extracted: Vec<String> = Vec::new();
                                 
-                                if let (Some(start), Some(end)) = (content.find('{'), content.rfind('}'))
-                                    && start < end {
+                                if let (Some(start), Some(end)) = (content.find('{'), content.rfind('}')) {
+                                    if start < end {
                                         let json_str = &content[start..=end];
-                                        let mut queries_extracted: Vec<String> = Vec::new();
                                         
                                         if let Ok(pseudo_json) = serde_json::from_str::<serde_json::Value>(json_str) {
                                             fn extract_arrays(val: &serde_json::Value, out: &mut Vec<String>) {
@@ -876,12 +872,15 @@ pub async fn run_deep_research_handler(
                                             }
                                             extract_arrays(&pseudo_json, &mut queries_extracted);
                                         }
+                                    }
+                                }
 
-                                        queries_extracted.retain(|q| q != "dispatch_sub_researcher" && !q.trim().is_empty());
+                                queries_extracted.retain(|q| q != "dispatch_sub_researcher" && !q.trim().is_empty());
 
-                                        if queries_extracted.is_empty() {
-                                            queries_extracted.push("latest global news".to_string());
-                                        }
+                                if queries_extracted.is_empty() {
+                                    let _ = TRAINER_LOGS.send("[Thought Nanny] Falha de JSON do Mestre. Forçando disparo com a Diretiva Original do Comandante.".to_string());
+                                    queries_extracted.push(prompt.clone());
+                                }
 
                                         let mut join_handles_fb = Vec::new();
                                         let semaphore_fb = std::sync::Arc::new(tokio::sync::Semaphore::new(1));
@@ -931,7 +930,6 @@ pub async fn run_deep_research_handler(
                                         }));
                                         
                                         continue; // Volta ao Agentic Loop iterativo sem quebrar a pipeline!
-                                    }
                             }
                             
                             // Caso passe pela Nanny ou não tenha JSON vazado, finaliza o Chain of Thought.
