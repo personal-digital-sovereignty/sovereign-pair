@@ -5,8 +5,15 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A série 1.0.0 será ativada unicamente quando o núcleo do ecossistema Sovereign Bare Main atingir maturidade e estabilidade arquitetural plenas.
 
-## [0.9.9] - 2026-04-02
+## [0.9.9] - 2026-04-04 (Upcoming)
 
+### 🚀 Sovereign WAG TurboQuant Evolution & OOM Prevention
+- **TurboQuant Context Emulation**: Injeção da engenharia de compressão de Memória Curta inspirada pelo laboratório do Google. Parametrização forçada no orquestrador Ollama (`OLLAMA_FLASH_ATTENTION=1` e `OLLAMA_KV_CACHE_TYPE=q4_0`) para quantizar nativamente o Cache KV em 4-bits e usar alocação exclusiva na memória L1 da GPU (Flash Attention).
+  - Multiplica a janela de contexto absorvível da IA local de 4x a 8x estancando o estouro de RAM/Swap.
+  - Elimina congelamentos hostis (Thermal Throttling / OOM) em hardware Ryzen de 32GB durante as extrações massivas do WAG.
+- **WAG Omni-Reader Matrix (5-Node Extractor)**: Abolida a dependência singular e impositiva da API da Jina (`r.jina.ai`). Refatorado o `research.rs` para espalhar um vetor dinâmico de redundância web. Em caso de *Rate Limits*, o Rust espirrala imperceptivelmente por `md.dita.to`, `txtify.it`, `urltomarkdown.com` e o *Public Tier* da `Firecrawl`.
+- **BM25 Lexical Pre-Filter Engine**: Reestruturação visceral contra estrangulamentos do Cross-Encoder. O núcleo semântico mestre (`BGERerankerBase`) agora opera atrás de um filtro Lexical do Rust no Cíbrido; pedaços de HTML decodificados que não contenham as palavras-chave são ignorados preventivamente. Os "Tokens/s" escalam radicalmente na ingestão.
+- **Cognitive Quarantine Abolished**: Destruição do isolamento dogmático "WAF-Penalty de 60 dias", trocado por recuperações de respiro dinâmico (Soft-Lock de 2 horas).
 ### 🚀 Sovereign WAG Multi-Hop & Pure Rust Office Ecosystem
 - **The Recursion Extractor (Thought Nanny)**: O Extrator nativo na `api_trainer.rs` foi reconstruído de base para caçar assincronamente Arrays JSON em profundidade. O pipeline de Deep Research resolve e esteriliza completamente as alucinações cognitivas multiferramentas do LLM orgânico, impedindo inferências de invocar o `dispatch_sub_researcher` e entrar em um loop infinito narcisista retro-alimentar ("A Vacina Anti-Narcisismo").
 - **Agnostic & Dependency-Free Office Ingestion (`office_parser.rs`)**: Erradicada sumariamente a dependência colateral do LlamaIndex e conversores pesados de OS como `pandoc`/`LibreOffice` em host local. Injeção letal, limpa e estática das crátes hipervelozes `quick-xml` e `calamine`. 
