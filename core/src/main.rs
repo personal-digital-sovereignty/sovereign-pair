@@ -253,6 +253,8 @@ async fn main() {
         .route("/v1/research/staging", axum::routing::get(api_trainer::get_staged_research_handler))
         .route("/v1/research/staging/:id", axum::routing::delete(api_trainer::discard_staged_research_handler))
         .route("/v1/research/staging/:id/commit", axum::routing::post(api_trainer::commit_staged_research_handler))
+        // ------------------ Multimodal Endpoints ------------------
+        .route("/v1/images/generations", post(api_multimodal::generate_image_handler))
         // ------------------ Chat Endpoints ------------------
         .route("/opencode/v1/chat/completions", post(api::chat_completions_handler))
         .route("/v1/chat/completions", post(api::chat_completions_handler))
