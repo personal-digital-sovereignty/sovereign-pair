@@ -577,21 +577,57 @@ impl DeepResearchEngine {
         String::new()
     }
 
+    /// Integração Nativa Kiwix-Serve: Verifica a Wikipedia Offline ZIM no localhost:8080
+    async fn search_kiwix_local(&self, query: &str) -> Result<Vec<String>, String> {
+        let url = format!("http://127.0.0.1:8080/search?pattern={}", urlencoding::encode(query));
+        match self.client.get(&url).timeout(std::time::Duration::from_millis(800)).send().await {
+            Ok(res) if res.status().is_success() => {
+                if let Ok(html) = res.text().await {
+                    let mut links = Vec::new();
+                    let document = scraper::Html::parse_document(&html);
+                    let selector = scraper::Selector::parse("a").unwrap();
+                    for element in document.select(&selector) {
+                        if let Some(href) = element.value().attr("href") {
+                            // A API web do Kiwix injeta /c/ antes dos conteudos ZIM parseados.
+                            if href.starts_with("/c/") && !href.contains("?") {
+                                links.push(format!("http://127.0.0.1:8080{}", href));
+                            }
+                        }
+                    }
+                    links.dedup();
+                    links.truncate(3); // Top 3 Wikipedia Hits Maximum
+                    return Ok(links);
+                }
+            }
+            _ => {}
+        }
+        Err("Kiwix Offline indisponível ou limite estourado".to_string())
+    }
+
     /// Dispara a busca Multi-Hop com tolerância impecável a falhas WAF/Cloudflare.
     pub async fn search_web(&self, query: &str) -> Result<SovereignSearchResult, String> {
         tracing::info!("🔍 [WAG] Inicializando Busca Autônoma Sovereign Omni-Scraper por: '{}'", query);
         
-        // 1. O SOVEREIGN PARSER PARALELO: Tenta raspar Proxy Native + DuckDuckGo Snippets
-        let (yahoo_res, ddg_snippets) = tokio::join!(
+        // 1. O SOVEREIGN PARSER PARALELO: Tenta raspar Proxy Native + DuckDuckGo Snippets + ZIM Wikipedia Local
+        let (yahoo_res, ddg_snippets, kiwix_res) = tokio::join!(
             self.search_sovereign_meta(query),
-            self.search_duckduckgo_lite(query)
+            self.search_duckduckgo_lite(query),
+            self.search_kiwix_local(query)
         );
 
         let mut final_links = Vec::new();
 
+        if let Ok(k_links) = kiwix_res {
+             if !k_links.is_empty() {
+                 tracing::info!("📚 [Kiwix ZIM] Conhecimento Offline detectado! Injetando {} enciclopédias ZIM locais no Córtex.", k_links.len());
+                 final_links.extend(k_links); // ZIM offline tem altíssima prioridade 
+             }
+        }
+
         match yahoo_res {
             Ok(links) if !links.is_empty() => {
-                final_links = self.apply_pi_hole_filter(links).await;
+                let pure = self.apply_pi_hole_filter(links).await;
+                final_links.extend(pure);
                 tracing::info!("✅ [WAG] Sovereign Meta-Search Bem-Sucedido! ({}) links orgânicos purificados.", final_links.len());
             },
             Err(e) => {
@@ -607,7 +643,8 @@ impl DeepResearchEngine {
         if final_links.is_empty() {
             match self.search_brave_api(query).await {
                 Ok(links) if !links.is_empty() => {
-                    final_links = self.apply_pi_hole_filter(links).await;
+                    let pure = self.apply_pi_hole_filter(links).await;
+                    final_links.extend(pure);
                     tracing::info!("✅ [WAG] Busca Cíbrida Brave API Bem-Sucedida! ({}) links ancorados.", final_links.len());
                 },
                 _ => {
@@ -620,7 +657,8 @@ impl DeepResearchEngine {
         if final_links.is_empty() {
             match self.search_searxng_public(query).await {
                 Ok(links) if !links.is_empty() => {
-                    final_links = self.apply_pi_hole_filter(links).await;
+                    let pure = self.apply_pi_hole_filter(links).await;
+                    final_links.extend(pure);
                     tracing::info!("✅ [WAG] Busca Cíbrida SearxNG Bem-Sucedida! ({}) links ancorados.", final_links.len());
                 },
                 _ => {
@@ -632,6 +670,8 @@ impl DeepResearchEngine {
         if final_links.is_empty() && ddg_snippets.is_empty() {
              return Err("Dual-Engine Crash. WAF Block total e Snippets falharam.".to_string());
         }
+        
+        final_links.dedup();
 
         Ok(SovereignSearchResult {
             links: final_links,
