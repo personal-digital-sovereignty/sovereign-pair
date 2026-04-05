@@ -93,6 +93,8 @@ pub async fn generate_image_handler(
 ) -> impl IntoResponse {
     let client = reqwest::Client::new();
     
+    tracing::info!("📸 [Sovereign Vision Engine] Recebida a incubação Visual para Base64: {}", payload.prompt);
+    
     // Stable Diffusion WebUI / SD.cpp Compatible local endpoint
     let sd_url = "http://127.0.0.1:7860/sdapi/v1/txt2img";
     
