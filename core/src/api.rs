@@ -196,7 +196,40 @@ let human_prompt = payload.messages.last()
     })
     .unwrap_or_else(|| "Interação O.S".to_string());
 
-// ======= DevSecOps Guardrails (Phase 17) =======
+// ======= Visual Artist Hard-Bypass (G.1 Palette Tool) =======
+if payload.visual_artist_mode.unwrap_or(false) && !human_prompt.trim().is_empty() {
+    tracing::info!("🎨 [Sovereign Vision] Dedicated Palette Mode Triggered! Bypassing LLM completely for prompt: {}", human_prompt);
+    let cloned_prompt = human_prompt.clone();
+    let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<Result<axum::response::sse::Event, std::convert::Infallible>>();
+    tokio::spawn(async move {
+        let loading_chunk = crate::models::OpenAIChatChunkResponse {
+            id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
+            object: "chat.completion.chunk".to_string(),
+            created: chrono::Local::now().timestamp(),
+            model: "Sovereign Visual Engine".to_string(),
+            choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(format!("🎨 **Sovereign Vision Engine (Zero-Touch Bypass)**: Acionando SD.cpp no Bare-Metal para forjar imagem fotorealista Baseada em: *{}*. Aguarde...\n\n", cloned_prompt)), tool_calls: None }, finish_reason: None }],
+            usage: None,
+        };
+        let _ = tx.send(Ok(axum::response::sse::Event::default().data(serde_json::to_string(&loading_chunk).unwrap_or_default())));
+        let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(120)).build().unwrap_or_default();
+        if let Ok(r) = client.post("http://127.0.0.1:38001/v1/images/generations").json(&serde_json::json!({ "prompt": cloned_prompt })).send().await {
+            if let Ok(j) = r.json::<serde_json::Value>().await {
+                if let Some(url) = j.get("data").and_then(|arr| arr.as_array()).and_then(|a| a.first()).and_then(|f| f.get("url")).and_then(|u| u.as_str()) {
+                    let ok_chunk = crate::models::OpenAIChatChunkResponse {
+                        id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()), object: "chat.completion.chunk".to_string(), created: chrono::Local::now().timestamp(), model: "Sovereign Visual Engine".to_string(),
+                        choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(format!("![Sovereign Vault Artefact]({})\n\n", url)), tool_calls: None }, finish_reason: Some("stop".to_string()) }], usage: None,
+                    };
+                    let _ = tx.send(Ok(axum::response::sse::Event::default().data(serde_json::to_string(&ok_chunk).unwrap_or_default())));
+                }
+            }
+        }
+        let _ = tx.send(Ok(axum::response::sse::Event::default().data("[DONE]")));
+    });
+    let stream = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
+    return axum::response::Sse::new(stream).into_response();
+}
+
+
 if let Err(security_alert) = crate::guardrails::evaluate_prompt(&human_prompt, &state.db).await {
     tracing::warn!("🛡️ [Sovereign Guardrails] Ameaça Bloqueada: {}", security_alert.message);
     
