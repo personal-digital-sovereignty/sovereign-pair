@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { MessageSquare, Cpu, Shield, Send, Loader2, Paperclip, ThumbsUp, ThumbsDown, Bot, User, BrainCircuit, Copy, RotateCcw, Settings, Square, ChevronDown } from 'lucide-svelte';
+    import { MessageSquare, Cpu, Shield, Send, Loader2, Paperclip, ThumbsUp, ThumbsDown, Bot, User, BrainCircuit, Copy, RotateCcw, Settings, Square, ChevronDown, Palette } from 'lucide-svelte';
     import { globalState, loadGlobalSession, sendGlobalChatMessage, stopGeneration } from '$lib/state.svelte.js';
     import { settingsState } from '$lib/settings.svelte';
     import MicrophoneButton from './ui/actions/MicrophoneButton.svelte';
@@ -283,13 +283,20 @@
             </button>
 
             <button type="button" 
+                onclick={() => globalState.chat.isVisualArtistEnabled = !globalState.chat.isVisualArtistEnabled}
+                class={`absolute left-[128px] bottom-2 p-2.5 rounded-lg transition-colors cursor-pointer ${globalState.chat.isVisualArtistEnabled ? 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-100 dark:bg-fuchsia-500/20 shadow-inner dark:shadow-none border border-fuchsia-200 dark:border-fuchsia-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:bg-slate-50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
+                title={globalState.chat.isVisualArtistEnabled ? 'Modo Visual: ON (Bypass LLM para Imagens)' : 'Modo Visual: OFF'}>
+                <Palette class="w-5 h-5" />
+            </button>
+
+            <button type="button" 
                 onclick={() => settingsState.isOpen = true}
-                class="absolute left-[128px] bottom-2 p-2.5 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-[#74b0ff] hover:bg-blue-50 dark:hover:bg-[#1d253b] rounded-lg transition-colors cursor-pointer" 
+                class="absolute left-[168px] bottom-2 p-2.5 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-[#74b0ff] hover:bg-blue-50 dark:hover:bg-[#1d253b] rounded-lg transition-colors cursor-pointer" 
                 title="Parâmetros do Modelo">
                 <Settings class="w-5 h-5" />
             </button>
 
-            <div class="absolute left-[170px] bottom-2">
+            <div class="absolute left-[210px] bottom-2">
                 <MicrophoneButton 
                     disabled={globalState.chat.isTyping} 
                     on:transcription={(e) => message += (message ? ' ' : '') + e.detail} 
@@ -299,7 +306,7 @@
             <textarea 
                 bind:value={message}
                 placeholder="Ask the Global Cybrid Council..." 
-                class="flex-1 bg-transparent border-none text-slate-800 dark:text-slate-200 text-sm p-4 pl-[220px] h-14 resize-none outline-none custom-scrollbar placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                class="flex-1 bg-transparent border-none text-slate-800 dark:text-slate-200 text-sm p-4 pl-[260px] h-14 resize-none outline-none custom-scrollbar placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 onkeydown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
