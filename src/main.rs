@@ -155,7 +155,7 @@ fn spawn_vision_daemon() {
             
             std::thread::spawn(move || {
                 let _ = std::process::Command::new(bin)
-                    .arg("--port")
+                    .arg("--listen-port")
                     .arg("7860")
                     .arg("-m")
                     .arg(model_path)
