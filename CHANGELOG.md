@@ -204,14 +204,7 @@ Esta não-planejada e microscópica "micro-patch" solidifica o Core nativo do Mo
 ### 🎉 Melhorias e Correções Profundas (Hotfixes):
 - **O Fim da Panificação SQLite / Sync Engine**: Eliminado o bug "Falha ao Ler Tabela de Workspaces" que corrompia as entranhas assíncronas do monitorador The Watcher. O problema de derivação do Schema (onde ele procurava a coluna como String `absolute_path` quando, estritamente, ela era um Integer + String `path` nativo) foi totalmente sanado. As tabelas SQL agora vinculam os File System FSEvents perfeitamente.
 - **Limpeza do Lixo de Logs (Rust Native CLI)**: Compilado com Zero Warnings de macros importadas indevidamente (Linter do Cargo). A biblioteca The Nurse / The Watcher (`fs_extra` & `Copy`) e as passagens do `Tauri::AppHandle` foram envelopadas através das travas blindadas condicionalmente via `#[cfg]` Macros, impedindo "Unused Imports" do Windows e do Apple macOS em um ambiente de produção Linux. 
-- **O Fim da Mega-Bomba de Artefatos no Release Workflow**: A CI Pipeline que gerava nossos instaladores foi radicalmente lapidada. Variáveis dinâmicas para forçar `Node.JS 24` em processos nativos paralelos (evitando "Deprecation Warning"), e o expurgo do *Artifact Glob Path* ("`**/*`" $\rightarrow$ "`*.AppImage, *.msi`") no Github. O Uploader do GitHub Release agora não travará na nuvem por Rate Limits tentando ejetar milhares de arquivos recursivos em C++ no log, postando EXCLUSIVAMENTE pacotes empacotados.
-
-## [0.8.1] - 2026-03-20
-
-### Melhorias e Correções Profundas (Hotfixes)
-- **O Fim da Panificação SQLite / Sync Engine**: Eliminado o bug "Falha ao Ler Tabela" corrompendo as entranhas assíncronas do monitorador The Watcher. O problema de derivação do Schema de `absolute_path` (String) para `path` (Integer mapping) foi totalmente sanado. 
-- **Limpeza do Lixo de Logs (Rust Native CLI)**: Compilado com Zero Warnings de macros indevidamente importadas. A biblioteca The Nurse / The Watcher (`fs_extra` & `Copy`) foram envelopadas através das travas condicionalmente blindadas `#[cfg]`, impedindo "Unused Imports" do Windows e MacOS. 
-- **O Fim da Mega-Bomba de Artefatos no Release Workflow**: A CI Pipeline que gerava nossos instaladores foi radicalmente lapidada. Variáveis dinâmicas forçam `Node.JS 24` em processos nativos paralelos (evitando "Deprecation Warning"), e o expurgo do *Artifact Glob Path* protege o Uploader do GitHub Release contra API Rate Limits e Not Found Errors.
+- **O Fim da Mega-Bomba de Artefatos no Release Workflow**: A CI Pipeline que gerava nossos instaladores foi radicalmente lapidada. Variáveis dinâmicas para forçar `Node.JS 24` em processos nativos paralelos (evitando "Deprecation Warning"), e o expurgo do *Artifact Glob Path* ("`**/*`" $\rightarrow$ "`*.AppImage, *.msi`") no Github. O Uploader do GitHub Release agora não travará na nuvem por Rate Limits ou Not Found Errors tentando ejetar milhares de arquivos recursivos em C++ no log, postando EXCLUSIVAMENTE pacotes empacotados.
 
 ## [0.8.0] - 2026-03-20
 
