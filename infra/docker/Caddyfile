@@ -34,7 +34,7 @@
         }
     }
 
-    # Rota direta para APIs do Obsidian (/v1/*) que não mandam o prefixo /api/
+    # Rota direta para APIs Internas da Vault Local (/v1/*) que não mandam o prefixo /api/
     # Usamos handle em vez de handle_path para não arrancar o /v1 (FastAPI precisa dele)
     handle /v1/* {
         reverse_proxy sovereign-api:8000
