@@ -31,6 +31,11 @@ All notable changes to the Sovereign Pair project will be documented in this fil
   - Isolamento do `reqwest` timeout forçado a 1200 Segundos, blindando inferências extensas.
 - **Thought Nanny Mestre Cure (Anti-Hallucination Regex)**: Implementada uma cura agressiva contra modelos Mestre sem suporte nativo a JSON Tool-Calling (ex: `Qwen`). Se a "Mente Mestra" abortar a tool no Ciclo 1 e responder em linguagem natural "Plain-Text" pura (pulando o *WAG Omni-Scraper* direto para o Epistemic Wall), a Nanny intercepta o prompt original do usuário e força a pesquisa web impiedosamente via Rust para evitar "0 Fontes" na largada.
 
+### 🎨 Sovereign Vision & Multimodal G.1 (Zero-Touch)
+- **Bare-Metal Visual Artist (`api_multimodal.rs`)**: Injetada a arquitetura autônoma no JSON Schema do Master LLM para disparar a ferramenta dinâmica `dispatch_visual_artist`. O OLLAMA intercepta a ordem do usuário, gera um prompt fotorrealista em background e dispara silenciosamente contra a porta local `7860`.
+- **Automated Zero-Touch Lifecycle (`main.rs`)**: Para combater a fadiga do desenvolvedor e remover atraso operacional, foi embutido um Spawner Assíncrono (`std::thread::spawn()`). Ele rastreia o disco local por pesos visuais otimizados (`SDXL-Turbo GGUF`) e compilações do `sd.cpp`. Se identificados, o `cargo run` amordaça toda a poluição do log visual (STDOUT) e prende a vida do processo à sobrevida do `Sovereign Core`.
+- **Setup Cíbrido (BYO_Hardware)**: Entregue o automatizador `scripts/install_sovereign_vision.sh`, que burla dependências colossais de Python compilando puramente `C++ (OpenBLAS/Vulkan)` para hardwares limitados (Ryzen iGPUs), puxando modelos Q8 nativos e evitando o purgatório clássico NVIDIA/CUDA.
+
 ## [0.9.8] - 2026-03-31
 
 ### 🚀 Sovereign Multimodal Hybrid Architecture
