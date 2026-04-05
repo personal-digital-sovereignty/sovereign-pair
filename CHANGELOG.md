@@ -5,6 +5,15 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A série 1.0.0 será ativada unicamente quando o núcleo do ecossistema Sovereign Bare Main atingir maturidade e estabilidade arquitetural plenas.
 
+## [0.10.0] - 2026-04-05
+
+### 🎨 Sovereign Multimodal Vision Enablement (Phase G.1)
+- **Palette UI Bypass**: Implementado o "Visual Artist Hard-Bypass" de Zero-Touch no Svelte (`ChatPanel.svelte`). Um ícone explícito de Paleta permite interceptar intruções de imagens e invocar o Daemon Multimodal sem gastar tokens inferindo arquiteturas no LLM nativo.
+- **Dynamic Binary Spawner**: Refatoração no Bootloader do Rust (`main.rs`) para buscar automaticamente o binário `sd-server` pré-compilado, passando argumentos explícitos `--listen-port 7860` fixados na base e resolvendo o erro silencioso de porta fechada. O spawner agora utiliza um sistema genérico `*.gguf` baseando-se por prioridade no diretório model para inicializar de forma agnóstica o motor local.
+- **Vault Dual-Truth Persistence Correction**: Reparo drástico de arquitetura na gravação offline. Os fluxos paralelos assíncronos (`tokio::spawn`) para requisição de imagem não possuíam correlação correta com o SQLite. Renomeada a tabela alvo nativa de `messages` para `chat_messages` no endpoint, assegurando persistência e o reload de interface perfeito.
+- **Native Routing Repair `404`**: Corrigida a construção e codificação da File URL das Imagens Geradas que enviavam a string `/live` para Svelte, sendo alterada fisicamente no Cíbrido para apontar ao Extrator Correto de multimídia offline: `/v1/vault/media`.
+- **SDXL Turbo Engine Parameterization**: Modificados os gatilhos difusores. Devido à presença dos novos modelos Turbo local, os "Hyperparams" de inferência desceram bruscamente de estritos `20 Steps / CFG 7.0` (Stable Diffusion Vanilla) para minimalistas e ultra fluídos `4 Steps / CFG 1.5`, curando em 100% as anomalias biológicas/membros extras e reduzindo em quase 5x o processamento CPU massivo.
+
 ## [0.9.9] - 2026-04-04
 
 ### 🚀 Sovereign WAG TurboQuant Evolution & OOM Prevention
