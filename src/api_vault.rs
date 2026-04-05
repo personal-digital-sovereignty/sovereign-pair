@@ -57,7 +57,7 @@ async fn scan_directory(path: &Path, root_path: &Path) -> Vec<VaultNode> {
                 let mut wikilinks = vec![];
                 if filename.ends_with(".md")
                     && let Ok(content) = fs::read_to_string(&abs_path).await {
-                        // Extração Simples de Obsidian Synapses/Tags [[...]]
+                        // Extração Simples de Markdown Synapses/Tags [[...]]
                         for chunk in content.split("[[").skip(1) {
                             if let Some(end_idx) = chunk.find("]]") {
                                 let link_content = &chunk[..end_idx];
@@ -724,7 +724,7 @@ pub async fn vault_graph_handler(
         // have been DELETED to prevent the "Dandelion" collapse, allowing true Constellations.
     }
 
-    // Dynamic Obsidian Synapse Extraction (Memory Regex-less Split)
+    // Dynamic Markdown Synapse Extraction (Memory Regex-less Split)
     for (node_id, content) in &doc_contents {
         for chunk in content.split("[[").skip(1) {
             if let Some(end_idx) = chunk.find("]]") {
