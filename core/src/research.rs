@@ -577,9 +577,9 @@ impl DeepResearchEngine {
         String::new()
     }
 
-    /// Integração Nativa Kiwix-Serve: Verifica a Wikipedia Offline ZIM no localhost:8080
+    /// Integração Nativa Kiwix-Serve: Verifica a Wikipedia Offline ZIM no localhost:38201
     async fn search_kiwix_local(&self, query: &str) -> Result<Vec<String>, String> {
-        let url = format!("http://127.0.0.1:8080/search?pattern={}", urlencoding::encode(query));
+        let url = format!("http://127.0.0.1:38201/search?pattern={}", urlencoding::encode(query));
         match self.client.get(&url).timeout(std::time::Duration::from_millis(800)).send().await {
             Ok(res) if res.status().is_success() => {
                 if let Ok(html) = res.text().await {
@@ -590,7 +590,7 @@ impl DeepResearchEngine {
                         if let Some(href) = element.value().attr("href") {
                             // A API web do Kiwix injeta /c/ antes dos conteudos ZIM parseados.
                             if href.starts_with("/c/") && !href.contains("?") {
-                                links.push(format!("http://127.0.0.1:8080{}", href));
+                                links.push(format!("http://127.0.0.1:38201{}", href));
                             }
                         }
                     }
