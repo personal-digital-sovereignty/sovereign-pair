@@ -29,8 +29,8 @@ wget -qO sd-master.zip https://github.com/leejet/stable-diffusion.cpp/releases/d
     fi
     cd stable-diffusion.cpp
     mkdir -p build && cd build
-    cmake .. -DSD_VULKAN=ON -DSD_BUILD_EXAMPLES=ON
-    cmake --build . --config Release --target sd
+    cmake .. -DSD_BUILD_EXAMPLES=ON
+    cmake --build . --config Release
     cd ../..
 }
 
@@ -54,9 +54,9 @@ echo -e "O Sovereign Multimodal Engine está pronto. Para levantar o servidor,"
 echo -e "execute este comando sempre que quiser desenhar via Chat Svelte:\n"
 
 if [ -d "sd_bin" ]; then
-    echo -e "${YELLOW}cd $BASE_DIR/sd_bin && ./sd --mode server --port 7860 -m $MODEL_DIR/sdxl_turbo.gguf${NC}\n"
+    echo -e "${YELLOW}cd $BASE_DIR/sd_bin && ./sd-server --port 7860 -m $MODEL_DIR/sdxl_turbo.gguf${NC}\n"
 else
-    echo -e "${YELLOW}cd $BASE_DIR/stable-diffusion.cpp/build/bin && ./sd --mode server --port 7860 -m $MODEL_DIR/sdxl_turbo.gguf${NC}\n"
+    echo -e "${YELLOW}cd $BASE_DIR/stable-diffusion.cpp/build/bin && ./sd-server --port 7860 -m $MODEL_DIR/sdxl_turbo.gguf${NC}\n"
 fi
 
 echo -e "Pronto Comandante. Pode dar o /start na engine quando desejar."

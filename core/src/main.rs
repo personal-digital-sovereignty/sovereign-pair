@@ -115,13 +115,19 @@ fn spawn_vision_daemon() {
     let vision_path = std::path::PathBuf::from(&home).join("Sovereign_LLM/Vision");
     
     // Determina o caminho exato independente do script de compilação
-    let bin1 = vision_path.join("sd_bin/sd");
-    let bin2 = vision_path.join("stable-diffusion.cpp/build/bin/sd");
+    let bin1 = vision_path.join("sd_bin/sd-server");
+    let bin2 = vision_path.join("stable-diffusion.cpp/build/bin/sd-server");
+    let bin3 = vision_path.join("sd_bin/sd"); // Retro-compatibilidade com versões pré-2024
+    let bin4 = vision_path.join("stable-diffusion.cpp/build/bin/sd");
     
     let target_bin = if bin1.exists() {
         Some(bin1)
     } else if bin2.exists() {
         Some(bin2)
+    } else if bin3.exists() {
+        Some(bin3)
+    } else if bin4.exists() {
+        Some(bin4)
     } else {
         None
     };
@@ -133,8 +139,6 @@ fn spawn_vision_daemon() {
             
             std::thread::spawn(move || {
                 let _ = std::process::Command::new(bin)
-                    .arg("--mode")
-                    .arg("server")
                     .arg("--port")
                     .arg("7860")
                     .arg("-m")
