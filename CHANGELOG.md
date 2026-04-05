@@ -12,6 +12,9 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 - **Tauri Borderless Window**: Mapped a native floating window configuration in `tauri.conf.json` (`transparent: true`, `decorations: false`, `alwaysOnTop: true`) mimicking productivity launchers like MacOS Spotlight and Raycast.
 - **System Tray Integration**: Injected the trigger explicitly in the Rust backend (`src-tauri/src/lib.rs`), allowing the user to spawn the AI directly from the Desktop taskbar over any application, dismissing it gracefully upon focus loss.
 
+### 🛡️ Agentic Firewall Enhancements 
+- **Universal Tool-Leak Interceptor**: Expanded the ReAct "Thought Nanny" to generically catch raw `"type":"function"` JSON strings printed into the content body by generic SLMs (Qwen 4b/8b) that fail native tool parsing. The Firewall intercepts the leak, deletes the output, and forcefully disciplines the LLM back into outputting Markdown, eradicating structural UI crashes during final Synthesis.
+
 ## [0.10.0] - 2026-04-05
 
 ### 🎨 Sovereign Multimodal Vision Enablement (Phase G.1)
