@@ -263,6 +263,13 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.6.0] - (Skipped/Merged)
+
+> **👻 NOTA HISTÓRICA (A Versão Fantasma):**
+> A série `0.6.x` foi fisicamente saltada e absorvida arquiteturalmente pela tag `0.7.0`. O branch inicial (`ff14087 chore(release): v0.6.0 Svelte Cybrid UI Migration`) provou ter um impacto estrutural (Breaking Changes) severo o suficiente na migração total de Vue 3 para Svelte 5, decidindo-se por fundir e elevar o ciclo imediatamente para a release `0.7.0`, sem emissão de artefatos FOSS intermediários.
+
+---
+
 ## [0.5.0] - 2026-03-18
 
 ### 🤖 Major Release - Agentic Workflows & Zero-Trust Sandbox
