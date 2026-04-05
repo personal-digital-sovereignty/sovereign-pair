@@ -13,12 +13,27 @@
     "windows": [
       {
         "title": "Sovereign Pair",
+        "label": "main",
         "width": 900,
         "height": 700,
         "resizable": true,
         "fullscreen": false,
         "center": true,
         "visible": false
+      },
+      {
+        "title": "Sovereign Spotlight",
+        "label": "spotlight",
+        "url": "/spotlight",
+        "width": 750,
+        "height": 500,
+        "resizable": false,
+        "fullscreen": false,
+        "center": true,
+        "visible": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true
       }
     ],
     "security": {
