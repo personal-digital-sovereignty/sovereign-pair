@@ -788,7 +788,8 @@ purified_messages.extend(payload.messages.into_iter().map(|msg| {
 // 3. Empacotar para o Servidor Local com Controle Rigoroso de VRAM (Sovereign Enterprise - B2B)
 let mut ollama_options = json!({
     "num_keep": 4, // Forçar Lock do System Prompt na VRAM
-    "num_ctx": 8192 // Desidratação do Nurse (16GB RAM overhead fix resolvido pra RPI/OracleA1)
+    "num_ctx": 8192, // Desidratação do Nurse (16GB RAM overhead fix resolvido pra RPI/OracleA1)
+    "repeat_penalty": 1.15
 });
 
 if let Some(t) = sys_temperature { ollama_options["temperature"] = json!(t); }
