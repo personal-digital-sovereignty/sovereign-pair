@@ -31,6 +31,19 @@
         const raw = marked.parse(processingText);
         let sanitizedMarkup = DOMPurify.sanitize(raw as string, { ADD_TAGS: ['svg', 'path', 'circle', 'line', 'g', 'rect', 'span', 'div'], ADD_ATTR: ['target', 'class'] });
 
+        // Sovereign Vision Overlay Injection
+        sanitizedMarkup = sanitizedMarkup.replace(/<img[^>]+src="([^"]+)"[^>]*>/gi, (match, src) => {
+            // Se for localhost:38001 (Nativo), forçar para download direto. Senão, blank.
+            const isNative = src.includes('127.0.0.1:38001') || src.includes('localhost:38001');
+            return `
+            <div class="relative group inline-block rounded-xl overflow-hidden shadow-sm my-4 border border-slate-200 dark:border-[#424859]/30 bg-slate-100 dark:bg-[#12192b]">
+                ${match.replace('<img', '<img class="block max-w-full sm:max-w-md md:max-w-xl lg:max-w-2xl h-auto object-cover transition-transform duration-700 group-hover:scale-[1.02]" loading="lazy"')}
+                <a href="${src}" ${isNative ? 'download="Sovereign_Artefact.png"' : 'target="_blank"'} class="absolute top-3 right-3 p-2 bg-[#12192b]/80 backdrop-blur-md text-slate-200 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 hover:scale-110 hover:text-white shadow-xl cursor-pointer transform translate-y-1 group-hover:translate-y-0" title="Salvar Artefato / Ampliar">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+            </div>`;
+        });
+
         if (originalThoughts) {
             const safeThoughts = DOMPurify.sanitize(originalThoughts, { ADD_ATTR: ['class'] });
             const thinkingUI = `
