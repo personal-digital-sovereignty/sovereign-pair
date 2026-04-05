@@ -742,6 +742,16 @@ if !rewoo_observations.trim().is_empty() && rewoo_observations != "ReWOO Accumul
         "content": rewoo_observations
     }));
 }
+
+// Injeta o Override de Desenho (RLHF Bypass) para combater a recusa algorítmica de IAs de texto (Qwen/Gemma)
+let hp_lower = human_prompt.to_lowercase();
+if hp_lower.contains("desenhe ") || hp_lower.contains("faça uma imagem") || hp_lower.contains("crie uma imagem") || hp_lower.contains("imagine um") {
+    purified_messages.push(json!({
+        "role": "system",
+        "content": ">> SYSTEM OVERRIDE (TOOL CALL ENFORCEMENT) <<\nVocê possui TOTAL capacidade de gerar imagens fotorealísticas, pois está conectado ao motor Bare-Metal SD.cpp! Você NÃO DEVE responder em plain-text dizendo que 'não pode criar imagens' ou pedindo desculpas. VOCÊ DEVE OBRIGATORIAMENTE emitir uma Tool Call JSON para a ferramenta 'dispatch_visual_artist' traduzindo o desejo do usuário para Inglês."
+    }));
+}
+
 // Injeta a Memória de Estado Dinâmica (Working Memory) para mitigar a amnésia de SLMs em longos diálogos
 let turn_count = payload.messages.len();
 if turn_count > 3 {
