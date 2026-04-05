@@ -133,16 +133,32 @@ fn spawn_vision_daemon() {
     };
 
     if let Some(bin) = target_bin {
-        let model = vision_path.join("models/sdxl_turbo.gguf");
-        if model.exists() {
-            tracing::info!("🎨 [Multimodal Vision] Artista Visual Offline Detectado no disco. Iniciando Daemon Zumbi na Porta 7860...");
+        let models_dir = vision_path.join("models");
+        
+        // Scan the directory for the first file ending in .gguf
+        let model = std::fs::read_dir(&models_dir)
+            .ok()
+            .and_then(|mut entries| {
+                entries.find_map(|entry| {
+                    if let Ok(entry) = entry {
+                        let path = entry.path();
+                        if path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("gguf") {
+                            return Some(path);
+                        }
+                    }
+                    None
+                })
+            });
+
+        if let Some(model_path) = model {
+            tracing::info!("🎨 [Multimodal Vision] Cérebro Visual ({}) Detectado. Iniciando Daemon (Porta 7860)...", model_path.file_name().unwrap_or_default().to_string_lossy());
             
             std::thread::spawn(move || {
                 let _ = std::process::Command::new(bin)
                     .arg("--port")
                     .arg("7860")
                     .arg("-m")
-                    .arg(model)
+                    .arg(model_path)
                     // Isolamento acústico de Log (SD.cpp pode ser muito verboso, mantemos o TUI limpo)
                     .stdout(std::process::Stdio::null())
                     .stderr(std::process::Stdio::null())
