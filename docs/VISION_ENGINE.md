@@ -31,3 +31,8 @@ Ao executar o `cargo run` ou levantar o serviço principal do Sovereign Core, o 
 - Quando o próprio backend Sovereign for derrubado (Ao fechar o processo principal), o artista visual "morrerá" harmonicamente junto a ele.
 
 Simplesmente abra a UI e comece a pintar suas ideias!
+
+## ⚠️ Modelos sem Suporte a Tool-Calling (Auto-Fallback)
+Para que as magias de desenho aconteçam perfeitamente, o LLM que você selecionou no Menu Lateral necessita de capacidades nativas de compreensão de JSON (Tool Calling). Modelos como `llama3.1`, `llama3.2` ou `qwen2.5` vão engatilhar o painel fotorealista sem suor.
+
+Entretanto, se você estiver usando Modelos Puros/Raciocínio Específico que rejeitam as APIs e causam Crashing (`400 Bad Request`), o nosso motor de Retentativa **Purificadora** no `api.rs` interceptará a falha nativamente. Ele removerá a ferramenta silenciosamente da payload e continuará a conversa limpa. Nesses casos, o modelo simplesmente gerará um texto sobre o prompt. O Rust protege o servidor, mas sacrifica a capacidade do modelo de pintar a imagem.
