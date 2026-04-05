@@ -404,7 +404,7 @@ async fn execute_sub_analyst(
         ],
         "format": "json",
         "stream": false,
-        "options": { "temperature": 0.0, "num_ctx": 4096 }
+        "options": { "temperature": 0.0, "num_ctx": 4096, "repeat_penalty": 1.15 }
     });
 
     let mut is_sufficient = false;
@@ -452,7 +452,7 @@ async fn execute_sub_analyst(
             {"role": "user", "content": extractor_prompt}
         ],
         "stream": false,
-        "options": { "temperature": 0.0, "num_ctx": 4096 }
+        "options": { "temperature": 0.0, "num_ctx": 4096, "repeat_penalty": 1.15 }
     });
 
     let mut distilled_text = "DADO NÃO ENCONTRADO".to_string();
@@ -527,7 +527,7 @@ async fn execute_sub_analyst(
             ],
             "format": "json",
             "stream": false,
-            "options": { "temperature": 0.0, "num_ctx": 8192 }
+            "options": { "temperature": 0.0, "num_ctx": 8192, "repeat_penalty": 1.15 }
         });
 
         if let Ok(res_verif) = client.post("http://127.0.0.1:11434/api/chat").json(&verifier_payload).send().await
@@ -789,7 +789,8 @@ pub async fn run_deep_research_handler(
                 "stream": false,
                 "options": {
                     "num_ctx": dynamic_num_ctx,
-                    "temperature": 0.05
+                    "temperature": 0.05,
+                    "repeat_penalty": 1.15
                 }
             });
 
@@ -1197,7 +1198,8 @@ pub async fn run_deep_research_handler(
                 "stream": false,
                 "options": {
                     "num_ctx": 4096,
-                    "temperature": 0.1
+                    "temperature": 0.1,
+                    "repeat_penalty": 1.15
                 }
             });
             
