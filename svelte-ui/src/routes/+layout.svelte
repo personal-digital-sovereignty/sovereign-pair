@@ -86,6 +86,9 @@
   let routeId = $derived(page.route.id || '');
 </script>
 
+{#if routeId === '/spotlight'}
+  {@render children()}
+{:else}
 <div class="h-screen print:h-auto print:overflow-visible w-full flex overflow-hidden antialiased text-slate-800 dark:text-slate-200 bg-[#F4F5F7] dark:bg-[#080e1d] font-sans">
   
   <InlineSpotlight />
@@ -299,3 +302,4 @@
 <SettingsModal />
 <ChangelogModal bind:isOpen={isChangelogOpen} />
 <ManualModal bind:isOpen={globalState.isManualOpen} />
+{/if}

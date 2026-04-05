@@ -5,6 +5,13 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A série 1.0.0 será ativada unicamente quando o núcleo do ecossistema Sovereign Bare Main atingir maturidade e estabilidade arquitetural plenas.
 
+## [Unreleased]
+
+### 🖥️ Desktop Integration & Spotlight UI (Phase H)
+- **Systray Spotlight Chat**: Extracted the core Svelte `ChatPanel` into a dedicated, minimalist route (`/spotlight`) with absolute background transparency (`backdrop-blur`).
+- **Tauri Borderless Window**: Mapped a native floating window configuration in `tauri.conf.json` (`transparent: true`, `decorations: false`, `alwaysOnTop: true`) mimicking productivity launchers like MacOS Spotlight and Raycast.
+- **System Tray Integration**: Injected the trigger explicitly in the Rust backend (`src-tauri/src/lib.rs`), allowing the user to spawn the AI directly from the Desktop taskbar over any application, dismissing it gracefully upon focus loss.
+
 ## [0.10.0] - 2026-04-05
 
 ### 🎨 Sovereign Multimodal Vision Enablement (Phase G.1)
