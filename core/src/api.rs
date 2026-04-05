@@ -803,9 +803,33 @@ let mut ollama_payload = json!({
 });
 
 // Injeção de Tools Requisitadas pelo Frontend (Vercel AI SDK JSON Schema)
+let mut injected_tools = Vec::new();
 if let Some(tools) = payload.tools {
-    ollama_payload["tools"] = json!(tools);
+    injected_tools.extend(tools);
 }
+
+// ================= THE SOVEREIGN VISUAL ARTIST (NATIVE TOOL) =================
+let visual_artist_tool = serde_json::json!({
+    "type": "function",
+    "function": {
+        "name": "dispatch_visual_artist",
+        "description": "Ferramenta para desenhar ilustrações, criar quadros ou arte visual fotorealista (Text-to-Image) quando o usuário pedir para 'desenhar', 'criar imagem' ou tirar uma foto. SEMPRE use esta ferramenta em vez de dizer que não pode gerar imagens.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "prompt": {
+                    "type": "string",
+                    "description": "O prompt fotorealista, cinematográfico e extremamente detalhado em INGLÊS da cena visual desejada."
+                }
+            },
+            "required": ["prompt"]
+        }
+    }
+});
+injected_tools.push(serde_json::from_value(visual_artist_tool).unwrap());
+
+ollama_payload["tools"] = json!(injected_tools);
+
 if let Some(tool_choice) = payload.tool_choice {
     ollama_payload["tool_choice"] = tool_choice;
 }
@@ -978,6 +1002,7 @@ let start_time = std::time::Instant::now();
 let mut session_tokens = 0;
 let mut accumulator = String::new(); // Memory Builder da Resposta do Agente
 let tracking_log_sender = state.log_sender.clone();
+let tx_map_capture = tx_sse_clone.clone();
 
 // Extraímos os Bytes Chunk a Chunk e mapeamos pro formato OpenAI SSE:
 let mut map_stream = res.bytes_stream().map(move |result| {
@@ -1008,6 +1033,9 @@ let mut map_stream = res.bytes_stream().map(move |result| {
 
                             if let Some(tool_calls_arr) = msg_obj.get("tool_calls").and_then(|tc| tc.as_array()) {
                                 let mut tcs = Vec::new();
+                                let mut is_visual_artist = false;
+                                let mut visual_prompt = String::new();
+
                                 for (i, tc) in tool_calls_arr.iter().enumerate() {
                                     let mut new_tc = crate::models::ChunkToolCall {
                                         index: Some(i as i32),
@@ -1017,6 +1045,21 @@ let mut map_stream = res.bytes_stream().map(move |result| {
                                     };
                                     if let Some(func) = tc.get("function") {
                                         let name = func.get("name").and_then(|n| n.as_str()).map(|n| n.to_string());
+                                        
+                                        // Intercept Sovereign Native Visual Artist
+                                        if name.as_deref() == Some("dispatch_visual_artist") {
+                                            is_visual_artist = true;
+                                            if let Some(args_val) = func.get("arguments") {
+                                                if args_val.is_object() {
+                                                    visual_prompt = args_val.get("prompt").and_then(|p| p.as_str()).unwrap_or("").to_string();
+                                                } else if let Some(args_str) = args_val.as_str() {
+                                                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
+                                                        visual_prompt = parsed.get("prompt").and_then(|p| p.as_str()).unwrap_or("").to_string();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
                                         let args = func.get("arguments").map(|a| {
                                             if a.is_string() {
                                                 a.as_str().unwrap().to_string()
@@ -1031,6 +1074,67 @@ let mut map_stream = res.bytes_stream().map(move |result| {
                                     }
                                     tcs.push(new_tc);
                                 }
+                                
+                                if is_visual_artist && !visual_prompt.is_empty() {
+                                    let tx_visual = tx_map_capture.clone();
+                                    let p_clone = visual_prompt.clone();
+                                    let req_model = requested_model.clone();
+                                    
+                                    tokio::spawn(async move {
+                                        let loading_msg = format!("\n\n🎨 **Sovereign Vision Engine**: Acionando SD.cpp no Bare-Metal para forjar imagem fotorealista Baseada em: *{}*. Aguarde...\n\n", p_clone);
+                                        let chunk = crate::models::OpenAIChatChunkResponse {
+                                            id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
+                                            object: "chat.completion.chunk".to_string(),
+                                            created: chrono::Local::now().timestamp(),
+                                            model: req_model.clone(),
+                                            choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(loading_msg), tool_calls: None }, finish_reason: None }],
+                                            usage: None,
+                                        };
+                                        let _ = tx_visual.send(Event::default().data(serde_json::to_string(&chunk).unwrap()));
+
+                                        let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(120)).build().unwrap_or_default();
+                                        if let Ok(r) = client.post("http://127.0.0.1:38001/v1/images/generations").json(&serde_json::json!({ "prompt": p_clone })).send().await {
+                                            if let Ok(j) = r.json::<serde_json::Value>().await {
+                                                if let Some(url) = j.get("data").and_then(|arr| arr.as_array()).and_then(|a| a.first()).and_then(|f| f.get("url")).and_then(|u| u.as_str()) {
+                                                    let ok_msg = format!("![Sovereign Vault Artefact]({})\n\n", url);
+                                                    let ok_chunk = crate::models::OpenAIChatChunkResponse {
+                                                        id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
+                                                        object: "chat.completion.chunk".to_string(),
+                                                        created: chrono::Local::now().timestamp(),
+                                                        model: req_model.clone(),
+                                                        choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(ok_msg), tool_calls: None }, finish_reason: None }],
+                                                        usage: None,
+                                                    };
+                                                    let _ = tx_visual.send(Event::default().data(serde_json::to_string(&ok_chunk).unwrap()));
+                                                } else {
+                                                    let err_chunk = crate::models::OpenAIChatChunkResponse {
+                                                        id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
+                                                        object: "chat.completion.chunk".to_string(),
+                                                        created: chrono::Local::now().timestamp(),
+                                                        model: req_model.clone(),
+                                                        choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some("\n\n❌ Falha estrutural no motor de Visão. A imagem não foi renderizada.\n".to_string()), tool_calls: None }, finish_reason: None }],
+                                                        usage: None,
+                                                    };
+                                                    let _ = tx_visual.send(Event::default().data(serde_json::to_string(&err_chunk).unwrap()));
+                                                }
+                                            }
+                                        } else {
+                                            let offline_chunk = crate::models::OpenAIChatChunkResponse {
+                                                id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
+                                                object: "chat.completion.chunk".to_string(),
+                                                created: chrono::Local::now().timestamp(),
+                                                model: req_model.clone(),
+                                                choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some("\n\n❌ Motor Visual OFFLINE: O processo SD.cpp na Porta 7860 não pôde ser alcançado.\n".to_string()), tool_calls: None }, finish_reason: None }],
+                                                usage: None,
+                                            };
+                                            let _ = tx_visual.send(Event::default().data(serde_json::to_string(&offline_chunk).unwrap()));
+                                        }
+                                    });
+                                    
+                                    // Bypass Tool array returning to UI. Svelte is naive to this tool natively.
+                                    return Ok::<Event, Infallible>(Event::default());
+                                }
+
                                 if !tcs.is_empty() {
                                     extracted_tool_calls = Some(tcs);
                                     has_content_or_tools = true;
