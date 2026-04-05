@@ -163,7 +163,7 @@
                     const name = doc.file_path.split('/').pop() || 'Unknown';
                     const path_dir = doc.file_path.substring(0, doc.file_path.length - name.length) || '/';
                     
-                    // Extract Obsidian wikilinks locally on frontend from the raw DB content
+                    // Extract Sovereign wikilinks locally on frontend from the raw DB content
                     let wikilinks: string[] = [];
                     if (doc.content_raw) {
                         const matches = doc.content_raw.match(/\[\[(.*?)\]\]/g);

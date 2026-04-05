@@ -78,7 +78,7 @@
         const decorations: Decoration[] = [];
         doc.descendants((node: any, pos: number) => {
             if (node.isText && node.text) {
-                // 1. Match Obsidian style ![[filename.png]]
+                // 1. Match Sovereign style ![[filename.png]]
                 const regexObs = /!\[\[([^\]]+)\]\]/g;
                 let match;
                 while ((match = regexObs.exec(node.text)) !== null) {
@@ -133,7 +133,7 @@
                 if (match) {
                     const calloutType = match[1].toLowerCase();
                     decorations.push(Decoration.node(pos, pos + node.nodeSize, {
-                        class: `obsidian-callout callout-${calloutType}`
+                        class: `sovereign-callout callout-${calloutType}`
                     }));
                 }
             }
@@ -627,7 +627,7 @@
 {/if}
 
 <style>
-    :global(.obsidian-callout) {
+    :global(.sovereign-callout) {
         border-left-width: 4px !important;
         padding: 12px 16px !important;
         margin: 16px 0 !important;

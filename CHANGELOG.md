@@ -48,7 +48,7 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 - **Engineer Matrix Polish**: Todo o conglomerado de sub-rotas do Hub de Engenharia (`Analytics`, `Quality`, `Routing`, `RAG Pipeline`, `Fine-Tuning`, `Unsloth` e `Reflection Lab`) teve suas interfaces de cor M3 semânticas transmutadas, erradicando telas brancas hostis aos olhos no Modo Escuro. O sistema injeta coerência total do header à seleção de abas (com cores de destaque azuis sutis no texto e backgrounds amenos).
 
 ### 🎨 Refinamento Cirúrgico & Polimento Visual
-- **Obsidian Callouts Dark Mode**: Integrados estilos reversos para os Callouts do *TipTap/Markdown* (`[!info]`, `[!warning]`, `[!danger]`, `[!success]`). As glosas da Máquina e do Editor agora absorvem a luminosidade da Vault, exibindo backgrounds translúcidos discretos sob tema noturno.
+- **Markdown Callouts Dark Mode**: Integrados estilos reversos para os Callouts do *TipTap/Markdown* (`[!info]`, `[!warning]`, `[!danger]`, `[!success]`). As glosas da Máquina e do Editor agora absorvem a luminosidade da Vault, exibindo backgrounds translúcidos discretos sob tema noturno.
 - **Telemetry Hardware UI Widget**: A sobreposição isolada do monitor em tempo-real (T/s, Model e VRAM) obteve tratamentos de refratância nativos `dark:bg-[#1d253b]` e contorno refinado para encaixe visual absoluto acima das barras de navegação.
 - **Sovereign Chat Actions Refine**: Reestilizados assincronamente os botões atômicos dinâmicos (`Copy`, `Replay`, `ThumbsUp`, `ThumbsDown`) que aparecem flutuando em hover sobre as mensagens de LLM. Eles agora invocam discretamente fundos azuis e cinzas foscos, preservando a imersão na resposta textual.
 - **Markdown Tables Dark Mode**: Corrigido o bug visual onde tabelas renderizadas no Editor (TipTap) e no Chat (Prose) ignoravam o tema escuro exibindo headers e borders estourados em branco. Forçadas classes bg-[#0c1324] e rgba(12, 19, 36, 0.6) nos headers.
@@ -545,7 +545,7 @@ Esta versão marca a maior transição arquitetural do Sovereign Pair, expurgand
 ### Adicionado
 - **FastAPI Engine**: Primeira transmutação do sistema CLI para um servidor web assíncrono modular via FastAPI, incluindo autenticação (`auth.py`), abstrações REST (`routes.py`), e roteamento de dependências de RAG.
 - **Sovereign Web UI (Vue 3)**: Inauguração da primeiríssima interface gráfica no navegador utilizando componentes modulares nativos do Vue.js (suportando *Setup* interativo e telas de *Login*).
-- **Obsidian Sensus Plugin**: Lançamento do primeiro cliente integrado (em *TypeScript*) para o ecossistema Obsidian, fundindo o Editor de Notas ao motor P2P e RAG do Vault.
+- **Sovereign Sensus Plugin**: Lançamento do primeiro cliente integrado (em *TypeScript*) para o ecossistema Cíbrido, fundindo o Editor de Notas ao motor P2P e RAG do Vault.
 - **Core Abstractions**: Refatoração estrutural profunda do Python original, isolando módulos sistêmicos em `engine_builder.py`, `llm_factory.py`, iteradores nativos em `web_search.py` e o demônio rastreador autônomo `watcher.py`.
 - **Database & Formats Architecture**: Consolidação física dos DBs relacionais SQLite e extensiva literatura fundadora gerada em `ARCHITECTURE.md` e `FILE_FORMATS.md`.
 
