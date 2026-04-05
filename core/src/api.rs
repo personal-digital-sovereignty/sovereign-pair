@@ -170,13 +170,13 @@ pub async fn chat_completions_handler(
     let is_stream = payload.stream.unwrap_or(true);
 let requested_model = payload.model.clone();
 
-info!("🔥 [Sovereign Core] Interceptando requisição OpenCode para o modelo: [{}] | Streaming: {}", requested_model, is_stream);
+info!("🔥 [Sovereign Core] Interceptando requisição OpenCode/TUI para o modelo: [{}] | Streaming: {}", requested_model, is_stream);
 
 // Broadcast Log (Cíbrido Live)
 let _ = state.log_sender.send(crate::models::LogEntry {
     timestamp: "".to_string(), // O Frontend popula no JS puro
     level: "agent".to_string(),
-    message: format!("The Nurse acordou (Requisição de Inferência OpenCode para {})", requested_model),
+    message: format!("The Nurse acordou (Requisição de Inferência OpenCode/TUI para {})", requested_model),
 });
 
 // O Roteamento de Conversão (OpenAI -> Ollama)
@@ -199,28 +199,66 @@ let human_prompt = payload.messages.last()
 // ======= Visual Artist Hard-Bypass (G.1 Palette Tool) =======
 if payload.visual_artist_mode.unwrap_or(false) && !human_prompt.trim().is_empty() {
     tracing::info!("🎨 [Sovereign Vision] Dedicated Palette Mode Triggered! Bypassing LLM completely for prompt: {}", human_prompt);
+    
+    let db_clone = state.db.clone();
+    let session_guard = payload.session_id.unwrap_or(1); // Default to Main Session if omitted
     let cloned_prompt = human_prompt.clone();
+    
+    // Store User Prompt in DB just like the normal flow
+    tokio::spawn(async move {
+        let _ = sqlx::query("INSERT INTO messages (session_id, role, content, parent_id) VALUES (?, ?, ?, NULL)")
+            .bind(session_guard)
+            .bind("user")
+            .bind(&cloned_prompt)
+            .execute(&db_clone).await;
+    });
+
     let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<Result<axum::response::sse::Event, std::convert::Infallible>>();
+    let session_guard_bot = payload.session_id.unwrap_or(1);
+    let db_clone_bot = state.db.clone();
+    let cloned_prompt2 = human_prompt.clone();
+
     tokio::spawn(async move {
         let loading_chunk = crate::models::OpenAIChatChunkResponse {
             id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
             object: "chat.completion.chunk".to_string(),
             created: chrono::Local::now().timestamp(),
             model: "Sovereign Visual Engine".to_string(),
-            choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(format!("🎨 **Sovereign Vision Engine (Zero-Touch Bypass)**: Acionando SD.cpp no Bare-Metal para forjar imagem fotorealista Baseada em: *{}*. Aguarde...\n\n", cloned_prompt)), tool_calls: None }, finish_reason: None }],
+            choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(format!("🎨 **Sovereign Vision Engine (Zero-Touch Bypass)**: Acionando SD.cpp no Bare-Metal para forjar imagem fotorealista Baseada em: *{}*.\n\n*(Aguarde, forjando tensores na CPU...)*\n\n", cloned_prompt2)), tool_calls: None }, finish_reason: None }],
             usage: None,
         };
         let _ = tx.send(Ok(axum::response::sse::Event::default().data(serde_json::to_string(&loading_chunk).unwrap_or_default())));
-        let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(120)).build().unwrap_or_default();
-        if let Ok(r) = client.post("http://127.0.0.1:38001/v1/images/generations").json(&serde_json::json!({ "prompt": cloned_prompt })).send().await {
-            if let Ok(j) = r.json::<serde_json::Value>().await {
-                if let Some(url) = j.get("data").and_then(|arr| arr.as_array()).and_then(|a| a.first()).and_then(|f| f.get("url")).and_then(|u| u.as_str()) {
-                    let ok_chunk = crate::models::OpenAIChatChunkResponse {
-                        id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()), object: "chat.completion.chunk".to_string(), created: chrono::Local::now().timestamp(), model: "Sovereign Visual Engine".to_string(),
-                        choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(format!("![Sovereign Vault Artefact]({})\n\n", url)), tool_calls: None }, finish_reason: Some("stop".to_string()) }], usage: None,
-                    };
-                    let _ = tx.send(Ok(axum::response::sse::Event::default().data(serde_json::to_string(&ok_chunk).unwrap_or_default())));
+        
+        tracing::info!("⚙️ Disparando POST interno para http://127.0.0.1:38001/v1/images/generations...");
+        let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(300)).build().unwrap_or_default();
+        match client.post("http://127.0.0.1:38001/v1/images/generations").json(&serde_json::json!({ "prompt": cloned_prompt2, "n": 1 })).send().await {
+            Ok(r) => {
+                let status = r.status();
+                if !status.is_success() {
+                    tracing::error!("❌ [Sovereign Vision] Erro HTTP da Rota de Imagem: {}", status);
+                    let _ = sqlx::query("INSERT INTO messages (session_id, role, content, parent_id) VALUES (?, ?, ?, NULL)").bind(session_guard_bot).bind("assistant").bind(format!("❌ [Sovereign Vision] Erro HTTP da Rota de Imagem: {}", status)).execute(&db_clone_bot).await;
+                } else if let Ok(j) = r.json::<serde_json::Value>().await {
+                    if let Some(url) = j.get("data").and_then(|arr| arr.as_array()).and_then(|a| a.first()).and_then(|f| f.get("url")).and_then(|u| u.as_str()) {
+                        tracing::info!("✅ [Sovereign Vision] Imagem concluída! Renderizando URL: {}", url);
+                        let markdown_img = format!("![Sovereign Vault Artefact]({})\n\n", url);
+                        
+                        let ok_chunk = crate::models::OpenAIChatChunkResponse {
+                            id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()), object: "chat.completion.chunk".to_string(), created: chrono::Local::now().timestamp(), model: "Sovereign Visual Engine".to_string(),
+                            choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(markdown_img.clone()), tool_calls: None }, finish_reason: Some("stop".to_string()) }], usage: None,
+                        };
+                        let _ = tx.send(Ok(axum::response::sse::Event::default().data(serde_json::to_string(&ok_chunk).unwrap_or_default())));
+                        let _ = sqlx::query("INSERT INTO messages (session_id, role, content, parent_id) VALUES (?, ?, ?, NULL)").bind(session_guard_bot).bind("assistant").bind(&markdown_img).execute(&db_clone_bot).await;
+                    } else {
+                        tracing::error!("❌ [Sovereign Vision] Payload JSON Retornou 200 OK mas não continha data[0].url! Raw: {}", j);
+                        let _ = sqlx::query("INSERT INTO messages (session_id, role, content, parent_id) VALUES (?, ?, ?, NULL)").bind(session_guard_bot).bind("assistant").bind("❌ Erro JSON da Image Engine.").execute(&db_clone_bot).await;
+                    }
+                } else {
+                    tracing::error!("❌ [Sovereign Vision] Falha ao parsear reposta JSON do Engine de Imagens.");
                 }
+            },
+            Err(e) => {
+                tracing::error!("❌ [Sovereign Vision] Falha Crítica de Conexão com a própria Engine: {}", e);
+                let _ = sqlx::query("INSERT INTO messages (session_id, role, content, parent_id) VALUES (?, ?, ?, NULL)").bind(session_guard_bot).bind("assistant").bind(format!("❌ Falha local de Conexão SD.cpp: {}", e)).execute(&db_clone_bot).await;
             }
         }
         let _ = tx.send(Ok(axum::response::sse::Event::default().data("[DONE]")));
