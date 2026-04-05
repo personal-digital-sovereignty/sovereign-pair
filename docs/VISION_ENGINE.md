@@ -22,12 +22,12 @@ chmod +x scripts/install_sovereign_vision.sh
 2. Clona os pesos visuais da arquitetura **SDXL Turbo (Q8_0)**: Este modelo gera artes fotorealistas precisando apenas de **4 Steps**, tornando ele insanamente rápido mesmo em CPU/Mesa drivers, eliminando loops imensos.
 3. Arquiva tudo na pasta centralizada do sistema `~/Sovereign_LLM/Vision/`.
 
-## Rotina para desenhar
-Sempre que ligar os motores pela manhã para trabalhar usando todo o potencial multimodal, inicie a malha visual em uma aba lateral (Terminal):
+## A Mágica de "Zero-Touch" (Rotina de Desenho Automática)
+Esqueça comandos manuais longos pelo terminal. O sistema foi programado para a filosofia de atrito zero.
 
-```bash
-cd ~/Sovereign_LLM/Vision/sd_bin
-./sd --mode server --port 7860 -m ~/Sovereign_LLM/Vision/models/sdxl_turbo.gguf
-```
+Ao executar o `cargo run` ou levantar o serviço principal do Sovereign Core, o binário inspeciona furtivamente o seu disco rígido à procura do diretório `~/Sovereign_LLM/Vision`.
+- Se o motor de arte for detectado, o próprio Rust invocará assincronamente **uma Thread Limpa (Daemon)** contendo a API do SD.cpp nativa mapeada para a porta **7860**.
+- Quaisquer logs ou ruídos típicos da geração visual foram amordaçados do seu STDOUT/STDERR, para que o terminal principal continue minimalista e limpo.
+- Quando o próprio backend Sovereign for derrubado (Ao fechar o processo principal), o artista visual "morrerá" harmonicamente junto a ele.
 
-Isso ligará a interface de recepção na porta **7860**. Todo o resto já foi acoplado no `Sovereign_memory.db`.
+Simplesmente abra a UI e comece a pintar suas ideias!
