@@ -14,6 +14,7 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 
 ### 🛡️ Agentic Firewall Enhancements 
 - **Universal Tool-Leak Interceptor**: Expanded the ReAct "Thought Nanny" to generically catch raw `"type":"function"` JSON strings printed into the content body by generic SLMs (Qwen 4b/8b) that fail native tool parsing. The Firewall intercepts the leak, deletes the output, and forcefully disciplines the LLM back into outputting Markdown, eradicating structural UI crashes during final Synthesis.
+- **Nanny Reprimand Loop for Search Queries**: Re-engineered the original Phase 7 Nanny fallback. If the Master LLM fails to output valid JSON during the mandatory first-cycle extraction, the system no longer pushes the full user directive sequentially into the Web Scraper (which caused DDG query collapse and Epistemic Aborts). Instead, it bounces the turn back to the LLM, coercing it to re-generate the proper JSON extraction syntax.
 
 ## [0.10.0] - 2026-04-05
 
