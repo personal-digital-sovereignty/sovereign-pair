@@ -15,7 +15,7 @@
         try {
             const token = localStorage.getItem('sovereign_token') || '';
             const ws_id = globalState.activeWorkspaceId || '1';
-            const res = await fetch(`http://localhost:8080/v1/vault/graph?workspace_id=${ws_id}`, {
+            const res = await fetch(`http://localhost:38001/v1/vault/graph?workspace_id=${ws_id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if(res.ok) {
