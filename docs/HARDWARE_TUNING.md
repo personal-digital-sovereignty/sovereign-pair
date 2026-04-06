@@ -26,7 +26,18 @@ O chip revolucionário da Apple usa *Unified Memory Architecture* (UMA). A CPU (
 
 ---
 
-## 3. AMD Ryzen APUs (Radeon Vega - ex: 5800H)
+## 4. O Futuro Inevitável: Apple Silicon M5 (16GB RAM Unified)
+A arquitetura projetada da série **M5 (16GB)** é o Santo Graal portável da Inteligência Artificial Soberana. Com barramentos LPDDR5X (ou equivalentes de altíssima banda térmica) acoplados a um motor *Neural Engine* massivo, o Sovereign Pair entra em modo Overdrive absoluto.
+
+### O Fim do "Swap Death" e a Ascensão do 14B
+- **Folga Operacional Massiva**: Dos 16GB, o MacOS isola 3GB para uso. Sobram confortáveis **13 Gigabytes de VRAM Livre** direta no Metal.
+- **Armamentos de Peso Pesado**: O chip desbloqueia acesso direto aos modelos Categoria Superior de Raciocínio (14B e 8B avançados). Você rodará um **Qwen2.5:14B-q4_0** (que consome ~8GB RAM) ou um **Llama-3.1-8B-Q6_K** (Alta qualidade, 6.5GB RAM) sem bater no teto de hardware.
+- **O Limite de Contexto Quebrado**: Como o 8B ocupa apenas 5GB, as sobras (quase 8 Gigabytes) abrem espaço brutal para `dynamic_num_ctx = 32768`. Isso significa que o Mestre LLM poderá engolir 32 mil palavras (50 páginas de PDF ou dúzias de Scraping Sites) na RAM bruta da GPU ao mesmo tempo, varrendo RAG em questão de 2 a 3 segundos sem engasgos.
+- **Regra de Afinidade (Cores)**: A arquitetura M5 provável possuirá divisão avançada (Ex: 6 P-Cores + 4 E-Cores). Se confirmado, você precisará mudar o `OLLAMA_NUM_THREADS` de 4 para a exata contagem real de *Performance Cores* do M5 (Ex: `OLLAMA_NUM_THREADS=6`). Como a Apple constrói silício assimétrico (Fanless / Sem cooler nos Macbook Air), ativar os E-cores por engano via Ollama atrasará o job primário em nanosegundos e superaquecerá a máquina passiva à toa. A trava no P-Core garante o notebook gelado com inferência local a impressionantes 45~60 Tokens/Segundo.
+
+---
+
+## 5. AMD Ryzen APUs (Radeon Vega - ex: 5800H)
 A GPU integrada do seu pacote térmico é censurada intencionalmente pelos instaladores ROCm proprietários da AMD O.S. (Linux/WSL).
 
 ### HSA O.S Spoofing e Extorsão Vulkanográfica
