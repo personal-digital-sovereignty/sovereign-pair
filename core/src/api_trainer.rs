@@ -753,8 +753,8 @@ pub async fn run_deep_research_handler(
         
         let mut all_sources = Vec::new();
         
-        // --- THE AGENTIC LOOP (MAX 5 ITERATIONS TO PREVENT INFINITE LOOPS) ---
-        for cycle in 1..=5 {
+        // --- THE WORKER GRAPH LOOP (MAX 3 STAGES: GATHER, ANALYZE, SYNTHESIZE) ---
+        for cycle in 1..=3 {
             if wait_or_cancel(200, &token).await { return; }
             
             // --- G.2: THE MOM/DAD (Zero-Shot Rust Router) ---
@@ -797,12 +797,11 @@ pub async fn run_deep_research_handler(
                 }
             }
             
-            let _ = TRAINER_LOGS.send(format!("[Loop ReAct - Ciclo {}/5] Invocando Mente Mestra ({})...", cycle, target_model_name));
+            let _ = TRAINER_LOGS.send(format!("[Worker Graph - Stage {}/3] Invocando Mente Mestra ({})...", cycle, target_model_name));
 
-            let synthesis_payload = serde_json::json!({
+            let mut synthesis_payload = serde_json::json!({
                 "model": target_model_name,
                 "messages": messages,
-                "tools": tools_schema,
                 "stream": false,
                 "options": {
                     "num_ctx": dynamic_num_ctx,
@@ -810,6 +809,12 @@ pub async fn run_deep_research_handler(
                     "repeat_penalty": 1.15
                 }
             });
+
+            if cycle < 3 {
+                synthesis_payload["tools"] = tools_schema.clone();
+            } else {
+                let _ = TRAINER_LOGS.send("[Final Synthesis] Ferramentas desativadas. Forçando Mestre LLM a gerar Markdown Final de Síntese sem interrupções.".to_string());
+            }
 
             if let Ok(res) = synthesis_client.post(&olla_url).json(&synthesis_payload).send().await {
                 if let Ok(json) = res.json::<serde_json::Value>().await {
