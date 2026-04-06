@@ -1,6 +1,6 @@
 [package]
 name = "sovereign-desktop"
-version = "0.9.9"
+version = "1.0.0"
 description = "Sovereign Pair Linux Agent"
 authors = ["you"]
 license = ""
