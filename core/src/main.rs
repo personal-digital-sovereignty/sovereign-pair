@@ -32,6 +32,7 @@ pub mod research;
 pub mod adblocker;
 pub mod multimodal;
 pub mod office_parser;
+pub mod sandbox;
 
 use axum::{routing::post, Router, response::IntoResponse, http::{header, StatusCode, Uri}};
 use reqwest::Client;
@@ -194,6 +195,9 @@ async fn main() {
 
     // BOOT ASYNC DAEMONS PARALELOS
     spawn_vision_daemon();
+    
+    // BOOT SOVEREIGN HERMETIC SANDBOX (PYTHON)
+    sandbox::setup_python_sandbox().await;
 
     // ------------------------------------------------------------------------------------------
     // [MESH ENTRYPOINT] Zero-Touch Auto-Deployment Catch (Interactive CLI Installer Bypass)

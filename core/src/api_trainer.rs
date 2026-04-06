@@ -662,6 +662,23 @@ pub async fn run_deep_research_handler(
                     "required": ["url"]
                 }
             }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "execute_python_code",
+                "description": "Ferramenta para executar código Python seguro localmente. Ideal para matemática complexa, cruzamento de dados de inflação/preços, cálculos precisos, e extração manipulada de arrays. Você DEVE imprimir os resultados finais EXPLICITAMENTE (via print()) para conseguir ler a resposta e utiliza-la para redigir seu relatório.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "description": "O script Python completo a ser executado."
+                        }
+                    },
+                    "required": ["code"]
+                }
+            }
         }]);
 
         let target_model_name = req.model.clone().unwrap_or_else(|| "qwen2.5:7b".to_string());
@@ -939,6 +956,27 @@ pub async fn run_deep_research_handler(
                                                 join_handles.push(tokio::spawn(async move {
                                                     let json_res = crate::api_gateway::fetch_json_endpoint(&fetch_url).await;
                                                     (fetch_url, json_res, "API JSON Fetcher".to_string())
+                                                }));
+                                            }
+                                        } else if func_n == Some("execute_python_code") {
+                                            let mut py_code = String::new();
+                                            if let Some(args) = tc.get("arguments").and_then(|a| a.as_object()) {
+                                                if let Some(c) = args.get("code").and_then(|s| s.as_str()) { py_code = c.to_string(); }
+                                            } else if let Some(args_str) = tc.get("arguments").and_then(|a| a.as_str()) {
+                                                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
+                                                    if let Some(c) = parsed.get("code").and_then(|s| s.as_str()) { py_code = c.to_string(); }
+                                                }
+                                            }
+                                            
+                                            if !py_code.is_empty() {
+                                                let _ = TRAINER_LOGS.send(format!("[Sovereign Code Sandbox] Orquestrando Script Matemático Python..."));
+                                                join_handles.push(tokio::spawn(async move {
+                                                    let execution_res = crate::sandbox::execute_python_code(&py_code).await;
+                                                    let parsed_res = match execution_res {
+                                                        Ok(stdout) => format!("### PYTHON SANDBOX OUTPUT (SUCCESS):\n```text\n{}\n```", stdout),
+                                                        Err(stderr) => format!("### PYTHON SANDBOX OUTPUT (FAILURE):\n```text\n{}\n```\nAtenção: O plano falhou. Você precisa corrigir as variáveis Python ou importar a biblioteca certa.", stderr),
+                                                    };
+                                                    (py_code, parsed_res, "Python Code Sandbox".to_string())
                                                 }));
                                             }
                                         }
