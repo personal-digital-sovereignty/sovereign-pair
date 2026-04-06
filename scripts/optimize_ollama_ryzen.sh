@@ -41,6 +41,16 @@ Environment="OMP_NUM_THREADS=16"
 # Afinidade de CPU (Force uso coerente dos CCX da AMD)
 Environment="GOMP_CPU_AFFINITY=0-15"
 
+# [THE MAGIC]: AMD ROCm Hardware Spoofing (Falsificação de Identidade Arquitetural)
+# APUs Ryzen Vega (como 5800H) são bloqueadas pela AMD comercialmente no ROCm.
+# Forçamos a biblioteca a ler a APU como uma gfx900 (Enterprise) para destravar acesso à Memória Compartilhada.
+Environment="HSA_OVERRIDE_GFX_VERSION=9.0.0"
+
+# [FALLBACK UNIVERSAL]: Vulkan Compute
+# Se a AMD quebrar o suporte ao ROCm spoofing, a Engine de Inference ativa o modo Vulkan (Open-Source),
+# que dialoga perfeitamente com Intel Iris Xe, Intel Arc e AMD RX/Radeon Vega nativamente, sem dependências proprietárias.
+# Environment="OLLAMA_BACKEND=vulkan"
+
 # Tuning de Memória Global (32GB RAM Base)
 Environment="OLLAMA_MAX_QUEUE=512"
 Environment="OLLAMA_KEEP_ALIVE=5m"
