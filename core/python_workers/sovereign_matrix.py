@@ -13,53 +13,113 @@ def fetch_finance(ticker, years):
         print(json.dumps({"error": "Packages 'yfinance' and 'pandas' are missing. Run 'pip install yfinance pandas'."}))
         sys.exit(1)
         
-    try:
-        period = f"{years}y"
+    clean_years = years.replace('y', '').replace('Y', '')
+    if not clean_years.isdigit():
+        clean_years = "1"
         
-        # Sovereign Financial Ticker Maps
-        if ticker.upper() == 'BRENT':
-            ticker = 'BZ=F' # Brent Crude Oil Futures
-        elif ticker.upper() == 'WTI':
-            ticker = 'CL=F' # Crude Oil Futures
-        elif ticker.upper() == 'DOLAR' or ticker.upper() == 'USD':
-            ticker = 'BRL=X' # USD to BRL
-        elif ticker.upper() == 'PETROBRAS':
-            ticker = 'PETR4.SA'
-            
+    period = f"{clean_years}y"
+    if ticker.upper() == 'BRENT':
+        ticker = 'BZ=F' # Brent Crude Oil Futures
+    elif ticker.upper() == 'WTI':
+        ticker = 'CL=F' # Crude Oil Futures
+    elif ticker.upper() == 'DOLAR' or ticker.upper() == 'USD':
+        ticker = 'BRL=X' # USD to BRL
+    elif ticker.upper() == 'PETROBRAS':
+        ticker = 'PETR4.SA'
+        
+
+    start_date = (datetime.datetime.now() - datetime.timedelta(days=int(clean_years)*365)).strftime('%Y-%m-%d')
+    end_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    
+    # === LAYER 1: YFINANCE (Official Library) ===
+    df = pd.DataFrame()
+    last_error = ""
+    source_used = "Yahoo Finance Open-Data"
+    try:
         t = yf.Ticker(ticker)
         df = t.history(period=period)
-        
-        if df.empty:
-            print(json.dumps({"error": f"No financial data found for ticker {ticker}"}))
-            sys.exit(1)
-            
-        # Context Window Protection: If querying more than 1 year, aggregate to monthly closing prices
-        try:
-            if int(years) > 1:
-                # Group by Month to prevent 1200+ row overflow
-                df['YearMonth'] = df.index.strftime('%Y-%m')
-                df = df.groupby('YearMonth').last()
-        except:
-            pass # fallback to RAW if pandas grouping fails
-            
-        data = []
-        for index, row in df.iterrows():
-            date_str = index if isinstance(index, str) else index.strftime('%Y-%m-%d')
-            data.append({
-                "date": date_str,
-                "close": round(row['Close'], 2)
-            })
-            
-        print(json.dumps({
-            "status": "success",
-            "source": "Yahoo Finance Open-Data",
-            "ticker": ticker, 
-            "period": period, 
-            "data": data
-        }))
-        
     except Exception as e:
-        print(json.dumps({"error": f"Finance API Error: {str(e)}"}))
+        last_error_layer1 = f"Layer 1 (yfinance) failed: {e}"
+        
+    # === LAYER 2: YAHOO RAW API (Browser Spoofing) ===
+    if df.empty:
+        try:
+            import urllib.request
+            import time
+            start_ts = int(time.mktime(time.strptime(start_date, '%Y-%m-%d')))
+            end_ts = int(time.mktime(time.strptime(end_date, '%Y-%m-%d')))
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?period1={start_ts}&period2={end_ts}&interval=1d"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                raw_json = json.loads(response.read().decode())
+                timestamps = raw_json['chart']['result'][0]['timestamp']
+                closes = raw_json['chart']['result'][0]['indicators']['quote'][0]['close']
+                dates = [datetime.datetime.fromtimestamp(ts) for ts in timestamps]
+                df = pd.DataFrame({'Close': closes}, index=dates)
+                source_used = "Yahoo Finance Raw API (Browser Spoofed)"
+        except Exception as e:
+            last_error = f"Layer 2 (Yahoo Raw) failed: {e}"
+
+    # === LAYER 3: BRAPI.DEV (Para ativos brasileiros) ===
+    if df.empty and ticker.endswith('.SA'):
+        try:
+            br_ticker = ticker.replace('.SA', '')
+            url = f"https://brapi.dev/api/quote/{br_ticker}?range={period}&interval=1d"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Sovereign-Worker/1.0'})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                raw_json = json.loads(response.read().decode())
+                results = raw_json['results'][0]['historicalDataPrice']
+                dates = [datetime.datetime.fromtimestamp(x['date']) for x in results]
+                closes = [x['close'] for x in results]
+                df = pd.DataFrame({'Close': closes}, index=dates)
+                source_used = "Brapi.dev Open API (BR Native)"
+        except Exception as e:
+            last_error = f"Layer 3 (Brapi) failed: {e}"
+
+    # === LAYER 4: STOOQ (CSV Endpoint / Global) ===
+    if df.empty:
+        try:
+            stooq_ticker = ticker.replace('.SA', '.BR') if '.SA' in ticker else ticker
+            url = f"https://stooq.com/q/d/l/?s={stooq_ticker}&d1={start_date.replace('-','')}&d2={end_date.replace('-','')}&i=d"
+            df = pd.read_csv(url, index_col='Date', parse_dates=True)
+            if 'Close' not in df.columns:
+                df = pd.DataFrame() # CSV is missing data/blocked
+            else:
+                source_used = "Stooq CSV Database"
+        except Exception as e:
+            last_error = f"Layer 4 (Stooq) failed: {e}"
+
+    if df.empty:
+        print(json.dumps({"error": f"No financial data found for {ticker} across all 4 Multi-Node layers! Last error: {last_error}"}))
+        sys.exit(1)
+        
+    # Context Window Protection: If querying more than 1 year, aggregate to monthly closing prices
+    try:
+        if int(clean_years) > 1:
+            # Group by Month to prevent 1200+ row overflow
+            df['YearMonth'] = df.index.strftime('%Y-%m')
+            df = df.groupby('YearMonth').last()
+    except:
+        pass # fallback to RAW if pandas grouping fails
+        
+    data = []
+    for index, row in df.iterrows():
+        date_str = index if isinstance(index, str) else index.strftime('%Y-%m-%d')
+        # Lida com casos onde row['Close'] seja NaN no Pandas
+        if pd.isna(row.get('Close', float('nan'))):
+             continue
+        data.append({
+            "date": date_str,
+            "close": round(float(row['Close']), 2)
+        })
+        
+    print(json.dumps({
+        "status": "success",
+        "source": source_used,
+        "ticker": ticker, 
+        "period": period, 
+        "data": data
+    }))
 
 def fetch_macro(indicator, country, years):
     if country.upper() != 'BR':
