@@ -1305,12 +1305,16 @@ pub async fn run_deep_research_handler(
 
         if wait_or_cancel(500, &token).await { return; }
         
-        // BUGFIX DO AGENTIC LOOP INFINITO: 
-        // Se o Mestre consumiu todos os 5 ciclos batendo ferramentas e NÃO gerou texto final, 
-        // `synthesized_report` fica vazio, apagando todos os fatos brutos para o Scribe.
-        if synthesized_report.trim().is_empty() && !all_sources.is_empty() {
-            let _ = TRAINER_LOGS.send("[Agentic Loop] O Mestre finalizou o limite de chamadas (5 Turns) sem sintetizar a resposta. Forçando dump dos fatos extraídos para o Scribe.".to_string());
-            synthesized_report = all_sources.join("\n\n=== FACTUAL BORDER ===\n\n");
+        // BUGFIX: Independentemente do Mestre ter gerado texto ou não, 
+        // nós TEMOS que embutir os Fatos Brutos para o The Scribe não ficar cego.
+        if !all_sources.is_empty() {
+            if synthesized_report.trim().is_empty() {
+                let _ = TRAINER_LOGS.send("[Agentic Loop] O Mestre finalizou o limite de chamadas sem sintetizar a resposta. Dump direto ativado.".to_string());
+                synthesized_report = all_sources.join("\n\n=== FACTUAL BORDER ===\n\n");
+            } else {
+                // Junta o que o mestre falou com os fatos brutos para a formatação final
+                synthesized_report = format!("{}\n\n=== FATOS BRUTOS MANTIDOS EM MEMÓRIA ===\n\n{}", synthesized_report, all_sources.join("\n\n=== FACTUAL BORDER ===\n\n"));
+            }
         }
 
         // [STEP 2]: Epistemic Hard-Kill Vaccine & Scribe Formatting
