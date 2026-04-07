@@ -17,7 +17,7 @@ Item {
         id: mouseArea
         anchors.fill: parent
         hoverEnabled: true
-        onClicked: Plasmoid.expanded = !Plasmoid.expanded
+        onClicked: root.expanded = !root.expanded
         
         QQC2.ToolTip.visible: containsMouse
         QQC2.ToolTip.text: "Sovereign Pair\n" + (root.activeModels > 0 ? "AI Online (" + root.avgTps.toFixed(1) + " T/s)" : "Modo O.S (Standby)")

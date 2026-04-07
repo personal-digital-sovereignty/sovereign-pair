@@ -5,16 +5,24 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A série 1.0.0 será ativada unicamente quando o núcleo do ecossistema Sovereign Bare Main atingir maturidade e estabilidade arquitetural plenas.
 
-## [Unreleased]
+## [1.0.0] - 2026-04-07
 
-### 🖥️ Desktop Integration & Spotlight UI (Phase H)
+### 🚀 True Autonomous Orchestration (Macro WAG)
+- **Sovereign Worker Graph Architecture**: Erradicada a arquitetura puramente serial de Web Scraping e ReAct looping que causava gargalos de performance no Context (KV Cache trashing). Desenvolvemos um workflow modular em 3 estágios: (1) Zero-Shot Gather via Planner Router, (2) Analyze no Hermetic Python Sandbox (Worker Scripts), e (3) Sintonia/Síntese Terminal isolada com restrição atômica de ferramentas. 
+- **Sovereign Open-Data Matrix (API Ledger)**: Adição matricial em `api_trainer.rs` e no cluster local Python para puxar estatísticas nativas exatas. Delega à Mente Mestra poderes de ler e decodificar dados via `fetch_financial_ticker` (`yfinance`) e APIs de métricas estatais (IBGE/Inflação), extirpando cálculos cognitivos alucinados da máquina primária.
+- **Nanny Syntax Loop Break (OOM Preventor)**: Mitigação brutal de bloqueios cíclicos letais ocorridos sob limiar raso da máquina host (ex: sobrecarga da RAM no SO hospedeiro e esgorjamento dos Tokens Contextuais (4096)). Em casos de fuga estrutural do JSON para texto puro pelo LLM Secundário (`qwen3`), nosso *Thought Nanny* conta até 5 ciclos interceptados na marra; depois aborta para estágio de "Final Synthesis" e aciona um Scribe Agent mais capaz (`llama3.1:8b`) pra renderizar o resumo purificado do log com integridade hermética.
+- **Deep Research Null-Safe Data Yielding**: Salvaguarda de coerência do React Loop onde - em contingência de busca falhada do LLM em premissas financeiras com correlação - o agente abortará correntes especulativas e emitirá o "Dado Faltante" diretamente no painel Svelte com recomendações de re-escopo humano (`Scribe Agent`), barrando falsas verdades.
+
+### 🖥️ Desktop Integration & Spotlight UI (Phase H/J)
 - **Systray Spotlight Chat**: Extracted the core Svelte `ChatPanel` into a dedicated, minimalist route (`/spotlight`) with absolute background transparency (`backdrop-blur`).
 - **Tauri Borderless Window**: Mapped a native floating window configuration in `tauri.conf.json` (`transparent: true`, `decorations: false`, `alwaysOnTop: true`) mimicking productivity launchers like MacOS Spotlight and Raycast.
 - **System Tray Integration**: Injected the trigger explicitly in the Rust backend (`src-tauri/src/lib.rs`), allowing the user to spawn the AI directly from the Desktop taskbar over any application, dismissing it gracefully upon focus loss.
+- **KDE Plasma & Native Action Injection**: Refatorado comportamento fantasma WebView no painel do Linux. Os hooks de QML chamam diretamente as passagens `/v1/system/launch-gui` para destravar interações diretas com o motor Rust sob ambientes isolados do Wayland.
+- **Universal Hardware Spoofer**: Injeção da tag ambiente `HSA_OVERRIDE_GFX_VERSION=9.0.0` para contornar gargalos proprietários de memória (AMDGPU ROCm) em hosts com Ryzen/Vega (APUs de Notebook), equalizados junto do payload `OLLAMA_BACKEND=vulkan`.
 
 ### 🛡️ Agentic Firewall Enhancements 
 - **Universal Tool-Leak Interceptor**: Expanded the ReAct "Thought Nanny" to generically catch raw `"type":"function"` JSON strings printed into the content body by generic SLMs (Qwen 4b/8b) that fail native tool parsing. The Firewall intercepts the leak, deletes the output, and forcefully disciplines the LLM back into outputting Markdown, eradicating structural UI crashes during final Synthesis.
-- **Nanny Reprimand Loop for Search Queries**: Re-engineered the original Phase 7 Nanny fallback. If the Master LLM fails to output valid JSON during the mandatory first-cycle extraction, the system no longer pushes the full user directive sequentially into the Web Scraper (which caused DDG query collapse and Epistemic Aborts). Instead, it bounces the turn back to the LLM, coercing it to re-generate the proper JSON extraction syntax.
+- **Nanny Reprimand Loop for Search Queries**: Re-engineered the original Phase 7 Nanny fallback. If the Master LLM fails to output valid JSON during the mandatory first-cycle extraction, the system no longer pushes the full user directive sequentially into the DDG Web Scraper. Instead, it bounces the turn back to the LLM punitivamente, coercing it to fix the output contract.
 
 ## [0.10.0] - 2026-04-05
 
