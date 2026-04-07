@@ -6,10 +6,7 @@ import QtQuick.Layouts
 PlasmoidItem {
     id: root
 
-    preferredRepresentation: Plasmoid.compactRepresentation
-
-    Plasmoid.backgroundHints: Plasmoid.DefaultBackground
-    
+    // Compatibility mode for Plasma 6 (Removed deprecated KDE5 Enums)
     // Core state properties mapped from Rust Telemetry
     property int totalTokens: 0
     property real avgTps: 0.0
@@ -29,7 +26,7 @@ PlasmoidItem {
         var req = new XMLHttpRequest();
         req.onreadystatechange = function() {
             if (req.readyState === XMLHttpRequest.DONE) {
-                if (req.status === 200) {
+                if (req.status === 200 && req.responseText) {
                     try {
                         var data = JSON.parse(req.responseText);
                         root.totalTokens = data.total_tokens || 0;
@@ -40,12 +37,12 @@ PlasmoidItem {
                             root.quarantineCount = data.cronos.gaps || 0;
                         }
                     } catch (e) {
-                        console.log("Sovereign Plasmoid JSON error: " + e);
+                        console.log("Sovereign Plasmoid JSON error: " + e + ". Text: " + req.responseText);
                     }
                 }
             }
         };
-        req.open("GET", "http://127.0.0.1:38001/v1/telemetry");
+        req.open("GET", "http://127.0.0.1:38001/v1/analytics/telemetry");
         req.send();
     }
 
@@ -53,6 +50,7 @@ PlasmoidItem {
         fetchTelemetry(); // Force sync on mount
     }
 
-    compactRepresentation: CompactRepresentation {}
+    Plasmoid.icon: Qt.resolvedUrl("app-icon.svg")
+
     fullRepresentation: FullRepresentation {}
 }

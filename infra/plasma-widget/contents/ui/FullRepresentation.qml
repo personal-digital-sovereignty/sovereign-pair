@@ -27,8 +27,8 @@ Item {
                     source: "app-icon.svg"
                     sourceSize.width: 32
                     sourceSize.height: 32
-                    implicitWidth: 32
-                    implicitHeight: 32
+                    Layout.preferredWidth: 32
+                    Layout.preferredHeight: 32
                 }
                 ColumnLayout {
                     spacing: 0
@@ -160,8 +160,10 @@ Item {
                     text: "Abrir Dashboard"
                     icon.name: "window-new"
                     onClicked: {
-                        Qt.openUrlExternally("http://127.0.0.1:38001")
-                        Plasmoid.expanded = false
+                        var req = new XMLHttpRequest();
+                        req.open("POST", "http://127.0.0.1:38001/v1/system/launch-gui");
+                        req.send();
+                        root.expanded = false;
                     }
                 }
             }
