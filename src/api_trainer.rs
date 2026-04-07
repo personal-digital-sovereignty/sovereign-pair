@@ -1033,7 +1033,8 @@ pub async fn run_deep_research_handler(
                                                 let _ = TRAINER_LOGS.send(format!("[Sovereign Open-Data Matrix] Acessando ticker financeiro oficial: {} ({} anos)...", symbol, years));
                                                 join_handles.push(tokio::spawn(async move {
                                                     let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
-                                                    let matrix_script = std::env::current_dir().unwrap_or_default().join("core").join("python_workers").join("sovereign_matrix.py");
+                                                    let cur_dir = std::env::current_dir().unwrap_or_default();
+                                                    let matrix_script = if cur_dir.ends_with("core") { cur_dir.join("python_workers").join("sovereign_matrix.py") } else { cur_dir.join("core").join("python_workers").join("sovereign_matrix.py") };
                                                     
                                                     let output = tokio::process::Command::new(venv_python)
                                                         .arg(matrix_script.to_string_lossy().as_ref())
@@ -1075,7 +1076,8 @@ pub async fn run_deep_research_handler(
                                                 let _ = TRAINER_LOGS.send(format!("[Sovereign Open-Data Matrix] Acessando base macroeconômica ({}) para {} ({} anos)...", country, ind, years));
                                                 join_handles.push(tokio::spawn(async move {
                                                     let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
-                                                    let matrix_script = std::env::current_dir().unwrap_or_default().join("core").join("python_workers").join("sovereign_matrix.py");
+                                                    let cur_dir = std::env::current_dir().unwrap_or_default();
+                                                    let matrix_script = if cur_dir.ends_with("core") { cur_dir.join("python_workers").join("sovereign_matrix.py") } else { cur_dir.join("core").join("python_workers").join("sovereign_matrix.py") };
                                                     
                                                     let output = tokio::process::Command::new(venv_python)
                                                         .arg(matrix_script.to_string_lossy().as_ref())
@@ -1186,7 +1188,8 @@ pub async fn run_deep_research_handler(
                                         if !symbol.is_empty() {
                                             let _ = TRAINER_LOGS.send(format!("⚠️ [Thought Nanny] Resgatando JSON de Finanças ({}) vazado no plain-text...", symbol));
                                             let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
-                                            let matrix_script = std::env::current_dir().unwrap_or_default().join("core").join("python_workers").join("sovereign_matrix.py");
+                                            let cur_dir = std::env::current_dir().unwrap_or_default();
+                                            let matrix_script = if cur_dir.ends_with("core") { cur_dir.join("python_workers").join("sovereign_matrix.py") } else { cur_dir.join("core").join("python_workers").join("sovereign_matrix.py") };
                                             if let Ok(out) = tokio::process::Command::new(venv_python).arg(matrix_script).arg("finance").arg(&symbol).arg("5y").output().await {
                                                 final_result = String::from_utf8_lossy(&out.stdout).to_string();
                                             }
@@ -1202,7 +1205,8 @@ pub async fn run_deep_research_handler(
                                         if !ind.is_empty() {
                                             let _ = TRAINER_LOGS.send(format!("⚠️ [Thought Nanny] Resgatando JSON Macroeconômico ({}) vazado no plain-text...", ind));
                                             let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
-                                            let matrix_script = std::env::current_dir().unwrap_or_default().join("core").join("python_workers").join("sovereign_matrix.py");
+                                            let cur_dir = std::env::current_dir().unwrap_or_default();
+                                            let matrix_script = if cur_dir.ends_with("core") { cur_dir.join("python_workers").join("sovereign_matrix.py") } else { cur_dir.join("core").join("python_workers").join("sovereign_matrix.py") };
                                             if let Ok(out) = tokio::process::Command::new(venv_python).arg(matrix_script).arg("macro").arg(&ind).arg("BR").arg("5").output().await {
                                                 final_result = String::from_utf8_lossy(&out.stdout).to_string();
                                             }
