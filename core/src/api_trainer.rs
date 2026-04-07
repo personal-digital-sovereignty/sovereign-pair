@@ -1137,10 +1137,20 @@ pub async fn run_deep_research_handler(
 
                                     let _ = TRAINER_LOGS.send(format!("[Firewall Cognitivo] Parcela de Busca Paralela resolvida para a sub-query '{}'", sq));
                                     
+                                    // SOBREVIVÊNCIA DE CONTEXTO OOM: Truncar a resposta injetada na malha do LLM.
+                                    // Se inserirmos milhares de linhas JSON do yfinance na memória do Mestre (ex: Qwen 4096 ctx),
+                                    // o System Prompt será varrido do limite mental, e ele será forçado a alucinar texto puro no próximo loop.
+                                    // Nós guardamos o 'final_result' completo no 'all_sources', mas damos uma versão compacta à mente do Mestre.
+                                    let limited_result = if final_result.len() > 1800 {
+                                        format!("{}\n...[DATA TRUNCATED FOR MEMORY DENSITY. Raw data securely stashed in memory. Proceed with your NEXT tool call to gather any remaining metrics.]", final_result.chars().take(1800).collect::<String>())
+                                    } else {
+                                        final_result.clone()
+                                    };
+
                                     // Devolve a resposta do Tool para a memória do Mestre
                                     messages.push(serde_json::json!({
                                         "role": "tool",
-                                        "content": final_result
+                                        "content": limited_result
                                     }));
                                 }
                             }
@@ -1177,7 +1187,7 @@ pub async fn run_deep_research_handler(
                                             let _ = TRAINER_LOGS.send(format!("⚠️ [Thought Nanny] Resgatando JSON de Finanças ({}) vazado no plain-text...", symbol));
                                             let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
                                             let matrix_script = std::env::current_dir().unwrap_or_default().join("core").join("python_workers").join("sovereign_matrix.py");
-                                            if let Ok(out) = tokio::process::Command::new(venv_python).arg(matrix_script).arg("fetch").arg(&symbol).arg("5y").output().await {
+                                            if let Ok(out) = tokio::process::Command::new(venv_python).arg(matrix_script).arg("finance").arg(&symbol).arg("5y").output().await {
                                                 final_result = String::from_utf8_lossy(&out.stdout).to_string();
                                             }
                                         }
@@ -1309,7 +1319,7 @@ pub async fn run_deep_research_handler(
 
         } else if is_low_end {
             let _ = TRAINER_LOGS.send("[The Scribe] Low-End Engine detectada. Invocando Agent especialista para formatar os fatos brutos em Markdown...".to_string());
-            let scribe_system = format!("Você é The Scribe, um formatador técnico de elite do Sovereign Pair. Hoje é: {current_date}. Seu ÚNICO objetivo é criar um relatório Markdown detalhado, estruturado e impecável respondendo ao Prompt original, APENAS baseando-se nos fatos listados. Se faltarem dados, escreva claramente que faltam. Evite gerar 'O's repetidos ou alucinar.");
+            let scribe_system = format!("Você é The Scribe, um formatador técnico de elite do Sovereign Pair. Hoje é: {current_date}. Seu ÚNICO objetivo é criar um relatório Markdown impecável respondendo ao Prompt original APENAS baseando-se nos [FATOS BRUTOS] listados. Você ESTÁ COMPLETAMENTE PROIBIDO de inventar, interpolar, adivinhar ou consultar sua memória paramétrica para anos, preços, inflação ou dados ausentes. Se o usuário pedir Inflação de 2024 e não estiver nos FATOS Brtuos, você DEVE escrever 'Dados Inexistentes/Não Raspados'. Qualquer hallucinação resultará em encerramento do sistema. Evite gerar verbosidade inútil.");
             let scribe_user = format!("[PROMPT DO USUÁRIO]: {}\n\n[FATOS BRUTOS COLETADOS PELA IA PESQUISADORA]:\n{}", prompt, synthesized_report);
 
             // A Scribe Phase EXIGE formatadores experientes porque o SLM local era muito fraco.
