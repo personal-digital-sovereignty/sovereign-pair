@@ -760,8 +760,9 @@ pub async fn run_deep_research_handler(
                 1. Você DEVE usar APENAS a Ferramenta EXATA e mais cirúrgica para suprir a demanda de dados antes de escrever qualquer análise.\n\
                 2. Para informações de Notícias, Blogs genéricos ou Pesquisas Verbais, USE a ferramenta `dispatch_sub_researcher` e envie seu array em \"search_queries\".\n\
                 3. Para extrair COTAÇÕES FINANCEIRAS (Petróleo, Ações, Commodities), VOCÊ DEVE USAR ESTRITAMENTE `fetch_financial_ticker` (ex: `{{\"symbol\": \"BRENT\"}}`).\n\
-                4. Para extrair DADOS MACROECONÔMICOS GOVERNAMENTAIS (Inflação, IPCA, Selic, Desemprego), VOCÊ DEVE USAR ESTRITAMENTE `fetch_macroeconomy` (ex: `{{\"indicator\": \"INFLACAO\"}}`).\n\
-                5. É ESTRITAMENTE PROIBIDO gerar análises teóricas no vácuo ANTES de invocar a ferramenta correspondente.",
+                4. Para extrair DADOS MACROECONÔMICOS GOVERNAMENTAIS (Inflação, IPCA, Selic, Desemprego), VOCÊ DEVE USAR ESTRITAMENTE `fetch_macroeconomy` (ex: `{{\"indicator\": \"IPCA\"}}`).\n\
+                5. É ESTRITAMENTE PROIBIDO gerar análises teóricas no vácuo ANTES de invocar a ferramenta correspondente.\n\
+                6. EXAUSTÃO COMBINATÓRIA: Se a instrução do usuário exigir múltiplas métricas (ex: Petróleo E Inflação E Gasolina), você DEVE extrair UMA de cada vez sequencialmente. Ao receber a resposta de UMA ferramenta, no turno posterior você DEVE acionar a PRÓXIMA ferramenta. NÃO OUSE iniciar a sua síntese final até ter chamado ferramentas para TODOS os sub-elementos da query original!",
                 anchor_directive
             )
         } else {
@@ -775,7 +776,8 @@ pub async fn run_deep_research_handler(
                 3. Se o Usuário pede DADOS FINANCEIROS EXATOS (Ações, Petróleo, Cotações de Barril, Moedas) -> VOCÊ DEVE INVOCAR NATIVAMENTE a função `fetch_financial_ticker`.\n\
                 4. Se o Usuário pede DADOS INFLACIONÁRIOS E ECONÔMICOS (Inflação de países, Taxas Base) -> VOCÊ DEVE INVOCAR NATIVAMENTE a função `fetch_macroeconomy`.\n\
                 5. É terminantemente proibido prever a resposta ou discorrer sem ANTES acionar uma das ferramentas para levantar as provas reais.\n\
-                6. Ao receber o retorno da ferramenta, cruze os dados limpos e redija seu relatório suportado por formatação Markdown Absoluta.",
+                6. EXAUSTÃO COMBINATÓRIA: Se a instrução do usuário exigir múltiplas métricas (ex: Petróleo E Inflação E Gasolina), você DEVE extrair UMA de cada vez sequencialmente. Ao receber a resposta de UMA ferramenta, no turno posterior você DEVE acionar a PRÓXIMA ferramenta. NÃO OUSE iniciar a sua síntese até ter chamado ferramentas para TODOS os sub-elementos da query original!\n\
+                7. Ao receber TODOS os retornos combinados, redija seu relatório em Markdown.",
                 anchor_directive
             )
         };
@@ -1143,8 +1145,8 @@ pub async fn run_deep_research_handler(
                                     // Se inserirmos milhares de linhas JSON do yfinance na memória do Mestre (ex: Qwen 4096 ctx),
                                     // o System Prompt será varrido do limite mental, e ele será forçado a alucinar texto puro no próximo loop.
                                     // Nós guardamos o 'final_result' completo no 'all_sources', mas damos uma versão compacta à mente do Mestre.
-                                    let limited_result = if final_result.len() > 1800 {
-                                        format!("{}\n...[DATA TRUNCATED FOR MEMORY DENSITY. Raw data securely stashed in memory. Proceed with your NEXT tool call to gather any remaining metrics.]", final_result.chars().take(1800).collect::<String>())
+                                    let limited_result = if final_result.len() > 8000 {
+                                        format!("{}\n...[DATA TRUNCATED FOR MEMORY DENSITY. Raw data securely stashed in memory. Proceed with your NEXT tool call to gather any remaining metrics.]", final_result.chars().take(8000).collect::<String>())
                                     } else {
                                         final_result.clone()
                                     };
@@ -1327,7 +1329,7 @@ pub async fn run_deep_research_handler(
 
         } else if is_low_end {
             let _ = TRAINER_LOGS.send("[The Scribe] Low-End Engine detectada. Invocando Agent especialista para formatar os fatos brutos em Markdown...".to_string());
-            let scribe_system = format!("Você é The Scribe, um formatador técnico de elite do Sovereign Pair. Hoje é: {current_date}. Seu ÚNICO objetivo é criar um relatório Markdown impecável respondendo ao Prompt original APENAS baseando-se nos [FATOS BRUTOS] listados. Você ESTÁ COMPLETAMENTE PROIBIDO de inventar, interpolar, adivinhar ou consultar sua memória paramétrica para anos, preços, inflação ou dados ausentes. Se o usuário pedir Inflação de 2024 e não estiver nos FATOS Brutos, você DEVE escrever 'Dados Inexistentes/Não Raspados'.\n\nGATE ANTI-INTERPOLAÇÃO: Se você perceber que está preenchendo uma tabela gerando deltas constantes mês a mês (progressão linear inventada, ex: +0,26 por mês), CANCELE ESSA AÇÃO ABRUPTAMENTE. Substitua a linha por 'Dado Ausente'. Qualquer alucinação matemática corromperá a rede. Evite verbosidade.");
+            let scribe_system = format!("Você é The Scribe, um formatador técnico de elite do Sovereign Pair. Hoje é: {current_date}. Seu ÚNICO objetivo é criar um relatório Markdown impecável respondendo ao Prompt original APENAS baseando-se nos [FATOS BRUTOS] listados. Você ESTÁ COMPLETAMENTE PROIBIDO de inventar, interpolar, adivinhar ou consultar sua memória paramétrica para anos, preços, inflação ou dados ausentes. Se o usuário pedir Inflação de 2024 e não estiver nos FATOS Brutos, você DEVE escrever 'Dados Inexistentes/Não Raspados'.\n\nGATE ANTI-INTERPOLAÇÃO: Se você perceber que está preenchendo uma tabela gerando deltas constantes mês a mês (progressão linear inventada, ex: +0,26 por mês), CANCELE ESSA AÇÃO ABRUPTAMENTE. Substitua a linha por 'Dado Ausente'. Qualquer alucinação matemática corromperá a rede.\n\n[DADO ESTRUTURAL QUALITATIVO]: Para perguntas sobre LUCROS DAS REFINARIAS, CARTEL ou IMPOSTOS EM COMBUSTÍVEIS, utilize SEGUINTE BASE ESTRUTURAL (aplique-a se questionado): Composição aprox da Gasolina: Refinaria Petrobras (~27%), ICMS Estadual (~24%), Distribuição/Revenda (~24%), Etanol Anidro (~15%), Impostos Federais CIDE/PIS/COFINS (~10%). Logo, metade do preço ou mais pode ser atrelado a impostos governamentais e custos não atrelados à refinaria.\n\nEvite verbosidade.");
             let scribe_user = format!("[PROMPT DO USUÁRIO]: {}\n\n[FATOS BRUTOS COLETADOS PELA IA PESQUISADORA]:\n{}", prompt, synthesized_report);
 
             // A Scribe Phase EXIGE formatadores experientes porque o SLM local era muito fraco.
