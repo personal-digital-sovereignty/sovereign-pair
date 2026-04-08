@@ -147,10 +147,9 @@ impl SyncEngine {
                             let path_str = path.to_string_lossy().to_string();
                             
                             // 2.5 Debounce (Evita disparo duplo do FSEvent Modify -> Create em milissegundos)
-                            if let Some(last_time) = last_processed.get(&path_str) {
-                                if last_time.elapsed() < std::time::Duration::from_secs(2) {
+                            if let Some(last_time) = last_processed.get(&path_str)
+                                && last_time.elapsed() < std::time::Duration::from_secs(2) {
                                     continue;
-                                }
                             }
                             last_processed.insert(path_str.clone(), std::time::Instant::now());
                             
