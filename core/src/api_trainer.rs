@@ -794,10 +794,10 @@ pub async fn run_deep_research_handler(
         sys.refresh_memory();
         let total_ram_gb = sys.total_memory() / 1024 / 1024 / 1024; // Convert bytes to GB
 
-        let dynamic_num_ctx = if total_ram_gb < 35 {
-            4096 // Limitado draconianamente a 4096 para Ryzen (27GB RAM) para evitar CPU KV Cache Thrashing Extremo
-        } else if total_ram_gb < 65 {
-            8192
+        let dynamic_num_ctx = if total_ram_gb < 16 {
+            4096 // Limitado draconianamente para setups de baixa RAM
+        } else if total_ram_gb < 35 {
+            12288 // Expandido (safe point para 27GB) para encaixar o array combinatório de extração (4x JSON tools)
         } else {
             16384
         };
@@ -1347,7 +1347,7 @@ pub async fn run_deep_research_handler(
                 ],
                 "stream": false,
                 "options": {
-                    "num_ctx": 8192,
+                    "num_ctx": 16384,
                     "temperature": 0.25,
                     "repeat_penalty": 1.05,
                     "num_predict": 4096
@@ -1370,10 +1370,19 @@ pub async fn run_deep_research_handler(
         let _ = TRAINER_LOGS.send("[STEP 3] Vault Context Injector persisting artifact...".to_string());
 
         // [STEP 4]: Final Artifact Export -> STAGING DB
-        let mut source_links: Vec<String> = all_sources.join("\n").lines()
-            .filter(|l| l.starts_with("## Source: "))
-            .map(|l| format!("- {}", l.replace("## Source: ", "").trim()))
-            .collect();
+        let mut source_links: Vec<String> = Vec::new();
+        for line in all_sources.join("\n").lines() {
+            let l_trimmed = line.trim();
+            if l_trimmed.starts_with("## Source: ") {
+                source_links.push(format!("- {}", l_trimmed.replace("## Source: ", "").trim()));
+            } else if l_trimmed.starts_with('{') && l_trimmed.contains("\"source\"") {
+                if let Ok(val) = serde_json::from_str::<serde_json::Value>(l_trimmed) {
+                    if let Some(src) = val.get("source").and_then(|s| s.as_str()) {
+                        source_links.push(format!("- Sovereign Open-Data Matrix: {} (Trusted Pipeline)", src));
+                    }
+                }
+            }
+        }
             
         source_links.sort();
         source_links.dedup();
