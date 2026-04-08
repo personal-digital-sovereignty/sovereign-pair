@@ -840,7 +840,7 @@ pub async fn run_deep_research_handler(
                 "options": {
                     "num_ctx": dynamic_num_ctx,
                     "temperature": 0.05,
-                    "repeat_penalty": 1.03,
+                    "repeat_penalty": 1.15,
                     "num_predict": 4096
                 }
             });
@@ -1352,7 +1352,7 @@ pub async fn run_deep_research_handler(
                 "options": {
                     "num_ctx": 16384,
                     "temperature": 0.25,
-                    "repeat_penalty": 1.05,
+                    "repeat_penalty": 1.15,
                     "num_predict": 4096
                 }
             });

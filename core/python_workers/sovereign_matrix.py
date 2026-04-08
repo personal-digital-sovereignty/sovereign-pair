@@ -155,16 +155,17 @@ def fetch_finance(ticker, years):
         except:
             pass
             
-    data = []
+    data_lines = []
     for index, row in df.iterrows():
         date_str = index if isinstance(index, str) else index.strftime('%Y-%m-%d')
         # Lida com casos onde row['Close'] seja NaN no Pandas
         if pd.isna(row.get('Close', float('nan'))):
              continue
-        data.append({
-            "date": date_str,
-            "close": round(float(row['Close']), 2)
-        })
+        val = round(float(row['Close']), 2)
+        data_lines.append(f"{date_str} | {val}")
+        
+    ctx_header = f"[CONTEXT: DADOS HISTÓRICOS BRUTOS REFERENTES AO ATIVO {ticker.upper()} ({semantic_name})]\n"
+    data_compressed = ctx_header + "\n".join(data_lines)
         
     print(json.dumps({
         "status": "success",
@@ -172,7 +173,7 @@ def fetch_finance(ticker, years):
         "ticker": ticker, 
         "semantic_name": semantic_name,
         "period": period, 
-        "data": data
+        "data_compressed": data_compressed
     }))
 
 def fetch_macro(indicator, country, years):
@@ -190,6 +191,16 @@ def fetch_macro(indicator, country, years):
             with open(proxy_file, "r", encoding="utf-8") as f:
                 proxy_data = json.load(f)
             
+            data_arr = proxy_data.get("data", [])
+            data_lines = []
+            for item in data_arr:
+                date_str = item.get("date", "")
+                val = item.get("value", item.get("close", ""))
+                data_lines.append(f"{date_str} | {val}")
+                
+            ctx_header = f"[CONTEXT: DADOS HISTÓRICOS BRUTOS REFERENTES AO MACRO INDICADOR {indicator.upper()}]\n"
+            data_compressed = ctx_header + "\n".join(data_lines)
+            
             # Enrich Autobahn Proxy with required macro payload schema
             print(json.dumps({
                 "status": "success",
@@ -197,7 +208,7 @@ def fetch_macro(indicator, country, years):
                 "indicator": indicator.upper(),
                 "country": country.upper(),
                 "period": f"{years}y",
-                "data": proxy_data.get("data", [])
+                "data_compressed": data_compressed
             }))
             sys.exit(0)
         except Exception as e:
@@ -229,13 +240,20 @@ def fetch_macro(indicator, country, years):
         req = urllib.request.Request(url, headers={'User-Agent': 'Sovereign-Pair/1.0'})
         with urllib.request.urlopen(req) as response:
             resp_data = json.loads(response.read().decode())
+            data_lines = []
+            for item in resp_data:
+                data_lines.append(f"{item.get('data', '')} | {item.get('valor', '')}")
+            
+            ctx_header = f"[CONTEXT: DADOS HISTÓRICOS BRUTOS REFERENTES AO MACRO INDICADOR {indicator.upper()}]\n"
+            data_compressed = ctx_header + "\n".join(data_lines)
+            
             print(json.dumps({
                 "status": "success",
                 "source": f"Banco Central do Brasil (SGS {ind_code})",
                 "indicator": indicator, 
                 "country": country, 
                 "period": f"{years}y", 
-                "data": resp_data
+                "data_compressed": data_compressed
             }))
     except Exception as e:
         print(json.dumps({"error": f"Macro API Error: {str(e)}"}))
