@@ -777,7 +777,9 @@ pub async fn run_deep_research_handler(
                 4. Se o Usuário pede DADOS INFLACIONÁRIOS E ECONÔMICOS (Inflação de países, Taxas Base) -> VOCÊ DEVE INVOCAR NATIVAMENTE a função `fetch_macroeconomy`.\n\
                 5. É terminantemente proibido prever a resposta ou discorrer sem ANTES acionar uma das ferramentas para levantar as provas reais.\n\
                 6. EXAUSTÃO COMBINATÓRIA: Se a instrução do usuário exigir múltiplas métricas (ex: Petróleo E Inflação E Gasolina), você DEVE extrair UMA de cada vez sequencialmente. Ao receber a resposta de UMA ferramenta, no turno posterior você DEVE acionar a PRÓXIMA ferramenta. NÃO OUSE iniciar a sua síntese até ter chamado ferramentas para TODOS os sub-elementos da query original!\n\
-                7. Ao receber TODOS os retornos combinados, redija seu relatório em Markdown.",
+                7. FORMATAÇÃO HISTÓRICA: Se as ferramentas devolverem SÉRIES HISTÓRICAS (ex: JSON contendo 5 anos de meses de Petróleo), você DEVE desenhar uma Tabela Markdown exaustiva linha por linha, mostrando a progressão temporal em vez de resumi-la em uma única linha. O usuário quer ver toda a tabela impressa!\n\
+                8. DADO QUALITATIVO: Para perguntas sobre CARTEL ou IMPOSTOS EM COMBUSTÍVEIS (Brasil), não invente: use a estrutura base: Refinaria (~27%), ICMS (~24%), Distribuição (~24%), Etanol (~15%), CIDE/PIS/COFINS (~10%). Argumente que o peso do estado e volatilidade isentam cartel perfeito.\n\
+                9. Ao receber TODOS os retornos combinados, redija seu relatório usando a exaustão exigida.",
                 anchor_directive
             )
         };
@@ -1307,14 +1309,14 @@ pub async fn run_deep_research_handler(
 
         if wait_or_cancel(500, &token).await { return; }
         
-        // BUGFIX: Independentemente do Mestre ter gerado texto ou não, 
-        // nós TEMOS que embutir os Fatos Brutos para o The Scribe não ficar cego.
-        if !all_sources.is_empty() {
+        // BUGFIX: Apenas contaminar com 'FATOS BRUTOS' colados crus no final se o Scribe for formatar (Low-End model).
+        // Se o Master for Alto Gabarito, ele já emitiu o Markdown limpo e isso não deve vazar pro usuário final.
+        if is_low_end && !all_sources.is_empty() {
             if synthesized_report.trim().is_empty() {
-                let _ = TRAINER_LOGS.send("[Agentic Loop] O Mestre finalizou o limite de chamadas sem sintetizar a resposta. Dump direto ativado.".to_string());
+                let _ = TRAINER_LOGS.send("[Agentic Loop] O Mestre finalizou o limite de chamadas sem sintetizar a resposta. Dump direto ativado para o Scribe.".to_string());
                 synthesized_report = all_sources.join("\n\n=== FACTUAL BORDER ===\n\n");
             } else {
-                // Junta o que o mestre falou com os fatos brutos para a formatação final
+                // Junta o que o mestre falou com os fatos brutos para a formatação final do Scribe
                 synthesized_report = format!("{}\n\n=== FATOS BRUTOS MANTIDOS EM MEMÓRIA ===\n\n{}", synthesized_report, all_sources.join("\n\n=== FACTUAL BORDER ===\n\n"));
             }
         }
