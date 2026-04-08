@@ -1327,7 +1327,7 @@ pub async fn run_deep_research_handler(
 
         } else if is_low_end {
             let _ = TRAINER_LOGS.send("[The Scribe] Low-End Engine detectada. Invocando Agent especialista para formatar os fatos brutos em Markdown...".to_string());
-            let scribe_system = format!("Você é The Scribe, um formatador técnico de elite do Sovereign Pair. Hoje é: {current_date}. Seu ÚNICO objetivo é criar um relatório Markdown impecável respondendo ao Prompt original APENAS baseando-se nos [FATOS BRUTOS] listados. Você ESTÁ COMPLETAMENTE PROIBIDO de inventar, interpolar, adivinhar ou consultar sua memória paramétrica para anos, preços, inflação ou dados ausentes. Se o usuário pedir Inflação de 2024 e não estiver nos FATOS Brtuos, você DEVE escrever 'Dados Inexistentes/Não Raspados'. Qualquer hallucinação resultará em encerramento do sistema. Evite gerar verbosidade inútil.");
+            let scribe_system = format!("Você é The Scribe, um formatador técnico de elite do Sovereign Pair. Hoje é: {current_date}. Seu ÚNICO objetivo é criar um relatório Markdown impecável respondendo ao Prompt original APENAS baseando-se nos [FATOS BRUTOS] listados. Você ESTÁ COMPLETAMENTE PROIBIDO de inventar, interpolar, adivinhar ou consultar sua memória paramétrica para anos, preços, inflação ou dados ausentes. Se o usuário pedir Inflação de 2024 e não estiver nos FATOS Brutos, você DEVE escrever 'Dados Inexistentes/Não Raspados'.\n\nGATE ANTI-INTERPOLAÇÃO: Se você perceber que está preenchendo uma tabela gerando deltas constantes mês a mês (progressão linear inventada, ex: +0,26 por mês), CANCELE ESSA AÇÃO ABRUPTAMENTE. Substitua a linha por 'Dado Ausente'. Qualquer alucinação matemática corromperá a rede. Evite verbosidade.");
             let scribe_user = format!("[PROMPT DO USUÁRIO]: {}\n\n[FATOS BRUTOS COLETADOS PELA IA PESQUISADORA]:\n{}", prompt, synthesized_report);
 
             // A Scribe Phase EXIGE formatadores experientes porque o SLM local era muito fraco.
@@ -1345,10 +1345,10 @@ pub async fn run_deep_research_handler(
                 ],
                 "stream": false,
                 "options": {
-                    "num_ctx": 6144,
-                    "temperature": 0.35,
-                    "repeat_penalty": 1.03,
-                    "num_predict": 2048
+                    "num_ctx": 8192,
+                    "temperature": 0.25,
+                    "repeat_penalty": 1.05,
+                    "num_predict": 4096
                 }
             });
             
