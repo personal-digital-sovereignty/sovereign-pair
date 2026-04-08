@@ -1230,7 +1230,7 @@ pub async fn run_deep_research_handler(
                                     else if content.contains("dispatch_sub_researcher") || pseudo_json.get("search_queries").is_some() {
                                          let mut sq = String::new();
                                          if let Some(s) = pseudo_json.get("search_queries").and_then(|v| v.as_array()) {
-                                             if let Some(first) = s.get(0).and_then(|v| v.as_str()) { sq = first.to_string(); }
+                                             if let Some(first) = s.first().and_then(|v| v.as_str()) { sq = first.to_string(); }
                                          }
                                          
                                          if !sq.is_empty() {
