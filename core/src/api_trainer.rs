@@ -774,7 +774,7 @@ pub async fn run_deep_research_handler(
                 1. Você DEVE avaliar a solicitação do usuário e selecionar ESTRITAMENTE a Ferramenta NATIVA correta.\n\
                 2. Para Pesquisas Contextuais, Textos, Entidades, Notícias -> USE `dispatch_sub_researcher` e emita suas palavras chave limpas.\n\
                 3. Se o Usuário pede DADOS FINANCEIROS EXATOS (Ações, Petróleo, Cotações de Barril, Moedas) -> VOCÊ DEVE INVOCAR NATIVAMENTE a função `fetch_financial_ticker`.\n\
-                4. Se o Usuário pede DADOS INFLACIONÁRIOS E ECONÔMICOS (Inflação de países, Taxas Base) -> VOCÊ DEVE INVOCAR NATIVAMENTE a função `fetch_macroeconomy`.\n\
+                4. COMMODITIES NACIONAIS & MACROECONOMIA (Inflação, Taxas Selic, Preço da Gasolina, Diesel, Cestas) -> VOCÊ DEVE INVOCAR NATIVAMENTE a função `fetch_macroeconomy` passando o nome exato do ítem como indicator (ex: 'GASOLINA', 'IPCA').\n\
                 5. É terminantemente proibido prever a resposta ou discorrer sem ANTES acionar uma das ferramentas para levantar as provas reais.\n\
                 6. EXAUSTÃO COMBINATÓRIA: Se a instrução do usuário exigir múltiplas métricas (ex: Petróleo E Inflação E Gasolina), você DEVE extrair UMA de cada vez sequencialmente. Ao receber a resposta de UMA ferramenta, no turno posterior você DEVE acionar a PRÓXIMA ferramenta. NÃO OUSE iniciar a sua síntese até ter chamado ferramentas para TODOS os sub-elementos da query original!\n\
                 7. FORMATAÇÃO HISTÓRICA: Se as ferramentas devolverem SÉRIES HISTÓRICAS (ex: JSON contendo 5 anos de meses de Petróleo), você DEVE desenhar uma Tabela Markdown exaustiva linha por linha, mostrando a progressão temporal em vez de resumi-la em uma única linha. O usuário quer ver toda a tabela impressa!\n\
@@ -840,7 +840,8 @@ pub async fn run_deep_research_handler(
                 "options": {
                     "num_ctx": dynamic_num_ctx,
                     "temperature": 0.05,
-                    "repeat_penalty": 1.03
+                    "repeat_penalty": 1.03,
+                    "num_predict": 4096
                 }
             });
 
