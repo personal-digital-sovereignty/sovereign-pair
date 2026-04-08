@@ -1322,7 +1322,7 @@ pub async fn run_deep_research_handler(
         
         // BUGFIX: Apenas contaminar com 'FATOS BRUTOS' colados crus no final se o Scribe for formatar (Low-End model).
         // Se o Master for Alto Gabarito, ele já emitiu o Markdown limpo e isso não deve vazar pro usuário final.
-        if is_low_end && !all_sources.is_empty() {
+        if !all_sources.is_empty() {
             if synthesized_report.trim().is_empty() {
                 let _ = TRAINER_LOGS.send("[Agentic Loop] O Mestre finalizou o limite de chamadas sem sintetizar a resposta. Dump direto ativado para o Scribe.".to_string());
                 synthesized_report = all_sources.join("\n\n=== FACTUAL BORDER ===\n\n");
@@ -1340,9 +1340,9 @@ pub async fn run_deep_research_handler(
             let _ = TRAINER_LOGS.send("[EPISTEMIC VACCINE WALL] Zero dados válidos! Abortando Relação Paramétrica Hardcoded...".to_string());
             "> [!WARNING]\n> **ALERTA DE SEGURANÇA SOBERANA**\n> O Firewall nativo entrou em defcon. As ferramentas de extração orgânica lidaram com bloqueios agressivos de rede (WAF/Quarentena) em provedores oficiais.\n> Para proteger a Verdade Epistêmica e barrar a **Regressão Paramétrica** (alucinação do modelo local em inventar números num vazio de informações), a síntese foi ABORTADA via Hard-Code no nível do servidor (Rust).\n> \n> Insira novas fontes confiáveis ou aguarde o cooldown da infraestrutura web antes de nova busca.".to_string()
 
-        } else if is_low_end {
-            let _ = TRAINER_LOGS.send("[The Scribe] Low-End Engine detectada. Invocando Agent especialista para formatar os fatos brutos em Markdown...".to_string());
-            let scribe_system = format!("Você é The Scribe, um formatador técnico de elite do Sovereign Pair. Hoje é: {current_date}. Seu ÚNICO objetivo é criar um relatório Markdown impecável respondendo ao Prompt original APENAS baseando-se nos [FATOS BRUTOS] listados. Você ESTÁ COMPLETAMENTE PROIBIDO de inventar, interpolar, adivinhar ou consultar sua memória paramétrica para anos, preços, inflação ou dados ausentes. Se o usuário pedir Inflação de 2024 e não estiver nos FATOS Brutos, você DEVE escrever 'Dados Inexistentes/Não Raspados'.\n\nGATE ANTI-INTERPOLAÇÃO: Se você perceber que está preenchendo uma tabela gerando deltas constantes mês a mês (progressão linear inventada, ex: +0,26 por mês), CANCELE ESSA AÇÃO ABRUPTAMENTE. Substitua a linha por 'Dado Ausente'. Qualquer alucinação matemática corromperá a rede.\n\n[DADO ESTRUTURAL QUALITATIVO]: Para perguntas sobre LUCROS DAS REFINARIAS, CARTEL ou IMPOSTOS EM COMBUSTÍVEIS, utilize SEGUINTE BASE ESTRUTURAL (aplique-a se questionado): Composição aprox da Gasolina: Refinaria Petrobras (~27%), ICMS Estadual (~24%), Distribuição/Revenda (~24%), Etanol Anidro (~15%), Impostos Federais CIDE/PIS/COFINS (~10%). Logo, metade do preço ou mais pode ser atrelado a impostos governamentais e custos não atrelados à refinaria.\n\nEvite verbosidade.");
+        } else {
+            let _ = TRAINER_LOGS.send("[The Scribe] Invocando Agent especialista para iterar e formatar os fatos brutos em Markdown Histórico...".to_string());
+            let scribe_system = format!("Você é The Scribe, um formatador técnico de elite do Sovereign Pair. Hoje é: {current_date}. Seu ÚNICO objetivo é criar um relatório Markdown impecável respondendo ao Prompt original APENAS baseando-se nos [FATOS BRUTOS] listados. Você ESTÁ COMPLETAMENTE PROIBIDO de inventar, interpolar, adivinhar ou consultar sua memória paramétrica para anos, preços, inflação ou dados ausentes. Se o usuário pedir Inflação de 2024 e não estiver nos FATOS Brutos, você DEVE escrever 'Dados Inexistentes/Não Raspados'.\n\nGATE ANTI-INTERPOLAÇÃO: Se você perceber que está preenchendo uma tabela gerando deltas constantes mês a mês (progressão linear inventada, ex: +0,26 por mês), CANCELE ESSA AÇÃO ABRUPTAMENTE. Substitua a linha por 'Dado Ausente'. Qualquer alucinação matemática corromperá a rede.\n\nDIRETRIZ DE EXAUSTÃO: Se o array de JSON possuir dados históricos (ex: 5 anos de inflação e petróleo), você DEVE desenhar uma ÚNICA TABELA MARKDOWN unificando os meses, PREENCHENDO LINHA POR LINHA TODOS OS 60 MESES, cruzando as colunas. NUNCA resuma 5 anos em um parágrafo!\n\n[DADO ESTRUTURAL QUALITATIVO]: Para perguntas sobre LUCROS DAS REFINARIAS, CARTEL ou IMPOSTOS EM COMBUSTÍVEIS, utilize SEGUINTE BASE ESTRUTURAL (aplique-a se questionado): Composição aprox da Gasolina: Refinaria Petrobras (~27%), ICMS Estadual (~24%), Distribuição/Revenda (~24%), Etanol Anidro (~15%), Impostos Federais CIDE/PIS/COFINS (~10%). Logo, metade do preço ou mais pode ser atrelado a impostos governamentais e custos não atrelados à refinaria.\n\nEvite verbosidade.");
             let scribe_user = format!("[PROMPT DO USUÁRIO]: {}\n\n[FATOS BRUTOS COLETADOS PELA IA PESQUISADORA]:\n{}", prompt, synthesized_report);
 
             // A Scribe Phase EXIGE formatadores experientes porque o SLM local era muito fraco.
@@ -1375,8 +1375,6 @@ pub async fn run_deep_research_handler(
                         let _ = TRAINER_LOGS.send("[The Scribe] Formatação Markdown concluída!".to_string());
                     }
             formatted
-        } else {
-            synthesized_report.clone()
         };
 
         // [STEP 3]: Vault Context Injector
