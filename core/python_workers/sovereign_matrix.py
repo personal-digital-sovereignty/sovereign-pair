@@ -93,15 +93,57 @@ def fetch_finance(ticker, years):
         print(json.dumps({"error": f"No financial data found for {ticker} across all 4 Multi-Node layers! Last error: {last_error}"}))
         sys.exit(1)
         
-    # Context Window Protection: If querying more than 1 year, aggregate to monthly closing prices
-    try:
-        if int(clean_years) > 1:
-            # Group by Month to prevent 1200+ row overflow
-            df['YearMonth'] = df.index.strftime('%Y-%m')
-            df = df.groupby('YearMonth').last()
-    except:
-        pass # fallback to RAW if pandas grouping fails
-        
+    converted_to_brl = False
+    if ticker in ['BZ=F', 'CL=F']:
+        # Fetch BRL=X to do Currency Conversion
+        df_usd = pd.DataFrame()
+        try:
+            t_usd = yf.Ticker('BRL=X')
+            df_usd = t_usd.history(period=period)
+        except:
+            pass
+            
+        if df_usd.empty:
+            try:
+                import time
+                start_ts = int(time.mktime(time.strptime(start_date, '%Y-%m-%d')))
+                end_ts = int(time.mktime(time.strptime(end_date, '%Y-%m-%d')))
+                url = f"https://query1.finance.yahoo.com/v8/finance/chart/BRL=X?period1={start_ts}&period2={end_ts}&interval=1d"
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36'})
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    raw_json = json.loads(response.read().decode())
+                    timestamps = raw_json['chart']['result'][0]['timestamp']
+                    closes = raw_json['chart']['result'][0]['indicators']['quote'][0]['close']
+                    dates = [datetime.datetime.fromtimestamp(ts) for ts in timestamps]
+                    df_usd = pd.DataFrame({'Close': closes}, index=dates)
+            except:
+                pass
+                
+        if not df_usd.empty:
+            try:
+                if int(clean_years) > 1:
+                    df['YearMonth'] = df.index.strftime('%Y-%m')
+                    df = df.groupby('YearMonth').last()
+                    
+                    df_usd['YearMonth'] = df_usd.index.strftime('%Y-%m')
+                    df_usd = df_usd.groupby('YearMonth').last()
+                    
+                    df = df.join(df_usd['Close'], rsuffix='_usd', how='inner')
+                    df['Close'] = df['Close'] * df['Close_usd']
+                    converted_to_brl = True
+                    source_used += " | (+ Converted to BRL)"
+            except:
+                pass
+                
+    if not converted_to_brl:
+        # Normal grouping if not already grouped by currency conversion
+        try:
+            if int(clean_years) > 1:
+                df['YearMonth'] = df.index.strftime('%Y-%m')
+                df = df.groupby('YearMonth').last()
+        except:
+            pass
+            
     data = []
     for index, row in df.iterrows():
         date_str = index if isinstance(index, str) else index.strftime('%Y-%m-%d')
