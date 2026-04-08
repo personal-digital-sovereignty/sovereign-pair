@@ -174,7 +174,8 @@ def fetch_finance(ticker, years):
         val = round(float(row['Close']), 2)
         data_lines.append(f"{date_str} | {val}")
         
-    ctx_header = f"[CONTEXT: DADOS HISTÓRICOS BRUTOS REFERENTES AO ATIVO {ticker.upper()} ({semantic_name})]\n"
+    brl_warning = " - ATENÇÃO: TODOS OS VALORES ESTÃO MATEMATICAMENTE CONVERTIDOS PARA MOEDA LOCAL: REAIS (BRL)]" if converted_to_brl else "]"
+    ctx_header = f"[CONTEXT: DADOS HISTÓRICOS BRUTOS REFERENTES AO ATIVO {ticker.upper()} ({semantic_name}){brl_warning}\n"
     data_compressed = ctx_header + "\n".join(data_lines)
         
     print(json.dumps({
