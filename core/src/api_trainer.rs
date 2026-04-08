@@ -823,15 +823,15 @@ pub async fn run_deep_research_handler(
         
         let mut all_sources = Vec::new();
         
-        // --- THE WORKER GRAPH LOOP (MAX 3 STAGES: GATHER, ANALYZE, SYNTHESIZE) ---
-        for cycle in 1..=3 {
+        // --- THE WORKER GRAPH LOOP (MAX 5 STAGES: GATHER, ANALYZE, SYNTHESIZE) ---
+        for cycle in 1..=5 {
             if wait_or_cancel(200, &token).await { return; }
             
             // --- G.2: DYNAMIC RAG INJECTOR (LOCAL VAULT) ---
             // A Mom não raspa a web ativamente. A web e orquestração ativa ficam exclusivas do Grafo da Mente Mestra.
             // Para injetar dados do DB (memória/vault) estaticamente, este seria o local.
             
-            let _ = TRAINER_LOGS.send(format!("[Worker Graph - Stage {}/3] Invocando Mente Mestra ({})...", cycle, target_model_name));
+            let _ = TRAINER_LOGS.send(format!("[Worker Graph - Stage {}/5] Invocando Mente Mestra ({})...", cycle, target_model_name));
 
             let mut synthesis_payload = serde_json::json!({
                 "model": target_model_name,
@@ -845,7 +845,7 @@ pub async fn run_deep_research_handler(
                 }
             });
 
-            if cycle < 3 {
+            if cycle < 5 {
                 synthesis_payload["tools"] = tools_schema.clone();
             } else {
                 let _ = TRAINER_LOGS.send("[Final Synthesis] Ferramentas desativadas. Forçando Mestre LLM a gerar Markdown Final de Síntese sem interrupções.".to_string());
