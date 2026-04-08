@@ -134,6 +134,8 @@ impl SyncEngine {
                 warn!("⚠️ [Sensus Sync] Falha ao ler Tabela de Workspaces para The Watcher");
             }
 
+            let mut last_processed: std::collections::HashMap<String, std::time::Instant> = std::collections::HashMap::new();
+
             // Loop assíncrono recebendo eventos
             while let Some(event) = watcher_rx.recv().await {
                 if matches!(event.kind, notify::event::EventKind::Create(_) 
@@ -143,6 +145,14 @@ impl SyncEngine {
                         if path.is_file() {
                             let filename = path.file_name().unwrap_or_default().to_string_lossy().to_string();
                             let path_str = path.to_string_lossy().to_string();
+                            
+                            // 2.5 Debounce (Evita disparo duplo do FSEvent Modify -> Create em milissegundos)
+                            if let Some(last_time) = last_processed.get(&path_str) {
+                                if last_time.elapsed() < std::time::Duration::from_secs(2) {
+                                    continue;
+                                }
+                            }
+                            last_processed.insert(path_str.clone(), std::time::Instant::now());
                             
                             // 3. Parser do .sovereignignore on-the-fly + Hardcoded (Segurança Extrema)
                             let mut ignored_patterns = vec!["node_modules".to_string(), ".venv".to_string(), ".git".to_string(), "target".to_string()];
