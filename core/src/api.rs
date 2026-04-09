@@ -423,6 +423,36 @@ if human_prompt.to_lowercase().starts_with("/plan") {
     return Sse::new(stream).into_response();
 }
 
+// ===== RELÓGIO BIOLÓGICO (FAST-PATH BYPASS Trivial) =====
+let hp_norm = human_prompt.to_lowercase();
+if hp_norm == "qual a data/hora atual?" || hp_norm == "qual a data atual?" || hp_norm == "que horas são?" || hp_norm == "que horas sao" || hp_norm.contains("data/hora atual") {
+    info!("⏱️ [Sovereign Core] Temporal Bypass acionado. Sem LLM Overhead.");
+    let current_dt = chrono::Local::now().format("%d de %B de %Y, %Hh%mmin%Sseg").to_string();
+    let msg = format!("(⚡ *Sovereign Local Clock*): O horário do servidor é: **{}**.", current_dt);
+    
+    let chunk = crate::models::OpenAIChatChunkResponse {
+        id: format!("chatcmpl-time-{}", uuid::Uuid::new_v4()),
+        object: "chat.completion.chunk".to_string(),
+        created: chrono::Local::now().timestamp(),
+        model: requested_model.clone(),
+        choices: vec![crate::models::OpenAIChatChunkChoice {
+            index: 0,
+            delta: crate::models::OpenAIChatChunkDelta {
+                role: Some("assistant".to_string()),
+                content: Some(msg),
+                tool_calls: None,
+            },
+            finish_reason: Some("stop".to_string()),
+        }],
+        usage: None,
+    };
+    let stream = futures_util::stream::iter(vec![
+        Ok::<Event, Infallible>(Event::default().data(serde_json::to_string(&chunk).unwrap_or_default())),
+        Ok::<Event, Infallible>(Event::default().data("[DONE]")),
+    ]);
+    return Sse::new(stream).into_response();
+}
+
 // ===== THE NURSE (WEB & SYS AGENTIC BYPASS) =====
 let (tx_sse, mut rx_sse) = tokio::sync::mpsc::unbounded_channel::<axum::response::sse::Event>();
 let tx_sse_clone = tx_sse.clone();
@@ -877,6 +907,13 @@ if is_drawing_intent {
         "content": ">> SYSTEM OVERRIDE (TOOL CALL ENFORCEMENT) <<\nVocê possui TOTAL capacidade de gerar imagens fotorealísticas, pois está conectado ao motor Bare-Metal SD.cpp! Você NÃO DEVE responder em plain-text dizendo que 'não pode criar imagens' ou pedindo desculpas. VOCÊ DEVE OBRIGATORIAMENTE emitir uma Tool Call JSON para a ferramenta 'dispatch_visual_artist' traduzindo o desejo do usuário para Inglês."
     }));
 }
+
+// Injeta Data e Hora corrente permanentemente para que a IA não sofra "time-blindness"
+let runtime_clock = chrono::Local::now().format("%A, %d/%m/%Y %H:%M").to_string();
+purified_messages.push(json!({
+    "role": "system",
+    "content": format!(">> RELÓGIO DO SERVIDOR <<\nNunca diga que você não tem acesso à data e hora atual. A data e hora em tempo real deste exato segundo no sistema é: {}", runtime_clock)
+}));
 
 // Injeta a Memória de Estado Dinâmica (Working Memory) para mitigar a amnésia de SLMs em longos diálogos
 let turn_count = payload.messages.len();
