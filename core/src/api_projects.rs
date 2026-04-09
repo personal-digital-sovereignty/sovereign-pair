@@ -50,10 +50,10 @@ pub struct CreateProjectRequest {
 }
 
 fn extract_tenant(headers: &axum::http::HeaderMap) -> String {
-    headers.get("Authorization")
+    headers.get("x-tenant-id")
         .and_then(|v| v.to_str().ok())
-        .map(|v| v.replace("Bearer ", ""))
-        .unwrap_or_else(|| "default".to_string())
+        .unwrap_or("default")
+        .to_string()
 }
 
 pub async fn get_projects_handler(
