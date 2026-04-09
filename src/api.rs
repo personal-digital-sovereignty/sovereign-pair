@@ -816,7 +816,9 @@ if !rewoo_observations.trim().is_empty() && rewoo_observations != "ReWOO Accumul
 
 // Injeta o Override de Desenho (RLHF Bypass) para combater a recusa algorítmica de IAs de texto (Qwen/Gemma)
 let hp_lower = human_prompt.to_lowercase();
-if hp_lower.contains("desenhe ") || hp_lower.contains("faça uma imagem") || hp_lower.contains("crie uma imagem") || hp_lower.contains("imagine um") {
+let is_drawing_intent = hp_lower.contains("desenhe ") || hp_lower.contains("faça uma imagem") || hp_lower.contains("crie uma imagem") || hp_lower.contains("imagine um") || hp_lower.contains("gerar imagem") || hp_lower.contains("gere uma imagem");
+
+if is_drawing_intent {
     purified_messages.push(json!({
         "role": "system",
         "content": ">> SYSTEM OVERRIDE (TOOL CALL ENFORCEMENT) <<\nVocê possui TOTAL capacidade de gerar imagens fotorealísticas, pois está conectado ao motor Bare-Metal SD.cpp! Você NÃO DEVE responder em plain-text dizendo que 'não pode criar imagens' ou pedindo desculpas. VOCÊ DEVE OBRIGATORIAMENTE emitir uma Tool Call JSON para a ferramenta 'dispatch_visual_artist' traduzindo o desejo do usuário para Inglês."
@@ -890,26 +892,30 @@ if let Some(tools) = payload.tools {
 }
 
 // ================= THE SOVEREIGN VISUAL ARTIST (NATIVE TOOL) =================
-let visual_artist_tool = serde_json::json!({
-    "type": "function",
-    "function": {
-        "name": "dispatch_visual_artist",
-        "description": "Ferramenta para desenhar ilustrações, criar quadros ou arte visual fotorealista (Text-to-Image) quando o usuário pedir para 'desenhar', 'criar imagem' ou tirar uma foto. SEMPRE use esta ferramenta em vez de dizer que não pode gerar imagens.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "prompt": {
-                    "type": "string",
-                    "description": "O prompt fotorealista, cinematográfico e extremamente detalhado em INGLÊS da cena visual desejada."
-                }
-            },
-            "required": ["prompt"]
+if is_drawing_intent {
+    let visual_artist_tool = serde_json::json!({
+        "type": "function",
+        "function": {
+            "name": "dispatch_visual_artist",
+            "description": "Ferramenta para desenhar ilustrações, criar quadros ou arte visual fotorealista (Text-to-Image) quando o usuário pedir para 'desenhar', 'criar imagem' ou tirar uma foto. SEMPRE use esta ferramenta em vez de dizer que não pode gerar imagens.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "prompt": {
+                        "type": "string",
+                        "description": "O prompt fotorealista, cinematográfico e extremamente detalhado em INGLÊS da cena visual desejada."
+                    }
+                },
+                "required": ["prompt"]
+            }
         }
-    }
-});
-injected_tools.push(serde_json::from_value(visual_artist_tool).unwrap());
+    });
+    injected_tools.push(serde_json::from_value(visual_artist_tool).unwrap());
+}
 
-ollama_payload["tools"] = json!(injected_tools);
+if !injected_tools.is_empty() {
+    ollama_payload["tools"] = json!(injected_tools);
+}
 
 if let Some(tool_choice) = payload.tool_choice {
     ollama_payload["tool_choice"] = tool_choice;
