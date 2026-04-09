@@ -9,6 +9,8 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 *Data Compaction & Dynamic Decoupling*
 
 ### Added
+- **Epic 3 (Reflexive Tool Registry)**: Extirpado o engessamento de `Tools JSON` hardcoded no projeto Rust. Construído parser estático Python (`compile_tool_registry.py`) capaz de inferir *DocStrings* AST e exportar schemas nativos OpenAI (`registry.json`).
+- **Universal Dispatcher Cíbrido**: Substituição do router estático de Tools no Rust por um gatilho de reflexão de Sandbox. O Agente agora injeta qualquer chamada dinâmica num worker *Isolado* em `core/python_workers/*.py`, viabilizando escalar N agentes sem recompilações nativas de binário. Nanny System parametrizado dinamicamente usando a mesma fundação de array.
 - **Epic 10 (Autonomous Semantic Versioning & UI Sync)**: Consolidação do script de hook (`scripts/release.py`). Implementada validação purista da arquitetura Cíbrida (regra `"X.Y.Z"` sem `v`). Propagação atômica das versões simultaneamente por Rust (`Cargo.toml`), Svelte Tauri (`tauri.conf.json` / `package.json`), parsing automático interdependente do Histórico Git para compilar o log da release, e espelhamento bruto de `CHANGELOG.md` em `svelte-ui/src/lib/` para consumo persistente offline da Interface de Control Hub.
 
 ## [1.0.2] - 2026-04-08
