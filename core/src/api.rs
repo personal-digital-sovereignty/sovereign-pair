@@ -883,18 +883,68 @@ if turn_count > 3 {
     }));
 }
 
-// Injeta as Mensagens da própria TUI (Código e Prompts)
-purified_messages.extend(payload.messages.into_iter().map(|msg| {
+// ==========================================
+// EPIC 11: AGENTIC MLA (Latent Context Compression)
+// Objetivo: Preservar 1 Turno (3 Msgs) + 4 Latent Memories (Reranked)
+// ==========================================
+let mut active_messages = Vec::new();
+let mut mla_compressed_context = String::new();
+
+if turn_count > 3 {
+    let split_idx = turn_count - 3;
+    let (historical, recent) = payload.messages.split_at(split_idx);
+    
+    // 1. Decoupling into Latent Space Pool
+    let mut history_chunks = Vec::new();
+    for msg in historical {
+        let content_str = match &msg.content {
+            Some(crate::models::MessageContent::Text(t)) => t.clone(),
+            Some(crate::models::MessageContent::Multimodal(parts)) => {
+                parts.iter().filter_map(|p| p.get("text").and_then(|t| t.as_str())).collect::<String>()
+            },
+            None => "".to_string(),
+        };
+        // Armazena vetor denso: Ignora pings muito vazios
+        if content_str.len() > 10 {
+            history_chunks.push(format!("[{}] {}", msg.role, content_str));
+        }
+    }
+    
+    // 2. Cross-Attention Recovery (MLA Simulation v1.0)
+    if let Ok(mut rlock) = crate::api_trainer::RERANKER.lock() {
+        let refs: Vec<&str> = history_chunks.iter().map(|s| s.as_str()).collect();
+        if !refs.is_empty() {
+            if let Ok(mut results) = rlock.rerank(human_prompt.as_str(), refs, true, None) {
+                results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+                
+                // Profundidade Latente: 4 Blocos solicitados pelo usuário
+                for res in results.into_iter().take(4) {
+                    if let Some(txt) = res.document {
+                        mla_compressed_context.push_str(&format!("- (Atenção Cruzada: {:.2}): {}\n", res.score, txt));
+                    }
+                }
+            }
+        }
+    }
+    active_messages = recent.to_vec();
+} else {
+    active_messages = payload.messages.clone();
+}
+
+// 3. Injeção Sistêmica das Lembranças Latentes
+if !mla_compressed_context.is_empty() {
+    purified_messages.push(json!({
+        "role": "system",
+        "content": format!(">>> SOVEREIGN MLA (MULTI-HEAD LATENT ATTENTION INJECTION) <<<\nO fluxo infinito da conversa linear foi suspenso para poupar recursos. Você agora possui acesso subconsciente via 'Lembranças Latentes' (Latent Memories). Abaixo estão os 4 blocos do passado de maior correlação matemática com o atual anseio do usuário:\n\n{}\n\nIntegre esse contexto invisivelmente à sua resposta caso o usuário faça alusão ao passado.", mla_compressed_context)
+    }));
+}
+
+// 4. Injeta as Mensagens Vivas (Working Memory = 1 Turno)
+purified_messages.extend(active_messages.into_iter().map(|msg| {
     let content_str = match msg.content {
         Some(crate::models::MessageContent::Text(t)) => t,
         Some(crate::models::MessageContent::Multimodal(parts)) => {
-            let mut full = String::new();
-            for part in parts {
-                if let Some(txt) = part.get("text").and_then(|t| t.as_str()) {
-                    full.push_str(txt);
-                }
-            }
-            full
+            parts.into_iter().filter_map(|p| p.get("text").and_then(|t| t.as_str().map(|s| s.to_string()))).collect::<String>()
         },
         None => "".to_string(),
     };
