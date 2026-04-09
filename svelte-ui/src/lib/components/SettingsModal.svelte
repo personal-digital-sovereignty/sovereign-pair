@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
   import { settingsState, saveSettings } from '$lib/settings.svelte';
   import { Settings, ChevronDown, ChevronsUpDown, X, Plus, Trash2, Database } from 'lucide-svelte';
   import { onMount } from 'svelte';
@@ -20,7 +22,7 @@
 
   onMount(async () => {
       try {
-          const res = await fetch('http://localhost:38001/v1/system/available_models');
+          const res = await fetch(`${API_BASE_URL}/v1/system/available_models`);
           if (res.ok) {
               const data = await res.json();
               if (data.models) availableModels = data.models;
@@ -34,7 +36,7 @@
   async function loadWorkspaces() {
       isLoadingWs = true;
       try {
-          const res = await fetch('http://localhost:38001/v1/workspaces');
+          const res = await fetch(`${API_BASE_URL}/v1/workspaces`);
           if (res.ok) {
               workspaces = await res.json();
           }
@@ -46,7 +48,7 @@
       if (!newWsName || !newWsPath) return;
       isAddingWs = true;
       try {
-          const res = await fetch('http://localhost:38001/v1/workspaces', {
+          const res = await fetch(`${API_BASE_URL}/v1/workspaces`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name: newWsName, path: newWsPath })
@@ -66,7 +68,7 @@
   async function deleteWorkspace(id: number) {
       if(!confirm("Are you sure? This will unmap the directory from the Sovereign Engine!")) return;
       try {
-          const res = await fetch(`http://localhost:38001/v1/workspaces/${id}`, { method: 'DELETE' });
+          const res = await fetch(`${API_BASE_URL}/v1/workspaces/${id}`, { method: 'DELETE' });
           if (res.ok) {
               workspaces = workspaces.filter(w => w.id !== id);
           }
@@ -80,7 +82,7 @@
   async function loadSearxng() {
       isLoadingSearxng = true;
       try {
-          const res = await fetch('http://localhost:38001/v1/settings/searxng');
+          const res = await fetch(`${API_BASE_URL}/v1/settings/searxng`);
           if (res.ok) searxngNodes = await res.json();
       } catch(e) { console.error("Could not fetch searxng nodes", e); }
       isLoadingSearxng = false;
@@ -101,7 +103,7 @@
   
   async function saveSearxng() {
       try {
-          await fetch('http://localhost:38001/v1/settings/searxng', {
+          await fetch(`${API_BASE_URL}/v1/settings/searxng`, {
               method: 'POST', body: JSON.stringify(searxngNodes), headers: {'Content-Type': 'application/json'}
           });
       } catch(e) { console.error(e); }

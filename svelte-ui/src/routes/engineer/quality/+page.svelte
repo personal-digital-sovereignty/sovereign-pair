@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
     import { onMount, onDestroy } from 'svelte';
 
     interface KnowledgeGap {
@@ -28,8 +30,8 @@
     async function fetchData() {
         try {
             const [resGaps, resRadar] = await Promise.all([
-                fetch('http://localhost:38001/v1/engineer/rag/gaps'),
-                fetch('http://localhost:38001/v1/engineer/rag/radar')
+                fetch(`${API_BASE_URL}/v1/engineer/rag/gaps`),
+                fetch(`${API_BASE_URL}/v1/engineer/rag/radar`)
             ]);
             
             if(resRadar.ok) radar = await resRadar.json();
@@ -74,14 +76,14 @@
             
             // 1. Escreve diretamente no O.S (Vault Master Markdown Root)
             const mdPayload = `# Knowledge Resolution: ${safeGapId}\n\n**Unresolved User Query:**\n${gap.query}\n\n**Operator Context Injection:**\n${content}`;
-            await fetch(`http://localhost:38001/v1/vault/document/${encodeURIComponent(fileName)}`, {
+            await fetch(`${API_BASE_URL}/v1/vault/document/${encodeURIComponent(fileName)}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ workspace_id: 1, content: mdPayload })
             });
 
             // 2. Registra o Dual-Truth Soft Delete na Memória SQLite
-            await fetch(`http://localhost:38001/v1/engineer/rag/gaps/${gap.id}`, {
+            await fetch(`${API_BASE_URL}/v1/engineer/rag/gaps/${gap.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ resolution_content: content })
@@ -101,7 +103,7 @@
         gaps = gaps.filter(g => g.id !== gap.id);
 
         try {
-            await fetch(`http://localhost:38001/v1/engineer/rag/gaps/${gap.id}`, { method: 'DELETE' });
+            await fetch(`${API_BASE_URL}/v1/engineer/rag/gaps/${gap.id}`, { method: 'DELETE' });
         } catch(e) {
             console.error("Failed to Hard Delete gap", e);
             gaps = previousState;

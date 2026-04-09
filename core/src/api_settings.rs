@@ -284,7 +284,7 @@ pub async fn import_config_handler(
 
 /// Varre a tabela `ollama_clusters` para descobrir a URL ativa e lista os modelos (/api/tags)
 pub async fn get_available_models_handler(State(state): State<Arc<crate::AppState>>) -> impl IntoResponse {
-    let mut ollama_base_url = "http://localhost:11434".to_string();
+    let mut ollama_base_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()).to_string();
 
     if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'ollama_clusters'").fetch_optional(&state.db).await {
         let val: String = sqlx::Row::get(&row, "value_json");
@@ -305,7 +305,7 @@ pub async fn get_available_models_handler(State(state): State<Arc<crate::AppStat
     }
 
     if ollama_base_url == "http://host.docker.internal:11434" && std::env::var("SOVEREIGN_RUN_ENV").unwrap_or_default() == "native" {
-        ollama_base_url = "http://localhost:11434".to_string();
+        ollama_base_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()).to_string();
     }
 
     let endpoint = format!("{}/api/tags", ollama_base_url);

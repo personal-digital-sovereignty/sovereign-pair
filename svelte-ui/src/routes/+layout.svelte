@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
   import '../app.css';
   import { globalState } from '$lib/state.svelte.js';
   import { telemetryState, connectTelemetry, disconnectTelemetry } from '$lib/telemetry.svelte';
@@ -25,7 +27,7 @@
     // Sovereign Boot Preference Interception
     if (window.location.pathname === '/') {
         try {
-            const res = await fetch('http://localhost:38001/v1/settings');
+            const res = await fetch(`${API_BASE_URL}/v1/settings`);
             if (res.ok) {
                 const data = await res.json();
                 if (data.default_route && data.default_route !== '/dashboard') {
@@ -54,7 +56,7 @@
 
   async function fetchWorkspaces() {
       try {
-          const res = await fetch('http://localhost:38001/v1/workspaces', { headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` } });
+          const res = await fetch(`${API_BASE_URL}/v1/workspaces`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` } });
           if (res.ok) {
               const data = await res.json();
               globalState.workspaces = Array.isArray(data) ? data : (data.workspaces || []);

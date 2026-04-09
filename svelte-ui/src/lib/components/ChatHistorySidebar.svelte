@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
     import { MessageSquare, Plus, Folder as FolderIcon, Trash2, Hash, Edit2, Check, X, ChevronDown, ChevronRight } from 'lucide-svelte';
     import { globalState, loadGlobalSession, stopGeneration } from '$lib/state.svelte.js';
     import { onMount } from 'svelte';
@@ -10,7 +12,7 @@
         isLoading = true;
         try {
             const token = localStorage.getItem('sovereign_token') || '';
-            const res = await fetch('http://localhost:38001/v1/sessions', {
+            const res = await fetch(`${API_BASE_URL}/v1/sessions`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -53,7 +55,7 @@
         
         try {
             const token = localStorage.getItem('sovereign_token') || '';
-            await fetch(`http://localhost:38001/v1/sessions/${id}`, {
+            await fetch(`${API_BASE_URL}/v1/sessions/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -110,7 +112,7 @@
         e.stopPropagation();
         try {
             const token = localStorage.getItem('sovereign_token') || '';
-            await fetch(`http://localhost:38001/v1/sessions/${id}`, {
+            await fetch(`${API_BASE_URL}/v1/sessions/${id}`, {
                 method: 'PUT',
                 headers: { 
                     'Authorization': `Bearer ${token}`,

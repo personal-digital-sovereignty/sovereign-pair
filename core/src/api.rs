@@ -51,7 +51,7 @@ async fn scrape_engine(client: &reqwest::Client, name: &str, url: &str, jitter_b
 // -------------------------------------------------------------
 pub async fn discover_best_model(hierarchy: Vec<&str>, fallback: &str) -> String {
     let client = reqwest::Client::new();
-    if let Ok(res) = client.get("http://127.0.0.1:11434/api/tags").send().await
+    if let Ok(res) = client.get(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/tags")).send().await
         && let Ok(json) = res.json::<serde_json::Value>().await
             && let Some(models) = json.get("models").and_then(|m| m.as_array()) {
                 let available_names: Vec<&str> = models.iter()
@@ -72,7 +72,7 @@ pub async fn discover_best_model(hierarchy: Vec<&str>, fallback: &str) -> String
 pub async fn discover_cognitive_model_by_tier(tier: &str) -> String {
     let client = reqwest::Client::new();
     
-    if let Ok(res) = client.get("http://127.0.0.1:11434/api/tags").send().await
+    if let Ok(res) = client.get(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/tags")).send().await
         && let Ok(json) = res.json::<serde_json::Value>().await
         && let Some(models) = json.get("models").and_then(|m| m.as_array()) {
             
@@ -231,7 +231,7 @@ if payload.visual_artist_mode.unwrap_or(false) && !human_prompt.trim().is_empty(
         
         tracing::info!("⚙️ Disparando POST interno para http://127.0.0.1:38001/v1/images/generations...");
         let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(1800)).build().unwrap_or_default();
-        match client.post("http://127.0.0.1:38001/v1/images/generations").json(&serde_json::json!({ "prompt": cloned_prompt2, "n": 1 })).send().await {
+        match client.post(format!("{}{}", std::env::var("SOVEREIGN_API_URL").unwrap_or_else(|_| "http://127.0.0.1:38001".to_string()), "/v1/images/generations")).json(&serde_json::json!({ "prompt": cloned_prompt2, "n": 1 })).send().await {
             Ok(r) => {
                 let status = r.status();
                 if !status.is_success() {
@@ -515,7 +515,7 @@ if payload.deep_research.unwrap_or(false) {
         });
 
         // Resolve a Conexão Dinâmica do Ollama via SQLite O.S
-        let mut sub_ollama_url = "http://127.0.0.1:11434".to_string();
+        let mut sub_ollama_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()).to_string();
         if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'ollama_clusters'").fetch_optional(&state.db).await {
             let val: String = sqlx::Row::get(&row, "value_json");
             if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&val) {
@@ -531,7 +531,7 @@ if payload.deep_research.unwrap_or(false) {
             }
         }
         if sub_ollama_url == "http://host.docker.internal:11434" && std::env::var("SOVEREIGN_RUN_ENV").unwrap_or_default() == "native" {
-            sub_ollama_url = "http://127.0.0.1:11434".to_string();
+            sub_ollama_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()).to_string();
         }
 
         let query_endpoint = format!("{}/api/chat", sub_ollama_url);
@@ -922,7 +922,7 @@ if let Some(tool_choice) = payload.tool_choice {
 }
 
 // Resgate Masterplan da Tabela de Configurações
-let env_ollama_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://localhost:11434".to_string());
+let env_ollama_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()).to_string());
 let mut ollama_base_url = env_ollama_url.trim_end_matches('/').to_string();
 let mut is_custom_cluster = false;
 
@@ -938,7 +938,7 @@ if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE
                         // Se a URL na UI não for nula nem vazia, adotamos:
                         if !cluster_url.is_empty() {
                             ollama_base_url = cluster_url;
-                            is_custom_cluster = ollama_base_url != "http://localhost:11434" && ollama_base_url != "http://127.0.0.1:11434" && ollama_base_url != "http://host.docker.internal:11434";
+                            is_custom_cluster = ollama_base_url != std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()) && ollama_base_url != std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()) && ollama_base_url != "http://host.docker.internal:11434";
                         }
                     }
             }
@@ -952,7 +952,7 @@ if !is_custom_cluster && ollama_base_url == "http://host.docker.internal:11434" 
     // Tenta checar se o docker internal está resolvendo, se a request HTTP estiver quebrando por DNS, caimos de volta
     // Simplificado: sempre usar localhost se for host native O.S para compatibilidade IPv6 (MacOS)
     if std::env::var("SOVEREIGN_RUN_ENV").unwrap_or_default() == "native" {
-         ollama_base_url = "http://localhost:11434".to_string();
+         ollama_base_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()).to_string();
     }
 }
 
@@ -1020,7 +1020,7 @@ let res = loop {
     Err(e) => {
             if is_custom_cluster {
                 tracing::warn!("🔄 OCI/Mesh Node Offline ({}). Iniciando Autonomia de Fallback para Localhost (127.0.0.1:11434)...", e);
-                let local_endpoint = "http://127.0.0.1:11434/api/chat";
+                let local_endpoint = format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/chat");
                 match state.http_client.post(local_endpoint).json(&ollama_payload).send().await {
                     Ok(fallback_r) if fallback_r.status().is_success() => {
                         tracing::info!("✅ [Sovereign Core] Autonomia de Fallback ativada com sucesso. Servindo LLM Localmente!");
@@ -1194,7 +1194,7 @@ let mut map_stream = res.bytes_stream().map(move |result| {
                                         let _ = tx_visual.send(Event::default().data(serde_json::to_string(&chunk).unwrap()));
 
                                         let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(120)).build().unwrap_or_default();
-                                        if let Ok(r) = client.post("http://127.0.0.1:38001/v1/images/generations").json(&serde_json::json!({ "prompt": p_clone })).send().await {
+                                        if let Ok(r) = client.post(format!("{}{}", std::env::var("SOVEREIGN_API_URL").unwrap_or_else(|_| "http://127.0.0.1:38001".to_string()), "/v1/images/generations")).json(&serde_json::json!({ "prompt": p_clone })).send().await {
                                             if let Ok(j) = r.json::<serde_json::Value>().await {
                                                 if let Some(url) = j.get("data").and_then(|arr| arr.as_array()).and_then(|a| a.first()).and_then(|f| f.get("url")).and_then(|u| u.as_str()) {
                                                     let ok_msg = format!("![Sovereign Vault Artefact]({})\n\n", url);

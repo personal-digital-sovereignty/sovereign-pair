@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '$lib/env_config';
 export const settingsState = $state({
     isOpen: false,
     provider: 'Ollama (Local)',
@@ -20,7 +21,7 @@ export const settingsState = $state({
 
 export async function loadSettings() {
     try {
-        const res = await fetch('http://localhost:38001/v1/settings', {
+        const res = await fetch(`${API_BASE_URL}/v1/settings`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` }
         });
         if (res.ok) {
@@ -62,7 +63,7 @@ export async function saveSettings() {
             guardrails: settingsState.guardrails
         };
         
-        const res = await fetch('http://localhost:38001/v1/settings', {
+        const res = await fetch(`${API_BASE_URL}/v1/settings`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

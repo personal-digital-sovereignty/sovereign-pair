@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
     import { MessageSquare, Cpu, Shield, Send, Loader2, Paperclip, ThumbsUp, ThumbsDown, Bot, User, BrainCircuit, Copy, RotateCcw, Settings, Square, ChevronDown, Palette } from 'lucide-svelte';
     import { globalState, loadGlobalSession, sendGlobalChatMessage, stopGeneration } from '$lib/state.svelte.js';
     import { settingsState } from '$lib/settings.svelte';
@@ -70,7 +72,7 @@
         if (msg) {
            const token = localStorage.getItem('sovereign_token') || '';
            try {
-               await fetch('http://localhost:38001/v1/feedback', {
+               await fetch(`${API_BASE_URL}/v1/feedback`, {
                    method: 'POST',
                    headers: {
                        'Content-Type': 'application/json',
