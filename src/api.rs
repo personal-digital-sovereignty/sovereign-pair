@@ -333,14 +333,20 @@ if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE
     let val: String = sqlx::Row::get(&row, "value_json");
     if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&val) {
         
-        // --- Tri-Agent Sovereign Router ---
+        // --- Tri-Agent Sovereign Router (Heuristic MoE) ---
         let prompt_lower = human_prompt.to_lowercase();
+        let is_coding_semantics = prompt_lower.contains("def ") || prompt_lower.contains("function ") || prompt_lower.contains("fn ") 
+                                  || prompt_lower.contains("class ") || prompt_lower.contains("struct ") || prompt_lower.contains("=>")
+                                  || prompt_lower.contains("código") || prompt_lower.contains("script ");
+        let is_math_semantics = prompt_lower.contains("calcule") || prompt_lower.contains("equação") 
+                                || prompt_lower.contains("fórmula") || prompt_lower.contains("matemática");
+
         let target_key = if prompt_lower.starts_with("/web") || prompt_lower.starts_with("/sys") {
             "nurse_model"
-        } else if prompt_lower.starts_with("/plan") || prompt_lower.starts_with("/code") || prompt_lower.starts_with("/test") {
-            "coder_model"
+        } else if prompt_lower.starts_with("/plan") || prompt_lower.starts_with("/code") || prompt_lower.starts_with("/test") || is_coding_semantics || is_math_semantics {
+            "coder_model" // O "Expert" de Engenharia/Lógica entra em ação autonomamente
         } else {
-            "doctor_model" // Default Conversational Agent
+            "doctor_model" // Default Conversational Agent / Creative Layer
         };
 
         if let Some(specific_model) = parsed.get(target_key).and_then(|v| v.as_str()) {
@@ -608,9 +614,40 @@ if payload.deep_research.unwrap_or(false) {
         for res in futures_util::future::join_all(scrape_handles).await {
             if let Ok((link, mut markdown)) = res
                 && markdown.len() > 100 {
-                    markdown.truncate(4000); // 4KB por página x 6 = 24KB seguro dentro da GPU local (8B Contexto Mínimo Llama3).
-                    // Cortar quebra uma formatação. Tratamento leviano p/ velocidade.
-                    master_dossier.push_str(&format!("## Origem Escaneada Profundamente: {}\n{}\n\n", link, markdown));
+                    
+                    // WAG 2.0 RERANKER (FastEmbed Cross-Attention)
+                    let text_str = markdown.clone();
+                    let chunks: Vec<&str> = text_str.split("\n\n").filter(|c| c.len() > 50).collect();
+                    
+                    if chunks.len() > 2 {
+                        let mut reranked_text = String::new();
+                        let q_str = user_question.clone();
+                        let limited_chunks: Vec<&str> = chunks.into_iter().take(35).collect(); // Limitador de tempo de CPU (~5s)
+                        
+                        if let Ok(mut rlock) = crate::api_trainer::RERANKER.lock() {
+                            if let Ok(mut results) = rlock.rerank(q_str.as_str(), limited_chunks, true, None) {
+                                results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+                                let top_k: Vec<_> = results.into_iter().take(5).collect(); // Pegar apenas o Suco de 5 blocos densos
+                                
+                                for res in top_k {
+                                    if let Some(txt) = res.document {
+                                        reranked_text.push_str(&format!("(Score: {:.2}): {}\n...\n", res.score, txt));
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if reranked_text.trim().is_empty() {
+                            markdown.truncate(4000);
+                            master_dossier.push_str(&format!("## Origem Escaneada Profundamente (Fallback): {}\n{}\n\n", link, markdown));
+                        } else {
+                            if reranked_text.len() > 6000 { reranked_text.truncate(6000); }
+                            master_dossier.push_str(&format!("## Origem Escaneada e Rankeada: {}\n{}\n\n", link, reranked_text));
+                        }
+                    } else {
+                        markdown.truncate(4000); 
+                        master_dossier.push_str(&format!("## Origem Escaneada Profundamente: {}\n{}\n\n", link, markdown));
+                    }
                 }
         }
 
@@ -1129,8 +1166,13 @@ let mut map_stream = res.bytes_stream().map(move |result| {
                             if let Some(content) = msg_obj.get("content").and_then(|c| c.as_str())
                                 && !content.is_empty() {
                                     session_tokens += 1;
-                                    accumulator.push_str(content);
-                                    extracted_content = Some(content.to_string());
+                                    
+                                    // Sovereign DeepSeek Paradigm: Translating <think> on-the-fly to beautiful UI details
+                                    let mapped_content = content.replace("<think>", "\n<details class=\"mb-4 overflow-hidden rounded-md border border-zinc-800 bg-zinc-950 shadow-sm\"><summary class=\"cursor-pointer bg-zinc-900/50 px-4 py-2 text-sm font-semibold text-indigo-400 hover:bg-zinc-800/50 transition-colors select-none\">🧠 Pré-Raciocínio Dinâmico (Sovereign Expert)</summary><div class=\"border-l-2 border-indigo-500/50 p-4 text-sm italic text-zinc-400 bg-zinc-950/80 m-0 whitespace-pre-wrap\">\n")
+                                        .replace("</think>", "\n</div></details>\n\n");
+
+                                    accumulator.push_str(&mapped_content);
+                                    extracted_content = Some(mapped_content);
                                     has_content_or_tools = true;
                                 }
 
