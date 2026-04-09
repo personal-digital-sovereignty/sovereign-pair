@@ -477,10 +477,12 @@ async fn execute_sub_analyst(
                 
                 // Trimming reasoning tags that small models might regurgitate
                 let mut clean = content_str.clone();
-                if let Some(start) = clean.find("<think>") {
+                while let Some(start) = clean.find("<think>") {
                     if let Some(end) = clean.find("</think>") {
                         let shift = if clean[end..].starts_with("</think>\n") { 9 } else { 8 };
                         clean.replace_range(start..end + shift, "");
+                    } else {
+                        break;
                     }
                 }
                 
