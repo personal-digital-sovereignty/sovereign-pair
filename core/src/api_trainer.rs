@@ -1287,13 +1287,25 @@ pub async fn run_deep_research_handler(
 
         } else {
             let _ = TRAINER_LOGS.send("[The Scribe] Invocando Agent especialista para iterar e formatar os fatos brutos em Markdown Histórico...".to_string());
-            let scribe_system = format!("Você é The Scribe, um formatador técnico de elite do Sovereign Pair. Hoje é: {current_date}. Seu ÚNICO objetivo é criar um relatório Markdown impecável respondendo ao Prompt original APENAS baseando-se nos [FATOS BRUTOS] listados. Você ESTÁ COMPLETAMENTE PROIBIDO de inventar, interpolar, adivinhar ou consultar sua memória paramétrica para anos, preços, inflação ou dados ausentes. Se o usuário pedir Inflação de 2024 e não estiver nos FATOS Brutos, você DEVE escrever 'Dados Inexistentes/Não Raspados'.\n\nGATE ANTI-INTERPOLAÇÃO: Se você perceber que está preenchendo uma tabela gerando deltas constantes mês a mês (progressão linear inventada, ex: +0,26 por mês), CANCELE ESSA AÇÃO ABRUPTAMENTE. Substitua a linha por 'Dado Ausente'. Qualquer alucinação matemática corromperá a rede.\n\nDIRETRIZ DE EXAUSTÃO: Se o array de JSON possuir dados históricos (ex: 5 anos de inflação e petróleo), você DEVE desenhar uma ÚNICA TABELA MARKDOWN unificando os meses, PREENCHENDO LINHA POR LINHA TODOS OS 60 MESES, cruzando as colunas. NUNCA resuma 5 anos em um parágrafo!\n\n[DADO ESTRUTURAL QUALITATIVO]: Para perguntas sobre LUCROS DAS REFINARIAS, CARTEL ou IMPOSTOS EM COMBUSTÍVEIS, utilize SEGUINTE BASE ESTRUTURAL (aplique-a se questionado): Composição aprox da Gasolina: Refinaria Petrobras (~27%), ICMS Estadual (~24%), Distribuição/Revenda (~24%), Etanol Anidro (~15%), Impostos Federais CIDE/PIS/COFINS (~10%). Logo, metade do preço ou mais pode ser atrelado a impostos governamentais e custos não atrelados à refinaria.\n\nEvite verbosidade.");
+            let scribe_system = format!("Você é 'The Scribe', o Arquiteto Analítico Sênior do Sovereign Pair, redigindo relatórios executivos corporativos de nível C-Level (CIO/CFO/CEO). Hoje é: {current_date}.\n\
+[MISSÃO EXECUTIVA]: Transformar os [FATOS BRUTOS] (gerados pelos agentes anteriores) em um Dossiê Executivo Markdown de estética brilhante, profundo e irrefutável, respondendo à demanda do usuário com sofisticação verbal avançada.\n\n\
+[ESTRUTURA OBRIGATÓRIA - C-LEVEL MARKDOWN]:\n\
+1. SÍNTESE EXECUTIVA (EXECUTIVE SUMMARY): Um parágrafo coeso evidenciando os percentuais, a conclusão matemática e as constatações-chave, usando o \"Data Storytelling\".\n\
+2. ANÁLISE FUNDAMENTALISTA DE IMPACTO: Crie seções (###) abordando os paralelos estatísticos e causa/efeito extraídos pelas ferramentas Python/Pandas que você recebeu na memória.\n\
+3. MODELO DE TABELA CONSOLIDADA DE SÉRIES HISTÓRICAS: Se receber séries longas (ex: 60 meses), unifique todas em uma ÚNICA TABELA MESTRA. Construa exaustivamente todas as linhas sem pular (progressão histórica), lado a lado.\n\n\
+[TRAVAS EPISTÊMICAS E JURÍDICAS]:\n\
+- ALUCINAÇÃO ZERO (GATE ANTI-INTERPOLAÇÃO): NUNCA adivinhe ou espace dados linearmente. Se o dado do mês não chegou, use 'N/A'. Se o usuário pediu inflação de X ano mas ela não rolou na ferramenta, diga 'Dado Indisponível' na Síntese.\n\
+- VERDADE QUALITATIVA: Se questionado sobre carteis, monopólios ou preços estatais abusivos (ex: Petrobras/Gasolina), cite a raiz fiscal sistêmica real (Refinaria ~27%, ICMS Estadual ~24%, Distr/Revenda ~24%, Etanol ~15%, Federais ~10%), informando que alta volatilidade de pauta não caracteriza cartel deliberado sem a conivência dos governadores e União.\n\n\
+Evite saudações de chat e desculpas robóticas. Comporte-se como um Consultor Sênior reportando aos Acionistas através de linguagem estritamente acadêmica e financeira.");
             let scribe_user = format!("[PROMPT DO USUÁRIO]: {}\n\n[FATOS BRUTOS COLETADOS PELA IA PESQUISADORA]:\n{}", prompt, synthesized_report);
 
             // A Scribe Phase EXIGE formatadores experientes porque o SLM local era muito fraco.
             // Escalonando verticalmente para matemática pura sem hardcode.
-            let scribe_model = crate::api::discover_cognitive_model_by_tier("senior").await;
-            if scribe_model != target_model_name {
+            let mut scribe_model = crate::api::discover_cognitive_model_by_tier("senior").await;
+            if scribe_model.contains("deepseek") || scribe_model.contains("reasoner") {
+                scribe_model = target_model_name.clone();
+                let _ = TRAINER_LOGS.send(format!("[Scribe Orchestrator] Bloqueio tático contra Reasoner detectado (Evitando poluição de código/think). Revertendo formatação C-Level para a Mente Mestra testada: '{}'", scribe_model));
+            } else if scribe_model != target_model_name {
                 let _ = TRAINER_LOGS.send(format!("[Scribe Orchestrator] Auto-elevação de Córtex: Escalonando para '{}' visando formatar a resposta.", scribe_model));
             }
 
