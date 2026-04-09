@@ -5,6 +5,22 @@ import datetime
 import urllib.request
 import urllib.error
 
+def normalize_date(raw):
+    s = str(raw).strip()
+    if not s: return raw
+    try:
+        if '/' in s:
+            parts = s.split('/')
+            if len(parts) == 3:
+                return f"{parts[2]}-{parts[1]}"
+        elif '-' in s:
+            parts = s.split('-')
+            if len(parts) >= 2:
+                return f"{parts[0]}-{parts[1]}"
+    except:
+        pass
+    return s
+
 def fetch_finance(ticker, years):
     # Cross-Router: Check standard Macro indicators
     if ticker.upper() in ["IPCA", "IGPM", "SELIC", "INPC"]:
@@ -157,7 +173,7 @@ def fetch_finance(ticker, years):
                     df_usd = df_usd.groupby('YearMonth').last()
                     
                     df = df.join(df_usd['Close'], rsuffix='_usd', how='inner')
-                    df['Close'] = df['Close'] * df['Close_usd']
+                    df['Close_brl'] = df['Close'] * df['Close_usd']
                     converted_to_brl = True
                     source_used += " | (+ Converted to BRL)"
             except:
@@ -174,14 +190,18 @@ def fetch_finance(ticker, years):
             
     data_lines = []
     for index, row in df.iterrows():
-        date_str = index if isinstance(index, str) else index.strftime('%Y-%m-%d')
+        date_str = index if isinstance(index, str) else index.strftime('%Y-%m')
         # Lida com casos onde row['Close'] seja NaN no Pandas
         if pd.isna(row.get('Close', float('nan'))):
              continue
         val = round(float(row['Close']), 2)
-        data_lines.append(f"{date_str} | {val}")
+        if converted_to_brl and 'Close_brl' in row and not pd.isna(row['Close_brl']):
+            val_brl = round(float(row['Close_brl']), 2)
+            data_lines.append(f"{date_str} | USD {val} | BRL {val_brl}")
+        else:
+            data_lines.append(f"{date_str} | {val}")
         
-    brl_warning = " - ATENÇÃO: TODOS OS VALORES ESTÃO MATEMATICAMENTE CONVERTIDOS PARA MOEDA LOCAL: REAIS (BRL)]" if converted_to_brl else "]"
+    brl_warning = " - ATENÇÃO: VALORES CÂMBIO DUPLO EXPOSTO NO RAW (USD/BRL)]" if converted_to_brl else "]"
     ctx_header = f"[CONTEXT: DADOS HISTÓRICOS BRUTOS REFERENTES AO ATIVO {ticker.upper()} ({semantic_name}){brl_warning}\n"
     data_compressed = ctx_header + "\n".join(data_lines)
         
@@ -223,7 +243,7 @@ def fetch_macro(indicator, country, years):
             data_arr = proxy_data.get("data", [])
             data_lines = []
             for item in data_arr:
-                date_str = item.get("date", "")
+                date_str = normalize_date(item.get("date", ""))
                 val = item.get("value", item.get("close", ""))
                 data_lines.append(f"{date_str} | {val}")
                 
@@ -274,7 +294,8 @@ def fetch_macro(indicator, country, years):
             resp_data = json.loads(response.read().decode())
             data_lines = []
             for item in resp_data:
-                data_lines.append(f"{item.get('data', '')} | {item.get('valor', '')}")
+                date_str = normalize_date(item.get('data', ''))
+                data_lines.append(f"{date_str} | {item.get('valor', '')}")
             
             ctx_header = f"[CONTEXT: DADOS HISTÓRICOS BRUTOS REFERENTES AO MACRO INDICADOR {indicator.upper()}]\n"
             data_compressed = ctx_header + "\n".join(data_lines)
