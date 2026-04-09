@@ -132,6 +132,9 @@ impl DeepResearchEngine {
 
     /// Realiza a varredura e o scrape profundo da URL alvo.
     pub async fn scrape_url(&self, original_url: &str) -> Result<String, String> {
+        if !crate::guardrails::is_safe_url(original_url) {
+            return Err("SSRF Guardrail Ativado: O domínio de destino não é roteável publicamente.".to_string());
+        }
         let mut url = original_url.to_string();
 
         // --- QUARANTINE FIREWALL ---
