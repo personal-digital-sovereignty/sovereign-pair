@@ -609,138 +609,7 @@ pub async fn run_deep_research_handler(
         let current_year = chrono::Local::now().year();
         
         // --- PHASE 7: SCHEMA SANITIZATION ---
-        let tools_schema = serde_json::json!([{
-            "type": "function",
-            "function": {
-                "name": "dispatch_sub_researcher",
-                "description": "Ferramenta para buscar fatos e dados na internet em tempo real. Deve receber múltiplas consultas curtas e atômicas (Google Dorks) de uma vez.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "search_queries": {
-                            "type": "array",
-                            "items": { "type": "string" },
-                            "description": "Array OBRIGATÓRIO contendo as buscas. Cada string (Dork) deve ser curta, contendo APENAS as palavras-chave vitais. Se a diretriz for complexa cruzando vários tópicos, quebre-a em buscas atômicas."
-                        }
-                    },
-                    "required": ["search_queries"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "dispatch_visual_artist",
-                "description": "Ferramenta para desenhar ilustrações, criar quadros ou arte visual (Text-to-Image) quando o usuário pedir para 'desenhar', 'criar imagem' ou gerar arte.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "prompt": {
-                            "type": "string",
-                            "description": "O prompt cinematográfico MÁXIMAMENTE DETALHADO EM INGLÊS descrevendo a cena visual desejada para o Stable Diffusion."
-                        }
-                    },
-                    "required": ["prompt"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "search_api_directory",
-                "description": "Busca no banco de dados do Sovereign API Gateway por APIs livres, públicas e abertas para consumo (JSON) baseadas num tópico ou palavra-chave (ex: 'crypto', 'weather', 'finance'). Use para evitar o Web Scraper genérico.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "topic": {
-                            "type": "string",
-                            "description": "O tema da API em Inglês. Exemplo: 'currency', 'news'."
-                        }
-                    },
-                    "required": ["topic"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "fetch_json_endpoint",
-                "description": "Dispara uma requisição HTTP GET real para a base da API e retorna os dados brutos (JSON) para que você sintetize a resposta sem precisar de Scraping HTML sujo.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "url": {
-                            "type": "string",
-                            "description": "A URL EXATA para chamar, obrigatoriamente montada baseada na Base URL descoberta via directory."
-                        }
-                    },
-                    "required": ["url"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "fetch_financial_ticker",
-                "description": "Acessa a Sovereign Open-Data Matrix (yfinance) para baixar diretamente dados históricos fechados de Ações, Petróleo, Ouro ou Câmbio. USE SEMPRE ESTA FERRAMENTA PARA COMMODITIES, AÇÕES OU PREÇO DO DÓLAR EM VEZ DO SCRAPER WEB.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "symbol": {
-                            "type": "string",
-                            "description": "O símbolo financeiro. Exemplo: 'BRENT' (Petróleo Brent), 'WTI' (Petróleo Texas), 'DOLAR' (Dólar/BRL), 'PETROBRAS' (Ações)."
-                        },
-                        "years": {
-                            "type": "string",
-                            "description": "A quantidade de anos de histórico necessários. Exemplo: '5'."
-                        }
-                    },
-                    "required": ["symbol", "years"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "fetch_macroeconomy",
-                "description": "Acessa a Sovereign Open-Data Matrix (Banco Central API) para baixar taxas macroeconômicas oficiais de um país, como Inflação, Selic, IGPM. USE SEMPRE ESTA FERRAMENTA PARA DADOS ECONÔMICOS DE INFLAÇÃO E JUROS EM VEZ DO SCRAPER WEB.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "indicator": {
-                            "type": "string",
-                            "description": "O indicador (ex: 'IPCA', 'SELIC', 'IGPM', 'INPC')."
-                        },
-                        "country": {
-                            "type": "string",
-                            "description": "O código do país (ex: 'BR'). Atualmente focado em 'BR'."
-                        },
-                        "years": {
-                            "type": "string",
-                            "description": "A quantidade de anos de histórico necessários. Exemplo: '5'."
-                        }
-                    },
-                    "required": ["indicator", "country", "years"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "execute_python_code",
-                "description": "Ferramenta para executar código Python seguro localmente. Ideal para matemática complexa, cruzamento de dados de inflação/preços, cálculos precisos, e extração manipulada de arrays. Você DEVE imprimir os resultados finais EXPLICITAMENTE (via print()) para conseguir ler a resposta e utiliza-la para redigir seu relatório.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "code": {
-                            "type": "string",
-                            "description": "O script Python completo a ser executado."
-                        }
-                    },
-                    "required": ["code"]
-                }
-            }
-        }]);
+        let tools_schema: serde_json::Value = serde_json::from_str(include_str!("../python_workers/registry.json")).unwrap_or_else(|_| serde_json::json!([]));
 
         let mut target_model_name = req.model.clone().unwrap_or_else(|| "qwen2.5:7b".to_string());
         if target_model_name.contains("0.5b") || target_model_name.contains("1.5b") || target_model_name.contains("0.") || target_model_name.contains("1b") || target_model_name.contains("2b") {
@@ -1104,6 +973,42 @@ pub async fn run_deep_research_handler(
                                                     (ind, format!("### Sovereign Open-Data Output:\n{}", res), "Open-Data Ledger".to_string())
                                                 }));
                                             }
+                                        } else if let Some(fname) = func_n {
+                                            // UNIVERSAL REFLEXIVE DISPATCHER
+                                            let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
+                                            let cur_dir = std::env::current_dir().unwrap_or_default();
+                                            let script_path = if cur_dir.ends_with("core") { cur_dir.join("python_workers").join(format!("{}.py", fname)) } else { cur_dir.join("core").join("python_workers").join(format!("{}.py", fname)) };
+
+                                            if script_path.exists() {
+                                                let args_str = match func.get("arguments") {
+                                                    Some(v) if v.is_object() => v.to_string(),
+                                                    Some(v) if v.is_string() => v.as_str().unwrap().to_string(),
+                                                    _ => "{}".to_string()
+                                                };
+                                                
+                                                let _ = TRAINER_LOGS.send(format!("[Agentic Tool] Dispatch Reflexivo Invocando '{}'...", fname));
+                                                let fname_clone = fname.to_string();
+                                                
+                                                join_handles.push(tokio::spawn(async move {
+                                                    let output = tokio::process::Command::new(venv_python)
+                                                        .arg(&script_path)
+                                                        .arg(&args_str)
+                                                        .output()
+                                                        .await;
+                                                        
+                                                    let res = match output {
+                                                        Ok(out) => {
+                                                            let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+                                                            let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+                                                            if out.status.success() { stdout } else { format!("Error: {}", stderr) }
+                                                        },
+                                                        Err(e) => format!("Execution fail: {}", e)
+                                                    };
+                                                    (fname_clone.clone(), format!("### Return of {}:\n{}", fname_clone, res), "Reflexive Sandbox".to_string())
+                                                }));
+                                            } else {
+                                                let _ = TRAINER_LOGS.send(format!("⚠️ [Agentic Tool] Agent File '{}.py' não foi encontrado na pasta python_workers!", fname));
+                                            }
                                         }
                                     }
                             }
@@ -1176,8 +1081,17 @@ pub async fn run_deep_research_handler(
                         } 
                         // 2. O Modelo entregou a resposta final em plain text!
                         else if let Some(content) = msg_obj.get("content").and_then(|c| c.as_str()) {
-                            // Firewall Cognitivo: Fallback Universal (Thought Nanny)
-                            if cycle == 1 || content.contains("\"dispatch_sub_researcher\"") || content.contains("\"search_queries\"") || content.contains("\"fetch_financial_ticker\"") || content.contains("\"fetch_macroeconomy\"") || content.contains("\"type\":\"function\"") || content.contains("\"symbol\"") || content.contains("\"indicator\"") {
+                            // Firewall Cognitivo Reflexivo: Fallback (Thought Nanny)
+                            let registry_names: Vec<String> = tools_schema.as_array().unwrap_or(&vec![]).iter().filter_map(|t| t.get("function").and_then(|f| f.get("name").and_then(|n| n.as_str().map(|s| s.to_string())))).collect();
+                            let mut has_dynamic_tool = false;
+                            for name in &registry_names {
+                                if content.contains(name) || content.contains(&format!("\"{}\"", name)) {
+                                    has_dynamic_tool = true;
+                                    break;
+                                }
+                            }
+
+                            if cycle == 1 || has_dynamic_tool || content.contains("\"type\":\"function\"") || content.contains("\"search_queries\"") || content.contains("\"symbol\"") || content.contains("\"indicator\"") {
                                 // Tenta raspar JSON vazado no texto:
                                 let mut recovered_json: Option<serde_json::Value> = None;
                                 if let (Some(start), Some(end)) = (content.find('{'), content.rfind('}')) {
@@ -1252,7 +1166,7 @@ pub async fn run_deep_research_handler(
                                 messages.push(msg_obj.clone());
                                 messages.push(serde_json::json!({
                                     "role": "user",
-                                    "content": "[SYSTEM OVERRIDE]: Falha de Invocação de Ferramenta! Você gerou texto puro em vez de invocar a ferramenta no backend. O sistema AINDA não tem os dados necessários.\n\nSua ÚNICA saída aceita agora é FECHAR A BOCA e responder ESTRITAMENTE com o JSON correspondente à Variavel/Função (dispatch_sub_researcher, fetch_financial_ticker, fetch_macroeconomy ou execute_python_code). Não escreva NENHUM outro texto! APENAS O JSON NATIIVO."
+                                    "content": format!("[SYSTEM OVERRIDE]: Falha de Invocação de Ferramenta! Você gerou texto puro em vez de invocar a ferramenta no backend. O sistema AINDA não tem os dados necessários.\n\nSua ÚNICA saída aceita agora é FECHAR A BOCA e responder ESTRITAMENTE com o JSON correspondente à Variavel/Função ({}). Não escreva NENHUM outro texto! APENAS O JSON NATIVO.", registry_names.join(", "))
                                 }));
                                 continue;
                             }
