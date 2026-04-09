@@ -5,6 +5,12 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
+## [1.1.0] - Unreleased
+*Data Compaction & Dynamic Decoupling*
+
+### Added
+- **Epic 10 (Autonomous Semantic Versioning & UI Sync)**: Consolidação do script de hook (`scripts/release.py`). Implementada validação purista da arquitetura Cíbrida (regra `"X.Y.Z"` sem `v`). Propagação atômica das versões simultaneamente por Rust (`Cargo.toml`), Svelte Tauri (`tauri.conf.json` / `package.json`), parsing automático interdependente do Histórico Git para compilar o log da release, e espelhamento bruto de `CHANGELOG.md` em `svelte-ui/src/lib/` para consumo persistente offline da Interface de Control Hub.
+
 ## [1.0.2] - 2026-04-08
 *Hotfix: Anti-Hallucination & AI Tooling*
 
