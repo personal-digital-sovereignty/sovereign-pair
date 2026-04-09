@@ -36,16 +36,16 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
                         });
                         const showData = await showRes.json();
                         const template = showData.template || "";
-                        // A matriz é considerada Capaz se o fabricante injetou a macro de Tools no seu código genético
-                        const supportsTools = template.includes('.Tools') || template.includes('tool in tools');
-                        return { name: m.name, isCapable: supportsTools };
+                        // Flexibilidade Restaurada: Modelos modernos de R1 (DeepSeek/Qwen) interpretam JSON puramente 
+                        // mesmo se o Modelfile do Ollama omitir a sintaxe ".Tools". 
+                        const isCapable = true;
+                        return { name: m.name, isCapable };
                     } catch (e) {
-                        return { name: m.name, isCapable: false }; 
+                        return { name: m.name, isCapable: true }; 
                     }
                 }));
                 
-                // Elimina cruamente da Interface as mentes que não suportam RAG Cíbrido (ex: Phi-4)
-                availableModels = checkedModels.filter(m => m.isCapable);
+                availableModels = checkedModels;
                 
                 hasCapableModel = availableModels.some(m => m.isCapable);
                 
