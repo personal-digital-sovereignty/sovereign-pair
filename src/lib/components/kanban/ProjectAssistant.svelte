@@ -66,7 +66,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
-                    model: 'qwen2.5:3b',
+                    model: 'llama3.2:3b',
                     messages: chatLog.slice(0, -1),
                     project_id: project.id,
                     stream: true
