@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
     import { onMount } from 'svelte';
     import CognitiveGraph from '$lib/components/CognitiveGraph.svelte';
     import { Search, Play, Minus, Plus, Cpu, Activity, Network, Database } from 'lucide-svelte';
@@ -38,7 +40,7 @@
         try {
             const token = localStorage.getItem('sovereign_token') || '';
             const ws_id = globalState.activeWorkspaceId || '1';
-            const res = await fetch(`http://localhost:38001/v1/vault/graph?workspace_id=${ws_id}`, {
+            const res = await fetch(`${API_BASE_URL}/v1/vault/graph?workspace_id=${ws_id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if(res.ok) {

@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
     import type { Project } from '$lib/projects.svelte';
     import { MessageSquare, X, Send, ThumbsUp, ThumbsDown, Copy, RotateCcw, Paperclip, Loader2 } from 'lucide-svelte';
     import { marked } from 'marked';
@@ -61,7 +63,7 @@
         
         try {
             const token = localStorage.getItem('sovereign_token') || '';
-            const origin = window.location.origin.includes('5173') ? 'http://127.0.0.1:38001' : window.location.origin;
+            const origin = window.location.origin.includes('5173') ? API_BASE_URL : window.location.origin;
             const res = await fetch(`${origin}/v1/chat/completions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },

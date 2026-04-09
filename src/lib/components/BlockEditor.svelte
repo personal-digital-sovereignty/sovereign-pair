@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
     import { onMount, unmount } from 'svelte';
     import { Editor } from '@tiptap/core';
     import StarterKit from '@tiptap/starter-kit';
@@ -84,7 +86,7 @@
                 while ((match = regexObs.exec(node.text)) !== null) {
                     const filename = match[1];
                     const img = document.createElement('img');
-                    img.src = `http://localhost:38001/v1/vault/media?path=${encodeURIComponent(filename)}`;
+                    img.src = `${API_BASE_URL}/v1/vault/media?path=${encodeURIComponent(filename)}`;
                     img.className = 'max-w-full rounded-lg shadow-sm border border-slate-200 block my-4';
                     img.alt = filename;
                     
@@ -276,7 +278,7 @@
 
     let { documentId = '', onSave = (content: string) => {} } = $props();
 
-    const API_BASE_URL = 'http://localhost:38001';
+    
 
     async function saveDocument(content: string) {
         if (!documentId) return;
@@ -445,7 +447,7 @@
         try {
             const token = localStorage.getItem('sovereign_token') || '';
             const ws_id = globalState.activeWorkspaceId || 'default';
-            const res = await fetch(`http://localhost:38001/v1/vault/document/${encodeURIComponent(documentId)}?workspace_id=${ws_id}`, {
+            const res = await fetch(`${API_BASE_URL}/v1/vault/document/${encodeURIComponent(documentId)}?workspace_id=${ws_id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {

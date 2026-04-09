@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
     import { Activity, Cpu, Network, Zap, Timer, CheckCircle2, AlertTriangle, AlertCircle, Power, ShieldCheck, Database, FolderSync, FileText, Tags, Briefcase, CheckSquare, Layers, BookOpen } from 'lucide-svelte';
     import { globalState } from '$lib/state.svelte';
     import { projectState, fetchProjects } from '$lib/projects.svelte';
@@ -42,7 +44,7 @@
 
     async function fetchHallucinations() {
         try {
-            const res = await fetch('http://127.0.0.1:38001/v1/analytics/hallucinations');
+            const res = await fetch(`${API_BASE_URL}/v1/analytics/hallucinations`);
             if (res.ok) {
                 hallucinations = await res.json();
             }
