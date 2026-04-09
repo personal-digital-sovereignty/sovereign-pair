@@ -112,3 +112,44 @@ pub async fn evaluate_prompt(prompt: &str, db: &sqlx::SqlitePool) -> Result<(), 
 
     Ok(())
 }
+
+/// SSRF Validation
+pub fn is_safe_url(url_str: &str) -> bool {
+    let parsed = match url::Url::parse(url_str) {
+        Ok(u) => u,
+        Err(_) => return false,
+    };
+    
+    let host = match parsed.host_str() {
+        Some(h) => h.to_lowercase(),
+        None => return false,
+    };
+    
+    // Domain blacklists
+    if host == "localhost" || host.ends_with(".localhost") || host == "host.docker.internal" || host == "127.0.0.1" {
+        return false;
+    }
+    
+    // IP resolution blocking (naïve parsing first line defense)
+    if host.starts_with("127.") 
+       || host.starts_with("10.")
+       || host.starts_with("169.254.")
+       || host.starts_with("192.168.")
+       || host.starts_with("0.") {
+           return false;
+    }
+    
+    // 172.16.x.x - 172.31.x.x range
+    if host.starts_with("172.") {
+        let parts: Vec<&str> = host.split('.').collect();
+        if parts.len() == 4 {
+            if let Ok(second_octet) = parts[1].parse::<u8>() {
+                if second_octet >= 16 && second_octet <= 31 {
+                    return false;
+                }
+            }
+        }
+    }
+    
+    true
+}
