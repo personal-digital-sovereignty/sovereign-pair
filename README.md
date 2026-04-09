@@ -17,7 +17,8 @@ O sistema opera com base nos seguintes componentes principais:
 3. Backend Master Engine (Rust Axum & Tokio)
    - Motor principal construido integralmente em Rust de ponta a ponta (Axum + Tokio), desenhado para I/O extremo e baixissima latencia.
    - **Enterprise RAG e Agentic Search Loop**: As pesquisas web agora sao dotadas de Lógica Soberana de Tool-Calling e *CDX Fallback Chain* descentralizada. 
-   - **Cross-Encoder Local (FastEmbed)**: O processamento vetorial baseia-se na poda massiva de lixo da Web via *BGE-Reranker-Base* rodando lado-a-lado no Kernel do processo e devolvendo unicamente Top-Chunks.
+   - **Cross-Encoder Local (FastEmbed)**: O processamento vetorial baseia-se na poda massiva de lixo da Web via *BGE-Reranker-Base* rodando lado-a-lado no Kernel do processo e devolvendo unicamente Top-Chunks. 
+     - ⚠️ **Nota Importante:** Ao invés de trafegar tensores em VRAM, a infraestrutura FastEmbed nativa puxa autonomamente o Reranker da web (.ONNX) para cache físico da CPU no seu primeiro Boot. **NENHUM modelo do tipo `bge-reranker` deve ser instalado via Ollama**, evite poluir sua instalação Ollama.
 
 4. Dashboard Web (Svelte 5)
    - Interface Web (PWA) de painel unico que centraliza logs do sistema, monitoramento de recursos (RAM/VRAM) e navegacao interativa e controlada do repositorio fisico de documentos. 
