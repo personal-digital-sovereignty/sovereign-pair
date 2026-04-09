@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '$lib/env_config';
 export const globalState = $state({
     authPhase: 'loading',
     isSidebarOpen: true,
@@ -88,7 +89,7 @@ export const loadGlobalSession = async (id: number | null) => {
     }
     try {
         const token = localStorage.getItem('sovereign_token') || '';
-        const res = await fetch(`http://localhost:38001/v1/sessions/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE_URL}/v1/sessions/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) {
             const data = await res.json();
             if (data.messages && data.messages.length > 0) {
@@ -151,7 +152,7 @@ export const sendGlobalChatMessage = async (userText: string) => {
 
         currentAbortController = new AbortController();
 
-        const response = await fetch('http://localhost:38001/v1/chat/completions', {
+        const response = await fetch(`${API_BASE_URL}/v1/chat/completions`, {
             method: 'POST',
             signal: currentAbortController.signal,
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },

@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
     import { onMount } from 'svelte';
     import { FileText, Link2, X, AlertCircle } from 'lucide-svelte';
     import { fetchProjectDocuments, linkProjectDocument, unlinkProjectDocument, type Project } from '$lib/projects.svelte';
@@ -17,7 +19,7 @@
         try {
             const token = localStorage.getItem('sovereign_token') || '';
             const activeId = globalState.activeWorkspaceId || 'mesh_roaming';
-            const res = await fetch(`http://localhost:38001/v1/workspaces/${activeId}/tree`, {
+            const res = await fetch(`${API_BASE_URL}/v1/workspaces/${activeId}/tree`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {

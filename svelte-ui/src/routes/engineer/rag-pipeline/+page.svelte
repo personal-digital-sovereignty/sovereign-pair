@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
+
     import { onMount, tick } from 'svelte';
     import { trainerState } from '$lib/trainer.svelte';
     import { marked } from 'marked';
@@ -16,7 +18,7 @@
     onMount(async () => {
         fetchStagedResearch();
         try {
-            const res = await fetch('http://localhost:11434/api/tags');
+            const res = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
             const data = await res.json();
             if (data && data.models) {
                 // Filtro Absoluto (Fase 8): O Orquestrador do UI Mestre precisa ser 3B+. Extirpamos embeddings e LLMs miniatura da lista visual.
@@ -27,7 +29,7 @@
                 
                 const checkedModels = await Promise.all(validScribes.map(async (m: any) => {
                     try {
-                        const showRes = await fetch('http://localhost:11434/api/show', {
+                        const showRes = await fetch(`${OLLAMA_BASE_URL}/api/show`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ name: m.name })
@@ -80,7 +82,7 @@
         if (sseClient) {
             sseClient.close();
         }
-        sseClient = new EventSource('http://localhost:38001/v1/engineer/trainer/unsloth-monitor');
+        sseClient = new EventSource(`${API_BASE_URL}/v1/engineer/trainer/unsloth-monitor`);
         
         sseClient.onmessage = (event) => {
             const data = event.data;
@@ -112,7 +114,7 @@
         };
 
         try {
-            await fetch('http://localhost:38001/v1/engineer/trainer/deep-research', {
+            await fetch(`${API_BASE_URL}/v1/engineer/trainer/deep-research`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -141,7 +143,7 @@
         }
 
         try {
-            await fetch('http://localhost:38001/v1/engineer/trainer/deep-research/cancel', {
+            await fetch(`${API_BASE_URL}/v1/engineer/trainer/deep-research/cancel`, {
                 method: 'POST'
             });
         } catch (e) {
@@ -151,7 +153,7 @@
 
     async function fetchStagedResearch() {
         try {
-            const res = await fetch('http://localhost:38001/v1/research/staging');
+            const res = await fetch(`${API_BASE_URL}/v1/research/staging`);
             const data = await res.json();
             if (data.status === 'success') {
                 stagedResearch = data.staged;
@@ -163,7 +165,7 @@
 
     async function approveResearch(id: string) {
         try {
-            await fetch(`http://localhost:38001/v1/research/staging/${id}/commit`, { method: 'POST' });
+            await fetch(`${API_BASE_URL}/v1/research/staging/${id}/commit`, { method: 'POST' });
             isStagingModalOpen = false;
             fetchStagedResearch();
         } catch (e) {
@@ -173,7 +175,7 @@
 
     async function discardResearch(id: string) {
         try {
-            await fetch(`http://localhost:38001/v1/research/staging/${id}`, { method: 'DELETE' });
+            await fetch(`${API_BASE_URL}/v1/research/staging/${id}`, { method: 'DELETE' });
             isStagingModalOpen = false;
             fetchStagedResearch();
         } catch (e) {

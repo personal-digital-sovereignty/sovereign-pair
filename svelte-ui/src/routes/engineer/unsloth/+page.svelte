@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
     import { onMount } from 'svelte';
     import { trainerState, fetchTrainerStats, sendUnslothControl } from '$lib/trainer.svelte';
 
@@ -12,7 +14,7 @@
         fetchTrainerStats();
         pollingInterval = setInterval(fetchTrainerStats, 10000);
 
-        eventSource = new EventSource('http://localhost:38001/v1/engineer/trainer/unsloth-monitor');
+        eventSource = new EventSource(`${API_BASE_URL}/v1/engineer/trainer/unsloth-monitor`);
         
         eventSource.onmessage = (event) => {
             logs.push(event.data);

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '$lib/env_config';
 export type Task = { id: string, title: string, description?: string, status: string, priority?: string, deadline?: string, created_at?: string };
 export type Project = { 
     id: string, 
@@ -24,7 +25,7 @@ export const projectState = $state<{
     draggingTaskId: null
 });
 
-const API_BASE_URL = 'http://localhost:38001';
+
 
 export async function fetchProjects() {
     projectState.isLoading = true;

@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
     import { ChevronDown, Server, Cpu, Shield, User, GlobeLock, Cloud, Download, Upload, Brain, SlidersHorizontal, Loader2, BookOpen, Printer, X, Database } from 'lucide-svelte';
     import { onMount } from 'svelte';
     import { marked } from 'marked';
@@ -54,7 +56,7 @@
     onMount(async () => {
         // Fetch Settings
         try {
-            const res = await fetch('http://localhost:38001/v1/settings');
+            const res = await fetch(`${API_BASE_URL}/v1/settings`);
             if (res.ok) {
                 const data = await res.json();
                 if (data.nurse_model) aiSettings.nurse_model = data.nurse_model;
@@ -69,7 +71,7 @@
 
         // Fetch Dynamic Models from Mesh Target
         try {
-            const mRes = await fetch('http://localhost:38001/v1/system/available_models');
+            const mRes = await fetch(`${API_BASE_URL}/v1/system/available_models`);
             if (mRes.ok) {
                 const data = await mRes.json();
                 if (data.models) {
@@ -82,7 +84,7 @@
 
         // Fetch Cold Storage Database
         try {
-            const csRes = await fetch('http://localhost:38001/v1/settings/cold_storage');
+            const csRes = await fetch(`${API_BASE_URL}/v1/settings/cold_storage`);
             if (csRes.ok) {
                 const data = await csRes.json();
                 if (data.corporaVaultPath) corporaVaultPath = data.corporaVaultPath;
@@ -94,7 +96,7 @@
 
     async function saveAiSettings() {
         try {
-            const res = await fetch('http://localhost:38001/v1/settings');
+            const res = await fetch(`${API_BASE_URL}/v1/settings`);
             let data = res.ok ? await res.json() : {};
             
             data.nurse_model = aiSettings.nurse_model;
@@ -105,7 +107,7 @@
             data.system_prompt = aiSettings.system_prompt;
             data.default_route = aiSettings.default_route;
             
-            const postRes = await fetch('http://localhost:38001/v1/settings', {
+            const postRes = await fetch(`${API_BASE_URL}/v1/settings`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -122,7 +124,7 @@
 
     async function saveColdStorage() {
         try {
-            const res = await fetch('http://localhost:38001/v1/settings/cold_storage', {
+            const res = await fetch(`${API_BASE_URL}/v1/settings/cold_storage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -148,7 +150,7 @@
         reader.onload = async (e) => {
             const content = e.target?.result as string;
             try {
-                const res = await fetch('http://localhost:38001/v1/system/import_config', {
+                const res = await fetch(`${API_BASE_URL}/v1/system/import_config`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
                     body: content
@@ -210,7 +212,7 @@
                             <Upload class="w-4 h-4" />
                             <span class="text-sm">Import Config</span>
                         </button>
-                        <a href="http://localhost:38001/v1/system/export_config" target="_blank" class="flex-1 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-500 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                        <a href="{API_BASE_URL}/v1/system/export_config" target="_blank" class="flex-1 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-500 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.2)]">
                             <Download class="w-4 h-4" />
                             <span class="text-sm">Export .cybrid</span>
                         </a>

@@ -45,7 +45,7 @@ pub struct FineTuningReq {
 
 /// Helper para obter a URL ativa do Ollama
 async fn get_ollama_base_url(state: Arc<AppState>) -> String {
-    let mut ollama_base_url = "http://127.0.0.1:11434".to_string();
+    let mut ollama_base_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()).to_string();
 
     if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'ollama_clusters'").fetch_optional(&state.db).await {
         let val: String = sqlx::Row::get(&row, "value_json");
@@ -66,7 +66,7 @@ async fn get_ollama_base_url(state: Arc<AppState>) -> String {
     }
 
     if ollama_base_url == "http://host.docker.internal:11434" && std::env::var("SOVEREIGN_RUN_ENV").unwrap_or_default() == "native" {
-        ollama_base_url = "http://127.0.0.1:11434".to_string();
+        ollama_base_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()).to_string();
     }
     
     ollama_base_url
@@ -424,7 +424,7 @@ async fn execute_sub_analyst(
 
     let _ = TRAINER_LOGS.send(format!("[Sufficiency Gate] Verificando preenchimento factual com '{}'...", gate_model));
 
-    if let Ok(res) = client.post("http://127.0.0.1:11434/api/chat").json(&gate_payload).send().await {
+    if let Ok(res) = client.post(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/chat")).json(&gate_payload).send().await {
         if let Ok(json) = res.json::<serde_json::Value>().await {
             if let Some(content) = json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(content) {
@@ -469,7 +469,7 @@ async fn execute_sub_analyst(
     });
 
     let mut distilled_text = "DADO NÃO ENCONTRADO".to_string();
-    if let Ok(res) = client.post("http://127.0.0.1:11434/api/chat").json(&ext_payload).send().await {
+    if let Ok(res) = client.post(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/chat")).json(&ext_payload).send().await {
         if let Ok(json) = res.json::<serde_json::Value>().await {
             if let Some(content) = json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
                 
@@ -545,7 +545,7 @@ async fn execute_sub_analyst(
             "options": { "temperature": 0.0, "num_ctx": 8192, "repeat_penalty": 1.03 }
         });
 
-        if let Ok(res_verif) = client.post("http://127.0.0.1:11434/api/chat").json(&verifier_payload).send().await
+        if let Ok(res_verif) = client.post(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/chat")).json(&verifier_payload).send().await
             && let Ok(v_json) = res_verif.json::<serde_json::Value>().await
                 && let Some(v_content) = v_json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
                     let v_upper = v_content.to_uppercase();
@@ -679,7 +679,7 @@ pub async fn run_deep_research_handler(
         // PING UI TASK IS DEPRECATED. Agentic loop handles its own presence.
         
         let mut synthesized_report = String::new();
-        let olla_url = "http://127.0.0.1:11434/api/chat".to_string();
+        let olla_url = format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/chat").to_string();
         let synthesis_client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(7200)).build().unwrap_or_else(|_| reqwest::Client::new());
         
         // --- PHASE 41: THE HONEST INQUISITOR (SINGLE AGENT) ---
@@ -816,7 +816,7 @@ pub async fn run_deep_research_handler(
                                                 let payload = serde_json::json!({ "prompt": visual_prompt.clone() });
                                                 join_handles.push(tokio::spawn(async move {
                                                     let client = reqwest::Client::new();
-                                                    let img_res = match client.post("http://127.0.0.1:38001/v1/images/generations").json(&payload).send().await {
+                                                    let img_res = match client.post(format!("{}{}", std::env::var("SOVEREIGN_API_URL").unwrap_or_else(|_| "http://127.0.0.1:38001".to_string()), "/v1/images/generations")).json(&payload).send().await {
                                                         Ok(r) => {
                                                             if let Ok(j) = r.json::<serde_json::Value>().await {
                                                                 if let Some(url) = j.get("data").and_then(|arr| arr.as_array()).and_then(|a| a.first()).and_then(|f| f.get("url")).and_then(|u| u.as_str()) {

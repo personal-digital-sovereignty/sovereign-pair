@@ -16,7 +16,7 @@ pub async fn start_plan_and_execute(
     });
 
     let client = reqwest::Client::new();
-    let ollama_url = "http://127.0.0.1:11434/api/chat";
+    let ollama_url = format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/chat");
 
     // Fase 1: O Planner (Gerar o JSON Determinístico)
     let planner_system = r#"Você é o Agente Planejador Híbrido. 
@@ -50,7 +50,7 @@ VOCÊ NÃO PODE RESPONDER NADA ALÉM DO JSON.
         message: "⏳ Solicitando ao LLM a quebra da tarefa raiz em Grafo JSON (Strict Pattern)...".to_string(),
     });
 
-    let plan_response = match client.post(ollama_url).json(&plan_payload).send().await {
+    let plan_response = match client.post(&ollama_url).json(&plan_payload).send().await {
         Ok(res) if res.status().is_success() => res,
         _ => {
             error!("🚨 Falha ao contactar Ollama na fase de Planejamento");
@@ -92,7 +92,7 @@ VOCÊ NÃO PODE RESPONDER NADA ALÉM DO JSON.
                             "stream": false
                         });
 
-                        if let Ok(exec_res) = client.post(ollama_url).json(&executor_payload).send().await
+                        if let Ok(exec_res) = client.post(&ollama_url).json(&executor_payload).send().await
                             && let Ok(exec_json) = exec_res.json::<serde_json::Value>().await
                                 && let Some(message) = exec_json.get("message") {
                                     // Se o LLM Cuspiu uma ToolCall MCP Autônoma:

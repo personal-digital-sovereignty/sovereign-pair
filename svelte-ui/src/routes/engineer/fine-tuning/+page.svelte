@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
     import { onMount, onDestroy } from 'svelte';
@@ -17,7 +19,7 @@
         if(isSubmitting) return;
         isSubmitting = true;
         try {
-            await fetch('http://localhost:38001/v1/engineer/trainer/finetune', {
+            await fetch(`${API_BASE_URL}/v1/engineer/trainer/finetune`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

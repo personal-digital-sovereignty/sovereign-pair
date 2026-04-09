@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
     import { projectState } from '$lib/projects.svelte';
     import { MessageSquare, Send, X, ThumbsUp, ThumbsDown, Copy, RotateCcw, Paperclip, Loader2 } from 'lucide-svelte';
     import { marked } from 'marked';
@@ -63,7 +65,7 @@
         
         try {
             const token = localStorage.getItem('sovereign_token') || '';
-            const origin = window.location.origin.includes('5173') ? 'http://127.0.0.1:38001' : window.location.origin;
+            const origin = window.location.origin.includes('5173') ? API_BASE_URL : window.location.origin;
             
             // Construir o Contexto Dinâmico Soberano para o Hub (Otimizado para LLMs menores)
             const ativos = projectState.projects.filter(p => !p.is_archived);
