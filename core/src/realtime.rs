@@ -73,7 +73,7 @@ pub async fn realtime_responses_handler(
         "stream": true
     });
 
-    let res = match state.http_client.post("http://127.0.0.1:11434/api/chat").json(&ollama_payload).send().await {
+    let res = match state.http_client.post(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/chat")).json(&ollama_payload).send().await {
         Ok(r) => r,
         Err(e) => {
             error!("🚨 Motor Cognitivo Offline: {}", e);

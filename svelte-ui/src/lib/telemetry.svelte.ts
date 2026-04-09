@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '$lib/env_config';
 // Svelte 5 Native SSE Store for Real-time Rust Telemetry
 export const telemetryState = $state({
     connected: false,
@@ -28,7 +29,7 @@ export const telemetryState = $state({
 });
 
 let pollInterval: any;
-const API_BASE_URL = 'http://localhost:38001';
+
 
 export function connectTelemetry() {
     if (pollInterval) return;

@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
     import { Mic, Loader2, Square } from 'lucide-svelte';
     import { createEventDispatcher, onDestroy, onMount } from 'svelte';
     import { fly } from 'svelte/transition';
@@ -70,7 +72,7 @@
         formData.append('audio', blob, 'recording.webm');
         
         try {
-            const response = await fetch('http://127.0.0.1:38001/v1/multimodal/audio/transcribe', {
+            const response = await fetch(`${API_BASE_URL}/v1/multimodal/audio/transcribe`, {
                 method: 'POST',
                 body: formData
             });

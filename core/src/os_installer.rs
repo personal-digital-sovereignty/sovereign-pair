@@ -55,7 +55,7 @@ pub async fn run_headless_setup() {
 
 async fn check_ollama() -> bool {
     let client = Client::builder().timeout(Duration::from_secs(2)).build().unwrap_or_default();
-    match client.get("http://127.0.0.1:11434/api/tags").send().await {
+    match client.get(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/tags")).send().await {
         Ok(res) => res.status().is_success(),
         Err(_) => false
     }

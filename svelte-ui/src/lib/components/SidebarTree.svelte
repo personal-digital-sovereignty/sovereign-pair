@@ -1,9 +1,11 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
    import { FileText, Database, Folder, FolderOpen } from 'lucide-svelte';
    import { globalState } from '$lib/state.svelte.js';
    import { untrack } from 'svelte';
 
-   const API_BASE_URL = 'http://localhost:38001';
+   
 
    async function fetchVaultFiles() {
        try {

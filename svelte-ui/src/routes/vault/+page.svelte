@@ -1,4 +1,6 @@
 <script lang="ts">
+import { API_BASE_URL } from '$lib/env_config';
+
     import BlockEditor from '$lib/components/BlockEditor.svelte';
     import ChatPanel from '$lib/components/ChatPanel.svelte';
     import { globalState } from '$lib/state.svelte.js';
@@ -114,7 +116,7 @@
         return result;
     })());
 
-    const API_BASE_URL = 'http://localhost:38001';
+    
 
     function flatten(nodes: any[], prefix = ''): any[] {
         let arr: any[] = [];
