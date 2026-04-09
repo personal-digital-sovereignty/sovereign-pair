@@ -149,5 +149,29 @@
                 ]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "empirical_verifier",
+            "description": "Aciona o Escrutinador Lógico (O Advogado do Diabo) para atacar a sua própria hipótese atual. Sempre use esta tool antes de concordar levianamente com afirmações do usuário. Ela auditará viéses, bajulação (Sycophancy), falácias factuais e lógicas na sua linha de pensamento. Corrija-se após receber o ataque. @param user_premise: A afirmação original ou demanda técnica/moral feita pelo usuário. @param hypothesis: A resposta reflexiva que você estava planejando entregar ao usuário e deve ser escrutinada.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "user_premise": {
+                        "type": "string",
+                        "description": "O parâmetro user_premise."
+                    },
+                    "hypothesis": {
+                        "type": "string",
+                        "description": "O parâmetro hypothesis."
+                    }
+                },
+                "required": [
+                    "user_premise",
+                    "hypothesis"
+                ]
+            }
+        }
     }
 ]
