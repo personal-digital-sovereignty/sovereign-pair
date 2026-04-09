@@ -285,7 +285,7 @@ impl SyncEngine {
         let sync_model = crate::api::discover_best_model(sync_hierarchy, "llama3.2:latest").await;
 
         // Chamada direta pro Ollama garantindo autonomia do Rust Core
-        if let Ok(resp) = client.post("http://127.0.0.1:11434/api/generate")
+        if let Ok(resp) = client.post(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/generate"))
             .json(&serde_json::json!({
                 "model": sync_model,
                 "prompt": prompt,

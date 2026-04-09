@@ -40,7 +40,7 @@ pub async fn start_evaluator_loop(state: Arc<AppState>) {
                     let mut sentiment = "Neutral".to_string();
                     
                     // Attempt to call Ollama Node in the Mesh Layer
-                    if let Ok(res) = client.post("http://localhost:11434/api/generate").json(&ollama_req).send().await
+                    if let Ok(res) = client.post(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/generate")).json(&ollama_req).send().await
                         && let Ok(json_res) = res.json::<serde_json::Value>().await
                             && let Some(resp_text) = json_res["response"].as_str()
                                 && let Ok(parsed) = serde_json::from_str::<serde_json::Value>(resp_text) {
