@@ -33,9 +33,11 @@ pub mod adblocker;
 pub mod multimodal;
 pub mod office_parser;
 pub mod sandbox;
+pub mod memory_manager;
 
 use axum::{routing::post, Router, response::IntoResponse, http::{header, StatusCode, Uri}};
 use reqwest::Client;
+
 use std::sync::{Arc, RwLock};
 use tokio::sync::broadcast;
 use tower_http::cors::CorsLayer;
@@ -216,6 +218,12 @@ async fn main() {
 
     // Invoca o SQLite Master O.S
     let db_pool = db::init_pool().await;
+
+    // Booting Model Capabilities Discovery in background
+    let db_pool_sync = db_pool.clone();
+    tokio::spawn(async move {
+        crate::api::sync_model_capabilities(&db_pool_sync).await;
+    });
 
     // Hotfix 0.9.4: Windows DOS Extended Path Cleanup (Remove \\?\ quebrando a interface e prompts)
     tracing::info!("🧹 [Sovereign DB] Higienizando possíveis rastros de prefixos DOS (\\?\\) em Workspaces...");
