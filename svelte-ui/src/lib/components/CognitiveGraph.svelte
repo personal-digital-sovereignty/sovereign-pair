@@ -105,7 +105,7 @@
                 // 3. A Placa de Identificação Flutuante
                 const sprite = new SpriteText(node.name || node.id);
                 sprite.color = 'rgba(255, 255, 255, 0.85)';
-                sprite.textHeight = Math.max(3.5, radius * 0.8);
+                sprite.textHeight = Math.max(6, radius * 1.5);
                 sprite.position.y = radius + sprite.textHeight + 1; // Flutua sobre a aura
                 group.add(sprite);
 
@@ -136,16 +136,24 @@
             links: JSON.parse(JSON.stringify(links)) 
         });
 
-        // Engine de Rotação
+        // Engine de Rotação Orbital (Preservando O Zoom do Usuário)
         const renderLoop = setInterval(() => {
             if (Graph && autoRotateActive) {
-                // Afasta um pouco mais pra ver o layout majestoso
+                const camPos = Graph.cameraPosition();
+                // Mede a distância atual (permitindo scroll de zoom livre)
+                let radius = Math.hypot(camPos.x, camPos.z);
+                // Se o radius for zero na inicialização, definimos um padrão mais próximo (200 ao invés de 400)
+                if (!radius || radius < 50) radius = 200; 
+
+                // Calcula o ângulo corrente p/ não dar snap
+                let currentAngle = Math.atan2(camPos.x, camPos.z);
+                currentAngle += Math.PI / 4000;
+
                 Graph.cameraPosition({
-                    x: 400 * Math.sin(rotationAngle),
-                    y: 50, // Olha ligeiramente de cima
-                    z: 400 * Math.cos(rotationAngle)
+                    x: radius * Math.sin(currentAngle),
+                    y: camPos.y, // Mantém a inclinação Y escolhida pelo usuário
+                    z: radius * Math.cos(currentAngle)
                 });
-                rotationAngle += Math.PI / 4000;
             }
         }, 30);
 
