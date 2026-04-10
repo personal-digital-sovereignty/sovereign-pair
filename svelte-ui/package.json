@@ -66,6 +66,8 @@
 		"lucide-svelte": "^0.577.0",
 		"marked": "^17.0.5",
 		"svelte-dnd-action": "^0.9.69",
+		"three": "^0.183.2",
+		"three-spritetext": "^1.10.0",
 		"tiptap-markdown": "^0.9.0"
 	},
 	"overrides": {
