@@ -1,0 +1,158 @@
+
+> svelte-ui@1.0.2 build
+> vite build
+
+1:12:36 AM [vite-plugin-svelte] !!! Support for vite 8 beta in vite-plugin-svelte is experimental (rolldown: 1.0.0-rc.13, vite: 8.0.7) !!!
+	See https://github.com/sveltejs/vite-plugin-svelte/issues/1143 for a list of known issues and to report feedback.
+vite v8.0.7 building ssr environment for production...
+[2Ktransforming...1:12:36 AM [vite-plugin-svelte] src/routes/engineer/+layout.svelte:15:4 Unused CSS selector ".material-symbols-outlined"
+https://svelte.dev/e/css_unused_selector
+13: 
+14: <style>
+15:     .material-symbols-outlined {
+                                  ^
+16:         font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+17:     }
+1:12:36 AM [vite-plugin-svelte] src/routes/engineer/fine-tuning/+page.svelte:102:24 Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label
+100:                     <div class="flex items-center gap-3 px-4 py-2 bg-surface-container-low rounded-xl">
+101:                         <span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">Internet-to-RAG</span>
+102:                         <button onclick={() => trainerState.internetToRagActive = !trainerState.internetToRagActive} class="w-10 h-5 {trainerState.internetToRagActive ? 'bg-primary' : 'bg-surface-variant'} rounded-full relative transition-colors cursor-pointer">
+                                      ^
+103:                             <div class="absolute top-1 w-3 h-3 bg-white rounded-full transition-all {trainerState.internetToRagActive ? 'right-1' : 'left-1'}"></div>
+104:                         </button>
+1:12:36 AM [vite-plugin-svelte] src/routes/setup/+page.svelte:92:31 Using `on:click` to listen to the click event is deprecated. Use the event attribute `onclick` instead
+https://svelte.dev/e/event_directive_deprecated
+90: 
+91:     <div class="actions">
+92:       <button class="primary-btn" on:click={startInstallation} disabled={isInstalling || setupComplete}>
+                                                                  ^
+93:         {#if isInstalling}
+94:           Instalando Background Services...
+1:12:36 AM [vite-plugin-svelte] src/routes/setup/+page.svelte:8:5 `statusLogs` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+https://svelte.dev/e/non_reactive_update
+ 6:   import { Command } from '@tauri-apps/plugin-shell';
+ 7: 
+ 8:   let statusLogs: string[] = [];
+                              ^
+ 9:   let isInstalling = false;
+10:   let ollamaDetected = false;
+1:12:36 AM [vite-plugin-svelte] src/routes/setup/+page.svelte:9:5 `isInstalling` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+https://svelte.dev/e/non_reactive_update
+ 7: 
+ 8:   let statusLogs: string[] = [];
+ 9:   let isInstalling = false;
+                      ^
+10:   let ollamaDetected = false;
+11:   let setupComplete = false;
+1:12:36 AM [vite-plugin-svelte] src/routes/setup/+page.svelte:11:5 `setupComplete` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+https://svelte.dev/e/non_reactive_update
+ 9:   let isInstalling = false;
+10:   let ollamaDetected = false;
+11:   let setupComplete = false;
+                       ^
+12: 
+13:   function appendLog(msg: string) {
+1:12:36 AM [vite-plugin-svelte] src/lib/components/InlineSpotlight.svelte:9:8 `searchInput` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+https://svelte.dev/e/non_reactive_update
+ 7:     let isOpen = $state(false);
+ 8:     let searchQuery = $state('');
+ 9:     let searchInput: HTMLInputElement;
+                                         ^
+10: 
+11:     // Lógica para Abrir via Atalho (Ctrl+K ou Cmd+K)
+1:12:36 AM [vite-plugin-svelte] src/lib/components/SettingsModal.svelte:180:28 A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+178:                     <div class="flex items-end gap-4 p-4 bg-slate-50 dark:bg-[#0c1324] border border-slate-100 dark:border-[#424859]/20 rounded-xl">
+179:                         <div class="flex-1 space-y-1">
+180:                             <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Nickname</label>
+                                                                                                                                                   ^
+181:                             <input bind:value={newWsName} class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:focus:border-[#74b0ff] dark:text-slate-200" placeholder="e.g. Legal Docs" />
+182:                         </div>
+1:12:36 AM [vite-plugin-svelte] src/lib/components/SettingsModal.svelte:184:28 A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+182:                         </div>
+183:                         <div class="flex-[2] space-y-1">
+184:                             <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Absolute OS Path</label>
+                                                                                                                                                           ^
+185:                             <input bind:value={newWsPath} class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:focus:border-[#74b0ff] dark:text-slate-200 font-mono" placeholder="/home/user/Documents/Legal" />
+186:                         </div>
+1:12:36 AM [vite-plugin-svelte] src/lib/components/SettingsModal.svelte:226:24 A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+224:                 <section class="grid grid-cols-2 gap-6">
+225:                     <div class="space-y-2">
+226:                         <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                     ^
+227:                             Provider
+228:                         </label>
+1:12:36 AM [vite-plugin-svelte] src/lib/components/SettingsModal.svelte:240:24 A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+238:                     </div>
+239:                     <div class="space-y-2">
+240:                         <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                     ^
+241:                             Model Name
+242:                         </label>
+1:12:36 AM [vite-plugin-svelte] src/lib/components/SettingsModal.svelte:258:28 A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+256:                     <div class="flex justify-between items-end">
+257:                         <div class="space-y-1">
+258:                             <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Temperature (Creativity)</label>
+                                                                                                                                                                  ^
+259:                             <p class="text-xs text-slate-500 dark:text-slate-500">Controls randomness: Lower is more focused and deterministic.</p>
+260:                         </div>
+1:12:36 AM [vite-plugin-svelte] src/lib/components/SettingsModal.svelte:282:28 A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+280:                     <div class="flex items-end gap-3 bg-slate-50 dark:bg-[#0c1324] border border-slate-100 dark:border-[#424859]/20 p-4 rounded-xl">
+281:                         <div class="flex-1 space-y-1">
+282:                             <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Instance Domain / IP</label>
+                                                                                                                                                               ^
+283:                             <input bind:value={newSearxngNode} 
+284:                                 onkeypress={(e) => e.key === 'Enter' && addSearxngNode()}
+1:12:36 AM [vite-plugin-svelte] src/lib/components/SettingsModal.svelte:333:24 A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+331:                     </div>
+332:                     <div class="space-y-2">
+333:                         <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">System Instructions</label>
+                                                                                                                                                         ^
+334:                         <textarea bind:value={settingsState.systemInstructions} class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm leading-relaxed focus:ring-2 focus:ring-indigo-500/20 resize-y outline-none" rows="4"></textarea>
+335:                     </div>
+1:12:36 AM [vite-plugin-svelte] src/lib/components/SettingsModal.svelte:338:24 A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control
+336:                     <!-- Additional Prompts -->
+337:                     <div class="space-y-3 pt-2">
+338:                         <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Additional Context Prompts</label>
+                                                                                                                                                                ^
+339:                         {#each settingsState.additionalPrompts as prompt, i}
+340:                             <input bind:value={settingsState.additionalPrompts[i]} placeholder="E.g. Sempre responda em português do Brasil..." class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-[#74b0ff]" type="text" />
+1:12:37 AM [vite-plugin-svelte] src/lib/components/kanban/KanbanColumn.svelte:93:417 Avoid using autofocus
+https://svelte.dev/e/a11y_autofocus
+91:     {#if isAddingTask}
+92:         <div class="p-3 pb-0 bg-slate-50 dark:bg-[#0c1324] shrink-0 flex flex-col gap-2 animate-in slide-in-from-top-2">
+93:             <input type="text" bind:value={newTaskTitle} placeholder="Título da nova tarefa..." class="w-full text-sm p-2.5 rounded-lg border border-blue-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200 shadow-sm" onkeydown={(e) => { if(e.key === 'Enter') submitTask(); else if(e.key === 'Escape') isAddingTask = false; }} autofocus />
+                                                                                                                                                                                                                                                                                                                                                                                                                                              ^
+94:             <div class="flex gap-2">
+95:                 <button onclick={submitTask} class="flex-1 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold py-1.5 rounded-md shadow-sm transition-colors cursor-pointer">Salvar</button>
+✓ 3864 modules transformed.
+✗ Build failed in 3.34s
+error during build:
+Build failed with 1 error:
+
+[plugin vite-plugin-svelte:compile] /home/jefersonlopes/Developer/local-repositories/sovereign-pair/svelte-ui/src/routes/settings/+page.svelte:215:32
+RolldownError: /home/jefersonlopes/Developer/local-repositories/sovereign-pair/svelte-ui/src/routes/settings/+page.svelte:215:32 Expected attribute value
+https://svelte.dev/e/expected_attribute_value
+ 213 |                              <span class="text-sm">Import Config</span>
+ 214 |                          </button>
+ 215 |                          <a href=`${API_BASE_URL}/v1/system/export_config` target="_blank" class="flex-1 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-500 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                                        ^
+ 216 |                              <Download class="w-4 h-4" />
+ 217 |                              <span class="text-sm">Export .cybrid</span>
+    at aggregateBindingErrorsIntoJsError (file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/svelte-ui/node_modules/rolldown/dist/shared/error-DBGOT6sf.mjs:48:18)
+    at unwrapBindingResult (file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/svelte-ui/node_modules/rolldown/dist/shared/error-DBGOT6sf.mjs:18:128)
+    at #build (file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/svelte-ui/node_modules/rolldown/dist/shared/rolldown-build-hRnqgxyz.mjs:3313:34)
+    at async buildEnvironment (file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/svelte-ui/node_modules/vite/dist/node/chunks/node.js:32954:64)
+    at async Object.build (file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/svelte-ui/node_modules/vite/dist/node/chunks/node.js:33376:19)
+    at async Object.buildApp (file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/svelte-ui/node_modules/vite/dist/node/chunks/node.js:33373:153)
+    at async CAC.<anonymous> (file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/svelte-ui/node_modules/vite/dist/node/cli.js:778:3) {
+  errors: [Getter/Setter]
+}
