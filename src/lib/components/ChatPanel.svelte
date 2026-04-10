@@ -1,7 +1,7 @@
 <script lang="ts">
 import { API_BASE_URL } from '$lib/env_config';
 
-    import { MessageSquare, Cpu, Shield, Send, Loader2, Paperclip, ThumbsUp, ThumbsDown, Bot, User, BrainCircuit, Copy, RotateCcw, Settings, Square, ChevronDown, Palette } from 'lucide-svelte';
+    import { MessageSquare, Cpu, Shield, Send, Plus, X, Loader2, Paperclip, ThumbsUp, ThumbsDown, Bot, User, BrainCircuit, Copy, RotateCcw, Settings, Square, ChevronDown, Palette } from 'lucide-svelte';
     import { globalState, loadGlobalSession, sendGlobalChatMessage, stopGeneration } from '$lib/state.svelte.js';
     import { settingsState } from '$lib/settings.svelte';
     import MicrophoneButton from './ui/actions/MicrophoneButton.svelte';
@@ -10,6 +10,7 @@ import { API_BASE_URL } from '$lib/env_config';
     import { onMount, untrack } from 'svelte';
 
     let message = $state('');
+    let showTools = $state(false);
 
     onMount(() => {
         // Inicializa a sessão uma única vez ao montar caso esteja vasio
@@ -280,37 +281,45 @@ import { API_BASE_URL } from '$lib/env_config';
 
             <div class="flex flex-wrap items-center justify-between gap-3 p-2 bg-slate-50 dark:bg-[#12192b]/40 border-t border-slate-200 dark:border-[#424859]/30">
                 <div class="flex items-center gap-1.5 px-1 truncate flex-1 min-w-[200px]">
-                    <button type="button" onclick={() => fileInput.click()} class="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-[#74b0ff] hover:bg-slate-200/50 dark:hover:bg-[#1d253b] rounded-lg transition-colors cursor-pointer" title="Anexar Arquivo Rápido de Texto/Código">
-                        <Paperclip class="w-4 h-4" />
+                    <button type="button" onclick={() => showTools = !showTools} class="p-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-[#74b0ff] bg-slate-200/50 hover:bg-slate-300/50 dark:bg-[#1d253b] dark:hover:bg-[#424859]/50 rounded-full transition-all cursor-pointer shadow-sm dark:shadow-none" title="Expandir Ferramentas Avançadas">
+                        {#if showTools}<X class="w-4 h-4" />{:else}<Plus class="w-4 h-4" />{/if}
                     </button>
+                    
+                    {#if showTools}
+                    <div class="flex items-center gap-1.5 animate-in fade-in slide-in-from-left-2 duration-300">
+                        <button type="button" onclick={() => fileInput.click()} class="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-[#74b0ff] hover:bg-slate-200/50 dark:hover:bg-[#1d253b] rounded-lg transition-colors cursor-pointer" title="Anexar Arquivo Rápido de Texto/Código">
+                            <Paperclip class="w-4 h-4" />
+                        </button>
 
-                    <button type="button" 
-                        onclick={() => globalState.chat.isDeepResearchEnabled = !globalState.chat.isDeepResearchEnabled}
-                        class={`p-2 rounded-lg transition-colors cursor-pointer ${globalState.chat.isDeepResearchEnabled ? 'text-indigo-600 dark:text-[#74b0ff] bg-indigo-100 dark:bg-indigo-500/20 shadow-inner dark:shadow-none border border-indigo-200 dark:border-indigo-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-indigo-500 dark:hover:text-[#74b0ff] hover:bg-slate-200/50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
-                        title="Ativar Web-Augmented Generation (Deep Research)">
-                        <Bot class="w-4 h-4" />
-                    </button>
+                        <button type="button" 
+                            onclick={() => globalState.chat.isDeepResearchEnabled = !globalState.chat.isDeepResearchEnabled}
+                            class={`p-2 rounded-lg transition-colors cursor-pointer ${globalState.chat.isDeepResearchEnabled ? 'text-indigo-600 dark:text-[#74b0ff] bg-indigo-100 dark:bg-indigo-500/20 shadow-inner dark:shadow-none border border-indigo-200 dark:border-indigo-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-indigo-500 dark:hover:text-[#74b0ff] hover:bg-slate-200/50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
+                            title="Ativar Web-Augmented Generation (Deep Research)">
+                            <Bot class="w-4 h-4" />
+                        </button>
 
-                    <button type="button" 
-                        onclick={() => globalState.chat.isCognitiveFirewallEnabled = !globalState.chat.isCognitiveFirewallEnabled}
-                        class={`p-2 rounded-lg transition-colors cursor-pointer ${globalState.chat.isCognitiveFirewallEnabled ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/20 shadow-inner dark:shadow-none border border-emerald-200 dark:border-emerald-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-slate-200/50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
-                        title={globalState.chat.isCognitiveFirewallEnabled ? 'Firewall Cognitivo: ON (Modo Estrito)' : 'Firewall Cognitivo: OFF (Modo Quarentena)'}>
-                        <Shield class="w-4 h-4" />
-                    </button>
+                        <button type="button" 
+                            onclick={() => globalState.chat.isCognitiveFirewallEnabled = !globalState.chat.isCognitiveFirewallEnabled}
+                            class={`p-2 rounded-lg transition-colors cursor-pointer ${globalState.chat.isCognitiveFirewallEnabled ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/20 shadow-inner dark:shadow-none border border-emerald-200 dark:border-emerald-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-slate-200/50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
+                            title={globalState.chat.isCognitiveFirewallEnabled ? 'Firewall Cognitivo: ON (Modo Estrito)' : 'Firewall Cognitivo: OFF (Modo Quarentena)'}>
+                            <Shield class="w-4 h-4" />
+                        </button>
 
-                    <button type="button" 
-                        onclick={() => globalState.chat.isVisualArtistEnabled = !globalState.chat.isVisualArtistEnabled}
-                        class={`p-2 rounded-lg transition-colors cursor-pointer ${globalState.chat.isVisualArtistEnabled ? 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-100 dark:bg-fuchsia-500/20 shadow-inner dark:shadow-none border border-fuchsia-200 dark:border-fuchsia-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:bg-slate-200/50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
-                        title={globalState.chat.isVisualArtistEnabled ? 'Modo Visual: ON (Bypass LLM para Imagens)' : 'Modo Visual: OFF'}>
-                        <Palette class="w-4 h-4" />
-                    </button>
+                        <button type="button" 
+                            onclick={() => globalState.chat.isVisualArtistEnabled = !globalState.chat.isVisualArtistEnabled}
+                            class={`p-2 rounded-lg transition-colors cursor-pointer ${globalState.chat.isVisualArtistEnabled ? 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-100 dark:bg-fuchsia-500/20 shadow-inner dark:shadow-none border border-fuchsia-200 dark:border-fuchsia-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:bg-slate-200/50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
+                            title={globalState.chat.isVisualArtistEnabled ? 'Modo Visual: ON (Bypass LLM para Imagens)' : 'Modo Visual: OFF'}>
+                            <Palette class="w-4 h-4" />
+                        </button>
 
-                    <button type="button" 
-                        onclick={() => settingsState.isOpen = true}
-                        class="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-[#74b0ff] hover:bg-slate-200/50 dark:hover:bg-[#1d253b] rounded-lg transition-colors cursor-pointer hidden sm:flex" 
-                        title="Parâmetros do Modelo">
-                        <Settings class="w-4 h-4" />
-                    </button>
+                        <button type="button" 
+                            onclick={() => settingsState.isOpen = true}
+                            class="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-[#74b0ff] hover:bg-slate-200/50 dark:hover:bg-[#1d253b] rounded-lg transition-colors cursor-pointer hidden sm:flex" 
+                            title="Parâmetros do Modelo">
+                            <Settings class="w-4 h-4" />
+                        </button>
+                    </div>
+                    {/if}
                 </div>
 
                 <div class="flex items-center gap-2 pr-1 shrink-0">
