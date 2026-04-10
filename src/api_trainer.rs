@@ -1059,25 +1059,10 @@ pub async fn run_deep_research_handler(
 
                                     let _ = TRAINER_LOGS.send(format!("[Firewall Cognitivo] Parcela de Busca Paralela resolvida para a sub-query '{}'", sq));
                                     
-                                    // SOBREVIVÊNCIA DE CONTEXTO OOM: Truncar a resposta injetada na malha do LLM.
-                                    // Se inserirmos milhares de linhas JSON do yfinance na memória do Mestre (ex: Qwen 4096 ctx),
-                                    // o System Prompt será varrido do limite mental, e ele será forçado a alucinar texto puro no próximo loop.
-                                    // Nós guardamos o 'final_result' completo no 'all_sources', mas damos uma versão compacta à mente do Mestre.
-                                    let plain_text_content = if let Ok(parsed_json) = serde_json::from_str::<serde_json::Value>(&final_result) {
-                                        if let Some(data_field) = parsed_json.get("data_compressed").and_then(|d| d.as_str()) {
-                                            data_field.to_string()
-                                        } else {
-                                            final_result.clone()
-                                        }
-                                    } else {
-                                        final_result.clone()
-                                    };
-                                    
-                                    let limited_result = if plain_text_content.len() > 8000 {
-                                        format!("{}\n...[DATA TRUNCATED FOR MEMORY DENSITY. Raw data securely stashed in memory. Proceed with your NEXT tool call to gather any remaining metrics.]", plain_text_content.chars().take(8000).collect::<String>())
-                                    } else {
-                                        plain_text_content
-                                    };
+                                    // SOBREVIVÊNCIA DE CONTEXTO OOM & PREVENÇÃO DE LOST IN THE MIDDLE (Blind Orchestration)
+                                    // Modelos puros orquestradores "esquecem" sua tarefa se o JSON for injetado cru no contexto.
+                                    // Nós guardamos o 'final_result' completo no 'all_sources' para The Scribe, mas isolamos o Mestre.
+                                    let limited_result = format!("[SUCCESS DE EXTRAÇÃO] Dados de '{}' capturados em JSON e enclausurados de modo cego na RAM sob o ticket Sovereign para o The Scribe reportar ao fim.\nNÃO TENTE ler os dados agora! Avance estritamente para a PRÓXIMA ferramenta da sua Exaustão Combinatória ou informe finalização se não houver mais requisições.", sq);
 
                                     // Devolve a resposta do Tool para a memória do Mestre
                                     messages.push(serde_json::json!({
