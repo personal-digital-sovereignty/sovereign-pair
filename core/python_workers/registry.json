@@ -105,9 +105,12 @@
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "symbol": {
-                        "type": "string",
-                        "description": "O símbolo financeiro. Exemplo: 'BRENT' (Petróleo Brent), 'WTI' (Petróleo Texas), 'DOLAR' (Dólar/BRL), 'PETROBRAS' (Ações)."
+                    "symbols": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Array OBRIGATÓRIO de símbolos financeiros. OBRIGATÓRIO enviar múltiplos ativos se a consulta cruzar dados. Exemplo: ['BRENT', 'WTI', 'DOLAR', 'PETROBRAS']."
                     },
                     "years": {
                         "type": "string",
@@ -115,7 +118,7 @@
                     }
                 },
                 "required": [
-                    "symbol",
+                    "symbols",
                     "years"
                 ]
             }
@@ -129,9 +132,12 @@
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "indicator": {
-                        "type": "string",
-                        "description": "O indicador (ex: 'IPCA', 'SELIC', 'IGPM', 'INPC', 'ANP_OCORRENCIA')."
+                    "indicators": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Array OBRIGATÓRIO contendo os indicadores. Envie múltiplos se o usuário pedir vários. (ex: ['IPCA', 'SELIC', 'IGPM', 'INPC', 'ANP_OCORRENCIA'])."
                     },
                     "country": {
                         "type": "string",
@@ -143,7 +149,7 @@
                     }
                 },
                 "required": [
-                    "indicator",
+                    "indicators",
                     "country",
                     "years"
                 ]
