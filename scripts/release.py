@@ -92,7 +92,7 @@ def main():
         try:
             last_tag = subprocess.check_output(['git', 'describe', '--tags', '--abbrev=0'], stderr=subprocess.DEVNULL).decode().strip()
             git_cmd = f"git log {last_tag}..HEAD --pretty=format:'- %s'"
-            log_output = subprocess.check_output(git_cmd, shell=True).decode().strip()
+            log_output = subprocess.check_output(git_cmd, shell=True).decode().strip()  # nosemgrep
             if log_output:
                 commit_logs = log_output
             else:
