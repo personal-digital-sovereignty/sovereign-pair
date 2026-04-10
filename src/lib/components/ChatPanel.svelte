@@ -262,53 +262,14 @@ import { API_BASE_URL } from '$lib/env_config';
         {/if}
         <form 
             onsubmit={(e) => { e.preventDefault(); handleSend(); }}
-            class="max-w-4xl mx-auto relative flex items-center bg-white dark:bg-[#0c1324] border border-slate-300 dark:border-[#424859]/50 rounded-xl overflow-hidden focus-within:border-blue-500 dark:focus-within:border-[#74b0ff] focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-[#74b0ff]/20 transition-all shadow-sm dark:shadow-none"
+            class="max-w-4xl mx-auto flex flex-col bg-white dark:bg-[#0c1324] border border-slate-300 dark:border-[#424859]/50 rounded-xl overflow-hidden focus-within:border-blue-500 dark:focus-within:border-[#74b0ff] focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-[#74b0ff]/20 transition-all shadow-sm dark:shadow-none"
         >
             <input type="file" bind:this={fileInput} onchange={handleFileUpload} class="hidden" />
             
-            <button type="button" onclick={() => fileInput.click()} class="absolute left-2 bottom-2 p-2.5 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-[#74b0ff] hover:bg-blue-50 dark:hover:bg-[#1d253b] rounded-lg transition-colors cursor-pointer" title="Anexar Arquivo Rápido de Texto/Código">
-                <Paperclip class="w-5 h-5" />
-            </button>
-
-            <button type="button" 
-                onclick={() => globalState.chat.isDeepResearchEnabled = !globalState.chat.isDeepResearchEnabled}
-                class={`absolute left-12 bottom-2 p-2.5 rounded-lg transition-colors cursor-pointer ${globalState.chat.isDeepResearchEnabled ? 'text-indigo-600 dark:text-[#74b0ff] bg-indigo-100 dark:bg-indigo-500/20 shadow-inner dark:shadow-none border border-indigo-200 dark:border-indigo-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-indigo-500 dark:hover:text-[#74b0ff] hover:bg-slate-50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
-                title="Ativar Web-Augmented Generation (Deep Research)">
-                <Bot class="w-5 h-5" />
-            </button>
-
-            <button type="button" 
-                onclick={() => globalState.chat.isCognitiveFirewallEnabled = !globalState.chat.isCognitiveFirewallEnabled}
-                class={`absolute left-[88px] bottom-2 p-2.5 rounded-lg transition-colors cursor-pointer ${globalState.chat.isCognitiveFirewallEnabled ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/20 shadow-inner dark:shadow-none border border-emerald-200 dark:border-emerald-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
-                title={globalState.chat.isCognitiveFirewallEnabled ? 'Firewall Cognitivo: ON (Modo Estrito)' : 'Firewall Cognitivo: OFF (Modo Quarentena)'}>
-                <Shield class="w-5 h-5" />
-            </button>
-
-            <button type="button" 
-                onclick={() => globalState.chat.isVisualArtistEnabled = !globalState.chat.isVisualArtistEnabled}
-                class={`absolute left-[128px] bottom-2 p-2.5 rounded-lg transition-colors cursor-pointer ${globalState.chat.isVisualArtistEnabled ? 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-100 dark:bg-fuchsia-500/20 shadow-inner dark:shadow-none border border-fuchsia-200 dark:border-fuchsia-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:bg-slate-50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
-                title={globalState.chat.isVisualArtistEnabled ? 'Modo Visual: ON (Bypass LLM para Imagens)' : 'Modo Visual: OFF'}>
-                <Palette class="w-5 h-5" />
-            </button>
-
-            <button type="button" 
-                onclick={() => settingsState.isOpen = true}
-                class="absolute left-[168px] bottom-2 p-2.5 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-[#74b0ff] hover:bg-blue-50 dark:hover:bg-[#1d253b] rounded-lg transition-colors cursor-pointer" 
-                title="Parâmetros do Modelo">
-                <Settings class="w-5 h-5" />
-            </button>
-
-            <div class="absolute left-[210px] bottom-2">
-                <MicrophoneButton 
-                    disabled={globalState.chat.isTyping} 
-                    on:transcription={(e) => message += (message ? ' ' : '') + e.detail} 
-                />
-            </div>
-
             <textarea 
                 bind:value={message}
                 placeholder="Ask the Global Cybrid Council..." 
-                class="flex-1 bg-transparent border-none text-slate-800 dark:text-slate-200 text-sm p-4 pl-[260px] h-14 resize-none outline-none custom-scrollbar placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                class="w-full h-20 min-h-[80px] max-h-60 bg-transparent border-none text-slate-800 dark:text-slate-200 text-sm p-4 resize-y outline-none custom-scrollbar placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 onkeydown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -317,16 +278,61 @@ import { API_BASE_URL } from '$lib/env_config';
                 }}
             ></textarea>
 
-            {#if globalState.chat.isTyping}
-                <button type="button" onclick={stopGeneration} class="absolute right-2 bottom-2 px-3 py-2.5 bg-rose-600 hover:bg-rose-700 dark:bg-rose-500/80 dark:hover:bg-rose-500 text-white rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 group shadow-sm dark:shadow-none" title="Interromper Raciocínio (Stop)">
-                    <Square class="w-4 h-4 fill-white text-rose-600 dark:text-transparent" />
-                    <span class="text-[10px] font-bold uppercase tracking-widest hidden sm:inline-block">Stop</span>
-                </button>
-            {:else}
-                <button type="submit" disabled={!message.trim()} class="absolute right-2 bottom-2 p-2.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500/80 dark:hover:bg-blue-500 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                    <Send class="w-5 h-5" />
-                </button>
-            {/if}
+            <div class="flex flex-wrap items-center justify-between gap-3 p-2 bg-slate-50 dark:bg-[#12192b]/40 border-t border-slate-200 dark:border-[#424859]/30">
+                <div class="flex items-center gap-1.5 px-1 truncate flex-1 min-w-[200px]">
+                    <button type="button" onclick={() => fileInput.click()} class="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-[#74b0ff] hover:bg-slate-200/50 dark:hover:bg-[#1d253b] rounded-lg transition-colors cursor-pointer" title="Anexar Arquivo Rápido de Texto/Código">
+                        <Paperclip class="w-4 h-4" />
+                    </button>
+
+                    <button type="button" 
+                        onclick={() => globalState.chat.isDeepResearchEnabled = !globalState.chat.isDeepResearchEnabled}
+                        class={`p-2 rounded-lg transition-colors cursor-pointer ${globalState.chat.isDeepResearchEnabled ? 'text-indigo-600 dark:text-[#74b0ff] bg-indigo-100 dark:bg-indigo-500/20 shadow-inner dark:shadow-none border border-indigo-200 dark:border-indigo-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-indigo-500 dark:hover:text-[#74b0ff] hover:bg-slate-200/50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
+                        title="Ativar Web-Augmented Generation (Deep Research)">
+                        <Bot class="w-4 h-4" />
+                    </button>
+
+                    <button type="button" 
+                        onclick={() => globalState.chat.isCognitiveFirewallEnabled = !globalState.chat.isCognitiveFirewallEnabled}
+                        class={`p-2 rounded-lg transition-colors cursor-pointer ${globalState.chat.isCognitiveFirewallEnabled ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/20 shadow-inner dark:shadow-none border border-emerald-200 dark:border-emerald-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-slate-200/50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
+                        title={globalState.chat.isCognitiveFirewallEnabled ? 'Firewall Cognitivo: ON (Modo Estrito)' : 'Firewall Cognitivo: OFF (Modo Quarentena)'}>
+                        <Shield class="w-4 h-4" />
+                    </button>
+
+                    <button type="button" 
+                        onclick={() => globalState.chat.isVisualArtistEnabled = !globalState.chat.isVisualArtistEnabled}
+                        class={`p-2 rounded-lg transition-colors cursor-pointer ${globalState.chat.isVisualArtistEnabled ? 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-100 dark:bg-fuchsia-500/20 shadow-inner dark:shadow-none border border-fuchsia-200 dark:border-fuchsia-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:bg-slate-200/50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
+                        title={globalState.chat.isVisualArtistEnabled ? 'Modo Visual: ON (Bypass LLM para Imagens)' : 'Modo Visual: OFF'}>
+                        <Palette class="w-4 h-4" />
+                    </button>
+
+                    <button type="button" 
+                        onclick={() => settingsState.isOpen = true}
+                        class="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-[#74b0ff] hover:bg-slate-200/50 dark:hover:bg-[#1d253b] rounded-lg transition-colors cursor-pointer hidden sm:flex" 
+                        title="Parâmetros do Modelo">
+                        <Settings class="w-4 h-4" />
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2 pr-1 shrink-0">
+                    <div class="pr-2 border-r border-slate-200 dark:border-[#424859]/30">
+                        <MicrophoneButton 
+                            disabled={globalState.chat.isTyping} 
+                            on:transcription={(e) => message += (message ? ' ' : '') + e.detail} 
+                        />
+                    </div>
+                    
+                    {#if globalState.chat.isTyping}
+                        <button type="button" onclick={stopGeneration} class="px-3 py-2 bg-rose-600 hover:bg-rose-700 dark:bg-rose-500/80 dark:hover:bg-rose-500 text-white rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm dark:shadow-none" title="Interromper Raciocínio (Stop)">
+                            <Square class="w-4 h-4 fill-white text-rose-600 dark:text-transparent" />
+                            <span class="text-[10px] font-bold uppercase tracking-widest hidden sm:inline-block">Stop</span>
+                        </button>
+                    {:else}
+                        <button type="submit" disabled={!message.trim()} class="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500/80 dark:hover:bg-blue-500 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center">
+                            <Send class="w-4 h-4" />
+                        </button>
+                    {/if}
+                </div>
+            </div>
         </form>
         <div class="text-[10px] text-center text-slate-400 dark:text-slate-500 mt-2 font-mono uppercase tracking-widest">
              End-to-End Local Execution • Context Limited to Graph Density
