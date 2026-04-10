@@ -5,8 +5,11 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
-## [1.1.0] - Unreleased
-*Data Compaction & Dynamic Decoupling*
+## [1.1.0] - 2026-04-10
+*Data Compaction, Dynamic Decoupling & Cibrid Architecture Finalization*
+
+### Fixed
+- **Blind Orchestration (Context Overflow Fix)**: Alterada radicalmente a arquitetura de injeção de Tool Calling na engine em Rust (`api_trainer.rs`). O modelo Mestre não recebe mais o JSON colossal devolvido pelas ferramentas, evitando instantaneamente o colapso cognitivo (*Lost in the Middle*) e os picos extenuantes de 50 minutos de VRAM Thrashing. O orquestrador recebe um *stub* cego confirmando a extração e o Scribe consome ativamente o volume total no Fim da Linha.
 
 ### Added
 - **Epic 11 (Sovereign MLA - Multi-Head Latent Attention Simulator)**: Mitigação absoluta de exaustação O(N²) de Context Window e KV Cache. Invocamos abstração de IA avançada na camada nativa: Mapeamento Cross-Attention direto na memória base. A partir do **3º turno** de conversas, todo o ruído logístico obsoleto da conversa é expulso do cache rígido da VRAM, vetorizado a frio e jogado no `Latent Pool`. A extração via inferência heurística FastEmbed (`bge-reranker`) injeta pontualmente as **4 lembranças subconscientes** de maior coesão contextual em relação a pergunta atual. Economia atômica garantindo inferência LLM rápida (>50 T/s) permanente e VRAM intocada independentemente da duração da sessão de *Pair Programming*.
