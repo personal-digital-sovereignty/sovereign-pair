@@ -38,6 +38,11 @@ pub async fn init_pool() -> SqlitePool {
     // CARREGAMENTO NATIVO DO SCHEMA MESTRE CIBRIDO (EPIC 4)
     let _ = sqlx::query(include_str!("schemas/001_sensus_init.sql")).execute(&pool).await;
 
+    // PATCH 1.2.0 (MULTI-TENANCY): Resgata históricos antigos sem ID e os prende ao Workspace Primário
+    let _ = sqlx::query("UPDATE sensus_chat_sessions SET workspace_id = (SELECT id FROM workspaces LIMIT 1) WHERE workspace_id IS NULL OR workspace_id = ''")
+        .execute(&pool)
+        .await;
+
     // Seed Initial Trusted Sources (Ignora caso o domínio já exista)
     let initial_tier_1_sources = vec![
         "istoedinheiro.com.br", "infomoney.com.br", "valorinveste.globo.com", "bloomberg.com", 
