@@ -140,24 +140,117 @@ pub async fn discover_cognitive_model_by_tier(tier: &str) -> String {
 
 use sqlx::Row;
 
+pub async fn sync_model_capabilities(pool: &sqlx::SqlitePool) {
+    let client = reqwest::Client::new();
+    let base_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string());
+    
+    if let Ok(res) = client.get(format!("{}/api/tags", base_url)).send().await
+        && let Ok(json) = res.json::<serde_json::Value>().await
+        && let Some(models) = json.get("models").and_then(|m| m.as_array()) {
+            for m in models {
+                if let Some(name) = m.get("name").and_then(|n| n.as_str()) {
+                    let mut size_val = 0.0;
+                    if let Some(size_str) = m.get("details").and_then(|d| d.get("parameter_size")).and_then(|s| s.as_str()) {
+                        let s_upper = size_str.to_uppercase();
+                        size_val = if s_upper.ends_with('B') {
+                            s_upper.trim_end_matches('B').parse().unwrap_or(0.0)
+                        } else if s_upper.ends_with('M') {
+                            s_upper.trim_end_matches('M').parse::<f32>().unwrap_or(0.0) / 1000.0
+                        } else {
+                            0.0
+                        };
+                    }
+
+                    let exists: Option<i64> = sqlx::query_scalar("SELECT 1 FROM model_capabilities WHERE model_name = ?")
+                        .bind(name)
+                        .fetch_optional(pool)
+                        .await
+                        .unwrap_or(None);
+                        
+                    if exists.is_none() {
+                        let mut supports_tools = false;
+                        let mut is_reasoner = false;
+                        let mut template_str = String::new();
+                        
+                        let payload = serde_json::json!({"name": name});
+                        if let Ok(show_res) = client.post(format!("{}/api/show", base_url)).json(&payload).send().await
+                            && let Ok(show_json) = show_res.json::<serde_json::Value>().await {
+                                if let Some(t) = show_json.get("template").and_then(|v| v.as_str()) {
+                                    template_str = t.to_string();
+                                    let t_lower = t.to_lowercase();
+                                    if t_lower.contains("tool") || t_lower.contains("function") {
+                                        supports_tools = true;
+                                    }
+                                    if t_lower.contains("think") {
+                                        is_reasoner = true;
+                                    }
+                                }
+                                if let Some(d) = show_json.get("details") {
+                                    if let Some(fam) = d.get("family").and_then(|f| f.as_str()) {
+                                        if fam.to_lowercase().contains("deepseek") { is_reasoner = true; }
+                                    }
+                                }
+                            }
+                            
+                        // Mapeamento heuristico caso templates não sigam o padrão exato
+                        let name_lower = name.to_lowercase();
+                        if !supports_tools && (name_lower.contains("qwen") || name_lower.contains("llama3.1") || name_lower.contains("llama3.2") || name_lower.contains("mistral") || name_lower.contains("command-r")) {
+                            supports_tools = true;
+                        }
+                        if !is_reasoner && (name_lower.contains("deepseek") || name_lower.contains("reasoner")) {
+                            is_reasoner = true;
+                        }
+
+                        let _ = sqlx::query("INSERT OR REPLACE INTO model_capabilities (model_name, parameter_size, supports_tools, is_reasoner, template) VALUES (?, ?, ?, ?, ?)")
+                            .bind(name)
+                            .bind(size_val)
+                            .bind(supports_tools)
+                            .bind(is_reasoner)
+                            .bind(template_str)
+                            .execute(pool)
+                            .await;
+                            
+                        tracing::info!("🧠 [Model Capabilities] Profiling {}: Size={}B, Tools={}, Reasoner={}", name, size_val, supports_tools, is_reasoner);
+                    }
+                }
+            }
+        }
+}
+
+pub async fn discover_capable_master_agent(pool: Option<&sqlx::SqlitePool>, min_size: f32, require_tools: bool, exclude_reasoner: bool, fallback: &str) -> String {
+    if let Some(p) = pool {
+        let mut query = "SELECT model_name FROM model_capabilities WHERE parameter_size >= ?".to_string();
+        if require_tools { query.push_str(" AND supports_tools = 1"); }
+        if exclude_reasoner { query.push_str(" AND is_reasoner = 0"); }
+        query.push_str(" ORDER BY parameter_size DESC LIMIT 1");
+        
+        if let Ok(Some(row)) = sqlx::query(&query).bind(min_size).fetch_optional(p).await {
+            if let Ok(name) = sqlx::Row::try_get::<String, _>(&row, "model_name") {
+                tracing::info!("✨ [Dynamic Discovery] Mestre Dinâmico Ativado: {}", name);
+                return name;
+            }
+        }
+    }
+    tracing::warn!("⚠️ [Dynamic Discovery] Banco de Capacidades falhou. Acionando Fallback: {}", fallback);
+    fallback.to_string()
+}
+
 pub async fn query_most_honest_model(db_pool: Option<&sqlx::SqlitePool>, fallback: &str) -> String {
     if let Some(pool) = db_pool {
-        // Ignoramos Deepseek ativamente baseado no feedback do comandante de que ele não serve como inquisitor factual
-        // Restringindo também modelos MENORES QUE 3B de atuarem como Honest Inquisitors (1b, 1.5b, 1.7b, 2b)
         let row = sqlx::query(
-            "SELECT model_name FROM model_hallucinations WHERE model_name NOT LIKE '%deepseek%' AND model_name NOT LIKE '%1b%' AND model_name NOT LIKE '%1.5b%' AND model_name NOT LIKE '%1.7b%' AND model_name NOT LIKE '%2b%' ORDER BY lies_detected ASC, queries_processed DESC LIMIT 1"
+            "SELECT h.model_name FROM model_hallucinations h LEFT JOIN model_capabilities c ON h.model_name = c.model_name WHERE (c.is_reasoner IS NULL OR c.is_reasoner = 0) AND (c.parameter_size IS NULL OR c.parameter_size >= 3.0) ORDER BY h.lies_detected ASC, h.queries_processed DESC LIMIT 1"
         )
         .fetch_optional(pool)
         .await;
 
         if let Ok(Some(db_row)) = row
             && let Ok(name) = db_row.try_get::<String, _>("model_name") {
-                tracing::info!("⚖️ [Inquisidor Solitário] Modelo eleito pelo SQLite (Menos Alucinações): {}", name);
+                tracing::info!("⚖️ [Inquisidor Solitário] Modelo dinâmico eleito (Menos Alucinações & Sem Reasoner): {}", name);
                 return name;
             }
     }
     
-    tracing::warn!("⚠️ [Inquisidor Solitário] Sem dados históricos suficientes na Tabela de Alucinações. Usando fallback de confiança: {}", fallback);
+    tracing::warn!("⚠️ [Inquisidor Solitário] Base de Alucinações vazia/imcompatível. Usando fallback: {}", fallback);
     fallback.to_string()
 }
 
