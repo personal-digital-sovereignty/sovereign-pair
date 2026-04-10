@@ -8,6 +8,10 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 ## [1.2.0] - UNRELEASED
 *Sovereign Swap (Memory GC), Capability Routing & Orchestration Parity*
 
+### Fixed
+- **Multi-Tenancy Context Bleed**: Resolvida falha massiva de isolamento (Tech Debt) onde o histórico do Sovereign Chat cruzava globalmente por entre os documentos e Projetos do Sensus Vault (`activeWorkspaceId`). Adicionado suporte nativo a `workspace_id` nas rotinas migratórias do SQLite (`001_sensus_init.sql` + boot em `main.rs`). O Frontend UI sofreu upgrade arquitetural via `$effect` reativo em Svelte 5 para blindar, recarregar e isolar os chats instantaneamente em seus nós/espaços devidos.
+- **Chat UI Input Ergonomics**: Erradicada a fadiga visual e o "esmagamento do input text" em resoluções de tela pequenas no Controle de Cíbrido. Transformamos o posicionamento estático flexível (`absolute width / padding-left`) da Input Box de Prompts do `ChatPanel` em um ecossistema `flex-wrap` ergonômico, com quebra de ícones e redimensionamento nativo.
+
 ### Added
 - **Dynamic API Schema Registry**: Engine base64 compiler automatically injects dynamic schema definitions (`engine_schema_matrix`) directly to the LLM context.
 - **Academic Network Integration**: `academic_matrix.py` (via `fetch_academic_papers`) to query arXiv, PubMed, and NASA TRS directly into the engine memory buffer.
