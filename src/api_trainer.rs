@@ -568,6 +568,12 @@ async fn execute_sub_analyst(
         sources_used.push_str(&format!("{}\n", line));
     }
     
+    // --- Sovereign Swap: VRAM GC Cleanup Phase ---
+    crate::memory_manager::fire_eviction_protocol(&gate_model).await;
+    if routed_sub_agent != gate_model {
+        crate::memory_manager::fire_eviction_protocol(&routed_sub_agent).await;
+    }
+
     format!("{}\n\n[Fontes processadas por este sub-analista]:\n{}", distilled_text, sources_used)
 }
 
@@ -614,11 +620,33 @@ pub async fn run_deep_research_handler(
         let tools_schema: serde_json::Value = serde_json::from_str(include_str!("../python_workers/registry.json")).unwrap_or_else(|_| serde_json::json!([]));
 
         let mut target_model_name = req.model.clone().unwrap_or_else(|| "qwen2.5:7b".to_string());
-        if target_model_name.contains("0.5b") || target_model_name.contains("1.5b") || target_model_name.contains("0.") || target_model_name.contains("1b") || target_model_name.contains("2b") {
-            let _ = TRAINER_LOGS.send(format!("⚠️ [Proteção Cognitiva] Modelo selecionado ({}) é instável para Tool Calling estrutural. Escalonando Master Agent para 'qwen3:4b'!", target_model_name));
-            target_model_name = "qwen3:4b".to_string();
+        
+        let mut must_escalate = false;
+        if let Some(pool) = engine_arc.db_pool.as_ref() {
+            if let Ok(Some(row)) = sqlx::query("SELECT parameter_size, supports_tools FROM model_capabilities WHERE model_name = ?")
+                .bind(&target_model_name)
+                .fetch_optional(pool)
+                .await {
+                    let p_size: f64 = sqlx::Row::try_get(&row, "parameter_size").unwrap_or(0.0);
+                    let s_tools: bool = sqlx::Row::try_get(&row, "supports_tools").unwrap_or(false);
+                    if p_size < 3.0 || !s_tools { must_escalate = true; }
+            } else {
+                must_escalate = true; 
+            }
         }
-        let is_low_end = target_model_name.contains("3.2") || target_model_name.contains("qwen2.5:1.5b") || target_model_name.contains("3b") || target_model_name.contains("4b");
+
+        if must_escalate {
+            let dyn_mestre = crate::api::discover_capable_master_agent(engine_arc.db_pool.as_ref(), 3.0, true, true, "llama3.1:8b").await;
+            let _ = TRAINER_LOGS.send(format!("⚠️ [Proteção Cognitiva Ativa] O modelo [{}] mapeado não possui Tool Calling estrutural via DB. Escalonando Master Agent Dinâmico: [{}]", target_model_name, dyn_mestre));
+            target_model_name = dyn_mestre;
+        }
+        
+        let mut is_low_end = true;
+        if let Some(pool) = engine_arc.db_pool.as_ref() {
+            if let Ok(Some(sz)) = sqlx::query_scalar::<_, f64>("SELECT parameter_size FROM model_capabilities WHERE model_name = ?").bind(&target_model_name).fetch_optional(pool).await {
+                is_low_end = sz < 5.0;
+            }
+        }
         
         let anchor_directive = format!("[DIRETRIZ MATEMÁTICA ABSOLUTA] O ano real atual é {}. Se for exigido 'N' anos atrás, obrigatoriamente calcule a data subtraindo 'N' de {}. É terminantemente PROIBIDO usar seu ano de treinamento base como âncora temporal.", current_year, current_year);
 
@@ -1208,14 +1236,10 @@ pub async fn run_deep_research_handler(
                         if err.contains("does not support tools") {
                             if !has_failed_tools {
                                 has_failed_tools = true;
-                                let _ = TRAINER_LOGS.send(format!("⚠️ [Agentic Firewall] O modelo '{}' recusa Tools. Procurando rescate de mesmo peso...", target_model_name));
-                                let mut fallbacks = vec!["qwen", "llama", "mistral", "mixtral", "command-r", "phi3"];
-                                if target_model_name.contains("0.5b") || target_model_name.contains("1.5b") { fallbacks = vec!["qwen2.5:1.5b", "qwen2.5:0.5b"]; }
-                                else if target_model_name.contains("3b") || target_model_name.contains("4b") { fallbacks = vec!["qwen3:4b", "qwen2.5:3b", "llama3.2"]; }
-                                else if target_model_name.contains("8b") || target_model_name.contains("7b") { fallbacks = vec!["llama3.1:8b", "llama3:8b", "qwen2.5:7b", "mistral", "gemma2:9b"]; }
+                                let _ = TRAINER_LOGS.send(format!("⚠️ [Agentic Firewall] O modelo '{}' recusa Tools. Procurando rescate paramétrico...", target_model_name));
                                 
-                                target_model_name = crate::api::discover_best_model(fallbacks, "qwen2.5:7b").await;
-                                let _ = TRAINER_LOGS.send(format!("🚀 [Auto-Healing] Fallback ativado. Reiniciando orquestração com mente capaz: '{}'.", target_model_name));
+                                target_model_name = crate::api::discover_capable_master_agent(engine_arc.db_pool.as_ref(), 4.0, true, true, "llama3.1:8b").await;
+                                let _ = TRAINER_LOGS.send(format!("🚀 [Auto-Healing Dinâmico] Fallback ativado através do Banco de Capacidades: '{}'.", target_model_name));
                                 continue;
                             }
                             
@@ -1287,11 +1311,18 @@ Evite saudações de chat e desculpas robóticas. Comporte-se como um Consultor 
             // A Scribe Phase EXIGE formatadores experientes porque o SLM local era muito fraco.
             // Escalonando verticalmente para matemática pura sem hardcode.
             let mut scribe_model = crate::api::discover_cognitive_model_by_tier("senior").await;
-            if scribe_model.contains("deepseek") || scribe_model.contains("reasoner") {
-                scribe_model = target_model_name.clone();
-                let _ = TRAINER_LOGS.send(format!("[Scribe Orchestrator] Bloqueio tático contra Reasoner detectado (Evitando poluição de código/think). Revertendo formatação C-Level para a Mente Mestra testada: '{}'", scribe_model));
-            } else if scribe_model != target_model_name {
-                let _ = TRAINER_LOGS.send(format!("[Scribe Orchestrator] Auto-elevação de Córtex: Escalonando para '{}' visando formatar a resposta.", scribe_model));
+            
+            if let Some(pool) = engine_arc.db_pool.as_ref() {
+                if let Ok(Some(is_rsnr)) = sqlx::query_scalar::<_, bool>("SELECT is_reasoner FROM model_capabilities WHERE model_name = ?").bind(&scribe_model).fetch_optional(pool).await {
+                    if is_rsnr {
+                        scribe_model = crate::api::discover_capable_master_agent(Some(pool), 5.0, false, true, &target_model_name).await;
+                        let _ = TRAINER_LOGS.send(format!("[Scribe Orchestrator] Bloqueio contra Reasoner ativado no Pipeline Final. The Scribe foi Roteado Dinamicamente para: '{}'", scribe_model));
+                    }
+                }
+            }
+            
+            if scribe_model != target_model_name {
+                let _ = TRAINER_LOGS.send(format!("[Scribe Orchestrator] Auto-elevação Ativa: Escalonando para '{}' visando formatar a resposta.", scribe_model));
             }
 
             let scribe_payload = serde_json::json!({
@@ -1316,6 +1347,8 @@ Evite saudações de chat e desculpas robóticas. Comporte-se como um Consultor 
                         formatted = content.to_string();
                         let _ = TRAINER_LOGS.send("[The Scribe] Formatação Markdown concluída!".to_string());
                     }
+                    
+            crate::memory_manager::fire_eviction_protocol(&scribe_model).await;
             formatted
         };
 
@@ -1365,6 +1398,9 @@ Evite saudações de chat e desculpas robóticas. Comporte-se como um Consultor 
         }
         
         let _ = TRAINER_LOGS.send("[STEP 4] Deep Research Protocol Complete (Staged for Human Review).".to_string());
+        
+        // Final Sweep: Evict Master Orchestrator from Server GPU
+        crate::memory_manager::fire_eviction_protocol(&target_model_name).await;
         
         // Clean up Token
         let mut mg = DEEP_RESEARCH_CANCEL_TOKEN.write().unwrap();

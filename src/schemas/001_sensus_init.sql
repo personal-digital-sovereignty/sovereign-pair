@@ -129,6 +129,15 @@ CREATE TABLE IF NOT EXISTS remote_models (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS model_capabilities (
+    model_name TEXT PRIMARY KEY,
+    parameter_size REAL NOT NULL,
+    supports_tools BOOLEAN DEFAULT 0,
+    is_reasoner BOOLEAN DEFAULT 0,
+    template TEXT,
+    last_checked TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS model_hallucinations (
     id TEXT PRIMARY KEY,
     model_name TEXT NOT NULL,
