@@ -142,13 +142,11 @@ pub fn is_safe_url(url_str: &str) -> bool {
     // 172.16.x.x - 172.31.x.x range
     if host.starts_with("172.") {
         let parts: Vec<&str> = host.split('.').collect();
-        if parts.len() == 4 {
-            if let Ok(second_octet) = parts[1].parse::<u8>() {
-                if second_octet >= 16 && second_octet <= 31 {
+        if parts.len() == 4
+            && let Ok(second_octet) = parts[1].parse::<u8>()
+                && (16..=31).contains(&second_octet) {
                     return false;
                 }
-            }
-        }
     }
     
     true

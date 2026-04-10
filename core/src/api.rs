@@ -654,8 +654,8 @@ if payload.deep_research.unwrap_or(false) {
                         let q_str = user_question.clone();
                         let limited_chunks: Vec<&str> = chunks.into_iter().take(35).collect(); // Limitador de tempo de CPU (~5s)
                         
-                        if let Ok(mut rlock) = crate::api_trainer::RERANKER.lock() {
-                            if let Ok(mut results) = rlock.rerank(q_str.as_str(), limited_chunks, true, None) {
+                        if let Ok(mut rlock) = crate::api_trainer::RERANKER.lock()
+                            && let Ok(mut results) = rlock.rerank(q_str.as_str(), limited_chunks, true, None) {
                                 results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
                                 let top_k: Vec<_> = results.into_iter().take(5).collect(); // Pegar apenas o Suco de 5 blocos densos
                                 
@@ -665,7 +665,6 @@ if payload.deep_research.unwrap_or(false) {
                                     }
                                 }
                             }
-                        }
                         
                         if reranked_text.trim().is_empty() {
                             markdown.truncate(4000);
@@ -836,11 +835,11 @@ if let Some(pid) = payload.project_id
             }
     }
 
-if project_context.is_empty() {
-    if let Ok(active_projs) = sqlx::query("SELECT name, purpose FROM projects WHERE is_archived = 0 OR is_archived IS NULL")
+if project_context.is_empty()
+    && let Ok(active_projs) = sqlx::query("SELECT name, purpose FROM projects WHERE is_archived = 0 OR is_archived IS NULL")
         .fetch_all(&state.db)
-        .await {
-            if !active_projs.is_empty() {
+        .await
+            && !active_projs.is_empty() {
                 project_context.push_str("INSTRUÇÃO SISTÊMICA (CONSCIÊNCIA DE PROJETOS): O usuário possui os seguintes Projetos ativos no Kanban local neste exato momento:\n");
                 for p in active_projs {
                     let n: String = sqlx::Row::get(&p, "name");
@@ -849,8 +848,6 @@ if project_context.is_empty() {
                 }
                 project_context.push_str("Use esta consciência periférica se o usuário pedir ajuda para gerenciar o seu dia, idéias ou se for relevante durante a conversa.\n");
             }
-        }
-}
 
 if !project_context.is_empty() {
     purified_messages.push(json!({
@@ -940,10 +937,9 @@ if turn_count > 3 {
 // EPIC 11: AGENTIC MLA (Latent Context Compression)
 // Objetivo: Preservar 1 Turno (3 Msgs) + 4 Latent Memories (Reranked)
 // ==========================================
-let active_messages;
 let mut mla_compressed_context = String::new();
 
-if turn_count > 3 {
+let active_messages = if turn_count > 3 {
     let split_idx = turn_count - 3;
     let (historical, recent) = payload.messages.split_at(split_idx);
     
@@ -966,8 +962,8 @@ if turn_count > 3 {
     // 2. Cross-Attention Recovery (MLA Simulation v1.0)
     if let Ok(mut rlock) = crate::api_trainer::RERANKER.lock() {
         let refs: Vec<&str> = history_chunks.iter().map(|s| s.as_str()).collect();
-        if !refs.is_empty() {
-            if let Ok(mut results) = rlock.rerank(human_prompt.as_str(), refs, true, None) {
+        if !refs.is_empty()
+            && let Ok(mut results) = rlock.rerank(human_prompt.as_str(), refs, true, None) {
                 results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
                 
                 // Profundidade Latente: 4 Blocos solicitados pelo usuário
@@ -977,12 +973,11 @@ if turn_count > 3 {
                     }
                 }
             }
-        }
     }
-    active_messages = recent.to_vec();
+    recent.to_vec()
 } else {
-    active_messages = payload.messages.clone();
-}
+    payload.messages.clone()
+};
 
 // 3. Injeção Sistêmica das Lembranças Latentes
 if !mla_compressed_context.is_empty() {
@@ -1273,11 +1268,10 @@ let mut map_stream = res.bytes_stream().map(move |result| {
                                     // Live TPS Broadcast: Atualiza a métrica em tempo real se a engine de telemetria estiver operando
                                     if session_tokens % 5 == 0 {
                                         let live_duration_sec = start_time.elapsed().as_secs_f64();
-                                        if live_duration_sec > 0.0 {
-                                            if let Ok(mut t) = tracking_telemetry.write() {
+                                        if live_duration_sec > 0.0
+                                            && let Ok(mut t) = tracking_telemetry.write() {
                                                 t.live_tps = (session_tokens as f64 / live_duration_sec * 100.0).round() / 100.0;
                                             }
-                                        }
                                     }
 
                                     // Sovereign DeepSeek Paradigm: Translating <think> on-the-fly to beautiful UI details
