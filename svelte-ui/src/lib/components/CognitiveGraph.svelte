@@ -18,11 +18,16 @@
     let tooltip = $state({ show: false, x: 0, y: 0, title: '', type: '' });
     let rotationAngle = 0;
     let autoRotateActive = true;
+    let mouse = { x: 0, y: 0 }; // Normalizado -1 a 1
 
     function handleMouseMove(e: MouseEvent) {
         if (tooltip.show) {
             tooltip.x = e.clientX + 15;
             tooltip.y = e.clientY + 15;
+        }
+        if (container) {
+            mouse.x = (e.clientX / container.clientWidth) * 2 - 1;
+            mouse.y = -(e.clientY / container.clientHeight) * 2 + 1;
         }
     }
 
@@ -121,10 +126,17 @@
         );
         Graph.postProcessingComposer().addPass(bloomPass);
 
-        // Grade Espacial Cyberpunk (Chão do Grid)
-        const gridHelper = new THREE.GridHelper(2000, 100, 0x00ffff, 0x002233);
-        gridHelper.position.y = -150; // Joga bem pra baixo da área de colisão da rede
-        Graph.scene().add(gridHelper);
+        // Grade Espacial Cibernética (Gravitacional)
+        // Substituímos o GridHelper estático por um PlaneGeometry denso pra podermos distorcer os vértices
+        const gridGeo = new THREE.PlaneGeometry(3000, 3000, 60, 60);
+        gridGeo.rotateX(-Math.PI / 2);
+        const gridMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.2 });
+        const gridMesh = new THREE.Mesh(gridGeo, gridMat);
+        gridMesh.position.y = -150;
+        Graph.scene().add(gridMesh);
+
+        // Raycaster para pegar a colisão do mouse na rede
+        const raycaster = new THREE.Raycaster();
 
         // Configuração Física Base
         Graph.d3Force('charge').strength(-200 - (Number(graphDepth) * 50));
@@ -136,16 +148,54 @@
             links: JSON.parse(JSON.stringify(links)) 
         });
 
-        // Engine de Rotação Orbital (Preservando O Zoom do Usuário)
+        const positionAttribute = gridGeo.getAttribute('position');
+        const vertex = new THREE.Vector3();
+
+        // Engine de Rotação Orbital e Físicas de Malha (Preservando O Zoom do Usuário)
         const renderLoop = setInterval(() => {
-            if (Graph && autoRotateActive) {
+            if (!Graph) return;
+
+            // --- 1. Distorção Gravitacional da Malha (Cyber-Grid) ---
+            raycaster.setFromCamera(mouse, Graph.camera());
+            const intersects = raycaster.intersectObject(gridMesh);
+            let targetX = 0, targetZ = 0;
+            
+            // Foco de gravidade (Mouse)
+            if (intersects.length > 0) {
+                targetX = intersects[0].point.x;
+                targetZ = intersects[0].point.z;
+            }
+
+            // Ondulação senoidal de fundo + Poço Gravitacional no ponto do mouse
+            const time = Date.now() / 400;
+            for (let i = 0; i < positionAttribute.count; i++) {
+                vertex.fromBufferAttribute(positionAttribute, i);
+                
+                // Distância do vértice ao alvo do mouse
+                const distToMouse = Math.hypot(vertex.x - targetX, vertex.z - targetZ);
+                
+                // Distorção Profunda tipo "Buraco Negro" 
+                let depth = 0;
+                if (intersects.length > 0) {
+                    depth = -120 * Math.exp(-(distToMouse * distToMouse) / 30000); 
+                }
+
+                // Ondas cibernéticas viajando pelo mar de neon
+                const ripple = Math.sin(vertex.x / 40 + time) * 8 + Math.cos(vertex.z / 40 + time) * 8;
+                
+                // Aplica a altura do vértice
+                positionAttribute.setY(i, depth + ripple);
+            }
+            positionAttribute.needsUpdate = true;
+
+            // --- 2. Rotação Orbital ---
+            if (autoRotateActive) {
                 const camPos = Graph.cameraPosition();
                 // Mede a distância atual (permitindo scroll de zoom livre)
                 let radius = Math.hypot(camPos.x, camPos.z);
-                // Se o radius for zero na inicialização, definimos um padrão mais próximo (200 ao invés de 400)
+                // Se o radius for zero na inicialização, definimos um padrão mais próximo
                 if (!radius || radius < 50) radius = 200; 
 
-                // Calcula o ângulo corrente p/ não dar snap
                 let currentAngle = Math.atan2(camPos.x, camPos.z);
                 currentAngle += Math.PI / 4000;
 
@@ -208,6 +258,32 @@
             });
         }
     });
+
+    // Telemetria do Vault: HUD Top Legend Svelte
+    let topCategories = $derived.by(() => {
+        const counts: Record<string, {count: number, color: string}> = {};
+        nodes.forEach((n: any) => {
+            let cat = 'Desconhecido';
+            if (n.name) {
+                const parts = n.name.split('.');
+                if (parts.length > 1) {
+                    cat = '.' + parts.pop()!.toUpperCase();
+                } else if (n.type === 'folder') {
+                    cat = 'DIRETÓRIO';
+                } else {
+                    cat = 'DOCUMENTO';
+                }
+            } else {
+               cat = n.type ? String(n.type).toUpperCase() : 'NÓ';
+            }
+            if (!counts[cat]) counts[cat] = { count: 0, color: getNodeColor(n.name || n.id || cat) };
+            counts[cat].count++;
+        });
+        return Object.entries(counts)
+            .sort((a,b) => b[1].count - a[1].count)
+            .slice(0, 10)
+            .map(x => ({ name: x[0], ...x[1]}));
+    });
 </script>
 
 <!-- Container em tela cheia que captura eventos do Mouse p/ tooltips customizadas Svelte -->
@@ -217,6 +293,27 @@
     onmousemove={handleMouseMove}
     class="w-full h-full absolute inset-0 cursor-crosshair overflow-hidden rounded-2xl">
 </div>
+
+<!-- Glassmorphism Stats HUD (Categorias do Vault) -->
+{#if topCategories.length > 0}
+<div class="pointer-events-none absolute left-6 top-6 w-60 bg-[#050510]/50 backdrop-blur-xl rounded-xl border border-slate-700/50 p-5 shadow-[0_0_30px_rgba(0,255,255,0.05)] z-10 transition-all text-white">
+    <div class="flex items-center gap-2 mb-4 border-b border-slate-700/50 pb-3">
+        <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]"></div>
+        <h3 class="text-[11px] font-mono tracking-widest text-slate-300 font-bold uppercase shadow-sm">Vault Taxonomy</h3>
+    </div>
+    <ul class="flex flex-col gap-2.5">
+        {#each topCategories as cat}
+            <li class="flex items-center justify-between text-xs font-mono">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-1.5 h-1.5 rounded-full shadow-[0_0_8px_currentColor]" style="background-color: {cat.color}; color: {cat.color};"></span>
+                    <span class="text-slate-300 opacity-90">{cat.name}</span>
+                </div>
+                <span class="text-slate-400 font-bold tracking-wider">{cat.count}</span>
+            </li>
+        {/each}
+    </ul>
+</div>
+{/if}
 
 {#if tooltip.show}
     <!-- Tooltip Holográfica do Svelte injetada sobre o WebGL -->
