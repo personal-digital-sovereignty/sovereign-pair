@@ -6,13 +6,14 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
 ## [1.2.0] - UNRELEASED
-*Sovereign Swap (Memory GC) & Dynamic Capability Routing*
+*Sovereign Swap (Memory GC), Capability Routing & Orchestration Parity*
 
 ### Added
 - **Sovereign Swap (Hard-Eviction Memory Management)**: Adicionado o módulo nativo `memory_manager.rs`. Aciona a obliteração dos tensores estritamente após a orquestração via chamadas HTTP (`keep_alive: 0`) sob timeout agressivo assíncrono (300ms) direto na API do Ollama. Isso previne o Memory Thrashing através do O.S, mantendo a VRAM virgem imediatamente após Scribe e Nanny loops finalizarem.
 - **Dynamic Capability Router (Zero-Hardcode)**: Modificada estruturalmente a topologia de Descoberta Agêntica Cíbrida (`api.rs`). Orquestração purista via Sqlite com a tabela `model_capabilities` sendo povoada dinamicamente via parser nativo do `/api/tags` e templates durante o Boot (`main.rs`), atestando param_size, tool_calling e raciocínio lógico sem chutar nomes cruéis.
 
 ### Changed
+- **Orchestration Parity (Data Parallelism)**: Arquitetura RAG otimizada para combater o Gargalo de Exaustão. As ferramentas base do motor Cíbrido (`fetch_financial_ticker` e `fetch_macroeconomy`) tiveram seus Schemas JSON convertidos para obrigar o LLM a injetar *Arrays* (vetores de ativos). O parsing de Rust agora itera sob a matriz, alocando chamadas Python Web-Scraping concorrentes via `tokio::spawn`, aniquilando processamentos lentos e multi-turnos de conversação.
 - **Sub-Agent Strict Delegation**: A eleição da `Mente Mestra` e do `The Scribe` no Loop Nanny Principal não utiliza mais barreiras engessadas via Strings lexicais (`if model_name.contains("deepseek")`). Inserimos `LEFT JOIN` e Lookups rigorosos que escaneiam o hardware buscando `parameter_size > 3B` E o booleano `supports_tools = 1` garantindo Fallbacks elegantes para modelos paramétricos nativos mais pesados, blindados contra falhas 400 da OLLAMA.
 
 ## [1.1.0] - 2026-04-10
