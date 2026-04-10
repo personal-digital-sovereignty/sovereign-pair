@@ -12,7 +12,8 @@ import { API_BASE_URL } from '$lib/env_config';
         isLoading = true;
         try {
             const token = localStorage.getItem('sovereign_token') || '';
-            const res = await fetch(`${API_BASE_URL}/v1/sessions`, {
+            const ws_id = globalState.activeWorkspaceId || 'default';
+            const res = await fetch(`${API_BASE_URL}/v1/sessions?workspace_id=${ws_id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -31,8 +32,18 @@ import { API_BASE_URL } from '$lib/env_config';
         }
     }
 
+    let isMounted = false;
     onMount(() => {
+        isMounted = true;
         fetchSessions();
+    });
+
+    $effect(() => {
+        const _trigger = globalState.activeWorkspaceId;
+        if (isMounted) {
+            createNewSession();
+            fetchSessions();
+        }
     });
 
     function createNewSession() {
