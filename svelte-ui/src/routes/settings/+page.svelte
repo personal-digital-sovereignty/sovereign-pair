@@ -11,16 +11,13 @@ import { API_BASE_URL } from '$lib/env_config';
         expandedCard = expandedCard === cardId ? null : cardId;
     }
 
-    // Mock profiles based on Mesh Router engine
-    let activeNodes = [
-        { id: '1', hostname: 'oracle-a1-max', role: 'The Doctor', hardware: '24GB RAM, ARM64', location: 'Cloud' },
-        { id: '2', hostname: 'ryzen-local-alpha', role: 'The Coder (Sandbox)', hardware: '32GB RAM, Ryzen 9', location: 'Local Network' }
-    ];
+    // Estado Dinâmico - Sem Hardcodes (Mocks) Iniciais
+    let activeNodes = $state<{id: string, name?: string, url?: string, role?: string, hardware?: string, location?: string}[]>([]);
 
     let aiSettings = $state({
-        nurse_model: "qwen2.5:3b",
-        doctor_model: "qwen2.5:3b",
-        coder_model: "qwen2.5:3b",
+        nurse_model: "",
+        doctor_model: "",
+        coder_model: "",
         temperature: 0.7,
         top_k: 40,
         system_prompt: "",
@@ -82,6 +79,24 @@ import { API_BASE_URL } from '$lib/env_config';
             isLoadingModels = false;
         }
 
+        // Fetch Mesh Nodes (Ollama Clusters Real Data)
+        try {
+            const meshRes = await fetch(`${API_BASE_URL}/v1/settings/ollama_clusters`);
+            if (meshRes.ok) {
+                const data = await meshRes.json();
+                if (data.clusters && data.clusters.length > 0) {
+                    activeNodes = data.clusters.map((c: any) => ({
+                        id: c.id,
+                        name: c.name || c.url,
+                        url: c.url,
+                        role: 'Cognitive Node',
+                        hardware: 'Mesh Linked',
+                        location: c.url?.includes('localhost') || c.url?.includes('127.0.0.1') ? 'Local Network' : 'Cloud Node'
+                    }));
+                }
+            }
+        } catch(e) { console.error("Failed to load Mesh Nodes:", e); }
+
         // Fetch Cold Storage Database
         try {
             const csRes = await fetch(`${API_BASE_URL}/v1/settings/cold_storage`);
@@ -91,6 +106,8 @@ import { API_BASE_URL } from '$lib/env_config';
                 if (data.offlineCorpora && data.offlineCorpora.length > 0) offlineCorpora = data.offlineCorpora;
             }
         } catch(e) { console.error("Cold Storage DB unreachable:", e); }
+
+        await loadTenantKeys();
 
     });
 
@@ -137,6 +154,47 @@ import { API_BASE_URL } from '$lib/env_config';
             console.error(e);
             alert('Falha ao sincronizar Cold Storage.');
         }
+    }
+
+    let tenantApiKeys = $state<{id: string, provider_name: string, created_at: string}[]>([]);
+    let newProviderName = $state('');
+    let newApiKeyValue = $state('');
+    let isLoadingKeys = $state(false);
+
+    async function loadTenantKeys() {
+        isLoadingKeys = true;
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/settings/tenant_keys`);
+            if (res.ok) tenantApiKeys = await res.json();
+        } catch(e) { console.error("Failed to load SecOps Vault", e); }
+        finally { isLoadingKeys = false; }
+    }
+
+    async function addTenantKey() {
+        if (!newProviderName || !newApiKeyValue) { alert("Providers e Chaves não podem estar vazios"); return; }
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/settings/tenant_keys`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ provider_name: newProviderName, api_key_value: newApiKeyValue })
+            });
+            if (res.ok) {
+                newProviderName = '';
+                newApiKeyValue = '';
+                alert("API Key selada com Criptografia Simétrica no SecOps Vault.");
+                loadTenantKeys();
+            } else {
+                alert("Erro ao salvar Key.");
+            }
+        } catch(e) { console.error("Failed to save Key", e); }
+    }
+
+    async function deleteTenantKey(id: string) {
+        if(!confirm("Obliteração Irreversível. Destruir API Key permanentemente?")) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/settings/tenant_keys/${id}`, { method: 'DELETE' });
+            if (res.ok) loadTenantKeys();
+        } catch(e) {}
     }
 
     let fileInput: HTMLInputElement | undefined = $state(undefined);
@@ -262,19 +320,23 @@ import { API_BASE_URL } from '$lib/env_config';
                     {#each activeNodes as node}
                     <div class="bg-surface-800 p-4 rounded-xl border border-surface-700 hover:border-surface-600 transition-colors">
                         <div class="flex items-start justify-between mb-3">
-                            <span class="font-semibold text-surface-200">{node.hostname}</span>
+                            <span class="font-semibold text-surface-200">{node.name}</span>
                             <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-surface-700 text-surface-300">{node.location}</span>
                         </div>
                         <div class="flex flex-col gap-2 text-sm text-surface-400">
                             <div class="flex items-center gap-2">
-                                <Shield class="w-4 h-4 text-emerald-500" />
-                                <span>{node.role}</span>
+                                <GlobeLock class="w-4 h-4 text-emerald-500" />
+                                <span class="font-mono text-xs">{node.url}</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <Cpu class="w-4 h-4 text-emerald-500" />
-                                <span>{node.hardware}</span>
+                                <Server class="w-4 h-4 text-emerald-500" />
+                                <span>{node.role}</span>
                             </div>
                         </div>
+                    </div>
+                    {:else}
+                    <div class="col-span-1 md:col-span-2 text-center text-surface-400 text-sm py-4 border border-dashed border-surface-700 rounded-xl">
+                        Nenhum nó de malha P2P conectado no momento. O backend operará utilizando Localhost:11434 como fallback.
                     </div>
                     {/each}
                 </div>
@@ -482,6 +544,82 @@ import { API_BASE_URL } from '$lib/env_config';
             {/if}
         </section>
 
+        <!-- CARD 6: SecOps API Vault -->
+        <section class="bg-surface-800/80 backdrop-blur-md rounded-2xl border border-rose-500/30 overflow-hidden shadow-[0_0_20px_rgba(244,63,94,0.05)] transition-all duration-300 relative mt-2">
+            <!-- Active Glow Indicator -->
+            <div class="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 blur-[50px] pointer-events-none"></div>
+
+            <button class="w-full flex items-center justify-between p-5 text-left hover:bg-surface-700/30 cursor-pointer" onclick={() => toggleCard('secops-vault')}>
+                <div class="flex items-center gap-4">
+                    <div class="p-2 bg-rose-500/20 text-rose-400 rounded-lg">
+                        <Shield class="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h2 class="font-semibold text-rose-50 text-lg">Sovereign SecOps API Vault</h2>
+                        <p class="text-sm text-rose-400/80">Injeção Nativa de API Keys e Chaves Cypherpunk</p>
+                    </div>
+                </div>
+                <ChevronDown class="w-5 h-5 text-surface-500 transition-transform duration-300 transform {expandedCard === 'secops-vault' ? 'rotate-180' : ''}" />
+            </button>
+            {#if expandedCard === 'secops-vault'}
+            <div class="p-5 border-t border-surface-700/50 bg-surface-900/30 flex flex-col gap-5">
+                
+                <p class="text-sm text-surface-400">Gerencie chaves secretas (como <strong>TMDB, OpenAI, Anthropic, IGDB</strong>). Nenhuma chave injetada aqui transita em texto plano. Elas são criptografadas (AES-GCM at-rest) nativamente pelo KMS em Rust para o banco SQLite local.</p>
+                
+                <!-- Injection Form -->
+                <div class="flex gap-2 items-end bg-surface-800 p-4 rounded-xl border border-surface-700">
+                    <div class="flex flex-col gap-1 w-1/3">
+                        <label for="provider_name" class="text-[10px] font-bold uppercase tracking-wider text-surface-400">Provedor</label>
+                        <input id="provider_name" bind:value={newProviderName} placeholder="Ex: TMDB_API_KEY" class="bg-surface-700 border border-surface-600 rounded px-3 py-2 text-surface-200 text-sm outline-none focus:border-rose-500">
+                    </div>
+                    <div class="flex flex-col gap-1 flex-1">
+                        <label for="api_key_value" class="text-[10px] font-bold uppercase tracking-wider text-surface-400">Payload Secreto (Key)</label>
+                        <input id="api_key_value" type="password" bind:value={newApiKeyValue} placeholder="sk-..." class="bg-surface-700 border border-surface-600 rounded px-3 py-2 text-surface-200 text-sm outline-none focus:border-rose-500">
+                    </div>
+                    <button onclick={addTenantKey} class="px-5 py-2 h-[38px] bg-rose-600 hover:bg-rose-500 text-white font-medium rounded-md text-sm transition-colors uppercase tracking-wider shadow-[0_0_15px_rgba(225,29,72,0.3)] cursor-pointer">Injetar</button>
+                </div>
+
+                <!-- Vault Table -->
+                <div class="rounded-xl border border-surface-700 overflow-hidden mt-2">
+                    <table class="w-full text-left text-sm text-surface-300">
+                        <thead class="bg-surface-800/80 text-[10px] uppercase tracking-widest text-surface-400 border-b border-surface-700">
+                            <tr>
+                                <th class="px-4 py-3 font-semibold">Provedor Registrado</th>
+                                <th class="px-4 py-3 font-semibold">Cifra Oculta</th>
+                                <th class="px-4 py-3 font-semibold">Acolhimento</th>
+                                <th class="px-4 py-3 font-semibold w-24 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-surface-700/50">
+                            {#if isLoadingKeys}
+                            <tr><td colspan="4" class="p-4 text-center text-surface-500 text-xs"><Loader2 class="w-4 h-4 animate-spin mx-auto"/></td></tr>
+                            {:else if tenantApiKeys.length === 0}
+                            <tr>
+                                <td colspan="4" class="p-6 text-center text-surface-500 text-xs italic">
+                                    O cofre está vazio. Nenhuma chave encontrada no SQLite local.
+                                </td>
+                            </tr>
+                            {:else}
+                                {#each tenantApiKeys as key (key.id)}
+                                <tr class="hover:bg-surface-800/50 transition-colors">
+                                    <td class="px-4 py-3 font-mono font-medium text-rose-400">{key.provider_name}</td>
+                                    <td class="px-4 py-3 font-mono text-surface-500">******************************</td>
+                                    <td class="px-4 py-3 text-surface-500 text-xs">{new Date(key.created_at).toLocaleString()}</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <button onclick={() => deleteTenantKey(key.id)} class="text-surface-500 hover:text-rose-400 transition-colors cursor-pointer" title="Obliteração de Chave">
+                                            <X class="w-4 h-4 mx-auto" />
+                                        </button>
+                                    </td>
+                                </tr>
+                                {/each}
+                            {/if}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+            {/if}
+        </section>
+
     </main>
 </div>
-

@@ -9,6 +9,12 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 *Sovereign Swap (Memory GC), Capability Routing & Orchestration Parity*
 
 ### Added
+- **Dynamic API Schema Registry**: Engine base64 compiler automatically injects dynamic schema definitions (`engine_schema_matrix`) directly to the LLM context.
+- **Academic Network Integration**: `academic_matrix.py` (via `fetch_academic_papers`) to query arXiv, PubMed, and NASA TRS directly into the engine memory buffer.
+- **Engineering Network Integration**: `engineering_matrix.py` (via `fetch_engineering_docs`) to query StackExchange and Github natively for production-level cloud problem solving.
+- **Pillar IV - SecOps API Vault**: Native SQLite-backed encrypted Key Management System (via KMS AES-GCM) dynamically routing user secrets to the frontend `Settings` bypassing static `.env` dependencies.
+- **Cultural & Encyclopedic Expansion**: Injected the MediaWiki Open API `wiki_matrix.py` (Wikipedia) alongside an extensible Pop-Culture fetcher `culture_matrix.py` (TMDB/IGDB) into the Python Worker parallel layer.
+- **WikiLeaks Geopolitics (Cypherpunk Stub)**: Pre-mapped schema for raw transparency databases in preparation for the geopolitical cycle `wiki_leaks_matrix.py`.
 - **Academic & Engineering WebCrawlers (Pillar III)**: Injetadas as novas Tools Autônomas Multithread `fetch_academic_papers` e `fetch_engineering_docs`. Agora a engine possui capacidade nativa e limpa de extração paralela de repositórios oficiais e literaturas técnicas como: arXiv, PubMed, NASA, Microsoft Learn, StackExchange API, GitHub e Docker Hub. O RAG lê diretrizes de codificação diretamente das fontes originais e papéis SOTA sem recorrer a Dorks fracos ou páginas genéricas, usando `tokio::spawn` para disparar Matrix Workers em Python.
 - **Sovereign Gateway Sandbox (SQLite)**: A Ferramenta `search_api_directory` não depedende mais de payload nativo engessado em `Base64` injetado pelo compilador `build.rs`. A tabela SQL `public_api_directory` foi acoplada ao sistema, permitindo chamadas dinâmicas (CRUD) de APIs de Open-Data em tempo de execução via Pool Assíncrono (`sqlx`).
 - **Sovereign Swap (Hard-Eviction Memory Management)**: Adicionado o módulo nativo `memory_manager.rs`. Aciona a obliteração dos tensores estritamente após a orquestração via chamadas HTTP (`keep_alive: 0`) sob timeout agressivo assíncrono (300ms) direto na API do Ollama. Isso previne o Memory Thrashing através do O.S, mantendo a VRAM virgem imediatamente após Scribe e Nanny loops finalizarem.
