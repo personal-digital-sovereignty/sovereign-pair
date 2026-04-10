@@ -920,89 +920,106 @@ pub async fn run_deep_research_handler(
                                                 }));
                                             }
                                         } else if func_n == Some("fetch_financial_ticker") {
-                                            let mut symbol = String::new();
+                                            let mut symbols: Vec<String> = Vec::new();
                                             let mut years = "1".to_string();
                                             
                                             // Suporte para ambas as arquiteturas JSON (Ollama Native Object OR Stringified Payload)
                                             if let Some(args) = func.get("arguments").and_then(|a| a.as_object()) {
-                                                if let Some(s) = args.get("symbol").and_then(|x| x.as_str()) { symbol = s.to_string(); }
+                                                if let Some(arr) = args.get("symbols").and_then(|s| s.as_array()) {
+                                                    for item in arr { if let Some(s) = item.as_str() { symbols.push(s.to_string()); } }
+                                                } else if let Some(s) = args.get("symbol").and_then(|x| x.as_str()) { symbols.push(s.to_string()); } // Backwards compatibility
                                                 if let Some(y) = args.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
                                             } else if let Some(args_str) = func.get("arguments").and_then(|a| a.as_str()) {
                                                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
-                                                    if let Some(s) = parsed.get("symbol").and_then(|x| x.as_str()) { symbol = s.to_string(); }
+                                                    if let Some(arr) = parsed.get("symbols").and_then(|s| s.as_array()) {
+                                                        for item in arr { if let Some(s) = item.as_str() { symbols.push(s.to_string()); } }
+                                                    } else if let Some(s) = parsed.get("symbol").and_then(|x| x.as_str()) { symbols.push(s.to_string()); } // Backwards compatibility
                                                     if let Some(y) = parsed.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
                                                 }
                                             }
 
-                                            if !symbol.is_empty() {
-                                                let _ = TRAINER_LOGS.send(format!("[Sovereign Open-Data Matrix] Acessando ticker financeiro oficial: {} ({} anos)...", symbol, years));
-                                                join_handles.push(tokio::spawn(async move {
-                                                    let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
-                                                    let cur_dir = std::env::current_dir().unwrap_or_default();
-                                                    let matrix_script = if cur_dir.ends_with("core") { cur_dir.join("python_workers").join("sovereign_matrix.py") } else { cur_dir.join("core").join("python_workers").join("sovereign_matrix.py") };
-                                                    
-                                                    let output = tokio::process::Command::new(venv_python)
-                                                        .arg(matrix_script.to_string_lossy().as_ref())
-                                                        .arg("finance")
-                                                        .arg(&symbol)
-                                                        .arg(&years)
-                                                        .output()
-                                                        .await;
-                                                    
-                                                    let res = match output {
-                                                        Ok(out) => {
-                                                            let stdout = String::from_utf8_lossy(&out.stdout).to_string();
-                                                            let stderr = String::from_utf8_lossy(&out.stderr).to_string();
-                                                            if out.status.success() { stdout } else { format!("Error: {}", stderr) }
-                                                        },
-                                                        Err(e) => format!("System execution error: {}", e)
-                                                    };
-                                                    (symbol, format!("### Sovereign Open-Data Output:\n{}", res), "Open-Data Ledger".to_string())
-                                                }));
+                                            for symbol in symbols {
+                                                if !symbol.is_empty() {
+                                                    let _ = TRAINER_LOGS.send(format!("[Sovereign Open-Data Matrix] Acessando ticker financeiro oficial: {} ({} anos)...", symbol, years));
+                                                    let sym_clone = symbol.clone();
+                                                    let y_clone = years.clone();
+                                                    join_handles.push(tokio::spawn(async move {
+                                                        let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
+                                                        let cur_dir = std::env::current_dir().unwrap_or_default();
+                                                        let matrix_script = if cur_dir.ends_with("core") { cur_dir.join("python_workers").join("sovereign_matrix.py") } else { cur_dir.join("core").join("python_workers").join("sovereign_matrix.py") };
+                                                        
+                                                        let output = tokio::process::Command::new(venv_python)
+                                                            .arg(matrix_script.to_string_lossy().as_ref())
+                                                            .arg("finance")
+                                                            .arg(&sym_clone)
+                                                            .arg(&y_clone)
+                                                            .output()
+                                                            .await;
+                                                        
+                                                        let res = match output {
+                                                            Ok(out) => {
+                                                                let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+                                                                let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+                                                                if out.status.success() { stdout } else { format!("Error: {}", stderr) }
+                                                            },
+                                                            Err(e) => format!("System execution error: {}", e)
+                                                        };
+                                                        (sym_clone, format!("### Sovereign Open-Data Output:\n{}", res), "Open-Data Ledger".to_string())
+                                                    }));
+                                                }
                                             }
                                         } else if func_n == Some("fetch_macroeconomy") {
-                                            let mut ind = String::new();
+                                            let mut indicators: Vec<String> = Vec::new();
                                             let mut country = "BR".to_string();
                                             let mut years = "1".to_string();
                                             
                                             if let Some(args) = func.get("arguments").and_then(|a| a.as_object()) {
-                                                if let Some(i) = args.get("indicator").and_then(|x| x.as_str()) { ind = i.to_string(); }
+                                                if let Some(arr) = args.get("indicators").and_then(|s| s.as_array()) {
+                                                    for item in arr { if let Some(i) = item.as_str() { indicators.push(i.to_string()); } }
+                                                } else if let Some(i) = args.get("indicator").and_then(|x| x.as_str()) { indicators.push(i.to_string()); } // Backwards comp
                                                 if let Some(c) = args.get("country").and_then(|x| x.as_str()) { country = c.to_string(); }
                                                 if let Some(y) = args.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
                                             } else if let Some(args_str) = func.get("arguments").and_then(|a| a.as_str()) {
                                                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
-                                                    if let Some(i) = parsed.get("indicator").and_then(|x| x.as_str()) { ind = i.to_string(); }
+                                                    if let Some(arr) = parsed.get("indicators").and_then(|s| s.as_array()) {
+                                                        for item in arr { if let Some(i) = item.as_str() { indicators.push(i.to_string()); } }
+                                                    } else if let Some(i) = parsed.get("indicator").and_then(|x| x.as_str()) { indicators.push(i.to_string()); } // Backwards comp
                                                     if let Some(c) = parsed.get("country").and_then(|x| x.as_str()) { country = c.to_string(); }
                                                     if let Some(y) = parsed.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
                                                 }
                                             }
                                             
-                                            if !ind.is_empty() {
-                                                let _ = TRAINER_LOGS.send(format!("[Sovereign Open-Data Matrix] Acessando base macroeconômica ({}) para {} ({} anos)...", country, ind, years));
-                                                join_handles.push(tokio::spawn(async move {
-                                                    let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
-                                                    let cur_dir = std::env::current_dir().unwrap_or_default();
-                                                    let matrix_script = if cur_dir.ends_with("core") { cur_dir.join("python_workers").join("sovereign_matrix.py") } else { cur_dir.join("core").join("python_workers").join("sovereign_matrix.py") };
-                                                    
-                                                    let output = tokio::process::Command::new(venv_python)
-                                                        .arg(matrix_script.to_string_lossy().as_ref())
-                                                        .arg("macro")
-                                                        .arg(&ind)
-                                                        .arg(&country)
-                                                        .arg(&years)
-                                                        .output()
-                                                        .await;
-                                                    
-                                                    let res = match output {
-                                                        Ok(out) => {
-                                                            let stdout = String::from_utf8_lossy(&out.stdout).to_string();
-                                                            let stderr = String::from_utf8_lossy(&out.stderr).to_string();
-                                                            if out.status.success() { stdout } else { format!("Error: {}", stderr) }
-                                                        },
-                                                        Err(e) => format!("System execution error: {}", e)
-                                                    };
-                                                    (ind, format!("### Sovereign Open-Data Output:\n{}", res), "Open-Data Ledger".to_string())
-                                                }));
+                                            for ind in indicators {
+                                                if !ind.is_empty() {
+                                                    let _ = TRAINER_LOGS.send(format!("[Sovereign Open-Data Matrix] Acessando base macroeconômica ({}) para {} ({} anos)...", country, ind, years));
+                                                    let ind_clone = ind.clone();
+                                                    let c_clone = country.clone();
+                                                    let y_clone = years.clone();
+                                                    join_handles.push(tokio::spawn(async move {
+                                                        let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
+                                                        let cur_dir = std::env::current_dir().unwrap_or_default();
+                                                        let matrix_script = if cur_dir.ends_with("core") { cur_dir.join("python_workers").join("sovereign_matrix.py") } else { cur_dir.join("core").join("python_workers").join("sovereign_matrix.py") };
+                                                        
+                                                        let output = tokio::process::Command::new(venv_python)
+                                                            .arg(matrix_script.to_string_lossy().as_ref())
+                                                            .arg("macro")
+                                                            .arg(&ind_clone)
+                                                            .arg(&c_clone)
+                                                            .arg(&y_clone)
+                                                            .output()
+                                                            .await;
+                                                        
+                                                        let res = match output {
+                                                            Ok(out) => {
+                                                                let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+                                                                let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+                                                                if out.status.success() { stdout } else { format!("Error: {}", stderr) }
+                                                            },
+                                                            Err(e) => format!("System execution error: {}", e)
+                                                        };
+                                                        (ind_clone, format!("### Sovereign Open-Data Output:\n{}", res), "Open-Data Ledger".to_string())
+                                                    }));
+                                                }
                                             }
                                         } else if let Some(fname) = func_n {
                                             // [SecOps Firewall] Path Traversal Validation
