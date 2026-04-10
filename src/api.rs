@@ -185,11 +185,9 @@ pub async fn sync_model_capabilities(pool: &sqlx::SqlitePool) {
                                         is_reasoner = true;
                                     }
                                 }
-                                if let Some(d) = show_json.get("details") {
-                                    if let Some(fam) = d.get("family").and_then(|f| f.as_str()) {
-                                        if fam.to_lowercase().contains("deepseek") { is_reasoner = true; }
-                                    }
-                                }
+                                if let Some(d) = show_json.get("details")
+                                    && let Some(fam) = d.get("family").and_then(|f| f.as_str())
+                                        && fam.to_lowercase().contains("deepseek") { is_reasoner = true; }
                             }
                             
                         // Mapeamento heuristico caso templates não sigam o padrão exato
@@ -224,12 +222,11 @@ pub async fn discover_capable_master_agent(pool: Option<&sqlx::SqlitePool>, min_
         if exclude_reasoner { query.push_str(" AND is_reasoner = 0"); }
         query.push_str(" ORDER BY parameter_size DESC LIMIT 1");
         
-        if let Ok(Some(row)) = sqlx::query(&query).bind(min_size).fetch_optional(p).await {
-            if let Ok(name) = sqlx::Row::try_get::<String, _>(&row, "model_name") {
+        if let Ok(Some(row)) = sqlx::query(&query).bind(min_size).fetch_optional(p).await
+            && let Ok(name) = sqlx::Row::try_get::<String, _>(&row, "model_name") {
                 tracing::info!("✨ [Dynamic Discovery] Mestre Dinâmico Ativado: {}", name);
                 return name;
             }
-        }
     }
     tracing::warn!("⚠️ [Dynamic Discovery] Banco de Capacidades falhou. Acionando Fallback: {}", fallback);
     fallback.to_string()
