@@ -39,3 +39,19 @@ Remover caixas vazias HTML.
 Conectar as marcações de arquivos corporativos com parsers físicos.
 1. Em vez do atual `simulate extraction`, a IA Rust precisará carregar dependências e bibliotecas externas. A implementação invocará o framework `kiwix-serve` (Caso bibliotecas ZIM Wikipedia/PubMed) rodando paralelizado (via Docker Engine SDK ou nativo). As conexões de banco de dados irão fazer Query sobre a base aberta descarregando respostas limpas em Markdown prontas pro `Agent Master` da nossa arquitetura inferir.
 2. Monitoramento temporal para ignorar o *Cold Storage* caso a inferência peça resolução Ultra-Fast de Chat, mas obrigando que *Deep Research* raspe dados offline integralmente antes do tráfego para a Web-Aberta, reduzindo Hallucination.
+
+---
+
+## 3. Alerta de CI/CD e Esteiras (Svelte AST Mocks Cloaking)
+**Nota de Engenharia (Adicionada na finalização da v1.2.0):**
+Para evitar que componentes "fictícios" causassem ansiedade arquitetural em tela na versão 1.2.0, optamos por esconder (cloak) essas interfaces (*Cloud Sandboxing*, *Unsloth Monitor*, *Cold Storage*, etc.).
+
+**Atenção para as Ferramentas de Análise Estática:** As esteiras do GitHub Actions / SAST / Vite Compilers **não** encontrarão comentários do tipo HTML padrão `<!-- -->` ao redor desses cartões HTML no código fonte. 
+
+Em vez de comentários HTML, o ocultamento foi feito nativamente via Árvore Sintática do Svelte (AST) utilizando blocos lógicos inalcançáveis:
+```svelte
+{#if false} <!-- v1.3.0 MOCK HIDDEN -->
+    <section class="mock-ui">...</section>
+{/if}
+```
+Isso foi feito propositalmente pois comentários HTML tradicionais quebram a validação dos fechamentos das tags intrínsecas de lógica do próprio Svelte `{#if...} {/each}`, engolindo blocos e engatilhando erros do tipo `Unexpected block closing tag` e `element_invalid_closing_tag`. O uso de `{#if false}` garante que os nós de HTML continuem estritamente válidos perante o `svelte-check`, mantendo as referências CSS escopadas e a checagem de tipos (TypeScript) seguras, enquanto garante absoluta invisibilidade visual ao usuário. O Tech Debt está seguro em *hibernação de código*.
