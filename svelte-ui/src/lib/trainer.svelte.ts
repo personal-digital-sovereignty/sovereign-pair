@@ -67,7 +67,7 @@ export async function populateTrainerModels() {
         let newModels = [];
         if (resMatrix.ok) {
             const data = await resMatrix.json();
-            newModels = data.map((m: any) => ({
+            newModels = data.filter((m: any) => m.is_installed).map((m: any) => ({
                 id: m.model_name,
                 name: `${m.model_name} (Local)`,
                 type: 'local',
