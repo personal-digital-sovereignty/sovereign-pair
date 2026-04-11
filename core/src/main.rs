@@ -214,9 +214,19 @@ impl<S: tracing::Subscriber> tracing_subscriber::Layer<S> for SseLogLayer {
     }
 }
 
-pub async fn system_logs_sse_handler(State(state): State<Arc<AppState>>) -> axum::response::sse::Sse<impl futures::Stream<Item = Result<axum::response::sse::Event, std::convert::Infallible>>> {
+pub async fn system_logs_sse_handler(axum::extract::State(state): axum::extract::State<Arc<AppState>>) -> axum::response::sse::Sse<impl futures::Stream<Item = Result<axum::response::sse::Event, std::convert::Infallible>>> {
     let mut rx = state.log_sender.subscribe();
     let stream = async_stream::stream! {
+        // Envia log sintético confirmando conexão
+        let welcome_log = crate::models::LogEntry {
+            timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+            level: "INFO".to_string(),
+            message: "✨ [SOVEREIGN] Terminal de Telemetria SSE conectado com sucesso.".to_string(),
+        };
+        if let Ok(json) = serde_json::to_string(&welcome_log) {
+            yield Ok(axum::response::sse::Event::default().data(json));
+        }
+
         while let Ok(log) = rx.recv().await {
             // Encode as JSON
             if let Ok(json) = serde_json::to_string(&log) {
@@ -224,7 +234,7 @@ pub async fn system_logs_sse_handler(State(state): State<Arc<AppState>>) -> axum
             }
         }
     };
-    axum::response::sse::Sse::new(stream)
+    axum::response::sse::Sse::new(stream).keep_alive(axum::response::sse::KeepAlive::new())
 }
 
 #[tokio::main]

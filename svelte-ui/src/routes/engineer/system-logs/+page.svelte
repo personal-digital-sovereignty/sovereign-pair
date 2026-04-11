@@ -19,6 +19,10 @@
         if (eventSource) return;
         eventSource = new EventSource(`${API_BASE_URL}/v1/system/stream-logs`);
         
+        eventSource.onopen = () => {
+            console.log("SSE Stream Opened Successfully.");
+        };
+
         eventSource.onmessage = (event) => {
             if (isPaused) return;
             try {

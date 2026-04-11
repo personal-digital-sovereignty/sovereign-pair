@@ -203,7 +203,7 @@ pub async fn sync_model_capabilities(pool: &sqlx::SqlitePool) {
                         let mut is_scribe = false;
                         let mut is_agent = false;
                         let mut is_coder = false;
-                        let mut is_chat = true; // Todo modelo pode chat
+                        let is_chat = true; // Todo modelo pode chat
                         let mut is_project = false;
 
                         // Definição inteligente para facilitar o setup inicial!
