@@ -20,6 +20,10 @@
                 <a href="/engineer/rag-pipeline" class="px-4 py-2 text-xs font-bold rounded-lg shadow-sm transition-colors {page.url.pathname.includes('/rag-pipeline') ? 'bg-blue-600 dark:bg-[#74b0ff]/20 text-white dark:text-[#74b0ff]' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#1d253b] shadow-none'}">RAG Pipeline</a>
                 <a href="/engineer/unsloth" class="px-4 py-2 text-xs font-bold rounded-lg shadow-sm transition-colors {page.url.pathname.includes('/unsloth') ? 'bg-blue-600 dark:bg-[#74b0ff]/20 text-white dark:text-[#74b0ff]' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#1d253b] shadow-none'}">Unsloth Monitor</a>
                 <a href="/engineer/analytics" class="px-4 py-2 text-xs font-bold rounded-lg shadow-sm transition-colors {page.url.pathname.includes('/analytics') ? 'bg-blue-600 dark:bg-[#74b0ff]/20 text-white dark:text-[#74b0ff]' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#1d253b] shadow-none'}">Analytics</a>
+                <a href="/engineer/system-logs" class="px-4 py-2 text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-1.5 {page.url.pathname.includes('/system-logs') ? 'bg-amber-600 dark:bg-amber-500/20 text-white dark:text-amber-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#1d253b] shadow-none'}">
+                    <span class="w-1.5 h-1.5 rounded-full {page.url.pathname.includes('/system-logs') ? 'bg-amber-400 animate-pulse' : 'bg-slate-400'}"></span>
+                    System Logs
+                </a>
             </div>
         </header>
 
