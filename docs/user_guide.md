@@ -77,12 +77,14 @@ A usina de expedições massivas em busca de verdade documental.
 - **Execution Flow Graph (Telemetria Viva):** Ao estourar o gatilho *Launch Deep Research*, você verá na tela lateral em `Real-time` o triturar impiedoso dos Scrapers (Raspadores HTML), injetando *Tokens* recém formados de volta na pasta de artefatos da sua máquina.
 
 #### B. Fine-Tuning Engine & Unsloth Monitor
+> **⚠️ Em Desenvolvimento (v1.3.0 Mock):** As interações gráficas e indicadores deste painel atuam, no momento, em modo de Simulação Estrutural (Mock IPC) para preparar o terreno da versão 1.3.0. Os contadores de perda (Loss) e o avanço das Epochs funcionam através do roteamento virtual em Rust e não afetam os tensores da máquina física em sua carga imediata.
 O módulo onde você sintoniza os hiper-parâmetros dos Modelos de Base para deixá-los "no ponto" ideal.
 - **Perfection Controls:** Controles vetoriais reais em sliders magnéticos (`Alpha`, `Top-K Context Depth`, `Batch Sizes do Computador` e níveis táticos de `LoRA Rank`). 
 - **Painel Unsloth Matrix Monitor:** Você vislumbrará todo o poder de fogo computacional no monitor retangular: O ressoar estrondoso do uso da VRAM consumida pela sua Placa de Vídeo e o avanço milissegundo a milissegundo pelo console nativo logando taxas matemáticas (`Loss Curve`, `Grad Norm` e os `Tokens Processing`). Tudo administrado por 3 robustos botões de *Playback* (Start, Stop, Pause).
 - **Export Configuration:** O extrator em um clique das matrizes JSON. Clique e guarde em backup toda a personalização que gerou bons resultados.
 
 #### C. Reflection Lab (O Monólogo Interno)
+> **⚠️ Em Desenvolvimento (v1.3.0 Mock):** Assim como o Unsloth Monitor, o laboratório de Reflexão está cenograficamente construído nesta versão para pavimentação da telemetria de métricas do sistema. O "Live Stream" gera auditorias randômicas temporárias em loop, simulando o que a próxima arquitetura de *SSE IPC* e Raciocínio Latente injetará em breve.
 É onde as consciências ocultas são transparentes no seu controle. Se a IA errava e não se justificava, agora ela passa semanas dissecando cadeias invisíveis para entregar o estado da arte.
 - **Internal Monologue:** A Chave Metacognitiva Mestra. Transforma o output do Cíbrido de uma geração imediata de texto numa escalada estruturada de "Pensar Primeiro".
 - **Reasoning Depth & Self-Correct Ratio:** Sliders de Intensidade. Quantos "passos" de duvidar ela terá de respeitar antes de imprimir um retorno? O marcador reativo *Self-Correct* expõe o quanto do raciocínio base precisou se re-alinhar baseando-se no teto das falhas matemáticas lidas pelo scanner de Knowledge Gaps do RAG.
