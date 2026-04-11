@@ -109,11 +109,17 @@ export const sendGlobalChatMessage = async (userText: string) => {
     if (!userText.trim() || globalState.chat.isTyping) return;
     
     // 1. Injeta Pergunta na UI
-    globalState.chat.messages.push({ id: Date.now(), role: 'user', agent: 'Commander', text: userText, time: new Date().toLocaleTimeString() });
+    globalState.chat.messages = [
+        ...globalState.chat.messages,
+        { id: Date.now(), role: 'user', agent: 'Commander', text: userText, time: new Date().toLocaleTimeString() }
+    ];
     globalState.chat.isTyping = true;
     
     const newMsgId = Date.now() + 1;
-    globalState.chat.messages.push({ id: newMsgId, role: 'assistant', agent: 'Sovereign Evaluator', text: '', time: new Date().toLocaleTimeString() });
+    globalState.chat.messages = [
+        ...globalState.chat.messages,
+        { id: newMsgId, role: 'assistant', agent: 'Sovereign Evaluator', text: '', time: new Date().toLocaleTimeString() }
+    ];
     const assistantIdx = globalState.chat.messages.length - 1;
 
     try {
@@ -189,6 +195,8 @@ export const sendGlobalChatMessage = async (userText: string) => {
 
                         if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
                             globalState.chat.messages[assistantIdx].text += data.choices[0].delta.content;
+                            // Force proxy trigger violently
+                            globalState.chat.messages[assistantIdx] = { ...globalState.chat.messages[assistantIdx] };
                         }
                     } catch(e) { }
                 }
@@ -200,10 +208,14 @@ export const sendGlobalChatMessage = async (userText: string) => {
 
     } catch (error: any) {
         if (error.name === 'AbortError') {
-            globalState.chat.messages[assistantIdx].text += `\n\n[INFERÊNCIA INTERROMPIDA PELO USUÁRIO]`;
+            if (globalState.chat.messages[assistantIdx]) {
+                globalState.chat.messages[assistantIdx].text += `\n\n[INFERÊNCIA INTERROMPIDA PELO USUÁRIO]`;
+            }
         } else {
             console.error("Global Inference Engine Error:", error);
-            globalState.chat.messages[assistantIdx].text += `\n\n[SYSTEM ERROR]\nDetalhes Técnicos: ${error?.message}\nFalha Sensus Node Loss.`;
+            if (globalState.chat.messages[assistantIdx]) {
+                globalState.chat.messages[assistantIdx].text += `\n\n[SYSTEM ERROR]\nDetalhes Técnicos: ${error?.message}\nFalha Sensus Node Loss.`;
+            }
         }
     } finally {
         globalState.chat.isTyping = false;
