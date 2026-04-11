@@ -3,14 +3,23 @@ import { API_BASE_URL } from '$lib/env_config';
 
     import BlockEditor from '$lib/components/BlockEditor.svelte';
     import ChatPanel from '$lib/components/ChatPanel.svelte';
-    import { globalState } from '$lib/state.svelte.js';
+    import { globalState, loadGlobalSession, stopGeneration } from '$lib/state.svelte.js';
     import { untrack, onMount } from 'svelte';
-    import { ChevronLeft, ChevronRight, X, Search, FileText, Filter, BrainCircuit, Sparkles, Plus, Trash2, Edit2, Rocket } from 'lucide-svelte';
+    import { ChevronLeft, ChevronRight, X, Search, FileText, Filter, BrainCircuit, Sparkles, Plus, Trash2, Edit2, Rocket, PanelRight } from 'lucide-svelte';
     import { page } from '$app/stores';
 
     let viewState = $state<'explorer' | 'editor'>('explorer');
     let fromProject = $derived($page.url.searchParams.get('fromProject'));
     let fileParam = $derived($page.url.searchParams.get('file'));
+    let isChatVisible = $state(true);
+
+    onMount(() => {
+        // As requested: start a clean chat isolated for the Vault context
+        if (globalState.chat.isTyping) stopGeneration();
+        globalState.chat.activeSessionId = null;
+        globalState.chat.activeSessionTitle = 'Nova Sessão';
+        loadGlobalSession(null);
+    });
 
     $effect(() => {
         if (fileParam && !tabs.find(t => t.id === fileParam)) {
@@ -466,6 +475,12 @@ import { API_BASE_URL } from '$lib/env_config';
                     {/if}
                 </div>
             </div>
+            
+            <div class="flex items-center border-l border-slate-200 dark:border-[#424859]/20 pl-2 ml-2">
+                <button onclick={() => isChatVisible = !isChatVisible} class="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors cursor-pointer {isChatVisible ? 'bg-slate-200 dark:bg-[#1d253b] text-blue-600 dark:text-[#74b0ff]' : ''}" title="Ocultar/Mostrar Chat Cíbrido">
+                    <PanelRight class="w-5 h-5" />
+                </button>
+            </div>
         </div>
         
         <!-- Main Viewer Area -->
@@ -502,9 +517,11 @@ import { API_BASE_URL } from '$lib/env_config';
             </div>
 
             <!-- Right: Chat -->
-            <aside class="w-[450px] bg-white dark:bg-[#0c1324] flex flex-col h-full overflow-hidden shrink-0 z-10 hidden xl:flex border-l border-slate-200 dark:border-[#424859]/20">
-                 <ChatPanel />
-            </aside>
+             {#if isChatVisible}
+                 <aside class="w-[450px] bg-white dark:bg-[#0c1324] flex flex-col h-full overflow-hidden shrink-0 z-10 hidden xl:flex border-l border-slate-200 dark:border-[#424859]/20">
+                      <ChatPanel />
+                 </aside>
+             {/if}
         </div>
     </div>
 {/if}
