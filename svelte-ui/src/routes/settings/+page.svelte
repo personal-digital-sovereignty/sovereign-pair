@@ -330,13 +330,13 @@ import { API_BASE_URL } from '$lib/env_config';
                     <h3 class="text-surface-200 font-bold text-sm tracking-widest uppercase mb-1">Hub Preferences & Output</h3>
                     <div class="flex flex-col gap-1.5 mb-2">
                         <label for="default_route" class="text-[10px] font-bold uppercase tracking-widest text-surface-400">Startup Landing Page</label>
-                        <select id="default_route" bind:value={aiSettings.default_route} class="w-full bg-slate-50 dark:bg-[#080e1d] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 text-sm outline-none focus:border-primary-500 transition-colors cursor-pointer">
+                        <select id="default_route" bind:value={aiSettings.default_route} onchange={() => saveAiSettings()} class="w-full bg-slate-50 dark:bg-[#080e1d] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 text-sm outline-none focus:border-primary-500 transition-colors cursor-pointer shadow-sm">
                             <option value="/dashboard" class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">Home (Dashboard)</option>
                             <option value="/chat" class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">Chat Interface</option>
                             <option value="/vault" class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">Vault Explorer</option>
                             <option value="/projects" class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">Projects (Kanban)</option>
                         </select>
-                        <p class="text-xs text-surface-500 mt-1">Sovereign Pair will boot directly to this page. Requires applying the 'Core Variables' physically at the bottom of the Sovereign Core card below to save into DB.</p>
+                        <p class="text-xs text-surface-500 mt-1">Sovereign Pair will boot directly to this page. (Auto-Saves upon selection).</p>
                     </div>
 
 
@@ -390,17 +390,17 @@ import { API_BASE_URL } from '$lib/env_config';
                     {/each}
                 </div>
 
-                <!-- TODO(v1.3.0 MOCK HIDDEN): Establish New P2P Tunnel via SSH/Wireguard Bindings
+                {#if false} <!-- TODO(v1.3.0 MOCK HIDDEN): Establish New P2P Tunnel via SSH/Wireguard Bindings -->
                 <button class="mt-2 w-full py-3 rounded-xl border border-dashed border-surface-600 text-surface-300 flex items-center justify-center gap-2 hover:bg-surface-800 transition-colors cursor-pointer">
                     <GlobeLock class="w-4 h-4" />
                     <span>Establish New P2P Tunnel</span>
                 </button>
-                -->
+                {/if}
             </div>
             {/if}
         </section>
 
-        <!-- CARD 3: Fallback Cloud OCI (v1.3.0 MOCK HIDDEN)
+        {#if false} <!-- CARD 3: Fallback Cloud OCI (v1.3.0 MOCK HIDDEN) -->
         <section class="bg-surface-800/80 backdrop-blur-md rounded-2xl border border-surface-700/50 overflow-hidden shadow-lg transition-all duration-300">
             <button class="w-full flex items-center justify-between p-5 text-left hover:bg-surface-700/30 cursor-pointer" onclick={() => toggleCard('cloud')}>
                 <div class="flex items-center gap-4">
@@ -424,7 +424,7 @@ import { API_BASE_URL } from '$lib/env_config';
             </div>
             {/if}
         </section>
-        -->
+        {/if}
 
         <!-- CARD 4: Sovereign Core (AI Engine) -->
         <section class="bg-surface-800/80 backdrop-blur-md rounded-2xl border border-surface-700/50 overflow-hidden shadow-lg transition-all duration-300">
@@ -589,7 +589,7 @@ import { API_BASE_URL } from '$lib/env_config';
             {/if}
         </section>
 
-        <!-- CARD 5: Sovereign Cold Storage (Offline Datasets MOCK v1.3.0 HIDDEN)
+        {#if false} <!-- CARD 5: Sovereign Cold Storage (Offline Datasets MOCK v1.3.0 HIDDEN) -->
         <section class="bg-surface-800/80 backdrop-blur-md rounded-2xl border border-teal-500/30 overflow-hidden shadow-[0_0_20px_rgba(20,184,166,0.05)] transition-all duration-300 relative mt-2">
             <!-- Active Glow Indicator -->
             <div class="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 blur-[50px] pointer-events-none"></div>
@@ -658,7 +658,7 @@ import { API_BASE_URL } from '$lib/env_config';
             </div>
             {/if}
         </section>
-        -->
+        {/if}
 
         <!-- CARD 6: SecOps API Vault -->
         <section class="bg-surface-800/80 backdrop-blur-md rounded-2xl border border-rose-500/30 overflow-hidden shadow-[0_0_20px_rgba(244,63,94,0.05)] transition-all duration-300 relative mt-2">
