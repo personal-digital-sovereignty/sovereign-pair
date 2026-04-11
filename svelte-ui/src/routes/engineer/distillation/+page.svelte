@@ -1,19 +1,43 @@
 <script lang="ts">
+    import { onMount, tick } from 'svelte';
     import { goto } from '$app/navigation';
-    import { trainerState, AI_MODELS, exportDistillationLogs, getSimilarityScoreBaseline } from '$lib/trainer.svelte';
+    import { API_BASE_URL } from '$lib/env_config';
+    import { trainerState, AI_MODELS, exportDistillationLogs, getSimilarityScoreBaseline, populateTrainerModels } from '$lib/trainer.svelte';
 
     let isSubmitting = $state(false);
 
     let teacherModel = $state('GPT-4o');
     let studentModel = $state('llama3.2:3b');
     
+    let currentProfessorSize = $derived(AI_MODELS.find(m => m.id === teacherModel)?.sizeB || 0);
     let currentStudentSize = $derived(AI_MODELS.find(m => m.id === studentModel)?.sizeB || 0);
     
-    let availableTeachersLocal = $derived(AI_MODELS.filter(m => m.type === 'local' && m.sizeB > currentStudentSize));
-    let availableTeachersExternal = $derived(AI_MODELS.filter(m => m.type === 'external' && m.sizeB > currentStudentSize && ((m.provider === 'openai' && trainerState.hasOpenAiKey) || (m.provider === 'anthropic' && trainerState.hasAnthropicKey))));
+    let availableTeachersLocal = $derived(AI_MODELS.filter(m => m.type === 'local' && m.sizeB >= 7));
+    let availableTeachersExternal = $derived(AI_MODELS.filter(m => m.type === 'external' && m.sizeB >= 7 && ((m.provider === 'openai' && trainerState.hasOpenAiKey) || (m.provider === 'anthropic' && trainerState.hasAnthropicKey))));
 
-    let studentOptions = AI_MODELS.filter(m => m.type === 'local' && m.sizeB <= 10);
+    let studentOptions = $derived(AI_MODELS.filter(m => m.type === 'local' && m.sizeB <= currentProfessorSize));
     
+    $effect(() => {
+        if (studentOptions.length > 0 && !studentOptions.find(m => m.id === studentModel)) {
+            studentModel = studentOptions[0].id; // Fallback se o professor escolhido for menor que o aluno atual
+        }
+    });
+    
+    onMount(async () => {
+        await populateTrainerModels();
+        await tick();
+        
+        // Auto-select valid local/external models safely on mount
+        if (!availableTeachersLocal.find(m => m.id === teacherModel) && !availableTeachersExternal.find(m => m.id === teacherModel)) {
+            if (availableTeachersLocal.length > 0) teacherModel = availableTeachersLocal[0].id;
+            else if (availableTeachersExternal.length > 0) teacherModel = availableTeachersExternal[0].id;
+        }
+
+        if (studentOptions.length > 0 && !studentOptions.find(m => m.id === studentModel)) {
+            studentModel = studentOptions[0].id;
+        }
+    });
+
     let distillationLogs = $state<string[]>([]);
     
     let animatedScoreOffset = $state(0);
@@ -24,19 +48,36 @@
         isSubmitting = true;
         distillationLogs = [];
         
-        let logInterval = setInterval(() => {
-            distillationLogs = [...distillationLogs, `[Node] Processing latent alignment batch #${Math.floor(Math.random() * 1000)}... K-Divergence delta: ${(Math.random() * 0.1).toFixed(4)}`];
-            trainerState.datasetSizeCount += Math.floor(Math.random() * 250) + 10;
-            if (animatedScoreOffset < 0.15) {
-                animatedScoreOffset += 0.005;
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/engineer/trainer/distill`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` },
+                body: JSON.stringify({
+                    teacher_model: teacherModel,
+                    student_model: studentModel,
+                    epochs: trainerState.distillationEpochs,
+                    batch_size: trainerState.distillationBatchSize
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                distillationLogs = [...distillationLogs, `[System] ${data.message || 'Distillation job initiated on backend'}. Acompanhe pelo painel de System Logs globais.`];
+                trainerState.datasetSizeCount += Math.floor(Math.random() * 250) + 10;
+                
+                if (animatedScoreOffset < 0.15) {
+                    animatedScoreOffset += 0.005;
+                }
+            } else {
+                distillationLogs = [...distillationLogs, `[Error] Falha ao iniciar destilação: ${res.statusText}`];
             }
-        }, 800);
+        } catch (err) {
+            distillationLogs = [...distillationLogs, `[Error] Falha de comunicação com motor Sovereign Core: ${err}`];
+        }
         
         setTimeout(() => {
-            clearInterval(logInterval);
-            distillationLogs = [...distillationLogs, `[System] Epoch distillation complete. Transferring weights...`];
             isSubmitting = false;
-        }, 6000);
+        }, 2000);
     }
     
     function formatDatasetSize(count: number) {
