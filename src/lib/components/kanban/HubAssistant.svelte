@@ -229,13 +229,10 @@ import { API_BASE_URL } from '$lib/env_config';
                 onsubmit={(e) => { e.preventDefault(); sendMessage(); }}
                 class="max-w-4xl mx-auto relative flex items-center bg-white dark:bg-[#0c1324] border border-slate-300 dark:border-slate-700 rounded-xl overflow-hidden focus-within:border-blue-500 dark:focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-blue-900/50 transition-all shadow-sm"
             >
-                <button type="button" class="absolute left-2 bottom-2 p-2.5 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors cursor-pointer" title="Anexar Arquivo ou Imagem">
-                    <Paperclip class="w-5 h-5" />
-                </button>
                 <textarea 
                     bind:value={message}
                     placeholder="Orquestre comandos globais..." 
-                    class="flex-1 bg-transparent border-none text-slate-800 dark:text-slate-200 text-sm p-4 pl-14 h-14 resize-none outline-none custom-scrollbar placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                    class="flex-1 bg-transparent border-none text-slate-800 dark:text-slate-200 text-sm p-4 h-14 resize-none outline-none custom-scrollbar placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     onkeydown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
