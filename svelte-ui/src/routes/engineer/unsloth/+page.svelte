@@ -31,25 +31,6 @@ import { API_BASE_URL } from '$lib/env_config';
 </script>
 
 <div class="p-8 h-full flex flex-col relative w-full">
-    <!-- Header Section -->
-    <header class="mb-10 w-full flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <h2 class=" font-bold text-xl text-[#191c1d] tracking-tight">Unsloth Monitor</h2>
-            <div class="h-4 w-[1px] bg-outline-variant"></div>
-            <div class="flex bg-surface-container-high rounded-full p-1 text-[12px] font-semibold">
-                <button class="px-4 py-1 rounded-full bg-white dark:bg-[#1e293b] text-primary dark:text-slate-200 shadow-sm font-bold">Local Compute</button>
-                <button class="px-4 py-1 rounded-full text-on-surface-variant hover:text-on-surface transition-colors">Remote Cluster</button>
-            </div>
-        </div>
-        <div class="flex items-center gap-4 bg-surface-container-low p-1.5 rounded-xl border border-outline-variant/10">
-            <a href="/engineer/fine-tuning" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Fine-Tuning</a>
-            <a href="/engineer/distillation" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Distillation</a>
-            <a href="/engineer/reflection" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Reflection Lab</a>
-            <a href="/engineer/rag-pipeline" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">RAG Pipeline</a>
-            <button class="px-4 py-2 bg-blue-600 dark:bg-[#74b0ff]/20 text-white dark:text-[#74b0ff] font-bold text-xs rounded-lg shadow-sm">Unsloth Monitor</button>
-            <a href="/engineer/analytics" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Analytics</a>
-        </div>
-    </header>
 
     <!-- Bento Grid Content -->
     <div class="grid grid-cols-12 gap-6 w-full flex-1 mb-8">
