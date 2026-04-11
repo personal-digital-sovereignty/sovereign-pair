@@ -24,7 +24,7 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
                 // Filtro Absoluto (Fase 8): O Orquestrador do UI Mestre precisa ser 3B+. Extirpamos embeddings e LLMs miniatura da lista visual.
                 const validScribes = data.models.filter((m: any) => {
                     const n = m.name.toLowerCase();
-                    return !n.includes('embed') && !n.includes('bge-m3') && !n.includes('1.5b') && !n.includes('1.7b') && !n.includes('1b') && !n.includes('2b');
+                    return !n.includes('embed') && !n.includes('bge-m3') && !n.includes('1.5b') && !n.includes('1.7b') && !n.includes('1b') && !n.includes('2b') && !n.includes('mistral-nemo') && !n.includes('nemo');
                 });
                 
                 const checkedModels = await Promise.all(validScribes.map(async (m: any) => {
@@ -190,21 +190,6 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
 </script>
 
 <div class="p-8 h-full flex flex-col relative">
-    <!-- Header Section -->
-    <header class="mb-10 w-full flex items-center justify-between">
-        <div class="flex items-center gap-4 bg-surface-container-low px-4 py-2 rounded-full w-[400px] border border-outline-variant/10 shadow-sm relative">
-            <span class="material-symbols-outlined text-on-surface-variant text-[20px] absolute left-4">search</span>
-            <input class="bg-transparent border-none focus:ring-0 text-sm w-full pl-8 placeholder:text-on-surface-variant/70 text-on-surface outline-none" placeholder="Search pipeline nodes..." type="text" />
-        </div>
-        <div class="flex items-center gap-4 bg-surface-container-low p-1.5 rounded-xl border border-outline-variant/10">
-            <a href="/engineer/fine-tuning" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Fine-Tuning</a>
-            <a href="/engineer/distillation" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Distillation</a>
-            <a href="/engineer/reflection" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Reflection Lab</a>
-            <button class="px-4 py-2 bg-blue-600 dark:bg-[#74b0ff]/20 text-white dark:text-[#74b0ff] font-bold text-xs rounded-lg shadow-sm">RAG Pipeline</button>
-            <a href="/engineer/unsloth" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Unsloth Monitor</a>
-            <a href="/engineer/analytics" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Analytics</a>
-        </div>
-    </header>
 
     <!-- Main Canvas -->
     <div class="w-full space-y-10 flex-1">
