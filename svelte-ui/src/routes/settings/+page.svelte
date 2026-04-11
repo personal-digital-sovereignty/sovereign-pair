@@ -462,11 +462,17 @@ import { API_BASE_URL } from '$lib/env_config';
                                 {#each modelMatrix as row}
                                     <tr class="hover:bg-surface-700/20 transition-colors">
                                         <td class="px-4 py-3">
-                                            <div class="font-medium text-surface-100">{row.model_name}</div>
-                                            <div class="text-xs text-surface-500 flex gap-2 mt-1">
+                                        <td class="px-4 py-3">
+                                            <div class="font-medium {row.is_installed ? 'text-surface-100' : 'text-surface-500 line-through decoration-surface-500/50'}">{row.model_name}</div>
+                                            <div class="text-xs text-surface-500 flex flex-wrap gap-2 mt-1 items-center">
                                                 <span>{(row.parameter_size).toFixed(1)}B</span>
                                                 {#if row.supports_tools}<span class="text-emerald-500 text-[10px] uppercase border border-emerald-500/30 px-1 rounded">Tools</span>{/if}
                                                 {#if row.is_reasoner}<span class="text-fuchsia-500 text-[10px] uppercase border border-fuchsia-500/30 px-1 rounded">Reasoner</span>{/if}
+                                                {#if !row.is_installed}
+                                                    <span class="text-error-400 text-[10px] uppercase border border-error-500/30 px-1 rounded flex items-center gap-1 font-bold ring-1 ring-error-500/50 bg-error-500/10" title="Modelo offline ou excluído do nó. Sua configuração Cíbrida foi preservada.">
+                                                        OFFLINE
+                                                    </span>
+                                                {/if}
                                             </div>
                                         </td>
                                         
@@ -475,7 +481,7 @@ import { API_BASE_URL } from '$lib/env_config';
                                             <input type="checkbox" 
                                                 class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 focus:ring-offset-surface-900 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                                                 checked={row.is_master}
-                                                disabled={!row.supports_tools || isSavingMatrix}
+                                                disabled={!row.supports_tools || isSavingMatrix || !row.is_installed}
                                                 onchange={(e) => toggleMatrixCapability(row.model_name, 'is_master', (e.target as HTMLInputElement).checked)}
                                             />
                                         </td>
@@ -483,9 +489,9 @@ import { API_BASE_URL } from '$lib/env_config';
                                         <!-- Scribe -->
                                         <td class="px-4 py-3 text-center">
                                             <input type="checkbox" 
-                                                class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50"
+                                                class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                 checked={row.is_scribe}
-                                                disabled={isSavingMatrix}
+                                                disabled={isSavingMatrix || !row.is_installed}
                                                 onchange={(e) => toggleMatrixCapability(row.model_name, 'is_scribe', (e.target as HTMLInputElement).checked)}
                                             />
                                         </td>
@@ -495,7 +501,7 @@ import { API_BASE_URL } from '$lib/env_config';
                                             <input type="checkbox" 
                                                 class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                                                 checked={row.is_agent}
-                                                disabled={!row.supports_tools || isSavingMatrix}
+                                                disabled={!row.supports_tools || isSavingMatrix || !row.is_installed}
                                                 onchange={(e) => toggleMatrixCapability(row.model_name, 'is_agent', (e.target as HTMLInputElement).checked)}
                                             />
                                         </td>
@@ -503,9 +509,9 @@ import { API_BASE_URL } from '$lib/env_config';
                                         <!-- Coder -->
                                         <td class="px-4 py-3 text-center">
                                             <input type="checkbox" 
-                                                class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50"
+                                                class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                 checked={row.is_coder}
-                                                disabled={isSavingMatrix}
+                                                disabled={isSavingMatrix || !row.is_installed}
                                                 onchange={(e) => toggleMatrixCapability(row.model_name, 'is_coder', (e.target as HTMLInputElement).checked)}
                                             />
                                         </td>
@@ -513,9 +519,9 @@ import { API_BASE_URL } from '$lib/env_config';
                                         <!-- Chat -->
                                         <td class="px-4 py-3 text-center">
                                             <input type="checkbox" 
-                                                class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50"
+                                                class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                 checked={row.is_chat}
-                                                disabled={isSavingMatrix}
+                                                disabled={isSavingMatrix || !row.is_installed}
                                                 onchange={(e) => toggleMatrixCapability(row.model_name, 'is_chat', (e.target as HTMLInputElement).checked)}
                                             />
                                         </td>
@@ -523,9 +529,9 @@ import { API_BASE_URL } from '$lib/env_config';
                                         <!-- Project / Kanban -->
                                         <td class="px-4 py-3 text-center">
                                             <input type="checkbox" 
-                                                class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50"
+                                                class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                 checked={row.is_project}
-                                                disabled={isSavingMatrix}
+                                                disabled={isSavingMatrix || !row.is_installed}
                                                 onchange={(e) => toggleMatrixCapability(row.model_name, 'is_project', (e.target as HTMLInputElement).checked)}
                                             />
                                         </td>
