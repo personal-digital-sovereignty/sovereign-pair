@@ -144,9 +144,6 @@ import { API_BASE_URL } from '$lib/env_config';
     <!-- Chat Header -->
     <header class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-[#424859]/20 bg-white dark:bg-[#12192b] shrink-0 transition-colors">
         <div class="flex items-center gap-3">
-            <div class="p-2 bg-blue-50 dark:bg-blue-500/10 rounded-lg border border-transparent dark:border-[#74b0ff]/20">
-                <MessageSquare class="w-5 h-5 text-blue-600 dark:text-[#74b0ff]" />
-            </div>
             <div>
                 <h2 class="text-slate-800 dark:text-slate-200 font-bold tracking-tight">Cibrid Council <span class="text-[10px] bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-[#74b0ff] border border-transparent dark:border-blue-500/30 px-2 py-0.5 rounded ml-2 uppercase tracking-widest font-mono">Encrypted</span></h2>
                 <p class="text-xs text-slate-500 dark:text-slate-400">P2P Mesh Network routing active.</p>
