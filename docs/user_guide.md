@@ -77,10 +77,22 @@ A usina de expedições massivas em busca de verdade documental.
 - **Execution Flow Graph (Telemetria Viva):** Ao estourar o gatilho *Launch Deep Research*, você verá na tela lateral em `Real-time` o triturar impiedoso dos Scrapers (Raspadores HTML), injetando *Tokens* recém formados de volta na pasta de artefatos da sua máquina.
 
 #### B. Fine-Tuning Engine & Unsloth Monitor
-> **⚠️ Em Desenvolvimento (v1.3.0 Mock):** As interações gráficas e indicadores deste painel atuam, no momento, em modo de Simulação Estrutural (Mock IPC) para preparar o terreno da versão 1.3.0. Os contadores de perda (Loss) e o avanço das Epochs funcionam através do roteamento virtual em Rust e não afetam os tensores da máquina física em sua carga imediata.
+
+> **⚠️ Alerta de Cenografia Estrutural (Mocks vs Realidade na v1.2.0):** 
+> Transparência técnica é o pilar cíbrido. A atual aba de *Fine-Tuning Engine* é uma obra-prima de design hibrido: partes dela ditam verdade absoluta, enquanto a computação de Loss Gradient está simulada aguardando o Orquestrador Python (v1.3.0).
+> 
+> **✅ O Que Funciona (Ambiente Real):**
+> 1. **Telemetria Deep Research (RAG):** Os marcadores de *Knowledge Gap Percentage*, *Sources Scanned* e *Recently Acquired Knowledge* não são falsos. Eles buscam ativamente o seu tráfego de leitura do SQLite e contam as injeções em disco.
+> 2. **Perfection Controls (Controles Reais):** Seus ajustes de `Strict Grounding`, `Embedding Alignment Alpha` e `Top-K` alteram o vetor das buscas e a forma com a qual RAG injeta tokens nos prompts. O JSON montado vai até o motor Rust ileso.
+> 3. **Export Configurations:** O backup em `.json` extrai com fidelidade todo o payload modificado por você.
+> 
+> **🎭 O Que é Mock (Simulação para Interface):**
+> 1. **Treinamento de Redes Neurais (O Engano Seguro):** O motor *Ollama* nativo utilizado no momento recusa o retreino de tensores (Fine-tuning puro). Ao clicar em "Start Fine-Tuning", a interface Svelte e a API Rust conspiram num bypass inteligente: A *Engine* clona instantaneamente (`/api/create`) os Modelfiles, sem alterar "os cérebros" do IA via Python VRAM, retornando `Sucesso` falso.
+> 2. **Unsloth Matrix Monitor:** É uma *Casca Audiovisual* impressionante. As linhas subindo de *VRAM Usage*, a queda matemática da *Loss Curve* e o contador de *Epochs* são scripts Assíncronos controlados via tempo. Não se assuste se sua GPU nem aquecer! 
+
 O módulo onde você sintoniza os hiper-parâmetros dos Modelos de Base para deixá-los "no ponto" ideal.
-- **Perfection Controls:** Controles vetoriais reais em sliders magnéticos (`Alpha`, `Top-K Context Depth`, `Batch Sizes do Computador` e níveis táticos de `LoRA Rank`). 
-- **Painel Unsloth Matrix Monitor:** Você vislumbrará todo o poder de fogo computacional no monitor retangular: O ressoar estrondoso do uso da VRAM consumida pela sua Placa de Vídeo e o avanço milissegundo a milissegundo pelo console nativo logando taxas matemáticas (`Loss Curve`, `Grad Norm` e os `Tokens Processing`). Tudo administrado por 3 robustos botões de *Playback* (Start, Stop, Pause).
+- **Perfection Controls:** Controles vetoriais em sliders magnéticos (`Alpha`, `Top-K Context Depth`, `Batch Sizes do Computador` e níveis táticos de `LoRA Rank`). 
+- **Painel Unsloth Matrix Monitor:** Espaço onde você vislumbrará todo o poder de fogo computacional no monitor retangular: O ressoar estrondoso do uso da VRAM consumida pela sua Placa de Vídeo e o avanço pelo console nativo logando taxas matemáticas. O play control aciona as janelas.
 - **Export Configuration:** O extrator em um clique das matrizes JSON. Clique e guarde em backup toda a personalização que gerou bons resultados.
 
 #### C. Reflection Lab (O Monólogo Interno)
