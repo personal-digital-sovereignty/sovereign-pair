@@ -14,10 +14,23 @@ import { API_BASE_URL } from '$lib/env_config';
     // Estado Dinâmico - Sem Hardcodes (Mocks) Iniciais
     let activeNodes = $state<{id: string, name?: string, url?: string, role?: string, hardware?: string, location?: string}[]>([]);
 
+    interface ModelMatrixRow {
+        model_name: string;
+        parameter_size: number;
+        supports_tools: boolean;
+        is_reasoner: boolean;
+        is_master: boolean;
+        is_scribe: boolean;
+        is_agent: boolean;
+        is_coder: boolean;
+        is_chat: boolean;
+        is_project: boolean;
+    }
+
+    let modelMatrix = $state<ModelMatrixRow[]>([]);
+    let isSavingMatrix = $state(false);
+
     let aiSettings = $state({
-        nurse_model: "",
-        doctor_model: "",
-        coder_model: "",
         temperature: 0.7,
         top_k: 40,
         system_prompt: "",
@@ -56,9 +69,6 @@ import { API_BASE_URL } from '$lib/env_config';
             const res = await fetch(`${API_BASE_URL}/v1/settings`);
             if (res.ok) {
                 const data = await res.json();
-                if (data.nurse_model) aiSettings.nurse_model = data.nurse_model;
-                if (data.doctor_model) aiSettings.doctor_model = data.doctor_model;
-                if (data.coder_model) aiSettings.coder_model = data.coder_model;
                 if (data.temperature !== undefined) aiSettings.temperature = data.temperature;
                 if (data.top_k !== undefined) aiSettings.top_k = data.top_k;
                 if (data.system_prompt) aiSettings.system_prompt = data.system_prompt;
@@ -78,6 +88,14 @@ import { API_BASE_URL } from '$lib/env_config';
         } catch(e) { console.error("Ollama Daemon unreachable:", e); } finally {
             isLoadingModels = false;
         }
+
+        // Fetch Model Capabilities Matrix
+        try {
+            const matrixRes = await fetch(`${API_BASE_URL}/v1/settings/model_capabilities`);
+            if (matrixRes.ok) {
+                modelMatrix = await matrixRes.json();
+            }
+        } catch(e) { console.error("Failed to load Model Matrix:", e); }
 
         // Fetch Mesh Nodes (Ollama Clusters Real Data)
         try {
@@ -116,9 +134,6 @@ import { API_BASE_URL } from '$lib/env_config';
             const res = await fetch(`${API_BASE_URL}/v1/settings`);
             let data = res.ok ? await res.json() : {};
             
-            data.nurse_model = aiSettings.nurse_model;
-            data.doctor_model = aiSettings.doctor_model;
-            data.coder_model = aiSettings.coder_model;
             data.temperature = Number(aiSettings.temperature);
             data.top_k = Number(aiSettings.top_k);
             data.system_prompt = aiSettings.system_prompt;
@@ -136,6 +151,39 @@ import { API_BASE_URL } from '$lib/env_config';
         } catch(e) { 
             console.error(e);
             alert('Failed to reach Sovereign Core.');
+        }
+    }
+
+    async function toggleMatrixCapability(modelName: string, fieldName: keyof ModelMatrixRow, value: boolean) {
+        if (isSavingMatrix) return;
+        isSavingMatrix = true;
+        try {
+            const model = modelMatrix.find(m => m.model_name === modelName);
+            if (!model) return;
+            
+            const payload = {
+                model_name: model.model_name,
+                is_master: fieldName === 'is_master' ? value : model.is_master,
+                is_scribe: fieldName === 'is_scribe' ? value : model.is_scribe,
+                is_agent: fieldName === 'is_agent' ? value : model.is_agent,
+                is_coder: fieldName === 'is_coder' ? value : model.is_coder,
+                is_chat: fieldName === 'is_chat' ? value : model.is_chat,
+                is_project: fieldName === 'is_project' ? value : model.is_project
+            };
+
+            const res = await fetch(`${API_BASE_URL}/v1/settings/model_capabilities/toggles`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                (model as any)[fieldName] = value;
+            }
+        } catch(e) {
+            console.error("Failed to update matrix toggle:", e);
+        } finally {
+            isSavingMatrix = false;
         }
     }
 
@@ -391,45 +439,104 @@ import { API_BASE_URL } from '$lib/env_config';
             {#if expandedCard === 'ai'}
             <div class="p-5 border-t border-surface-700/50 bg-surface-900/30 flex flex-col gap-5">
                 
-                <div class="bg-surface-800 p-4 rounded-xl border border-surface-700 flex flex-col gap-4">
+                <div class="bg-surface-800 p-4 rounded-xl border border-surface-700 flex flex-col gap-4 overflow-hidden">
                     <h3 class="text-surface-200 font-bold text-sm tracking-widest uppercase flex justify-between items-center">
-                        Tri-Agent Hierarchy (Mesh Target)
-                        {#if isLoadingModels}<Loader2 class="w-4 h-4 animate-spin text-primary-500"/>{/if}
+                        Model Operations Matrix
+                        {#if modelMatrix.length === 0}<Loader2 class="w-4 h-4 animate-spin text-primary-500"/>{/if}
                     </h3>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-surface-300">
+                            <thead class="text-xs uppercase bg-surface-900/50 text-surface-400">
+                                <tr>
+                                    <th class="px-4 py-3 font-semibold rounded-tl-lg">Model</th>
+                                    <th class="px-4 py-3 font-semibold text-center">Master</th>
+                                    <th class="px-4 py-3 font-semibold text-center">Scribe</th>
+                                    <th class="px-4 py-3 font-semibold text-center">Agent</th>
+                                    <th class="px-4 py-3 font-semibold text-center">Coder</th>
+                                    <th class="px-4 py-3 font-semibold text-center">Chat</th>
+                                    <th class="px-4 py-3 font-semibold text-center rounded-tr-lg">Project</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-surface-700/50">
+                                {#each modelMatrix as row}
+                                    <tr class="hover:bg-surface-700/20 transition-colors">
+                                        <td class="px-4 py-3">
+                                            <div class="font-medium text-surface-100">{row.model_name}</div>
+                                            <div class="text-xs text-surface-500 flex gap-2 mt-1">
+                                                <span>{(row.parameter_size).toFixed(1)}B</span>
+                                                {#if row.supports_tools}<span class="text-emerald-500 text-[10px] uppercase border border-emerald-500/30 px-1 rounded">Tools</span>{/if}
+                                                {#if row.is_reasoner}<span class="text-fuchsia-500 text-[10px] uppercase border border-fuchsia-500/30 px-1 rounded">Reasoner</span>{/if}
+                                            </div>
+                                        </td>
+                                        
+                                        <!-- Master: Requer Tools. Se não tiver, desabilite visualmente e trave o checkbox -->
+                                        <td class="px-4 py-3 text-center">
+                                            <input type="checkbox" 
+                                                class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 focus:ring-offset-surface-900 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                                checked={row.is_master}
+                                                disabled={!row.supports_tools || isSavingMatrix}
+                                                onchange={(e) => toggleMatrixCapability(row.model_name, 'is_master', (e.target as HTMLInputElement).checked)}
+                                            />
+                                        </td>
+                                        
+                                        <!-- Scribe -->
+                                        <td class="px-4 py-3 text-center">
+                                            <input type="checkbox" 
+                                                class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50"
+                                                checked={row.is_scribe}
+                                                disabled={isSavingMatrix}
+                                                onchange={(e) => toggleMatrixCapability(row.model_name, 'is_scribe', (e.target as HTMLInputElement).checked)}
+                                            />
+                                        </td>
 
-                    <div class="flex flex-col md:flex-row gap-4">
-                        <div class="flex flex-col gap-1.5 flex-1">
-                            <label for="nurse_model" class="text-xs font-semibold text-primary-400">The Nurse (Scraping/Triage)</label>
-                            <select id="nurse_model" bind:value={aiSettings.nurse_model} class="w-full bg-slate-50 dark:bg-[#080e1d] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 text-sm outline-none focus:border-primary-500 transition-colors">
-                                {#each availableModels as model}
-                                    <option value={model.name} class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
-                                {:else}
-                                    <option value={aiSettings.nurse_model} class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">{aiSettings.nurse_model}</option>
-                                {/each}
-                            </select>
-                        </div>
+                                        <!-- Agent: Requer Tools -->
+                                        <td class="px-4 py-3 text-center">
+                                            <input type="checkbox" 
+                                                class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                                checked={row.is_agent}
+                                                disabled={!row.supports_tools || isSavingMatrix}
+                                                onchange={(e) => toggleMatrixCapability(row.model_name, 'is_agent', (e.target as HTMLInputElement).checked)}
+                                            />
+                                        </td>
 
-                        <div class="flex flex-col gap-1.5 flex-1">
-                            <label for="doctor_model" class="text-xs font-semibold text-sky-400">The Doctor (Planning/Chat)</label>
-                            <select id="doctor_model" bind:value={aiSettings.doctor_model} class="w-full bg-slate-50 dark:bg-[#080e1d] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 text-sm outline-none focus:border-primary-500 transition-colors">
-                                {#each availableModels as model}
-                                    <option value={model.name} class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
-                                {:else}
-                                    <option value={aiSettings.doctor_model} class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">{aiSettings.doctor_model}</option>
-                                {/each}
-                            </select>
-                        </div>
+                                        <!-- Coder -->
+                                        <td class="px-4 py-3 text-center">
+                                            <input type="checkbox" 
+                                                class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50"
+                                                checked={row.is_coder}
+                                                disabled={isSavingMatrix}
+                                                onchange={(e) => toggleMatrixCapability(row.model_name, 'is_coder', (e.target as HTMLInputElement).checked)}
+                                            />
+                                        </td>
 
-                        <div class="flex flex-col gap-1.5 flex-1">
-                            <label for="coder_model" class="text-xs font-semibold text-rose-400">The Coder (Execution/Scripting)</label>
-                            <select id="coder_model" bind:value={aiSettings.coder_model} class="w-full bg-slate-50 dark:bg-[#080e1d] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 text-sm outline-none focus:border-primary-500 transition-colors">
-                                {#each availableModels as model}
-                                    <option value={model.name} class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">{model.name} ({(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)</option>
+                                        <!-- Chat -->
+                                        <td class="px-4 py-3 text-center">
+                                            <input type="checkbox" 
+                                                class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50"
+                                                checked={row.is_chat}
+                                                disabled={isSavingMatrix}
+                                                onchange={(e) => toggleMatrixCapability(row.model_name, 'is_chat', (e.target as HTMLInputElement).checked)}
+                                            />
+                                        </td>
+
+                                        <!-- Project / Kanban -->
+                                        <td class="px-4 py-3 text-center">
+                                            <input type="checkbox" 
+                                                class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50"
+                                                checked={row.is_project}
+                                                disabled={isSavingMatrix}
+                                                onchange={(e) => toggleMatrixCapability(row.model_name, 'is_project', (e.target as HTMLInputElement).checked)}
+                                            />
+                                        </td>
+                                    </tr>
                                 {:else}
-                                    <option value={aiSettings.coder_model} class="bg-white dark:bg-[#12192b] text-slate-800 dark:text-slate-200">{aiSettings.coder_model}</option>
+                                    <tr>
+                                        <td colspan="7" class="px-4 py-8 text-center text-surface-500 italic">No models registered in the Matrix yet. They auto-register when the system starts.</td>
+                                    </tr>
                                 {/each}
-                            </select>
-                        </div>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
