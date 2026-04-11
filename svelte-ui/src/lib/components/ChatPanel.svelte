@@ -162,7 +162,7 @@ import { API_BASE_URL } from '$lib/env_config';
     <!-- Message Feed -->
     <main class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-6 custom-scrollbar bg-slate-50 dark:bg-[#080e1d] transition-colors">
         
-        {#each globalState.chat.messages as msg}
+        {#each globalState.chat.messages as msg (msg.id)}
             {@const thoughtsMatch = msg.text.match(/<thought>([\s\S]*?)(?:<\/thought>|$)/g) || []}
             {@const thoughts = thoughtsMatch.map((t: string) => t.replace(/<\/?thought>/g, '').trim())}
             {@const cleanText = msg.text.replace(/<thought>[\s\S]*?(?:<\/thought>|$)/g, '').trim()}
@@ -258,8 +258,7 @@ import { API_BASE_URL } from '$lib/env_config';
                 </button>
             </div>
         {/if}
-        <form 
-            onsubmit={(e) => { e.preventDefault(); handleSend(); }}
+        <div 
             class="w-full max-w-5xl xl:max-w-6xl 2xl:max-w-[85%] mx-auto flex flex-col bg-white dark:bg-[#0c1324] border border-slate-300 dark:border-[#424859]/50 rounded-xl overflow-hidden focus-within:border-blue-500 dark:focus-within:border-[#74b0ff] focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-[#74b0ff]/20 transition-all shadow-sm dark:shadow-none"
         >
             <input type="file" bind:this={fileInput} onchange={handleFileUpload} class="hidden" />
@@ -327,19 +326,25 @@ import { API_BASE_URL } from '$lib/env_config';
                         />
                     </div>
                     
+                    <button 
+                        type="button"
+                        onclick={(e) => { e.preventDefault(); handleSend(); }}
+                        disabled={!message.trim() || globalState.chat.isTyping}
+                        class="p-2 ml-2 bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors cursor-pointer shadow-sm dark:shadow-none"
+                        aria-label="Ask Cybrid"
+                    >
+                        <Send class="w-4 h-4 text-white" />
+                    </button>
+                    
                     {#if globalState.chat.isTyping}
                         <button type="button" onclick={stopGeneration} class="px-3 py-2 bg-rose-600 hover:bg-rose-700 dark:bg-rose-500/80 dark:hover:bg-rose-500 text-white rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm dark:shadow-none" title="Interromper Raciocínio (Stop)">
                             <Square class="w-4 h-4 fill-white text-rose-600 dark:text-transparent" />
                             <span class="text-[10px] font-bold uppercase tracking-widest hidden sm:inline-block">Stop</span>
                         </button>
-                    {:else}
-                        <button type="submit" disabled={!message.trim()} class="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500/80 dark:hover:bg-blue-500 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center">
-                            <Send class="w-4 h-4" />
-                        </button>
                     {/if}
                 </div>
             </div>
-        </form>
+        </div>
         <div class="text-[10px] text-center text-slate-400 dark:text-slate-500 mt-2 font-mono uppercase tracking-widest">
              End-to-End Local Execution • Context Limited to Graph Density
         </div>

@@ -3,7 +3,7 @@ import { API_BASE_URL } from '$lib/env_config';
 
     import { MessageSquare, Plus, Folder as FolderIcon, Trash2, Hash, Edit2, Check, X, ChevronDown, ChevronRight } from 'lucide-svelte';
     import { globalState, loadGlobalSession, stopGeneration } from '$lib/state.svelte.js';
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
 
     let sessions = $state<{id: number, title: string, folder_name: string | null, updated_at: string}[]>([]);
     let isLoading = $state(true);
@@ -40,10 +40,12 @@ import { API_BASE_URL } from '$lib/env_config';
 
     $effect(() => {
         const _trigger = globalState.activeWorkspaceId;
-        if (isMounted) {
-            createNewSession();
-            fetchSessions();
-        }
+        untrack(() => {
+            if (isMounted) {
+                createNewSession();
+                fetchSessions();
+            }
+        });
     });
 
     function createNewSession() {
