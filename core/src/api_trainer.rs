@@ -739,8 +739,8 @@ pub async fn run_deep_research_handler(
                 "stream": false,
                 "options": {
                     "num_ctx": dynamic_num_ctx,
-                    "temperature": 0.05,
-                    "repeat_penalty": 1.05,
+                    "temperature": 0.0,
+                    "repeat_penalty": 1.0,
                     "num_predict": 4096
                 }
             });
@@ -1339,13 +1339,25 @@ pub async fn run_deep_research_handler(
                                 }
                             }
 
-                            if cycle == 1 || has_dynamic_tool || content.contains("\"type\":\"function\"") || content.contains("\"search_queries\"") || content.contains("\"symbol\"") || content.contains("\"indicator\"") {
-                                // Tenta raspar JSON vazado no texto:
+                            if cycle < 5 && (all_sources.is_empty() || has_dynamic_tool || content.contains("\"type\":\"function\"") || content.contains("\"search_queries\"") || content.contains("\"symbol\"") || content.contains("\"indicator\"") || content.contains("\"topic\"") || content.contains("\"url\"") || content.contains("\"code\"")) {
+                                // Tenta raspar JSON vazado no texto de forma robusta (ignora texto no meio):
                                 let mut recovered_json: Option<serde_json::Value> = None;
-                                if let (Some(start), Some(end)) = (content.find('{'), content.rfind('}')) {
-                                    if start < end {
-                                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content[start..=end]) {
-                                            recovered_json = Some(parsed);
+                                let chars: Vec<(usize, char)> = content.char_indices().collect();
+                                let mut start_indices = Vec::new();
+                                let mut end_indices = Vec::new();
+                                
+                                for (i, c) in &chars {
+                                    if *c == '{' { start_indices.push(*i); }
+                                    if *c == '}' { end_indices.push(*i + 1); }
+                                }
+                                
+                                'outer: for &s in &start_indices {
+                                    for &e in end_indices.iter().rev() {
+                                        if s < e {
+                                            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content[s..e]) {
+                                                recovered_json = Some(parsed);
+                                                break 'outer;
+                                            }
                                         }
                                     }
                                 }
@@ -1401,6 +1413,49 @@ pub async fn run_deep_research_handler(
                                          }
                                     }
 
+                                    else if content.contains("search_api_directory") || pseudo_json.get("topic").is_some() || pseudo_json.get("arguments").and_then(|a| a.get("topic")).is_some() {
+                                        let mut topic = String::new();
+                                        if let Some(t) = pseudo_json.get("topic").and_then(|v| v.as_str()) { topic = t.to_string(); }
+                                        else if let Some(args) = pseudo_json.get("arguments").and_then(|a| a.as_object()) {
+                                            if let Some(t) = args.get("topic").and_then(|v| v.as_str()) { topic = t.to_string(); }
+                                        }
+                                        
+                                        if !topic.is_empty() {
+                                            let _ = TRAINER_LOGS.send(format!("⚠️ [Thought Nanny] Resgatando API Indexer ({}) vazado no plain-text...", topic));
+                                            if let Some(pool) = engine_arc.db_pool.clone() {
+                                                final_result = crate::api_gateway::search_api_directory(&topic, &pool).await;
+                                            }
+                                        }
+                                    }
+                                    else if content.contains("fetch_json_endpoint") || pseudo_json.get("url").is_some() || pseudo_json.get("arguments").and_then(|a| a.get("url")).is_some() {
+                                        let mut fetch_url = String::new();
+                                        if let Some(u) = pseudo_json.get("url").and_then(|v| v.as_str()) { fetch_url = u.to_string(); }
+                                        else if let Some(args) = pseudo_json.get("arguments").and_then(|a| a.as_object()) {
+                                            if let Some(u) = args.get("url").and_then(|v| v.as_str()) { fetch_url = u.to_string(); }
+                                        }
+                                        
+                                        if !fetch_url.is_empty() {
+                                            let _ = TRAINER_LOGS.send(format!("⚠️ [Thought Nanny] Resgatando Fetch API ({}) vazado no plain-text...", fetch_url));
+                                            final_result = crate::api_gateway::fetch_json_endpoint(&fetch_url).await;
+                                        }
+                                    }
+                                    else if content.contains("execute_python_code") || pseudo_json.get("code").is_some() || pseudo_json.get("arguments").and_then(|a| a.get("code")).is_some() {
+                                        let mut code_str = String::new();
+                                        if let Some(c) = pseudo_json.get("code").and_then(|v| v.as_str()) { code_str = c.to_string(); }
+                                        else if let Some(args) = pseudo_json.get("arguments").and_then(|a| a.as_object()) {
+                                            if let Some(c) = args.get("code").and_then(|v| v.as_str()) { code_str = c.to_string(); }
+                                        }
+                                        
+                                        if !code_str.is_empty() {
+                                            let _ = TRAINER_LOGS.send("⚠️ [Thought Nanny] Resgatando Código Python vazado no plain-text...".to_string());
+                                            let exec_res = crate::sandbox::execute_python_code(&code_str).await;
+                                            final_result = match exec_res {
+                                                Ok(stdout) => format!("### PYTHON SANDBOX OUTPUT (SUCCESS):\n```text\n{}\n```", stdout),
+                                                Err(stderr) => format!("### PYTHON SANDBOX OUTPUT (FAILURE):\n```text\n{}\n```\nAtenção: O plano falhou. Você precisa corrigir as variáveis Python ou importar a biblioteca certa.", stderr),
+                                            };
+                                        }
+                                    }
+
                                     if !final_result.is_empty() {
                                         messages.push(serde_json::json!({
                                             "role": "user",
@@ -1410,7 +1465,7 @@ pub async fn run_deep_research_handler(
                                     }
                                 }
 
-                                let _ = TRAINER_LOGS.send("[Thought Nanny] Falha Estrutural do Mestre: O modelo não gerou chamadas formatadas. Disciplinando sintaxe...".to_string());
+                                let _ = TRAINER_LOGS.send(format!("[Thought Nanny] Falha Estrutural do Mestre: O modelo não gerou chamadas formatadas. Disciplinando sintaxe...\n[DEBUG RAW LLM CONTENT]:\n{}", content));
                                 messages.push(msg_obj.clone());
                                 messages.push(serde_json::json!({
                                     "role": "user",

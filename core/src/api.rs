@@ -1647,6 +1647,7 @@ pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> i
             avg_tps: 0.0,
             avg_latency_ms: 0,
             estimated_cost: 0.0,
+            avg_cloud_cost_per_1k: 0.00625,
             models_usage: std::collections::HashMap::new(),
             hardware: crate::telemetry::HardwareSnapshot {
                 cpu_cores: vec![],
