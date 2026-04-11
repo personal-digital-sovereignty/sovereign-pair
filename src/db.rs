@@ -39,7 +39,7 @@ pub async fn init_pool() -> SqlitePool {
     let _ = sqlx::query(include_str!("schemas/001_sensus_init.sql")).execute(&pool).await;
 
     // PATCH 1.2.0 (MULTI-TENANCY): Resgata históricos antigos sem ID e os prende ao Workspace Primário
-    let _ = sqlx::query("UPDATE sensus_chat_sessions SET workspace_id = (SELECT id FROM workspaces LIMIT 1) WHERE workspace_id IS NULL OR workspace_id = ''")
+    let _ = sqlx::query("UPDATE chat_sessions SET workspace_id = '1' WHERE workspace_id IS NULL OR workspace_id = '' OR workspace_id = 'default'")
         .execute(&pool)
         .await;
 
