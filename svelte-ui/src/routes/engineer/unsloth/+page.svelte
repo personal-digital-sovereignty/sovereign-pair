@@ -2,15 +2,18 @@
 import { API_BASE_URL } from '$lib/env_config';
 
     import { onMount } from 'svelte';
-    import { trainerState, fetchTrainerStats, sendUnslothControl } from '$lib/trainer.svelte';
+    import { trainerState, fetchTrainerStats, sendUnslothControl, AI_MODELS, populateTrainerModels } from '$lib/trainer.svelte';
 
     let logs = $state<string[]>([]);
     let eventSource: EventSource;
     let logContainer: HTMLElement;
     let pollingInterval: any;
+    
+    let targetModel = $derived(AI_MODELS.find(m => m.type === 'local')?.id || 'Sovereign-Base-Model');
 
     onMount(() => {
         // Start Global Polling
+        populateTrainerModels();
         fetchTrainerStats();
         pollingInterval = setInterval(fetchTrainerStats, 10000);
 
@@ -93,7 +96,7 @@ import { API_BASE_URL } from '$lib/env_config';
                 <div class="flex justify-between items-start mb-10 pb-6 border-b border-outline-variant/10">
                     <div>
                         <h2 class=" text-3xl font-extrabold text-[#191c1d]">Fine-Tuning Execution</h2>
-                        <p class="text-on-surface-variant text-sm mt-1.5 font-mono font-medium">Llama-3-8B-Instruct-v0.1 • LoRA Adapter: alpha_v2</p>
+                        <p class="text-on-surface-variant text-sm mt-1.5 font-mono font-medium">{targetModel} • LoRA Adapter: alpha_v2</p>
                     </div>
                     <div class="text-right">
                         <div class="text-3xl font-extrabold text-primary">Epoch {trainerState.epochCurrent}/{trainerState.epochTotal}</div>
