@@ -29,6 +29,9 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 - **Sovereign Cognitive Graph (Neural Vault 3D)**: Migração drástica da camada RAG 2D (D3.js estático) para WebGL Imersiva 3D. A UI agora encapsula o motor dinâmico `3d-force-graph` processado de forma assíncrona (Client-Side). Apresenta injeção gráfica de Partículas Direcionais simulando tráfego de RAG ativo, Labels Holográficos `SpriteText`, e `UnrealBloomPass` para volumetria fotônica e Neon Cypherpunk ativo dependente da taxonomia gerada via Hash de Cores.
 - **Distorção Espaço-Tempo (Cyber-Grid)**: O fundo do Painel Cognitivo abandona espaços finitos ou estáticos para abraçar uma Malha WebGL de 3.600 vértices de colisão dinâmica. Alimentado por um `Raycaster` em Svelte, o Mouse projeta Gravidade Localizada e Distorção Senoidal que "dobra" a constelação Matrix conforme a navegação acontece. Acompanhado pelo painel em *Glassmorphism* `Vault Taxonomy HUD` identificando densidade de extensões via reatividade (`$derived`).
 
+### Removed
+- **Projects UI File Attachment**: Removido sumariamente o botão de anexar arquivos (Paperclip) nas caixas de input do **Hub Assistant** e **Project Assistant**. A limpeza reduz a poluição visual, alinhando-se ao fluxo de orquestração purista via RAG e abstrações lógicas no Kanban.
+
 ### Added
 - **Model Operations Matrix (Auto-Discovery)**: Dynamic table replacing static dropdowns. Exposes capability locks (Master, Scribe, Coder) via SQLite, automatically graying out checkboxes based on real-time LLM `supports_tools` and `parameter_size` parsing.
 - **Sovereign System Logs (SSE)**: Native streaming of real-time server events via an `Axum` Server-Sent Events (SSE) `/v1/system/stream-logs` endpoint. Provides a global `Engineer Hub` viewer with auto-scroll and file `.log` export capabilities without polling.
