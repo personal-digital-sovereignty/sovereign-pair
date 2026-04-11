@@ -43,9 +43,9 @@ export const trainerState = $state({
     // Distillation Engine
     distillationEpochs: 3,
     distillationBatchSize: 4,
-    hasOpenAiKey: true,
+    hasOpenAiKey: false,
     hasAnthropicKey: false,
-    datasetSizeCount: 1200000,
+    datasetSizeCount: 0,
     
     // Deep Research Orchestrator
     deepResearchPrompt: "",
@@ -59,16 +59,45 @@ export const trainerState = $state({
     deepResearchModel: "llama3.2:latest"
 });
 
-export const AI_MODELS = [
-    { id: 'qwen2.5:1.5b', name: 'Qwen 2.5 1.5B', type: 'local', provider: 'ollama', sizeB: 1.5, badge: 'Edge Optimized' },
-    { id: 'llama3.2:3b', name: 'Llama 3.2 3B', type: 'local', provider: 'ollama', sizeB: 3, badge: 'Edge Optimized' },
-    { id: 'phi3.5', name: 'Phi-3.5 Mini', type: 'local', provider: 'ollama', sizeB: 3.8, badge: 'Edge Optimized' },
-    { id: 'llama-3-8b', name: 'Llama 3 8B', type: 'local', provider: 'ollama', sizeB: 8, badge: 'Local Server' },
-    { id: 'Dionysus-14B', name: 'Dionysus-14B (Local Edge Pi)', type: 'local', provider: 'sovereign-mesh', sizeB: 14, badge: 'Tier 2 (Advanced)' },
-    { id: 'Nexus-70B', name: 'Nexus-70B (Oracle Cloud GPU)', type: 'local', provider: 'sovereign-mesh', sizeB: 70, badge: 'Tier 1 (Elite)' },
-    { id: 'GPT-4o', name: 'GPT-4o (OpenAI)', type: 'external', provider: 'openai', sizeB: 1000, badge: 'Tier 1 (Elite)' },
-    { id: 'Claude-3.5-Sonnet', name: 'Claude 3.5 Sonnet (Anthropic)', type: 'external', provider: 'anthropic', sizeB: 1000, badge: 'Tier 1 (Elite)' }
-];
+export const AI_MODELS = $state<{ id: string; name: string; type: string; provider: string; sizeB: number; badge: string }[]>([]);
+
+export async function populateTrainerModels() {
+    try {
+        const resMatrix = await fetch(`${API_BASE_URL}/v1/settings/model_capabilities`);
+        let newModels = [];
+        if (resMatrix.ok) {
+            const data = await resMatrix.json();
+            newModels = data.map((m: any) => ({
+                id: m.model_name,
+                name: `${m.model_name} (Local)`,
+                type: 'local',
+                provider: 'ollama',
+                sizeB: m.parameter_size,
+                badge: m.parameter_size >= 7 ? 'Sovereign Node' : 'Edge Optimized'
+            }));
+        }
+
+        // Fetch keys to know if we can show external providers
+        const resSettings = await fetch(`${API_BASE_URL}/v1/settings`);
+        if (resSettings.ok) {
+            const data = await resSettings.json();
+            trainerState.hasOpenAiKey = !!data.openai_api_key;
+            trainerState.hasAnthropicKey = !!data.anthropic_api_key;
+            
+            if (trainerState.hasOpenAiKey) {
+                newModels.push({ id: 'GPT-4o', name: 'GPT-4o (OpenAI)', type: 'external', provider: 'openai', sizeB: 1000, badge: 'Tier 1 (Elite)' });
+            }
+            if (trainerState.hasAnthropicKey) {
+                newModels.push({ id: 'Claude-3.5-Sonnet', name: 'Claude 3.5 Sonnet (Anthropic)', type: 'external', provider: 'anthropic', sizeB: 1000, badge: 'Tier 1 (Elite)' });
+            }
+        }
+        
+        AI_MODELS.splice(0, AI_MODELS.length, ...newModels);
+        
+    } catch(e) {
+        console.error("Failed to populate models:", e);
+    }
+}
 
 export async function fetchTrainerStats() {
     try {
