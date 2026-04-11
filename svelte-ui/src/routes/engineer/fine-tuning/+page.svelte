@@ -4,12 +4,15 @@ import { API_BASE_URL } from '$lib/env_config';
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
     import { onMount, onDestroy } from 'svelte';
-    import { trainerState, exportTrainerConfig, fetchTrainerStats, sendUnslothControl } from '$lib/trainer.svelte';
+    import { trainerState, exportTrainerConfig, fetchTrainerStats, sendUnslothControl, AI_MODELS, populateTrainerModels } from '$lib/trainer.svelte';
+    
+    let targetModel = $derived(AI_MODELS.find(m => m.type === 'local')?.id || 'Sovereign-Base-Model');
 
     let isSubmitting = $state(false);
     let pollingInterval: any;
 
     onMount(() => {
+        populateTrainerModels();
         fetchTrainerStats();
         pollingInterval = setInterval(fetchTrainerStats, 10000);
         return () => clearInterval(pollingInterval);
@@ -23,8 +26,8 @@ import { API_BASE_URL } from '$lib/env_config';
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    base_model: 'Llama-3-8B-Instruct-v0.1',
-                    dataset_name: 'sovereign-hq-rag-dataset-v1',
+                    base_model: targetModel,
+                    dataset_name: `sovereign-hq-${new Date().toISOString().split('T')[0]}-tuning`,
                     learning_rate: trainerState.learningRate,
                     lora_rank: trainerState.loraRank,
                     batch_size: trainerState.batchSize,
