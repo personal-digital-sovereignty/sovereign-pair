@@ -390,15 +390,17 @@ import { API_BASE_URL } from '$lib/env_config';
                     {/each}
                 </div>
 
+                <!-- TODO(v1.3.0 MOCK HIDDEN): Establish New P2P Tunnel via SSH/Wireguard Bindings
                 <button class="mt-2 w-full py-3 rounded-xl border border-dashed border-surface-600 text-surface-300 flex items-center justify-center gap-2 hover:bg-surface-800 transition-colors cursor-pointer">
                     <GlobeLock class="w-4 h-4" />
                     <span>Establish New P2P Tunnel</span>
                 </button>
+                -->
             </div>
             {/if}
         </section>
 
-        <!-- CARD 3: Fallback Cloud OCI -->
+        <!-- CARD 3: Fallback Cloud OCI (v1.3.0 MOCK HIDDEN)
         <section class="bg-surface-800/80 backdrop-blur-md rounded-2xl border border-surface-700/50 overflow-hidden shadow-lg transition-all duration-300">
             <button class="w-full flex items-center justify-between p-5 text-left hover:bg-surface-700/30 cursor-pointer" onclick={() => toggleCard('cloud')}>
                 <div class="flex items-center gap-4">
@@ -419,9 +421,9 @@ import { API_BASE_URL } from '$lib/env_config';
                     <input type="text" placeholder="OCI Public IP" class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2 text-surface-200 outline-none focus:border-primary-500 transition-colors">
                     <input type="password" placeholder="OCI Secret Key Path" class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2 text-surface-200 outline-none focus:border-primary-500 transition-colors">
                 </div>
-            </div>
             {/if}
         </section>
+        -->
 
         <!-- CARD 4: Sovereign Core (AI Engine) -->
         <section class="bg-surface-800/80 backdrop-blur-md rounded-2xl border border-surface-700/50 overflow-hidden shadow-lg transition-all duration-300">
@@ -586,7 +588,7 @@ import { API_BASE_URL } from '$lib/env_config';
             {/if}
         </section>
 
-        <!-- CARD 5: Sovereign Cold Storage (Offline Datasets) -->
+        <!-- CARD 5: Sovereign Cold Storage (Offline Datasets MOCK v1.3.0 HIDDEN)
         <section class="bg-surface-800/80 backdrop-blur-md rounded-2xl border border-teal-500/30 overflow-hidden shadow-[0_0_20px_rgba(20,184,166,0.05)] transition-all duration-300 relative mt-2">
             <!-- Active Glow Indicator -->
             <div class="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 blur-[50px] pointer-events-none"></div>
@@ -653,9 +655,9 @@ import { API_BASE_URL } from '$lib/env_config';
                     <span>Sincronizar Índices Offline com o Vault</span>
                 </button>
 
-            </div>
             {/if}
         </section>
+        -->
 
         <!-- CARD 6: SecOps API Vault -->
         <section class="bg-surface-800/80 backdrop-blur-md rounded-2xl border border-rose-500/30 overflow-hidden shadow-[0_0_20px_rgba(244,63,94,0.05)] transition-all duration-300 relative mt-2">
