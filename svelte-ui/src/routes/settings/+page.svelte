@@ -421,6 +421,7 @@ import { API_BASE_URL } from '$lib/env_config';
                     <input type="text" placeholder="OCI Public IP" class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2 text-surface-200 outline-none focus:border-primary-500 transition-colors">
                     <input type="password" placeholder="OCI Secret Key Path" class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2 text-surface-200 outline-none focus:border-primary-500 transition-colors">
                 </div>
+            </div>
             {/if}
         </section>
         -->
@@ -654,7 +655,7 @@ import { API_BASE_URL } from '$lib/env_config';
                     <SlidersHorizontal class="w-4 h-4" />
                     <span>Sincronizar Índices Offline com o Vault</span>
                 </button>
-
+            </div>
             {/if}
         </section>
         -->
