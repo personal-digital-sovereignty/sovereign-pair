@@ -5,6 +5,7 @@ export const telemetryState = $state({
     tokensPerSecond: 0.0,
     avgLatencyMs: 0,
     estimatedCost: 0,
+    avgCloudCostPer1k: 0.00625,
     activeModel: 'Not Loaded',
     cpuCores: [] as number[],
     ramUsageMB: 0,
@@ -47,6 +48,7 @@ export function connectTelemetry() {
                 telemetryState.tokensPerSecond = data.avg_tps || 0;
                 telemetryState.avgLatencyMs = data.avg_latency_ms || 0;
                 telemetryState.estimatedCost = data.estimated_cost || 0;
+                telemetryState.avgCloudCostPer1k = data.avg_cloud_cost_per_1k || 0.00625;
                 telemetryState.modelsUsage = data.models_usage || {};
                 telemetryState.historicalModels = data.historical_models || [];
                 telemetryState.contentGaps = data.content_gaps || [];
