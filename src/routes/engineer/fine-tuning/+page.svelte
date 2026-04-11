@@ -131,7 +131,7 @@ import { API_BASE_URL } from '$lib/env_config';
                 </div>
             </section>
 
-            <!-- Unsloth Monitor Mini Section -->
+            <!-- Unsloth Monitor Mini Section (v1.3.0 MOCK HIDDEN)
             <section class="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/10 shadow-sm">
                 <div class="flex justify-between items-center mb-8">
                     <div class="flex items-center gap-4">
@@ -199,13 +199,14 @@ import { API_BASE_URL } from '$lib/env_config';
                     </a>
                 </div>
             </section>
+            -->
         </div>
 
         <!-- Section 3: Right Sidebar Column -->
         <div class="xl:col-span-5 space-y-8">
             
             <!-- Alignment Metrics -->
-            <!-- Unsloth Native Configuration -->
+            <!-- Unsloth Native Configuration (v1.3.0 MOCK HIDDEN)
             <section class="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/10 shadow-sm">
                 <div class="flex items-center gap-3 mb-8">
                     <span class="material-symbols-outlined text-secondary text-[24px]">memory</span>
@@ -240,6 +241,7 @@ import { API_BASE_URL } from '$lib/env_config';
                     </div>
                 </div>
             </section>
+            -->
 
             <!-- Perfection Controls & Reflection Lab -->
             <section class="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/10 shadow-sm">
@@ -282,7 +284,7 @@ import { API_BASE_URL } from '$lib/env_config';
                     </div>
                 </div>
 
-                <!-- Reflection Lab Mini -->
+                <!-- Reflection Lab Mini (v1.3.0 MOCK HIDDEN)
                 <div class="mt-8 pt-6 border-t border-outline-variant/20">
                     <h3 class="text-xs font-bold text-on-surface mb-4 uppercase tracking-widest ">Reflection Lab</h3>
                     <div class="bg-surface p-5 rounded-2xl mb-4 border border-outline-variant/10">
@@ -318,6 +320,7 @@ import { API_BASE_URL } from '$lib/env_config';
                         Visualize Reasoning Chain
                     </a>
                 </div>
+                -->
             </section>
         </div>
     </div>
