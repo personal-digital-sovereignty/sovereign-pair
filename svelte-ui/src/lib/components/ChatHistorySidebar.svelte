@@ -33,15 +33,18 @@ import { API_BASE_URL } from '$lib/env_config';
     }
 
     let isMounted = false;
+    let previousWorkspaceId = globalState.activeWorkspaceId;
+
     onMount(() => {
         isMounted = true;
         fetchSessions();
     });
 
     $effect(() => {
-        const _trigger = globalState.activeWorkspaceId;
+        const currentWorkspaceId = globalState.activeWorkspaceId;
         untrack(() => {
-            if (isMounted) {
+            if (isMounted && previousWorkspaceId !== currentWorkspaceId) {
+                previousWorkspaceId = currentWorkspaceId;
                 createNewSession();
                 fetchSessions();
             }
