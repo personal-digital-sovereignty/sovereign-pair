@@ -156,7 +156,7 @@ export async function sendUnslothControl(action: 'play' | 'pause' | 'stop') {
 // JSON Export Aggregator for File I/O
 export function exportTrainerConfig() {
     const payload = {
-        model: "Llama-3-8B-Instruct-v0.1",
+        model: AI_MODELS.find(m => m.type === 'local')?.id || "Sovereign-Base-Model",
         version: "0.9.9",
         timestamp: new Date().toISOString(),
         config: {
@@ -187,7 +187,7 @@ export function getSelfCorrectRatio() {
 
 export function exportReflectionLogs(liveStreamData: any[] = []) {
     const payload = {
-        model: "Llama-3-8B-Instruct-v0.1",
+        model: AI_MODELS.find(m => m.type === 'local')?.id || "Sovereign-Base-Model",
         version: "0.9.9",
         timestamp: new Date().toISOString(),
         reflection_state: {
