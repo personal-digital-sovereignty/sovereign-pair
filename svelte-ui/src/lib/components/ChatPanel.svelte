@@ -166,7 +166,7 @@ import { API_BASE_URL } from '$lib/env_config';
             {@const thoughtsMatch = msg.text.match(/<thought>([\s\S]*?)(?:<\/thought>|$)/g) || []}
             {@const thoughts = thoughtsMatch.map((t: string) => t.replace(/<\/?thought>/g, '').trim())}
             {@const cleanText = msg.text.replace(/<thought>[\s\S]*?(?:<\/thought>|$)/g, '').trim()}
-            <div class="flex flex-col max-w-3xl group {msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}">
+            <div class="flex flex-col w-full max-w-4xl xl:max-w-5xl 2xl:max-w-7xl group {msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}">
                 <div class="flex items-center gap-2 mb-1.5 px-1">
                     {#if msg.role === 'assistant'}
                         <div class="relative w-7 h-7 rounded-full flex items-center justify-center shrink-0">
@@ -260,7 +260,7 @@ import { API_BASE_URL } from '$lib/env_config';
         {/if}
         <form 
             onsubmit={(e) => { e.preventDefault(); handleSend(); }}
-            class="max-w-4xl mx-auto flex flex-col bg-white dark:bg-[#0c1324] border border-slate-300 dark:border-[#424859]/50 rounded-xl overflow-hidden focus-within:border-blue-500 dark:focus-within:border-[#74b0ff] focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-[#74b0ff]/20 transition-all shadow-sm dark:shadow-none"
+            class="w-full max-w-5xl xl:max-w-6xl 2xl:max-w-[85%] mx-auto flex flex-col bg-white dark:bg-[#0c1324] border border-slate-300 dark:border-[#424859]/50 rounded-xl overflow-hidden focus-within:border-blue-500 dark:focus-within:border-[#74b0ff] focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-[#74b0ff]/20 transition-all shadow-sm dark:shadow-none"
         >
             <input type="file" bind:this={fileInput} onchange={handleFileUpload} class="hidden" />
             
