@@ -723,15 +723,15 @@ pub async fn run_deep_research_handler(
         let mut all_sources = Vec::new();
         let mut has_failed_tools = false;
         
-        // --- THE WORKER GRAPH LOOP (MAX 5 STAGES: GATHER, ANALYZE, SYNTHESIZE) ---
-        for cycle in 1..=5 {
+        // --- THE WORKER GRAPH LOOP (MAX 10 STAGES: GATHER, ANALYZE, SYNTHESIZE) ---
+        for cycle in 1..=10 {
             if wait_or_cancel(200, &token).await { return; }
             
             // --- G.2: DYNAMIC RAG INJECTOR (LOCAL VAULT) ---
             // A Mom não raspa a web ativamente. A web e orquestração ativa ficam exclusivas do Grafo da Mente Mestra.
             // Para injetar dados do DB (memória/vault) estaticamente, este seria o local.
             
-            let _ = TRAINER_LOGS.send(format!("[Worker Graph - Stage {}/5] Invocando Mente Mestra ({})...", cycle, target_model_name));
+            let _ = TRAINER_LOGS.send(format!("[Worker Graph - Stage {}/10] Invocando Mente Mestra ({})...", cycle, target_model_name));
 
             let mut synthesis_payload = serde_json::json!({
                 "model": target_model_name,
@@ -745,7 +745,7 @@ pub async fn run_deep_research_handler(
                 }
             });
 
-            if cycle < 5 {
+            if cycle < 10 {
                 synthesis_payload["tools"] = tools_schema.clone();
             } else {
                 let _ = TRAINER_LOGS.send("[Final Synthesis] Ferramentas desativadas. Forçando Mestre LLM a gerar Markdown Final de Síntese sem interrupções.".to_string());
@@ -1466,6 +1466,21 @@ pub async fn run_deep_research_handler(
                                 }
 
                                 let _ = TRAINER_LOGS.send(format!("[Thought Nanny] Falha Estrutural do Mestre: O modelo não gerou chamadas formatadas. Disciplinando sintaxe...\n[DEBUG RAW LLM CONTENT]:\n{}", content));
+                                
+                                // Grava a alucinação estrutural/sintática no Ledger para a Telemetria da UI
+                                if let Some(pool) = &engine_arc.db_pool {
+                                    let uuid_str = uuid::Uuid::new_v4().to_string();
+                                    let pool_clone = pool.clone();
+                                    let target_clone = target_model_name.clone();
+                                    tokio::spawn(async move {
+                                        let _ = sqlx::query("
+                                            INSERT INTO model_hallucinations (id, model_name, lies_detected, queries_processed, last_lied_at)
+                                            VALUES (?, ?, 1, 1, CURRENT_TIMESTAMP)
+                                            ON CONFLICT(id) DO UPDATE SET lies_detected = lies_detected + 1, queries_processed = queries_processed + 1, last_lied_at = CURRENT_TIMESTAMP
+                                        ").bind(uuid_str).bind(&target_clone).execute(&pool_clone).await;
+                                    });
+                                }
+
                                 messages.push(msg_obj.clone());
                                 messages.push(serde_json::json!({
                                     "role": "user",
