@@ -25,6 +25,7 @@ import { API_BASE_URL } from '$lib/env_config';
         is_coder: boolean;
         is_chat: boolean;
         is_project: boolean;
+        is_installed: boolean;
     }
 
     let modelMatrix = $state<ModelMatrixRow[]>([]);
@@ -461,7 +462,6 @@ import { API_BASE_URL } from '$lib/env_config';
                             <tbody class="divide-y divide-surface-700/50">
                                 {#each modelMatrix as row}
                                     <tr class="hover:bg-surface-700/20 transition-colors">
-                                        <td class="px-4 py-3">
                                         <td class="px-4 py-3">
                                             <div class="font-medium {row.is_installed ? 'text-surface-100' : 'text-surface-500 line-through decoration-surface-500/50'}">{row.model_name}</div>
                                             <div class="text-xs text-surface-500 flex flex-wrap gap-2 mt-1 items-center">
