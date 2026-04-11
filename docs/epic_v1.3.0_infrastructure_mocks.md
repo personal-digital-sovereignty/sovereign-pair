@@ -55,3 +55,16 @@ Em vez de comentários HTML, o ocultamento foi feito nativamente via Árvore Sin
 {/if}
 ```
 Isso foi feito propositalmente pois comentários HTML tradicionais quebram a validação dos fechamentos das tags intrínsecas de lógica do próprio Svelte `{#if...} {/each}`, engolindo blocos e engatilhando erros do tipo `Unexpected block closing tag` e `element_invalid_closing_tag`. O uso de `{#if false}` garante que os nós de HTML continuem estritamente válidos perante o `svelte-check`, mantendo as referências CSS escopadas e a checagem de tipos (TypeScript) seguras, enquanto garante absoluta invisibilidade visual ao usuário. O Tech Debt está seguro em *hibernação de código*.
+
+---
+
+## 4. Requirement Gap: Escalonamento Dinâmico de Janela de Contexto (Token Limit)
+**Desafio Computacional Identificado visando Cross-Hardware Support:**
+Atualmente (v1.2.0), o Sovereign Pair roda confortavelmente alocando até `12.000 tokens` contínuos na janela de contexto de orquestração purista, presumindo instâncias abastadas com **32GB de RAM/VRAM** e alta tolerância térmica. 
+
+Para a **v1.3.0**, o engine deve incorporar um Scanner Dinâmico (Daemon) de hardware durante a inicialização (ou via Heartbeat do `Hardware Telemetry`) para **calcular limites seguros de tokens (Context Window) baseados na totalidade de RAM livre da máquina-hospedeira**.
+- Computadores de `8GB`: Limitação agressiva para `4096 tokens`.
+- Computadores de `16GB`: Balanceamento em `8192 tokens`.
+- Computadores de `24GB+`: Permissão de janelas brutas de `12.000` a `16.000 tokens`.
+
+Esse teto deverá atuar não apenas como "Dica Visual", mas como trava mecânica no motor de Inferência e na limitação dos tensores injetados via Ollama, protegendo usuários com menos condições de sofrerem com OOM (Out-of-Memory) Kills e travamentos de sistema (Kernel Panic / Soft Lock).

@@ -114,3 +114,18 @@ Módulo de reportagem retroativa para contabilização estatística pesada do us
 
 ### O Fator Soberano
 O Sovereign Pair foi moldado com a intenção impiedosa de exterminar o comodismo opaco de Big-Techs, resgatando as rédeas vitais das suas mãos. Nada nesta UI é um *Dashboard de Vaidade*. Deslizar um botão implica invocar motores Rust blindados no fundo do seu HD. O controle absoluto não está apenas garantido, ele é o protocolo fundamental em operação.
+
+---
+
+## 6. Otimização de Hardware e S.O. Linux (A Armadilha do ZRAM)
+
+Quando operamos LLMs massivos locais (Ollama/llama.cpp), frequentemente ultrapassamos a capacidade nominal de RAM operando na "borda" (ex: 21GB/24GB). Sistemas modernos como Fedora, Ubuntu e Arch Linux trazem ativos geradores de **ZRAM** (Virtual Swap Compactado) acoplados a taxas agressivas de `swappiness` (como 133). 
+
+**Ponto de Atenção Crítica para Engenharia Cíbrida:**
+- **Pesos (GGUFs) de Modelos de IA são conjuntos de dados altamente quantizados e pseudo-aleatórios**. Eles são *matematicamente incomprimíveis*. 
+- Caso o Kernel tente evacuar um modelo em cache para o ZRAM no pico de pressão de memória, o algoritmo `zstd` irá disparar os ciclos de CPU para 100%, fritará o I/O tentando descompactar e compactar pó, falhará por falta de compressão possível, e despencará sua taxa de tokens para `0.1 T/s`.
+- Além de destruir o desempenho sem liberar espaço legítimo, isso estrangula a orquestração do Rust. O temor de usar Swift Swap em SSD (TBW - Toaster) não justifica a manutenção desse vilão compactador em nós de IA puristas com mais de 16GB de RAM.
+
+**Nossa Diretriz Oficial ("Keep It Simple"):**
+Na Arquitetura `v1.2.0`, implementamos o **Sovereign Swap (Memory GC)** (Evacuação Assíncrona Ativa e Mlock) via API, sem delegar falhas ao SO. 
+Recomendamos veementemente que **desative a ZRAM** na máquina hospedeira do Engine e despenque sua `vm.swappiness` para perto de 10 garantindo que o hardware opere LLMs nus, sem taxação inútil de Virtualização de Memória.
