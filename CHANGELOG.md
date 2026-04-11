@@ -5,7 +5,7 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
-## [1.2.0] - UNRELEASED
+## [1.2.0] - 2026-04-11
 *Sovereign Swap (Memory GC), Capability Routing & Orchestration Parity*
 
 ### Fixed
@@ -25,6 +25,10 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 - **Distorção Espaço-Tempo (Cyber-Grid)**: O fundo do Painel Cognitivo abandona espaços finitos ou estáticos para abraçar uma Malha WebGL de 3.600 vértices de colisão dinâmica. Alimentado por um `Raycaster` em Svelte, o Mouse projeta Gravidade Localizada e Distorção Senoidal que "dobra" a constelação Matrix conforme a navegação acontece. Acompanhado pelo painel em *Glassmorphism* `Vault Taxonomy HUD` identificando densidade de extensões via reatividade (`$derived`).
 
 ### Added
+- **Model Operations Matrix (Auto-Discovery)**: Dynamic table replacing static dropdowns. Exposes capability locks (Master, Scribe, Coder) via SQLite, automatically graying out checkboxes based on real-time LLM `supports_tools` and `parameter_size` parsing.
+- **Sovereign System Logs (SSE)**: Native streaming of real-time server events via an `Axum` Server-Sent Events (SSE) `/v1/system/stream-logs` endpoint. Provides a global `Engineer Hub` viewer with auto-scroll and file `.log` export capabilities without polling.
+- **Macro-Data Forward Filling (`ffill`)**: Pandas integration inside Python Proxies applying Temporal Forward Filling (`resample('ME').last().ffill()`), bridging dataset gaps in semi-annual variables (Gasoline/Prices) for pristine data ingestion.
+- **SGS PTAX Fallbacks**: Native fallback mapping (`3698`) injected directly to Python router for robust spot vs average USD/BRL variance calculation on Agentic Deep Research tasks.
 - **Dynamic API Schema Registry**: Engine base64 compiler automatically injects dynamic schema definitions (`engine_schema_matrix`) directly to the LLM context.
 - **Academic Network Integration**: `academic_matrix.py` (via `fetch_academic_papers`) to query arXiv, PubMed, and NASA TRS directly into the engine memory buffer.
 - **Engineering Network Integration**: `engineering_matrix.py` (via `fetch_engineering_docs`) to query StackExchange and Github natively for production-level cloud problem solving.
