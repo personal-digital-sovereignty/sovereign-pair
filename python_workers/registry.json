@@ -252,7 +252,7 @@
         "type": "function",
         "function": {
             "name": "fetch_cultural_data",
-            "description": "Extrator massivo de cultura pop, artes e entretenimento. Acessa as bibliotecas TMDB (Filmes/Séries), IGDB (Jogos) e MusicBrainz (Música). As restrições de limite de acesso (Rate Limits) para opções corporativas são mitigadas automaticamente pelo motor caso o Usuário não possua chave.",
+            "description": "Extrator massivo de cultura pop, artes e entretenimento. Acessa as bibliotecas TMDB (Filmes/Séries), RAWG (Jogos), MusicBrainz (Música) e Wikipedia. As restrições de limite de acesso (Rate Limits) para opções corporativas são mitigadas automaticamente pelo motor caso o Usuário não possua chave.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -264,7 +264,7 @@
                     "sources": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "O repositório cultural correspondente (ex: ['TMDB', 'IGDB', 'MusicBrainz', 'TheMet'])."
+                        "description": "O repositório cultural correspondente (ex: ['TMDB', 'RAWG', 'MusicBrainz', 'TheMet', 'WIKIPEDIA'])."
                     }
                 },
                 "required": ["queries", "sources"]
@@ -285,6 +285,7 @@
                     }
                 },
                 "required": ["query"]
+            }
         }
     },
     {

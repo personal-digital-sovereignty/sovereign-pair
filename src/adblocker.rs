@@ -45,8 +45,10 @@ pub fn start_adblock_daemon(
         while let Some(msg) = rx.blocking_recv() {
             match msg {
                 AdblockMessage::Check { url, reply } => {
-                    // Passa 'document' para que filtros third-party (Analytics) não bloqueiem domínios raiz inteiros (Ex: cnn.com)
-                    let check_req = adblock::request::Request::new(&url, &url, "document").unwrap_or_else(|_| adblock::request::Request::new("http://fallback", "http://fallback", "document").unwrap());
+                    // Cíbrid Fix: Se enviarmos a mesma URL como origem e destino usando "document", regras de $third-party são ignoradas.
+                    // Falsificamos a origem para agir como se o motor Cíbrido (third-party) estivesse carregando um resource.
+                    let check_req = adblock::request::Request::new(&url, "https://sovereign.cibrid", "script")
+                        .unwrap_or_else(|_| adblock::request::Request::new("http://fallback", "http://fallback", "script").unwrap());
                     let result = engine.check_network_request(&check_req);
                     let _ = reply.send(result.matched);
                 },
