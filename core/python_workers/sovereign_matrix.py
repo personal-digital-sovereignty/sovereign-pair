@@ -242,10 +242,30 @@ def fetch_macro(indicator, country, years):
             
             data_arr = proxy_data.get("data", [])
             data_lines = []
-            for item in data_arr:
-                date_str = normalize_date(item.get("date", ""))
-                val = item.get("value", item.get("close", ""))
-                data_lines.append(f"{date_str} | {val}")
+            if len(data_arr) > 0:
+                try:
+                    import pandas as pd
+                    df = pd.DataFrame(data_arr)
+                    # Support multiple date keys
+                    if 'date' in df.columns:
+                        df['date_col'] = pd.to_datetime(df['date'], errors='coerce')
+                    else:
+                        df['date_col'] = pd.to_datetime(df.index, errors='coerce')
+                        
+                    val_col = 'value' if 'value' in df.columns else 'close' if 'close' in df.columns else None
+                    if val_col and df['date_col'].notna().any():
+                        df = df.set_index('date_col').resample('ME').last().ffill()
+                        
+                        for idx, row in df.iterrows():
+                            val = row[val_col]
+                            if pd.notna(val):
+                                data_lines.append(f"{idx.strftime('%Y-%m')} | {round(float(val),2)}")
+                except Exception as e:
+                    # Fallback to crude extraction if Pandas fails
+                    for item in data_arr:
+                        date_str = normalize_date(item.get("date", ""))
+                        val = item.get("value", item.get("close", ""))
+                        data_lines.append(f"{date_str} | {val}")
                 
             ctx_header = f"[CONTEXT: DADOS HISTÓRICOS BRUTOS REFERENTES AO MACRO INDICADOR {indicator.upper()}]\n"
             data_compressed = ctx_header + "\n".join(data_lines)
