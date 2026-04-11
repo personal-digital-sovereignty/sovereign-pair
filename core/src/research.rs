@@ -468,6 +468,18 @@ impl DeepResearchEngine {
         
         // Vamos capturar apenas elementos atômicos contendo texto orgânico e dados tabulares
         let selector = Selector::parse("p, h1, h2, h3, h4, h5, h6, li, td, th").unwrap();
+        // Conta e reporta quantos rastreadores explícitos foram obliterados fisicamente da VRAM
+        let ad_count = document.select(&Selector::parse("script, iframe, aside, noscript, dialog").unwrap()).count();
+        if ad_count > 0 {
+            if let Some(pool) = self.db_pool.clone() {
+                tokio::spawn(async move {
+                    let _ = sqlx::query("UPDATE analytics SET val_int = val_int + ? WHERE id = 'total_trackers_blocked'")
+                        .bind(ad_count as i32)
+                        .execute(&pool)
+                        .await;
+                });
+            }
+        }
         
         for element in document.select(&selector) {
             // Filtro 1: Genética (Ancestors)
