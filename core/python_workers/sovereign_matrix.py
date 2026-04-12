@@ -58,7 +58,7 @@ def fetch_finance(ticker, years):
     
     semantic_name = ticker
     if ticker.upper() == 'BRENT':
-        ticker = 'BZ=F'
+        ticker = 'CB=F' # Bugfix 1.2.0: Troca de BZ=F (Futuro com prêmio) para CB=F (Spot Brent ICE)
         semantic_name = 'Barril de Petróleo (BRENT Crude)'
     elif ticker.upper() == 'WTI':
         ticker = 'CL=F'
@@ -138,7 +138,7 @@ def fetch_finance(ticker, years):
         sys.exit(1)
         
     converted_to_brl = False
-    if ticker in ['BZ=F', 'CL=F']:
+    if ticker in ['CB=F', 'CL=F']:
         # Fetch BRL=X to do Currency Conversion
         df_usd = pd.DataFrame()
         try:
@@ -290,9 +290,9 @@ def fetch_macro(indicator, country, years):
         "SELIC": 432,
         "IGPM": 189,
         "INPC": 188,
-        "DOLAR_PTAX": 3698,
-        "CAMBIO": 3698,
-        "USD": 3698,
+        "DOLAR_PTAX": 800, # Bugfix 1.2.0: PTAX de Venda Institucional (Commodities) ao invés de Livre Compra Fim de Período
+        "CAMBIO": 800,
+        "USD": 800,
         "ANP_OCORRENCIA": 1393,
         "ANP_PRODUCAO": 1393,
         "PETROLEO_SGS": 1393
