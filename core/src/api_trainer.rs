@@ -1582,7 +1582,7 @@ pub async fn run_deep_research_handler(
                     "raw_data_blocks": all_sources
                 });
                 let payload_str = joiner_payload.to_string();
-                let joiner_path = std::env::current_dir().unwrap_or_default().join("python_workers").join("sovereign_joiner.py");
+                let joiner_path = std::env::current_dir().unwrap_or_default().join("python_workers").join("analyze_and_join_time_series.py");
                 
                 if joiner_path.exists() {
                     let mut cmd = std::process::Command::new("python3");
