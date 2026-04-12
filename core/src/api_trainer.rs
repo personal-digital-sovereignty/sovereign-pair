@@ -1572,12 +1572,55 @@ pub async fn run_deep_research_handler(
         // BUGFIX: Apenas contaminar com 'FATOS BRUTOS' colados crus no final se o Scribe for formatar (Low-End model).
         // Se o Master for Alto Gabarito, ele já emitiu o Markdown limpo e isso não deve vazar pro usuário final.
         if !all_sources.is_empty() {
+            let mut final_raw_dump = all_sources.join("\n\n=== FACTUAL BORDER ===\n\n");
+            
+            // [SYMBIOTIC PIPELINE INTERCEPTOR]
+            // Se houver múltiplas fontes espaciais, acionamos a marreta matemática do Pandas.
+            if all_sources.len() > 1 {
+                let _ = TRAINER_LOGS.send("[Sovereign Symbiose] Múltiplos Fatos Brutos Detectados! Acionando Data Engineering (Pandas) sob os panos...".to_string());
+                let joiner_payload = serde_json::json!({
+                    "raw_data_blocks": all_sources
+                });
+                let payload_str = joiner_payload.to_string();
+                let joiner_path = std::env::current_dir().unwrap_or_default().join("python_workers").join("sovereign_joiner.py");
+                
+                if joiner_path.exists() {
+                    let mut cmd = std::process::Command::new("python3");
+                    cmd.arg(&joiner_path);
+                    
+                    use std::io::Write;
+                    cmd.stdin(std::process::Stdio::piped())
+                       .stdout(std::process::Stdio::piped())
+                       .stderr(std::process::Stdio::piped());
+                       
+                    if let Ok(mut child) = cmd.spawn() {
+                        if let Some(mut stdin) = child.stdin.take() {
+                            let _ = stdin.write_all(payload_str.as_bytes());
+                        }
+                        if let Ok(output) = child.wait_with_output() {
+                            if output.status.success() {
+                                let out_str = String::from_utf8_lossy(&output.stdout);
+                                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&out_str) {
+                                    if let Some(mkd) = parsed.get("markdown").and_then(|m| m.as_str()) {
+                                        let _ = TRAINER_LOGS.send("[Data Engineering] Fusão Matemática via Pandas e Correlação (Pearson) Concluída!".to_string());
+                                        final_raw_dump = format!("{}\n\n=== FACTUAL BORDER ===\n\n[LOG INTERNO OLLAMA]\nNós recebemos múltiplas requisições assíncronas de você. O nosso motor Rust processou e fundiu todas elas magicamente usando DataFrames. Você NÃO precisa e NÃO DEVE tentar cruzar as linhas manualmente. Apenas contemple a tabela perfeita abaixo e redija sua síntese.\n\n{}", final_raw_dump, mkd);
+                                    }
+                                }
+                            } else {
+                                let err_str = String::from_utf8_lossy(&output.stderr);
+                                let _ = TRAINER_LOGS.send(format!("[Data Engineering] Falha no Join Temporal silenciada. Fallback para Texto Bruto. ({})", err_str.trim()));
+                            }
+                        }
+                    }
+                }
+            }
+
             if synthesized_report.trim().is_empty() {
                 let _ = TRAINER_LOGS.send("[Agentic Loop] O Mestre finalizou o limite de chamadas sem sintetizar a resposta. Dump direto ativado para o Scribe.".to_string());
-                synthesized_report = all_sources.join("\n\n=== FACTUAL BORDER ===\n\n");
+                synthesized_report = final_raw_dump;
             } else {
-                // Junta o que o mestre falou com os fatos brutos para a formatação final do Scribe
-                synthesized_report = format!("{}\n\n=== FATOS BRUTOS MANTIDOS EM MEMÓRIA ===\n\n{}", synthesized_report, all_sources.join("\n\n=== FACTUAL BORDER ===\n\n"));
+                // Junta o que o mestre falou com os fatos brutos formatados
+                synthesized_report = format!("{}\n\n=== FATOS BRUTOS MANTIDOS EM MEMÓRIA ===\n\n{}", synthesized_report, final_raw_dump);
             }
         }
 
