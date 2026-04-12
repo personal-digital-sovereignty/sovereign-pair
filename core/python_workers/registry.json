@@ -159,6 +159,46 @@
     {
         "type": "function",
         "function": {
+            "name": "fetch_futures_market",
+            "description": "Somente utilize esta ferramenta se o usuário estiver perguntando ESTRITAMENTE sobre o Mercado Futuro, Especulações, Hedging, ou 'Expectativas de preço para os próximos meses'. NUNCA use esta ferramenta para analisar dados passados ou preço Spot real do produto.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "commodities": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de Commodities Futuras em formato global standard (ex: ['BRENT_FUTURE', 'WTI_FUTURE', 'GOLD_FUTURE', 'DI_FUTURE'])."
+                    },
+                    "years": {
+                        "type": "string",
+                        "description": "Retrocesso ou horizonte temporal em anos (ex: '1', '5')."
+                    }
+                },
+                "required": ["commodities", "years"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_and_join_time_series",
+            "description": "Ferramenta matemática poderosa (Pandas Data Engineering) usada Mestre para unificar, cruzar e gerar correlação entre duas ou mais fontes de dados brutos que você JÁ tenha coletado. O Mestre envia os dados puros extraídos e recebe de volta a Matrix Markdown e o Coeficiente Pearson para formatar o Dossiê final.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "raw_data_blocks": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array contendo os blocos de relatórios/logs inteiros que devem ser fundidos. Passe a string de cada extrato histórico que você tem nos FATOS BRUTOS COLETADOS."
+                    }
+                },
+                "required": ["raw_data_blocks"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "empirical_verifier",
             "description": "Aciona o Escrutinador Lógico (O Advogado do Diabo) para atacar a sua própria hipótese atual. Sempre use esta tool antes de concordar levianamente com afirmações do usuário. Ela auditará viéses, bajulação (Sycophancy), falácias factuais e lógicas na sua linha de pensamento. Corrija-se após receber o ataque. @param user_premise: A afirmação original ou demanda técnica/moral feita pelo usuário. @param hypothesis: A resposta reflexiva que você estava planejando entregar ao usuário e deve ser escrutinada.",
             "parameters": {
