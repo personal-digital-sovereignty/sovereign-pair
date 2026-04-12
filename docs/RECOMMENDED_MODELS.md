@@ -103,3 +103,31 @@ Treinado com volume colossal de dados do mundo real em 100 idiomas e raciocínio
 #### 🔴 Cenário B: 8 GB de RAM (Notebooks e PC Doméstico)
 **MANTENHA APENAS O QWEN 3 (8B).**
 O Phi-4 de 14B levará seu sistema aos limites da morte via paginação de disco (Swap freezing), gerando 1-2 tokens por segundo travando a UI do Sovereign. Concentre-se exclusivamente no `qwen3:8b` e exija *"Pense passo a passo..."* quando ele esbarrar em obstáculos, garantindo fluidez e integridade mental no kernel.
+
+---
+
+## 🧩 Matriz de Micro-Orquestração (3B - 4B) e Guardrails RAG
+
+Para garantir paralelismo agêntico em servidores e notebooks com restrição de VRAM sem abrir mão da precisão, o Sovereign Pair suporta uma topologia descentralizada de micro-modelos. A tabela abaixo reflete a **arquitetura de eleição em produção** para os nós internos da Pipeline.
+
+| Estágio RAG | Modelo Designado | Justificativa Matriz |
+| :--- | :--- | :--- |
+| **Porteiro / Front Desk** | `llama3.2:3b` ou `nous-hermes3:3b` | Extremo TTFT (Time To First Token ~100ms). Sem overhead cognitivo para routing de intenção. |
+| **Extrator Primário** | `gemma3:4b` | Força massiva e fidelidade em leitura de documentos RAG e grounding. |
+| **Raciocínio / CoT** | `qwen3:4b` *(Thinking ON)* | Maestria em multi-hop e decomposição de problemas dinâmicos. |
+| **Árbitro Numérico** | `phi4-mini:3.8b` | Excelência bruta em matemática fria com seguimento de Schema JSON impecável. |
+| **Auditor Adversarial** | `phi4-mini:3.8b` ou `gemma3:4b` | Heterogeneidade arquitetural (Sycophancy Breaker). |
+
+### 🛡️ Guardrails de Escalonamento no Pipeline
+
+1. **Gatekeeping Fallback (O Porteiro Escorrega):**
+   * *Gatilho:* Quando o `llama3.2:3b` demonstra confusão em Edge Cases ou múltiplas intenções do usuário falhando na inferência da tool correta.
+   * *Escalonamento:* Substitua pelo `nous-hermes3:3b`. O fine-tune da NousResearch eleva radicalmente a precisão no Agentic Dispatch mantendo a mesma classe paramétrica/leveza.
+
+2. **O Dilema de Latência do Raciocínio Híbrido:**
+   * *Gatilho:* Se o seu nó de Extração e Estruturação for baseado no Qwen3, a Engine poderá paralisar a latência da interface gerando pensamentos não solicitados.
+   * *Escalonamento:* Empregue a diretiva `/no_think` no System Prompt (ou `enable_thinking=False` no Payload YAML). O corte imediato da cadeia de reflexões hibridas o fará operar com TTFT ultrarrápido igualando-se aos Llama 3.2. Exija `Thinking ON` apenas no Raciocínio Multi-hop.
+
+3. **Trava de Viés Confirmatório (Sycophancy Breaker):**
+   * *Gatilho:* Em ciclos de Empirical Verifier (Auditor do Diabo), a escolha do Modelo Auditor.
+   * *Regra de Ferro:* Um modelo auditor deve SEMPRE pertencer a uma "árvore de família" (Dataset) diferente de quem gerou a resposta principal. Se o seu Scribe primário for o `qwen3:8b`, delegue estritamente a auditoria para o `phi4-mini:3.8b` ou `gemma3:4b`. Sem isso, modelos avaliando modelos de mesma cepa atestarão a mentira ou erro pelo puro viés de repetição sináptica.
