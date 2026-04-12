@@ -58,8 +58,8 @@ def fetch_finance(ticker, years):
     
     semantic_name = ticker
     if ticker.upper() == 'BRENT':
-        ticker = 'CB=F' # Bugfix 1.2.0: Troca de BZ=F (Futuro com prêmio) para CB=F (Spot Brent ICE)
-        semantic_name = 'Barril de Petróleo (BRENT Crude Spot)'
+        ticker = 'BZ=F'
+        semantic_name = 'Barril de Petróleo (BRENT Crude)'
     elif ticker.upper() == 'WTI':
         ticker = 'CL=F'
         semantic_name = 'Barril de Petróleo (WTI Crude Spot)'
@@ -150,7 +150,7 @@ def fetch_finance(ticker, years):
         sys.exit(1)
         
     converted_to_brl = False
-    if ticker in ['CB=F', 'CL=F']:
+    if ticker in ['BZ=F', 'CL=F']:
         # Fetch BRL=X to do Currency Conversion
         df_usd = pd.DataFrame()
         try:
@@ -199,6 +199,14 @@ def fetch_finance(ticker, years):
                 df = df.groupby('YearMonth').mean()
         except:
             pass
+            
+    # === ANALYST B: CIRCUIT BREAKER (DATA QUALITY ASSERTION) ===
+    if ticker in ['BZ=F', 'CL=F'] and not df.empty and 'Close' in df.columns:
+        max_usd = float(df['Close'].max())
+        min_usd = float(df['Close'].min())
+        if max_usd > 200.0 or min_usd < 5.0:
+            print(json.dumps({"error": f"CRÍTICO (Circuit Breaker): Anomalia estrutural no Ticker {ticker}. Valor histórico em USD (Max: {round(max_usd, 2)}, Min: {round(min_usd, 2)}) rompeu barreira de viabilidade física do mercado de petróleo bruto. Abortando injeção para prevenir alucinação estatística (Dissonância Cognitiva) na Mente Mestra."}))
+            sys.exit(1)
             
     data_lines = []
     for index, row in df.iterrows():
