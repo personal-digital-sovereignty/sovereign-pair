@@ -1,65 +1,37 @@
 # Sovereign Engine: Local Models Guide (v1.2.0)
 
-O Sovereign Pair foi arquitetado para operar em topologias híbridas e locais. Porém, para evitar *Out-of-Memory (OOM)*, "swap freezing" do sistema operacional ou baixa velocidade de geração de tokens (Lentidão Severa), os modelos executados localmente (via Ollama) devem ser cirurgicamente escolhidos através da filosofia do "Time dos Sonhos" (A Elite Pipeline).
-
-Acumular dezenas de modelos redundantes no seu SSD apenas fragmenta o Córtex de Orquestração, instiga conflitos na extração JSON e quebra a máquina.
-
-Este documento formaliza as matrizes cognitivas oficiais aprovadas para o Engine v1.2.0+.
+O Sovereign Pair V1.2.0 exige um esquema de "Hardware-Model Matching" altamente otimizado para evitar *OOM (Out-of-Memory)* e garantir inferência local em tempo hábil. Mantenha em seu disco OLLAMA apenas as ferramentas cognitivas essenciais da nossa *Elite Pipeline*.
 
 ---
 
-## 👑 1. A Elite Pipeline (Configuração Sênior / Máxima Mão-de-Obra)
-**Público-Alvo:** Bases com Placas de Vídeo Dedicadas (GPUs Nvidia RTX 3060+ / Mac M-Series com 32GB+ RAM) ou Desktops com +32GB RAM DDR5 rápidos.
+## 1. A Elite Pipeline (Configuração Sênior)
+**Recomendado para:** Workstations (Nvidia RTX 3060+) ou Desktops/M-Series com 32GB+ RAM.
 
-Neste cenário dominante, escalamos agentes para funções milimétricas com *ZERO sobreposição arquitetural*.
+A topologia ideal isola responsabilidades para erradicar sobreposição arquitetural e latência.
 
-### Os Ocupantes das Cadeiras
-*   🧠 **`qwen3:8b` (O Cérebro Operacional / Scribe Master):** Assistente principal ininterrupto. Graças ao nosso Guardrail de *No-Think Bypass*, ele faz "Role-Switch": extrai chaves operacionais e rotas num piscar de olhos (sem ativar o Modo Pensamento consumindo energia) e retoma toda a Hibridez de Pensamento na rodada 25 de Síntese Final de Documentos Markdown. Domina o *Agentic Tool Calling*.
-*   ⚖️ **`phi4:14b` (O Engenheiro / Auditor Sênior):** Fica isolado na manga. Só desperta para matemática pesada, codificação densa em Python ou no papel estrito do nosso ***Sycophancy Breaker*** (Auditor do Diabo). Por ser de linhagem Microsoft/Sintética, cruza magistralmente os vieses gerados pelos modelos de linhagem AliBaba, estilhaçando alucinações.
-*   📚 **`mistral-nemo:latest` (O Arquivista RAG):** Modelo especializado invocado *apenas* para devorar, mastigar e mesclar PDFs corporativos gigantes ou lidar com hiper-contextos.
-*   👁️ **`gemma4:e4b` (Recepção Sensorial):** Seu agente leve de front-desk perfeitamente balanceado, substituindo os ultrapassados e pesados de gerações anteriores, servirá a multimodalidade com elegância estrita e alta qualidade de extração JSON.
-*   ⛓️ **`bge-m3:latest` & `nomic-embed-text:latest`:** Os Motores Vetoriais. Transformam as planilhas financeiras e documentos em matemática vetorial de banco de dados (`AnythingLLM` / `Milvus`). Fundamentais.
-
----
-
-## ⚖️ 2. Perfil Agilidade (O Paradoxo de Hardware Doméstico / 16GB-20GB)
-**Hardware Simulado:** Notebooks APU Modernos (ex: Ryzen 7, Gráficos Integrados, sem placa de vídeo pura).
-
-Se jogar múltiplos cérebros simultâneos na APU (ex: Qwen3 e Phi4 ativados no meio de um chat), sua memória desaba e sua UI congela triturada pela paginação de SSD.
-
-### O Corte Vital
-*   **[Proibido]** ❌ Modelos `12B` a `14B` (Ex: Phi-4, Gemma3:12b). Devem ser banidos do HD para não asfixiarem a fluidez e as camadas gráficas do Cíbrido OS.
-
-### A Configuração Resiliente (Tier 2 Matrix)
-*   **Operacional Absoluto:** `qwen3:8b`. Cairemos apenas no colo desse modelo para o arco inteiro do dia a dia (pensar, extrair JSON e orquestrar ferramentas).
-*   **A "Portaria/Recepcionista" Cíbrida:** `gemma4:e4b`. Mantemos este excelente sensor como auxiliar leve de rotina pura.
+*   🧠 **`qwen3:8b` (Master / Scribe):** O Assistente principal. Opera com *No-Think Bypass* ativado para extração ultrarrápida de Tools, retornando ao Modo Híbrido apenas no ciclo de Síntese Final em Markdown.
+*   ⚖️ **`phi4:14b` (Auditor Sênior / Debugging):** Focado puramente no *Sycophancy Breaker* (quebra de viés confirmatório). Operado na retaguarda para auditorias e lógica dura de codificação.
+*   📚 **`mistral-nemo:latest` (Arquivista RAG):** Modelo largo acionado para *Retrieval-Augmented Generation* massivo englobando dezenas de PDFs e contextos extensos.
+*   👁️ **`gemma4:e4b` (Recepcionista Multimodal):** Modelo compacto Sub-5B para triagem rápida, leitura de imagens e inputs diários do usuário na porta de entrada da UI.
+*   ⛓️ **`bge-m3:latest` & `nomic-embed-text:latest`:** Motores vetoriais essenciais do nosso Knowledge Hub. Nunca devem ser apagados.
 
 ---
 
-## 🧩 3. Matriz de Guardrails Sub-5B e O Paradoxo do Gatekeeper (Reserva)
+## 2. Configuração de Baixa Borda (Hardwares com 16GB-20GB RAM)
+**Recomendado para:** Notebooks APU (Ryzen 7, i7) de gráficos integrados e uso diário isolado.
 
-O Sovereign Pair V1.2 implementou um motor contínuo para barrar as catástrofes lógicas sintáticas (O Looping Infinito da Nanny de Jason).
+Para impedir o *Swap Freezing* (paginação no SSD forçada), extirpe do banco todas as IAs entre 12B e 14B+ (Ex: Phi-4, Gemma 3 12b). O ecossistema roda limpo com:
 
-### A Defesa: O "Agentic Fallback" Dinâmico
-Quando um modelo de porta de entrada (como o `gemma4:e4b`) surta repentinamente soltando um parágrafo textual ao invés do protocolo em Chaves JSON `{...}` necessário pelo *Worker Graph*, a *Thought Nanny* intercepta até a segunda ocorrência. Se persistir, **o Fallback Escalator expulsa o agente travado do loop e pesquisa dinamicamente por qualquer cérebro substituto de porte equivalente (`is_agent = 1`, tamanho `< 5B`) na Matrix do SQLite, reassumindo sem pausar a interface.**
-
-### ⚠️ A Regra do Reserva Estrutural (Nunca apague os pequeninos completamente!)
-A tentação da "Régua Limpa" fará você querer desinstalar *todos* os modelos de 3 e 4 bilhões obsoletos do Ollama (como Llama 3.2, Hermes 3 e Phi-4 Mini) para focar apenas no `Gemma4:e4b`.
-Se fizer isso, e deixar apenas 1 entidade na classe Sub-5B, **o Fallback não terá ninguém para chamar** caso ocorra um dia ruim gerencial no Gatekeeper.
-
-*   **Recomendação Cíbrida Restrita:** Apesar da limpeza, instale e conceda alvará de estadia permanente no disco ao **`llama3.2:3b`** ou **`nous-hermes3:3b`**!
-*   Ele agirá invisível como o colete salva-vidas algorítmico perfeito caso os cérebros oficiais da porta do Sistema (Gemma 4) resvalem numa pedra JSON.
+*   **Ponto Focal Absoluto:** `qwen3:8b`. Resoluto o suficiente para encapsular o Multi-Agent reasoning e o Output diário do RAG sem fundir a VRAM reservada do sistema operacional.
+*   **Apoio Tático Visual:** `gemma4:e4b`. 
 
 ---
 
-## 🌟 4. A Falsa Ilusão: DeepSeek R1 (7B) vs. O Ecosistema Atualizado
+## 3. Matriz de Guardrails Sub-5B (O Fallback Essencial)
+O *Sovereign Core* implementa funções SQL ativas ("Thought Nanny") projetadas para ejetar agentes do pool caso emitam saídas textuais rompendo esquemas estruturais JSON. 
 
-### O Expurgar do Destilado Antigo
-O modelo outrora cultuado e indispensável `deepseek-r1:7b` converteu-se em entulho redundante se você possuir as IAs da Alibaba. 
-Por que? A arquitetura de base utilizada na destilação local de 7B da DeepSeek **é inteiramente oriunda do antigo Qwen 2.5 de 7B**.
-Como nossa arquitetura agora rotaciona soberanamente o **`qwen3:8b`**, que já embute em sua genética as camadas híbridas de MODO PENSAMENTO de maneira nativa, superior e nativamente fluente sem os solavancos passados, engatar as peças desmembramentais de um hardware R1/7B custará lentidão severa.
+* **⚠️ A Regra do Gatekeeper Reserva:** 
+Apesar da limpeza de disco, **nunca apague 100% dos modelos abaixo de 5 Bilhões de parâmetros**. 
+Você deve manter o `llama3.2:3b` ou o `nous-hermes3:3b` instalados silenciamente na sua máquina. Eles atuam como **backup nativo**. Se no meio da noite a recepção de Extração (`gemma4:e4b`) falhar os testes lógicos estruturais de loop, a *Dynamic Agentic Fallback* varrerá o banco procurando o reserva Imediato mais leve sem causar pânico ao Backend.
 
-Ao operar arquiteturas Sovereign, opte sempre pelas chaves originais ou pelas arquiteturas R1 exclusivas se (e somente se) contar com suporte à rodagem nativa da infraestrutura fechada na nuvem.
-
-*Comando final base do Workspace V1.2.0 (Resistência Ativa):*
-> `ollama run qwen3:8b`
+> Os modelos legados da estrutura deepseek pura (`r1:7b`) ou gerações engessadas (como `qwen2.5:7b`) foram sumariamente desativados e obsoletos no Kernel 1.2 a favor das flags híbridas em tempo-real do motor de base supracitado.
