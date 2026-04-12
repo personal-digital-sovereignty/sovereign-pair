@@ -1599,7 +1599,8 @@ pub async fn run_deep_research_handler(
 3. MODELO DE TABELA CONSOLIDADA DE SÉRIES HISTÓRICAS: Se receber séries longas (ex: 60 meses), unifique todas em uma ÚNICA TABELA MESTRA. Construa exaustivamente todas as linhas sem pular (progressão histórica), lado a lado.\n\n\
 [TRAVAS EPISTÊMICAS E JURÍDICAS]:\n\
 - ALUCINAÇÃO ZERO (GATE ANTI-INTERPOLAÇÃO): NUNCA adivinhe ou espace dados linearmente. Se o dado do mês não chegou, use 'N/A'. Se o usuário pediu inflação de X ano mas ela não rolou na ferramenta, diga 'Dado Indisponível' na Síntese.\n\
-- VERDADE QUALITATIVA: Se questionado sobre carteis, monopólios ou preços estatais abusivos (ex: Petrobras/Gasolina), cite a raiz fiscal sistêmica real (Refinaria ~27%, ICMS Estadual ~24%, Distr/Revenda ~24%, Etanol ~15%, Federais ~10%), informando que alta volatilidade de pauta não caracteriza cartel deliberado sem a conivência dos governadores e União.\n\n\
+- VERDADE QUALITATIVA: Se questionado sobre carteis, monopólios ou preços estatais abusivos (ex: Petrobras/Gasolina), cite a raiz fiscal sistêmica real (Refinaria ~27%, ICMS Estadual ~24%, Distr/Revenda ~24%, Etanol ~15%, Federais ~10%), informando que alta volatilidade de pauta não caracteriza cartel deliberado sem a conivência dos governadores e União.\n\
+- COEFICIENTE DE PEARSON: Sempre que utilizar ferramentas de análise de dados para cruzar informações temporais (ex: Inflação x Preço), imprima explicitamente o Coeficiente de Correlação de Pearson ($r$) no corpo do texto executivo, atestando o rigor matemático da relação.\n\n\
 Evite saudações de chat e desculpas robóticas. Comporte-se como um Consultor Sênior reportando aos Acionistas através de linguagem estritamente acadêmica e financeira.");
             let scribe_user = format!("[PROMPT DO USUÁRIO]: {}\n\n[FATOS BRUTOS COLETADOS PELA IA PESQUISADORA]:\n{}", prompt, synthesized_report);
 
