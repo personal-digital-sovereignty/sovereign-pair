@@ -59,16 +59,28 @@ def fetch_finance(ticker, years):
     semantic_name = ticker
     if ticker.upper() == 'BRENT':
         ticker = 'CB=F' # Bugfix 1.2.0: Troca de BZ=F (Futuro com prêmio) para CB=F (Spot Brent ICE)
-        semantic_name = 'Barril de Petróleo (BRENT Crude)'
+        semantic_name = 'Barril de Petróleo (BRENT Crude Spot)'
     elif ticker.upper() == 'WTI':
         ticker = 'CL=F'
-        semantic_name = 'Barril de Petróleo (WTI Crude)'
+        semantic_name = 'Barril de Petróleo (WTI Crude Spot)'
     elif ticker.upper() == 'DOLAR' or ticker.upper() == 'USD':
         ticker = 'BRL=X'
         semantic_name = 'Taxa de Câmbio (Dólar / BRL)'
     elif ticker.upper() == 'PETROBRAS':
         ticker = 'PETR4.SA'
         semantic_name = 'Ações Petrobras (PETR4)'
+    elif ticker.upper() == 'BRENT_FUTURE':
+        ticker = 'BZ=F'
+        semantic_name = 'Contrato Futuro Brent (Especulativo)'
+    elif ticker.upper() == 'WTI_FUTURE':
+        ticker = 'CL=F'
+        semantic_name = 'Contrato Futuro WTI (Especulativo)'
+    elif ticker.upper() == 'GOLD_FUTURE':
+        ticker = 'GC=F'
+        semantic_name = 'Contrato Futuro Ouro (Especulativo)'
+    elif ticker.upper() == 'DI_FUTURE':
+        ticker = 'DI1F27.SA' # Proxy genérico para DI
+        semantic_name = 'Contrato DI Futuro (Especulativo)'
         
         
 
@@ -354,5 +366,11 @@ if __name__ == "__main__":
         years = sys.argv[4] if len(sys.argv) > 4 else "1"
         fetch_macro(indicator, country, years)
         
+    elif mode == "futures":
+        # Usage: sovereign_matrix.py futures BRENT_FUTURE 5
+        ticker = sys.argv[2]
+        years = sys.argv[3] if len(sys.argv) > 3 else "1"
+        fetch_finance(ticker, years)
+        
     else:
-        print(json.dumps({"error": f"Unknown mode: {mode}. Use 'finance' or 'macro'."}))
+        print(json.dumps({"error": f"Unknown mode: {mode}. Use 'finance', 'macro', or 'futures'."}))
