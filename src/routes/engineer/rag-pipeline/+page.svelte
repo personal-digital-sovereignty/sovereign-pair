@@ -18,36 +18,19 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
     onMount(async () => {
         fetchStagedResearch();
         try {
-            const res = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
-            const data = await res.json();
-            if (data && data.models) {
-                // Filtro Absoluto (Fase 8): O Orquestrador do UI Mestre precisa ser 3B+. Extirpamos embeddings e LLMs miniatura da lista visual.
-                const validScribes = data.models.filter((m: any) => {
-                    const n = m.name.toLowerCase();
-                    return !n.includes('embed') && !n.includes('bge-m3') && !n.includes('1.5b') && !n.includes('1.7b') && !n.includes('1b') && !n.includes('2b') && !n.includes('mistral-nemo') && !n.includes('nemo');
-                });
+            const res = await fetch(`${API_BASE_URL}/v1/settings/model_capabilities`);
+            const modelsArray = await res.json();
+            
+            if (modelsArray && Array.isArray(modelsArray)) {
+                // Filtro Absoluto: O Orquestrador UI só exibe quem foi marcado explícitamente como Escriba no Banco
+                const validScribes = modelsArray.filter((m: any) => m.is_scribe === true && m.is_installed === true);
                 
-                const checkedModels = await Promise.all(validScribes.map(async (m: any) => {
-                    try {
-                        const showRes = await fetch(`${OLLAMA_BASE_URL}/api/show`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ name: m.name })
-                        });
-                        const showData = await showRes.json();
-                        const template = showData.template || "";
-                        // Flexibilidade Restaurada: Modelos modernos de R1 (DeepSeek/Qwen) interpretam JSON puramente 
-                        // mesmo se o Modelfile do Ollama omitir a sintaxe ".Tools". 
-                        const isCapable = true;
-                        return { name: m.name, isCapable };
-                    } catch (e) {
-                        return { name: m.name, isCapable: true }; 
-                    }
+                availableModels = validScribes.map((m: any) => ({
+                    name: m.model_name,
+                    isCapable: true
                 }));
                 
-                availableModels = checkedModels;
-                
-                hasCapableModel = availableModels.some(m => m.isCapable);
+                hasCapableModel = availableModels.length > 0;
                 
                 if (availableModels.length > 0) {
                     const currentExists = availableModels.some(m => m.name === trainerState.deepResearchModel);
@@ -57,8 +40,8 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
                 }
             }
         } catch (err) {
-            console.error("Failed to fetch Ollama models:", err);
-            // Fallback so it doesn't break if Ollama API behaves weirdly during dev
+            console.error("Failed to fetch Scribe models from DB:", err);
+            // Fallback so it doesn't break if API behaves weirdly during dev
             hasCapableModel = true; 
         }
     });
