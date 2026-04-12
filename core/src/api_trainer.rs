@@ -717,11 +717,12 @@ pub async fn run_deep_research_handler(
         // A extração agora elege apenas UM sub-agente, classificado pelo banco SQLite como o que menos alucinou no passado.
         let fallback_inquisitor = crate::api::discover_cognitive_model_by_tier("junior").await;
         
-        // Elege o modelo empiricamente mais honesto (Ignora deepseek pois o prompt zero-shot quebra o json)
-        let auth_inquisitor = crate::api::query_most_honest_model(engine_arc.db_pool.as_ref(), &fallback_inquisitor).await;
+        // Elege o modelo empiricamente mais honesto via Sycophancy Breaker (Viés cruzado)
+        let auth_inquisitor = crate::api::discover_adversarial_auditor(engine_arc.db_pool.as_ref(), &target_model_name, &fallback_inquisitor).await;
         
         let mut all_sources = Vec::new();
         let mut has_failed_tools = false;
+        let mut json_fail_count = 0;
         
         // --- THE WORKER GRAPH LOOP (MAX 25 STAGES: GATHER, ANALYZE, SYNTHESIZE) ---
         for cycle in 1..=25 {
@@ -733,16 +734,23 @@ pub async fn run_deep_research_handler(
             
             let _ = TRAINER_LOGS.send(format!("[Worker Graph - Stage {}/25] Invocando Mente Mestra ({})...", cycle, target_model_name));
 
+            let mut options_obj = serde_json::json!({
+                "num_ctx": dynamic_num_ctx,
+                "temperature": 0.0,
+                "repeat_penalty": 1.0,
+                "num_predict": 4096
+            });
+
+            // O Dilema de Latência do Raciocínio Híbrido: Capar CoT em ciclos estritamente operacionais (Tools)
+            if cycle < 25 {
+                options_obj["enable_thinking"] = serde_json::json!(false);
+            }
+
             let mut synthesis_payload = serde_json::json!({
                 "model": target_model_name,
                 "messages": messages,
                 "stream": false,
-                "options": {
-                    "num_ctx": dynamic_num_ctx,
-                    "temperature": 0.0,
-                    "repeat_penalty": 1.0,
-                    "num_predict": 4096
-                }
+                "options": options_obj
             });
 
             if cycle < 25 {
@@ -1514,6 +1522,16 @@ pub async fn run_deep_research_handler(
                                 }
 
                                 let _ = TRAINER_LOGS.send(format!("[Thought Nanny] Falha Estrutural do Mestre: O modelo não gerou chamadas formatadas. Disciplinando sintaxe...\n[DEBUG RAW LLM CONTENT]:\n{}", content));
+                                json_fail_count += 1;
+                                
+                                if json_fail_count >= 2 {
+                                    let fallback_agent = crate::api::discover_agentic_fallback(engine_arc.db_pool.as_ref(), &target_model_name, &target_model_name).await;
+                                    if fallback_agent != target_model_name {
+                                        let _ = TRAINER_LOGS.send(format!("🛡️ [Gatekeeper Escalation] Fim da linha sintática para ({}). Substituindo dinamicamente pelo Gatekeeper reserva: ({})", target_model_name, fallback_agent));
+                                        target_model_name = fallback_agent;
+                                        json_fail_count = 0;
+                                    }
+                                }
                                 
                                 // Grava a alucinação estrutural/sintática no Ledger para a Telemetria da UI
                                 if let Some(pool) = &engine_arc.db_pool {
