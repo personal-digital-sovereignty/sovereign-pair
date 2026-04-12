@@ -297,6 +297,43 @@ pub async fn query_most_honest_model(db_pool: Option<&sqlx::SqlitePool>, fallbac
     fallback.to_string()
 }
 
+pub async fn discover_agentic_fallback(pool: Option<&sqlx::SqlitePool>, failed_model: &str, fallback: &str) -> String {
+    if let Some(p) = pool {
+        let query = "SELECT model_name FROM model_capabilities WHERE is_agent = 1 AND parameter_size <= 5.0 AND model_name != ? ORDER BY parameter_size DESC LIMIT 1";
+        if let Ok(Some(row)) = sqlx::query(query).bind(failed_model).fetch_optional(p).await
+            && let Ok(name) = sqlx::Row::try_get::<String, _>(&row, "model_name") {
+                tracing::info!("✨ [Agentic Fallback] Fallback Dinâmico ativado! Substituindo '{}' pelo microsserviço: {}", failed_model, name);
+                return name;
+        }
+    }
+    tracing::warn!("⚠️ [Agentic Fallback] Nenhum substituto agentico na classe micro foi encontrado no DB. Voltando para hard-fallback: {}", fallback);
+    fallback.to_string()
+}
+
+pub async fn discover_adversarial_auditor(pool: Option<&sqlx::SqlitePool>, origin_model: &str, fallback: &str) -> String {
+    if let Some(p) = pool {
+        let origin_lower = origin_model.to_lowercase();
+        let family = if origin_lower.contains("qwen") { "qwen" }
+        else if origin_lower.contains("llama") { "llama" }
+        else if origin_lower.contains("phi") { "phi" }
+        else if origin_lower.contains("gemma") { "gemma" }
+        else if origin_lower.contains("deepseek") { "deepseek" }
+        else if origin_lower.contains("mistral") { "mistral" }
+        else { origin_model.split(':').next().unwrap_or(origin_model) };
+
+        let exclude_like = format!("%{}%", family);
+        
+        let query = "SELECT model_name FROM model_capabilities WHERE model_name NOT LIKE ? AND parameter_size >= 3.0 AND parameter_size <= 9.0 ORDER BY parameter_size DESC LIMIT 1";
+        if let Ok(Some(row)) = sqlx::query(query).bind(exclude_like).fetch_optional(p).await
+            && let Ok(name) = sqlx::Row::try_get::<String, _>(&row, "model_name") {
+                tracing::info!("⚖️ [Sycophancy Breaker] Auditor Adversarial dinâmico escalado: '{}' (Filtrando viés estatístico da família origem '{}')", name, family);
+                return name;
+        }
+    }
+    tracing::warn!("⚠️ [Sycophancy Breaker] Banco falhou em achar Auditor cruzado na malha O.S. Usando Fallback primário: {}", fallback);
+    fallback.to_string()
+}
+
 /// O Primeiro Controlador Cíbrido: Recebendo os Pensamentos do VS Code.
 pub async fn chat_completions_handler(
     State(state): State<Arc<AppState>>,
