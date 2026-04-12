@@ -66,13 +66,21 @@ def parse_markdown_blocks(raw_blocks):
                 # We can try to extract all numbers, but let's take the first one or specifically map it.
                 numbers = re.findall(r'-?\d+\.\d+|-?\d+', vals_raw)
                 if numbers:
-                    val = float(numbers[-1]) if 'BRL' in vals_raw else float(numbers[0]) # if converted, usually we want the primary or BRL. Let's take the first parsed value representing the asset.
-                    if 'USD' in vals_raw and 'BRL' in vals_raw:
-                        # If dual currency, take BRL for correlation by default or USD if explicitly requested. 
-                        # We will take the FIRST number string for simplicity and stability.
-                        val = float(numbers[0])
-                    
-                    data.append({'Date': date_str, current_ds_name: val})
+                    if 'USD' in vals_raw and 'BRL' in vals_raw and len(numbers) >= 2:
+                        # Extract both explicit values directly from string
+                        usd_val = float(numbers[0])
+                        brl_val = float(numbers[1])
+                        
+                        # Only provide Cambio if USD is non-zero to avoid division by zero
+                        if usd_val > 0.0:
+                            cambio = round(brl_val / usd_val, 2)
+                            data.append({'Date': date_str, f"{current_ds_name}_USD": usd_val, f"{current_ds_name}_BRL": brl_val, "Taxa_Cambio": cambio})
+                        else:
+                            data.append({'Date': date_str, f"{current_ds_name}_USD": usd_val, f"{current_ds_name}_BRL": brl_val})
+                    else:
+                        # Single asset fallback
+                        val = float(numbers[-1]) if 'BRL' in vals_raw else float(numbers[0])
+                        data.append({'Date': date_str, current_ds_name: val})
                     
         if data:
             df = pd.DataFrame(data)
