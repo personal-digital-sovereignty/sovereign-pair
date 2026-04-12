@@ -40,3 +40,27 @@ Para este perfil, nós **bloqueamos terminantemente o download de modelos 14B**.
 
 **Resumo da Ópera (Para Ryzen 7 5500U - 20GB):**
 O seu ecossistema perfeito de máxima eficiência se construirá na intersecção do `DeepSeek-r1 7B` com o `Llama3.2:3b`. Deletando arquivos de 14B e finetunings de 9B, você resgata gigabytes vitais de banda de memória SSD para fazer a sua infraestrutura Multi-Agente voar nativamente!
+
+---
+
+## 🌟 O Salto Geracional: Qwen 2 (7B) vs Qwen 3 (8B)
+
+A adoção do **Qwen 3 (8B)** como motor de linha de frente para tarefas que exigem raciocínio não linear marca um salto geracional massivo no Sovereign Pair. A diferença não se resume a 1 bilhão de parâmetros a mais, mas sim à **arquitetura de "raciocínio híbrido"**.
+
+| Característica | Qwen 2 7B (`qwen2:7b`) | Qwen 3 8B (`qwen3:8b`) |
+| :--- | :--- | :--- |
+| **Geração** | Meados de 2024 (Geração 2) | Abril de 2025 (Geração 3) |
+| **Parâmetros** | ~7.07 Bilhões | ~8.19 Bilhões |
+| **Idiomas Suportados** | 29 idiomas | **Mais de 100 idiomas e dialetos** |
+| **Modo de Resposta** | Padrão (Causal) | **Híbrido ("Modo Pensamento" + Modo Padrão)** |
+| **Uso de Ferramentas / Agente**| Básico | **Avançado e Nativo** (*Agentic Tool Calling*) |
+| **Janela de Contexto** | 128.000 tokens | 40K nativo no Ollama (expansível até 131.000 tokens) |
+
+### 🛠️ Por que o Qwen 3 (8B) e não a Geração Anterior?
+
+1. **O "Modo Pensamento" (Resolução de Problemas Complexos):** Qwen 3 8B absorve a capacidade crítica outrora reservada apenas aos titãs (e ao modelo o1 da OpenAI ou R1). Ele é treinado em *chain-of-thought*, pensando passo a passo e corrigindo suas hipóteses antes de emitir a resposta. Adicionar "Pense passo a passo..." no prompt acorda a fera dormente em seus tensores.
+2. **Capacidades de Agente (Tool Calling Seguro):** Altíssima aptidão nativa para manusear ferramentas (JSON/Tooling), o que é o cerne do Kernel Sovereign. Ele pausa o output e invoca nossas buscas financeiras ou leituras vetoriais do Pandas de modo quase determinista - sem corromper a malha.
+3. **Hardware Custo x Benefício:** Ele custa irrisórios (para o ano de 2025 e diante) 600mb a 800mb adicionais sob Qwen 2, esmagando pesos ineficientes grandes como 14B antigos e oferecendo a "Mente" de um programador e um analista sênior autônomo sem acionar OOM em máquinas com 8GB a 16GB em RAM Unificada. 
+
+Ao configurar a base, o comando de eleição obrigatória para orquestrações complexas locais deve sempre apontar para:
+> `ollama run qwen3:8b`
