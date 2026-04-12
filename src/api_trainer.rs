@@ -723,15 +723,15 @@ pub async fn run_deep_research_handler(
         let mut all_sources = Vec::new();
         let mut has_failed_tools = false;
         
-        // --- THE WORKER GRAPH LOOP (MAX 10 STAGES: GATHER, ANALYZE, SYNTHESIZE) ---
-        for cycle in 1..=10 {
+        // --- THE WORKER GRAPH LOOP (MAX 25 STAGES: GATHER, ANALYZE, SYNTHESIZE) ---
+        for cycle in 1..=25 {
             if wait_or_cancel(200, &token).await { return; }
             
             // --- G.2: DYNAMIC RAG INJECTOR (LOCAL VAULT) ---
             // A Mom não raspa a web ativamente. A web e orquestração ativa ficam exclusivas do Grafo da Mente Mestra.
             // Para injetar dados do DB (memória/vault) estaticamente, este seria o local.
             
-            let _ = TRAINER_LOGS.send(format!("[Worker Graph - Stage {}/10] Invocando Mente Mestra ({})...", cycle, target_model_name));
+            let _ = TRAINER_LOGS.send(format!("[Worker Graph - Stage {}/25] Invocando Mente Mestra ({})...", cycle, target_model_name));
 
             let mut synthesis_payload = serde_json::json!({
                 "model": target_model_name,
@@ -745,7 +745,7 @@ pub async fn run_deep_research_handler(
                 }
             });
 
-            if cycle < 10 {
+            if cycle < 25 {
                 synthesis_payload["tools"] = tools_schema.clone();
             } else {
                 let _ = TRAINER_LOGS.send("[Final Synthesis] Ferramentas desativadas. Forçando Mestre LLM a gerar Markdown Final de Síntese sem interrupções.".to_string());
@@ -1687,11 +1687,12 @@ pub async fn run_deep_research_handler(
 [ESTRUTURA OBRIGATÓRIA - C-LEVEL MARKDOWN]:\n\
 1. SÍNTESE EXECUTIVA (EXECUTIVE SUMMARY): Um parágrafo coeso evidenciando os percentuais, a conclusão matemática e as constatações-chave, usando o \"Data Storytelling\".\n\
 2. ANÁLISE FUNDAMENTALISTA DE IMPACTO: Crie seções (###) abordando os paralelos estatísticos e causa/efeito extraídos pelas ferramentas Python/Pandas que você recebeu na memória.\n\
-3. MODELO DE TABELA CONSOLIDADA DE SÉRIES HISTÓRICAS: Se a Matriz de Dados (Pandas) já lhe forneceu a tabela pronta no log interno, você DEVE REPRODUZIR a tabela NA ÍNTEGRA. É ABSOLUTAMENTE PROIBIDO usar reticências (...) ou resumir linhas da tabela. A omissão de meses gera quebra de auditoria contábil. Caso NÃO TENHA recebido a tabela mastigada nos fatos brutos, construa você mesmo exaustivamente todas as linhas sem pular.\n\n\
+3. MODELO DE TABELA CONSOLIDADA DE SÉRIES HISTÓRICAS: Se a Matriz de Dados (Pandas) já lhe forneceu a tabela pronta no log interno, você DEVE REPRODUZIR a tabela NA ÍNTEGRA NUMA ÚNICA MATRIZ. É ABSOLUTAMENTE PROIBIDO desmembrar, dividir, usar reticências (...) ou separar as colunas em múltiplas mini-tabelas independentes. A omissão de meses ou divisão estrutural gera quebra de auditoria contábil. Caso NÃO TENHA recebido a tabela mastigada nos fatos brutos, construa você mesmo exaustivamente todas as linhas sem pular numa tabela unificada.\n\n\
 [TRAVAS EPISTÊMICAS E JURÍDICAS]:\n\
 - ALUCINAÇÃO ZERO (GATE ANTI-INTERPOLAÇÃO): NUNCA adivinhe ou espace dados linearmente. Se o dado do mês não chegou, use 'N/A'. Se o usuário pediu inflação de X ano mas ela não rolou na ferramenta, diga 'Dado Indisponível' na Síntese.\n\
 - VERDADE QUALITATIVA: Se questionado sobre carteis, monopólios ou preços estatais abusivos (ex: Petrobras/Gasolina), cite a raiz fiscal sistêmica real (Refinaria ~27%, ICMS Estadual ~24%, Distr/Revenda ~24%, Etanol ~15%, Federais ~10%), informando que alta volatilidade de pauta não caracteriza cartel deliberado sem a conivência dos governadores e União.\n\
-- COEFICIENTE DE PEARSON: Sempre que utilizar ferramentas de análise de dados para cruzar informações temporais (ex: Inflação x Preço), imprima explicitamente o Coeficiente de Correlação de Pearson ($r$) no corpo do texto executivo, atestando o rigor matemático da relação.\n\n\
+- CÁLCULOS ESTATÍSTICOS (ALUCINAÇÃO ZERO): Você está TERMINANTEMENTE PROIBIDO de calcular, estimar ou deduzir correlações ou Coeficientes de Pearson por conta própria. Limite-se a ler o valor EXATO de Pearson gerado pela ferramenta Pandas no log interno e transcrevê-lo fielmente no relatório. Jamais invente ou adultere esse número matemático.\n\
+- AUDITORIA VISUAL (SCHEMA LOCK): A tabela consolidada DEVE OBRIGATORIAMENTE exibir as colunas separadas de origem (ex: Barril USD, Taxa de Câmbio, Barril BRL). NUNCA condense, mescle ou oculte colunas financeiras originais que foram entregues a você. A matemática deve ser 100% auditável nas tabelas.\n\n\
 Evite saudações de chat e desculpas robóticas. Comporte-se como um Consultor Sênior reportando aos Acionistas através de linguagem estritamente acadêmica e financeira.");
             let scribe_user = format!("[PROMPT DO USUÁRIO]: {}\n\n[FATOS BRUTOS COLETADOS PELA IA PESQUISADORA]:\n{}", prompt, synthesized_report);
 
@@ -1731,7 +1732,16 @@ Evite saudações de chat e desculpas robóticas. Comporte-se como um Consultor 
             if let Ok(res) = synthesis_client.post(&olla_url).json(&scribe_payload).send().await
                 && let Ok(json) = res.json::<serde_json::Value>().await
                     && let Some(content) = json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
-                        formatted = content.to_string();
+                        let mut cleaned = content.trim().to_string();
+                        if cleaned.starts_with("```markdown") {
+                            cleaned = cleaned.trim_start_matches("```markdown").trim_start().to_string();
+                        } else if cleaned.starts_with("```") {
+                            cleaned = cleaned.trim_start_matches("```").trim_start().to_string();
+                        }
+                        if cleaned.ends_with("```") {
+                            cleaned = cleaned.trim_end_matches("```").trim_end().to_string();
+                        }
+                        formatted = cleaned;
                         let _ = TRAINER_LOGS.send("[The Scribe] Formatação Markdown concluída!".to_string());
                     }
                     
