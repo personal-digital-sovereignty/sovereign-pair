@@ -124,6 +124,14 @@ def join_and_extract(raw_data_blocks):
     # 1. Forward Fill (ffill) safely allows last known prices/indicators to flow down to missing edges.
     merged_df.ffill(inplace=True)
     
+    # Pre-calculate Annual Averages before changing index to strings
+    try:
+        annual_df = merged_df.resample('YE').mean()
+        annual_df.index = annual_df.index.strftime('%Y')
+        annual_md = annual_df.round(2).to_markdown()
+    except Exception:
+        annual_md = "N/A"
+    
     # 2. Format the index to YYYY-MM
     merged_df.index = merged_df.index.strftime('%Y-%m')
     
@@ -140,6 +148,8 @@ def join_and_extract(raw_data_blocks):
         "> Preenchimento automático `ffill()` aplicado para alinhar assimetrias de extração (Diário vs Mensal).\n\n"
         "### Matriz de Correlação de Pearson ($r$)\n"
         f"{corr_md}\n\n"
+        "### Médias Anuais Consolidadas\n"
+        f"{annual_md}\n\n"
         "### Time-Series Consolidada\n"
         f"{table_md}"
     )
