@@ -5,6 +5,15 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
+## [1.2.1] - 2026-04-13
+*VRAM-to-Disk Orchestration, SHA-256 Checksum Arbitrating & Anti-Lazy Modeling*
+
+### Added
+- **File-Based Sandbox Mounting (The Data Lake)**: Substituída a injeção em memória invisível (*Blind Orchestration*) por arquivos reais em disco (`/tmp/sovereign/*.json`) baseados em hashes randômicos (`Uuid`) criados sob-demanda pela _Thought Nanny_ contendo um ID alfanumérico sanitizado referente a query primária da Tool (ex: IPCA, BRENT).
+- **Epistemic Crypto-Tracking (SHA-256 Arbiter)**: Implementada assinatura com pacote `sha2` e validação digital severa. O Rust computa dinamicamente a hash em tempo real da "Extração Factual" na hora da alocação de disco que é injetada na String da Pipeline indicando ser proibitivo seguir além daquela marca de `[SUCCESS]` sem o cumprimento de um `reverse-auditor check`.
+- **System Prompt Caging (Lazy Model Sabotage)**: Escrito de forma estúpida e enfática a ordem dentro do *Python Sandbox Tool Schema* (`registry.json`) avisando a Mente Mestra (`Master Agent`) que a execução agora necessita e requere a instanciamento *estritamente físico* através da biblioteca Pandas (`pd.read_json`). Erradicado o vetor `Placeholder Data-fabrication` em modelos +8B ("Lazy Models" que inventavam os arrays locais de `df` para encurtar execução simulando dados).
+- **Auditor Reverso Punitivo (Retrieval Failure)**: Injeção de verificação algorítmica rigorosa de `contains(h)` no final da malha final (no Pós-Transcrição do `The Scribe`). Se os Master orquestradores construírem Sandboxes fakes ignorando os Hashes oficiais que deveriam exibir nas planilhas, a tabela Final Markdown sofre queima sumária, retornando o aborto `RETRIEVAL_FAILURE` na UI para defender o usuário da quebra estatística de confiança.
+
 ## [1.2.0] - 2026-04-11
 *Sovereign Swap (Memory GC), Capability Routing & Orchestration Parity*
 
