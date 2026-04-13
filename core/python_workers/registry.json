@@ -82,7 +82,7 @@
         "type": "function",
         "function": {
             "name": "execute_python_code",
-            "description": "Ferramenta para executar código Python seguro localmente. Ideal para matemática complexa, cruzamento de dados de inflação/preços, cálculos precisos, e extração manipulada de arrays. Você DEVE imprimir os resultados finais EXPLICITAMENTE (via print()) para conseguir ler a resposta e utiliza-la para redigir seu relatório.",
+            "description": "Ferramenta para executar código Python seguro localmente. OBRIGATÓRIA A LEITURA FÍSICA de repositórios dinâmicos (arquivos JSON enclausurados e passados ao seu contexto via pd.read_json() do Pandas). É EXPRESSAMENTE PROIBIDO fabricar ou construir manualmente DataFrames usando variáveis ou arrays mockados/falsos em código-fonte. Todo output gerado print() sobre arquivos oficiais deve obrigatoriamente estampar o Hash SHA-256 de Proveniência no rodapé do relatório. Se você não usar read_json no arquivo dado, você será ejetado.",
             "parameters": {
                 "type": "object",
                 "properties": {
