@@ -277,18 +277,6 @@ pub async fn discover_capable_master_agent(pool: Option<&sqlx::SqlitePool>, min_
     fallback.to_string()
 }
 
-pub async fn discover_agentic_fallback(pool: Option<&sqlx::SqlitePool>, failed_model: &str, fallback: &str) -> String {
-    if let Some(p) = pool {
-        let query = "SELECT model_name FROM model_capabilities WHERE is_agent = 1 AND parameter_size <= 5.0 AND model_name != ? ORDER BY parameter_size DESC LIMIT 1";
-        if let Ok(Some(row)) = sqlx::query(query).bind(failed_model).fetch_optional(p).await
-            && let Ok(name) = sqlx::Row::try_get::<String, _>(&row, "model_name") {
-                tracing::info!("✨ [Agentic Fallback] Fallback Dinâmico ativado! Substituindo '{}' pelo microsserviço: {}", failed_model, name);
-                return name;
-        }
-    }
-    tracing::warn!("⚠️ [Agentic Fallback] Nenhum substituto agentico na classe micro foi encontrado no DB. Voltando para hard-fallback: {}", fallback);
-    fallback.to_string()
-}
 
 pub async fn discover_orchestrator_fallback(pool: Option<&sqlx::SqlitePool>, failed_model: &str, fallback: &str) -> String {
     if let Some(p) = pool {
