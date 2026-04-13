@@ -290,6 +290,28 @@ pub async fn discover_agentic_fallback(pool: Option<&sqlx::SqlitePool>, failed_m
     fallback.to_string()
 }
 
+pub async fn discover_orchestrator_fallback(pool: Option<&sqlx::SqlitePool>, failed_model: &str, fallback: &str) -> String {
+    if let Some(p) = pool {
+        // Tentativa primária: Resgatar com outro orchestrator Master engatilhado.
+        let query_master = "SELECT model_name FROM model_capabilities WHERE is_master = 1 AND model_name != ? ORDER BY parameter_size DESC LIMIT 1";
+        if let Ok(Some(row)) = sqlx::query(query_master).bind(failed_model).fetch_optional(p).await
+            && let Ok(name) = sqlx::Row::try_get::<String, _>(&row, "model_name") {
+                tracing::info!("✨ [Orchestrator Fallback] Fallback Dinâmico de Peso-Pesado ativado! Substituindo '{}' pelo Master reserva: {}", failed_model, name);
+                return name;
+        }
+
+        // Tentativa secundária: Se nenhum Master existir, acione um Agente/Scribe mais denso (entre 5B e 9B, como gemma4 ou qwen3:8b)
+        let query_mid = "SELECT model_name FROM model_capabilities WHERE parameter_size >= 5.0 AND parameter_size <= 9.5 AND model_name != ? ORDER BY parameter_size DESC LIMIT 1";
+        if let Ok(Some(row)) = sqlx::query(query_mid).bind(failed_model).fetch_optional(p).await
+            && let Ok(name) = sqlx::Row::try_get::<String, _>(&row, "model_name") {
+                tracing::info!("✨ [Orchestrator Fallback] Nenhum Master extra. Evitando modelos 3B e escalando para mid-weight (>5B): {}", name);
+                return name;
+        }
+    }
+    tracing::warn!("⚠️ [Orchestrator Fallback] Banco de IAs insuficientes paramétricas para failover robusto. Cuidado com micro-modelos. Voltando para hard-fallback: {}", fallback);
+    fallback.to_string()
+}
+
 pub async fn discover_adversarial_auditor(pool: Option<&sqlx::SqlitePool>, origin_model: &str, fallback: &str) -> String {
     if let Some(p) = pool {
         let origin_lower = origin_model.to_lowercase();

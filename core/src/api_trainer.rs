@@ -1525,7 +1525,7 @@ pub async fn run_deep_research_handler(
                                 json_fail_count += 1;
                                 
                                 if json_fail_count >= 2 {
-                                    let fallback_agent = crate::api::discover_agentic_fallback(engine_arc.db_pool.as_ref(), &target_model_name, &target_model_name).await;
+                                    let fallback_agent = crate::api::discover_orchestrator_fallback(engine_arc.db_pool.as_ref(), &target_model_name, &target_model_name).await;
                                     if fallback_agent != target_model_name {
                                         let _ = TRAINER_LOGS.send(format!("🛡️ [Gatekeeper Escalation] Fim da linha sintática para ({}). Substituindo dinamicamente pelo Gatekeeper reserva: ({})", target_model_name, fallback_agent));
                                         target_model_name = fallback_agent;
