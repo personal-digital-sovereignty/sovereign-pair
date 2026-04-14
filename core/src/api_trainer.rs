@@ -1879,10 +1879,15 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
             source_links.join("\n")
         };
         
+        // [EPISTEMIC GUARD] Verifica se os hashes do Sandbox existem nos dados brutos coletados (all_sources),
+        // NÃO no synthesized_report. O Mestre é instruído a NÃO repetir os dados brutos na síntese —
+        // ele delega ao Sandbox. A prova de execução está no output do Sandbox (all_sources).
+        // Falso positivo anterior: o guard checava o texto errado e destruía relatórios legítimos.
         let mut has_failed_audit = false;
         if !all_hashes.is_empty() {
+            let all_sources_joined = all_sources.join("\n");
             for h in &all_hashes {
-                if !synthesized_report.contains(h) {
+                if !all_sources_joined.contains(h) {
                     has_failed_audit = true;
                     break;
                 }
