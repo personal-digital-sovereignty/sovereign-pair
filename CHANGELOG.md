@@ -5,6 +5,16 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
+## [1.2.3] - 2026-04-14
+*Ephemeral RAG Memory Pipeline & Adversarial Sabotage Loop*
+
+### Added
+- **Ephemeral Core (sqlite-vec)**: Adição arquitetural do SQLite Vector DB focado exclusivamente na Memória Transiente (Curto/Médio Prazo). Base limpa desacoplada do Sensus Vault (`002_ephemeral_knowledge.sql`).
+- **Anti-Hallucination Chronos Tags**: Cada chunk da memória recebe carimbos JSON em tempo de vetorização `{"source", "ingested_at"}` prevenindo colapso de linha do tempo entre Leis Nativas (Eternas) e Notícias (Efêmeras).
+- **Transient Garbage Collector**: Sistema `tokio::spawn` rodando em background purgando de existência `ephemeral_knowledge` expostas além do threshold de Time-To-Live (30 dias).
+- **Web-Scraping Semantic Pipeline**: Extratores web agora interceptam automaticamente blocos brutos que não são tabelas, usando `nomic-embed-text` para instanciálos granularizados no VectorDB na própria malha RAG do `api_trainer`.
+- **Sycophancy Breaker Sabotage Loop**: Se o OLLAMA falhar no contrato estrito ao alucinar matemática ou taxas no seu Markdown, a engine ativará um loop de até 3 "Comidas de Toco" (Retentativas de Bronca) por parte de um Juiz Adversarial forçando-o a reescrever apenas fatos antes de imprimir a interface final do usuário (`api_trainer.rs`).
+
 ## [1.2.1] - 2026-04-13
 *VRAM-to-Disk Orchestration, SHA-256 Checksum Arbitrating & Anti-Lazy Modeling*
 

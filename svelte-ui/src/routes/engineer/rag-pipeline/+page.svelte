@@ -54,7 +54,10 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
     });
     
     async function launchDeepResearch() {
-        if (!trainerState.deepResearchPrompt.trim() || trainerState.isDeepResearchActive) return;
+        if (!trainerState.deepResearchPrompt?.trim() || trainerState.isDeepResearchActive || !hasCapableModel) {
+            alert(`⚠️ SENSUS FAILSAFE ATIVADO! O motor se recusa a iniciar.\n\nMotivos (True = Bloqueado):\n- Prompt Vazio: ${!trainerState.deepResearchPrompt?.trim()}\n- Já está rodando: ${trainerState.isDeepResearchActive}\n- Matrix Sem Modelos (hasCapableModel=False): ${!hasCapableModel}\n\n-> DeepResearchModel selecionado: ${trainerState.deepResearchModel}`);
+            return;
+        }
         
         trainerState.isDeepResearchActive = true;
         trainerState.deepResearchScrapedSources = 0;
@@ -478,7 +481,7 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
             <button onclick={cancelDeepResearch} disabled={!trainerState.isDeepResearchActive} class="cursor-pointer px-8 py-3 bg-white dark:bg-[#1e293b] text-on-surface-variant dark:text-slate-300 text-xs font-bold uppercase tracking-widest rounded-xl shadow-sm border border-outline-variant/20 dark:border-slate-800 hover:bg-surface-container-low transition-colors active:scale-95 disabled:opacity-50">
                 Cancel Crawler
             </button>
-            <button onclick={launchDeepResearch} disabled={trainerState.isDeepResearchActive || !trainerState.deepResearchPrompt.trim() || !hasCapableModel} class="cursor-pointer px-10 py-3 bg-gradient-to-br flex items-center gap-3 from-[#001360] to-[#002395] text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-md shadow-primary/20 hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
+            <button type="button" onclick={(e) => { e.preventDefault(); launchDeepResearch(); }} disabled={trainerState.isDeepResearchActive || !trainerState.deepResearchPrompt?.trim() || !hasCapableModel} class="cursor-pointer px-10 py-3 bg-gradient-to-br flex items-center gap-3 from-[#001360] to-[#002395] text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-md shadow-primary/20 hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
                 {#if trainerState.isDeepResearchActive}
                     <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                     Executing Analysis...
