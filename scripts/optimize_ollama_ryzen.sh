@@ -29,8 +29,10 @@ cat > "$SYSTEMD_DIR/override.conf" << 'CONF'
 [Service]
 # Threads físicas vs virtuais: 16 threads para extrair 100% dos núcleos do 5800H
 Environment="OLLAMA_NUM_THREADS=16"
-# Paralelização das requests do Sovereign Pair
-Environment="OLLAMA_NUM_PARALLEL=1"
+# Parelização das requests do Sovereign Pair
+# GAP-3 FIX: Aumentado de 1→3 para alinhar com SOVEREIGN_PARALLEL_QUERIES=3 no Rust.
+# REGRA: OLLAMA_NUM_PARALLEL deve ser >= SOVEREIGN_PARALLEL_QUERIES ou as threads ficam em fila no servidor.
+Environment="OLLAMA_NUM_PARALLEL=3"
 # Modelos na RAM simultaneamente
 Environment="OLLAMA_MAX_LOADED_MODELS=2"
 
