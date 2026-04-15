@@ -30,18 +30,21 @@ def parse_markdown_blocks(raw_blocks):
     row_regex = re.compile(r'^(\d{4}-\d{2}(?:-\d{2})?)\s*\|\s*(.*)$')
     
     # Mapa semântico: normaliza nomes longos de headers para colunas curtas e legíveis
-    SEMANTIC_MAP = {
-        "BZ=F": "BRENT", "BRENT": "BRENT", "PETROLEO": "BRENT", "PETRÓLEO": "BRENT",
-        "BRL=X": "DOLAR", "DOLAR": "DOLAR", "DÓLAR": "DOLAR", "USD": "DOLAR",
-        "GASOLINA": "GASOLINA", "DIESEL": "DIESEL",
-        "IPCA": "IPCA", "SELIC": "SELIC", "DESEMPREGO": "DESEMPREGO",
-        "DOLAR_PTAX": "DOLAR_PTAX", "CAMBIO": "CAMBIO",
-    }
+    # IMPORTANTE: chaves mais longas/específicas DEVEM vir antes das mais curtas!
+    # Ex: DOLAR_PTAX antes de DOLAR, senão "DOLAR" match prematuramente.
+    SEMANTIC_MAP = [
+        ("BZ=F", "BRENT"), ("BRENT", "BRENT"), ("PETROLEO", "BRENT"), ("PETRÓLEO", "BRENT"),
+        ("DOLAR_PTAX", "DOLAR_PTAX"),  # Antes de DOLAR!
+        ("BRL=X", "DOLAR"), ("DÓLAR", "DOLAR"),
+        ("GASOLINA", "GASOLINA"), ("DIESEL", "DIESEL"),
+        ("IPCA", "IPCA"), ("SELIC", "SELIC"), ("DESEMPREGO", "DESEMPREGO"),
+        ("CAMBIO", "CAMBIO"),
+    ]
     
     def normalize_ds_name(raw_name, block_text):
         """Normaliza o nome do dataset usando mapa semântico."""
         upper = raw_name.upper()
-        for key, val in SEMANTIC_MAP.items():
+        for key, val in SEMANTIC_MAP:
             if key in upper:
                 return val
         # Fallback: heurística pelo conteúdo do bloco
