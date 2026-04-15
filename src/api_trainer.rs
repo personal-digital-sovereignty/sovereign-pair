@@ -1417,6 +1417,9 @@ pub async fn run_deep_research_handler(
                                     
                                     if auth_clone == "Python Code Sandbox" {
                                         // O Sandbox não deve ser escondido nem hasheado, o Mestre precisa LER a sua resposta matemática.
+                                        // EPISTEMIC FIX: Também empurra para all_sources para que o hash guard encontre
+                                        // os checksums impressos pelo Python (ex: 'checksum: f39e10f2...') via all_sources_joined.
+                                        all_sources.push(final_result.clone());
                                         messages.push(serde_json::json!({
                                             "role": "tool",
                                             "content": final_result
