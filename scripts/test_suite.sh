@@ -71,7 +71,7 @@ assert_status "GET /v1/system/available_models retorna 200" "200" "$R"
 # 1.6 PATCH toggle is_master (qwen3:8b)
 R=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/v1/settings/model_capabilities/toggles" \
     -H "Content-Type: application/json" \
-    -d '{"model_name":"qwen3:8b","is_master":true,"is_scribe":true,"is_agent":true,"is_coder":true,"is_chat":true,"is_project":true}')
+    -d '{"model_name":"qwen3:8b","supports_tools":true,"is_reasoner":false,"is_master":true,"is_scribe":true,"is_agent":true,"is_coder":true,"is_chat":true,"is_project":true,"is_installed":true}')
 assert_status "POST /v1/settings/model_capabilities/toggles (qwen3:8b)" "200" "$R"
 
 # 1.7 Confirmar que foi salvo no banco
@@ -122,7 +122,7 @@ echo "━━━ [3/4] SEGURANÇA ━━━━━━━━━━━━━━━�
 # 3.1 SQL Injection no model_name do toggle
 R=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/v1/settings/model_capabilities/toggles" \
     -H "Content-Type: application/json" \
-    -d '{"model_name":"qwen3:8b\"; DROP TABLE model_capabilities; --","is_master":true,"is_scribe":false,"is_agent":false,"is_coder":false,"is_chat":true,"is_project":false}')
+    -d '{"model_name":"qwen3:8b\"; DROP TABLE model_capabilities; --","supports_tools":false,"is_reasoner":false,"is_master":true,"is_scribe":false,"is_agent":false,"is_coder":false,"is_chat":true,"is_project":false,"is_installed":true}')
 # Deve retornar nem 500 nem destruir o banco
 assert_status "SQL Injection no toggle não retorna 500" "200" "$R"
 
@@ -157,7 +157,7 @@ fi
 GIANT=$(python3 -c "print('A'*100000)")
 R=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/v1/settings/model_capabilities/toggles" \
     -H "Content-Type: application/json" \
-    -d "{\"model_name\":\"$GIANT\",\"is_master\":false,\"is_scribe\":false,\"is_agent\":false,\"is_coder\":false,\"is_chat\":false,\"is_project\":false}" \
+    -d "{\"model_name\":\"$GIANT\",\"supports_tools\":false,\"is_reasoner\":false,\"is_master\":false,\"is_scribe\":false,\"is_agent\":false,\"is_coder\":false,\"is_chat\":false,\"is_project\":false,\"is_installed\":false}" \
     --max-time 5 2>/dev/null || echo "000")
 if [ "$R" = "413" ] || [ "$R" = "400" ] || [ "$R" = "200" ] || [ "$R" = "000" ]; then
     green "Payload 100KB no toggle não causa crash (HTTP $R)"
@@ -243,7 +243,7 @@ curl -s -X DELETE "$BASE/v1/settings/model_capabilities/$ENCODED2" > /dev/null
 # Tentar toggle em modelo que não existe mais
 R=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/v1/settings/model_capabilities/toggles" \
     -H "Content-Type: application/json" \
-    -d '{"model_name":"regression-canary:7b","is_master":true,"is_scribe":false,"is_agent":false,"is_coder":false,"is_chat":true,"is_project":false}')
+    -d '{"model_name":"regression-canary:7b","supports_tools":false,"is_reasoner":false,"is_master":true,"is_scribe":false,"is_agent":false,"is_coder":false,"is_chat":true,"is_project":false,"is_installed":true}')
 # Deve retornar 200 (UPDATE WHERE não encontra row, rows_affected=0, mas não é erro)
 if [ "$R" = "200" ] || [ "$R" = "404" ]; then
     green "Write-after-delete não causa crash (HTTP $R)"
