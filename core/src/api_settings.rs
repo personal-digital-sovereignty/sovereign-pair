@@ -526,3 +526,31 @@ pub async fn update_matrix_toggles_handler(
         }
     }
 }
+
+/// DELETE /v1/settings/model_capabilities/:model_name
+/// Remove manualmente uma entrada da Matrix de Capacidades.
+/// O Discover automático pode re-cadastrar o modelo ao reiniciar, se estiver instalado.
+pub async fn delete_matrix_entry_handler(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(model_name): axum::extract::Path<String>,
+) -> impl IntoResponse {
+    // O model_name vem URL-encoded (ex: qwen3%3A8b → qwen3:8b) — axum faz decode automaticamente.
+    let res = sqlx::query("DELETE FROM model_capabilities WHERE model_name = ?")
+        .bind(&model_name)
+        .execute(&state.db)
+        .await;
+
+    match res {
+        Ok(r) if r.rows_affected() > 0 => {
+            tracing::info!("🗑 [Matrix] Entrada '{}' removida manualmente da Model Capabilities.", model_name);
+            Json(serde_json::json!({"status": "deleted", "model_name": model_name})).into_response()
+        },
+        Ok(_) => {
+            (axum::http::StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Model not found in matrix"}))).into_response()
+        },
+        Err(e) => {
+            tracing::error!("Matrix Delete Error: {}", e);
+            (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true}))).into_response()
+        }
+    }
+}
