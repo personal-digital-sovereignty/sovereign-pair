@@ -38,6 +38,10 @@ Sua única diretriz O.S: Destruir (`DELETE CASCADE`) da existência memórias se
 Com a retirada forçada dos pesos de tabela (Pandas) nas costas do Mestre Lógico e do Scribe de Finalização, introduziu-se a rotina "Sabatina do Mestre".
 
 Em caso de alucinação detectada, o motor não sofre pane (*hard crash*), ele reescreve a resposta sob ordem destrutiva ('Comendo o toco'):
-**Tentativas Permitidas:** 3. O Mestre Auditor inspeciona o output verificando exatidão estrita. Caso haja reprovação, o sistema injeta as reprimendas forçando o L.L.M focado na escrita (ex: LLaMA3) a seguir a matemática intocável que fluirá do RAG e das Matrizes Pandas anexadas ao final do Pipeline.
+**Tentativas Permitidas:** 1 (v1.2.4). O Mestre Auditor (`temperature: 0.0`, `num_predict: 512`, `num_ctx: 8192`) inspeciona o output verificando exatidão estrita. Caso reprovar, o relatório é **preservado integralmente** com banners de alerta `> [!WARNING]` embutidos no corpo do artefato, permitindo análise humana e iteração de prompts. **Nenhum conteúdo é destruído.**
 
-Este pipeline representa o avanço final para a versão Produtiva v1.2.3.
+> **NOTA ARQUITETURAL (v1.2.4 — Epistemic Guard v2):**
+> A verificação de proveniência SHA-256 **não depende mais do LLM**. O Motor Rust re-hasheia os arquivos físicos em `/tmp/sovereign/` em tempo real e compara deterministicamente com os checksums originais gravados durante a extração. Isso elimina o falso positivo estrutural onde SLMs (3-8B) eram incapazes de reproduzir strings hexadecimais de 64 caracteres.
+
+Este pipeline representa o avanço final para a versão Produtiva v1.2.4.
+
