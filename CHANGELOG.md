@@ -5,6 +5,24 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
+## [1.2.4] - 2026-04-15
+*Epistemic Guard v2 (Deterministic SHA-256) & Sycophancy Breaker Performance Fix*
+
+### Fixed
+- **EPISTEMIC BREACH False Positive (100% Report Destruction)**: O guard de auditoria SHA-256 exigia que SLMs (3-8B parâmetros) reproduzissem fielmente strings SHA-256 de 64 caracteres hexadecimais aleatórios no output do Python Sandbox. Isso é **impossível** para Small Language Models — eles corrompem strings não-linguísticas longas. Resultado: 100% dos relatórios pós-Sandbox eram destruídos como "alucinação fabricada". **Fix**: Verificação determinística pelo Motor Rust — re-hashear os arquivos físicos em `/tmp/sovereign/` e comparar 1:1 com os checksums originais. Zero dependência cognitiva do LLM (`api_trainer.rs`).
+- **Report Destruction Policy (Content Preservation)**: O bloco `RETRIEVAL_FAILURE` destruía integralmente o relatório do LLM, substituindo-o por uma mensagem genérica de aborto. Isso impedia a análise humana dos dados parciais e a iteração de prompts. **Fix**: O relatório **nunca mais é destruído**. Alertas e warnings são embutidos como banners `> [!WARNING]` e `> [!NOTE]` dentro do corpo do artefato final, preservando todo o conteúdo para revisão do Comandante (`api_trainer.rs`).
+- **Thought Nanny Hash Pollution**: A Nanny gravava arquivos em `/tmp/sovereign/sovereign_nanny_*.txt` e empurrava seus hashes para `all_hashes`, poluindo o guard de auditoria com checksums de output computacional (que mudam a cada execução) em vez de dados de entrada. **Fix**: Nanny continua em `all_sources` (para o Scribe ler), mas não gera mais hashes (`api_trainer.rs`).
+- **Python Sandbox Script Truncation (3 Retries Wasted)**: `num_predict: 1536` truncava scripts Pandas completos (~2000 tokens) na metade, forçando o modelo a gerar 3 versões truncadas antes da síntese. **Fix**: Elevação para `num_predict: 2048` no Agentic Loop (`api_trainer.rs`).
+- **Sycophancy Breaker 90-Minute Waste Loop**: O Auditor Adversarial rejeitava 3/3 tentativas e depois o sistema "aprovava" mesmo assim (`attempt == max_retries`). As 3 tentativas (6 inferências LLM pesadas) eram tempo puro desperdiçado (~1h30). **Fix**: Redução para 1 tentativa com aceitação honesta. Se falhar, o relatório é preservado com warning de auditoria (`api_trainer.rs`).
+- **Auditor Unbounded Token Allocation**: O payload do Auditor não definía `options`, fazendo o Ollama alocar `num_ctx: 131072` e `num_predict: ilimitado` por default. **Fix**: Limites explícitos `num_ctx: 8192`, `num_predict: 512`, `temperature: 0.0` (`api_trainer.rs`).
+
+### Changed
+- **Epistemic Guard v2 (Deterministic Reverse-Check)**: Novo sistema de verificação de proveniência criptográfica. O Rust re-calcula SHA-256 de cada arquivo em `/tmp/sovereign/` e compara com os checksums gerados durante a extração. Três estados possíveis no relatório final: ✅ `Auditoria Determinística APROVADA` (badge verde com lista de arquivos verificados), ⚠️ `Auditoria Parcial` (warning amarelo com arquivos parcialmente verificados), ou sem bloco (fluxo sem Sandbox). Esta é uma prova **irrefutável** que independe completamente do comportamento do LLM.
+- **Scribe Token Budget**: `num_predict` reduzido de 4096 para 2048 tokens. 2048 tokens (~1500 palavras) é suficiente para relatórios C-Level sem desperdiçar tempo de inferência em texto que o modelo nunca vai gerar.
+
+### Performance
+- **Pipeline Deep Research**: Tempo total estimado reduzido de **~2h16** para **~25-30 minutos** (~75% de redução). Breakdown: eliminação de 3 retries Sycophancy (-1h30), scripts Python sem truncamento (-15min), Auditor com budget limitado (-10min).
+
 ## [1.2.3] - 2026-04-14
 *Ephemeral RAG Memory Pipeline & Adversarial Sabotage Loop*
 
