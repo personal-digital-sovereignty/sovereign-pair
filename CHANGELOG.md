@@ -15,6 +15,14 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 - **Web-Scraping Semantic Pipeline**: Extratores web agora interceptam automaticamente blocos brutos que não são tabelas, usando `nomic-embed-text` para instanciálos granularizados no VectorDB na própria malha RAG do `api_trainer`.
 - **Sycophancy Breaker Sabotage Loop**: Se o OLLAMA falhar no contrato estrito ao alucinar matemática ou taxas no seu Markdown, a engine ativará um loop de até 3 "Comidas de Toco" (Retentativas de Bronca) por parte de um Juiz Adversarial forçando-o a reescrever apenas fatos antes de imprimir a interface final do usuário (`api_trainer.rs`).
 
+### Fixed
+- **GAP-13 — Thinking-Native Model Asphyxiation**: Modelos reasoning (qwen3, gemma4, deepseek-r1) retornavam conteúdo **vazio** durante Tool Calling porque o flag `enable_thinking: false` castrava o CoT interno necessário para planejar JSON. Fix: query `is_reasoner` do DB a cada ciclo; somente desabilitar thinking em modelos não-pensadores (`api_trainer.rs`).
+- **GAP-9 — Empty Content Reprimand Loop**: Quando o modelo retornava `""`, o sistema gastava ciclos preciosos enviando reprimendas ("FECHAR A BOCA") para um modelo que sequer gerou conteúdo. Fix: detecção imediata de `content.trim().is_empty()` com escalação dupla (falha conta x2), sem enviar reprimenda inútil ao histórico (`api_trainer.rs`).
+- **GAP-11 — Infinite Gatekeeper Bounce**: O fallback escalava para outro modelo que também falhava, resetava `json_fail_count`, e o ciclo recomeçava infinitamente. Fix: `HashSet<String>` rastreando modelos já falhados na sessão; `discover_orchestrator_fallback` agora os exclui; se todos falharam, `break` imediato com mensagem de emergência (`api_trainer.rs`, `api.rs`).
+- **GAP-10 — Ghost Model Election**: As queries SQL do `discover_orchestrator_fallback` não filtravam `is_installed = 1`, podendo eleger modelos removidos do disco (404 do Ollama). Fix: `AND is_installed = 1` em ambas as queries de fallback (`api.rs`).
+- **GAP-14 — Tool Call Truncation (num_predict)**: O budget de 768 tokens nos ciclos de Tool Calling truncava JSON multi-tool em modelos >=7B. Fix: elevação para 1536 tokens (`api_trainer.rs`).
+- **GAP-12 — Nanny Rescue Window Starvation**: A janela de resgate do Thought Nanny (`cycle < 5`) era estreita demais — se os primeiros ciclos falharem com content vazio, o modelo novo perdia a chance de ter seu JSON resgatado. Fix: condição dinâmica `cycle < 10 || all_sources.is_empty()` (`api_trainer.rs`).
+
 ## [1.2.1] - 2026-04-13
 *VRAM-to-Disk Orchestration, SHA-256 Checksum Arbitrating & Anti-Lazy Modeling*
 
