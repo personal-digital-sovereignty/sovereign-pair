@@ -164,12 +164,15 @@ import { API_BASE_URL } from '$lib/env_config';
             
             const payload = {
                 model_name: model.model_name,
+                supports_tools: fieldName === 'supports_tools' ? value : model.supports_tools,
+                is_reasoner: fieldName === 'is_reasoner' ? value : model.is_reasoner,
                 is_master: fieldName === 'is_master' ? value : model.is_master,
                 is_scribe: fieldName === 'is_scribe' ? value : model.is_scribe,
                 is_agent: fieldName === 'is_agent' ? value : model.is_agent,
                 is_coder: fieldName === 'is_coder' ? value : model.is_coder,
                 is_chat: fieldName === 'is_chat' ? value : model.is_chat,
-                is_project: fieldName === 'is_project' ? value : model.is_project
+                is_project: fieldName === 'is_project' ? value : model.is_project,
+                is_installed: fieldName === 'is_installed' ? value : model.is_installed
             };
 
             const res = await fetch(`${API_BASE_URL}/v1/settings/model_capabilities/toggles`, {
@@ -471,13 +474,16 @@ import { API_BASE_URL } from '$lib/env_config';
                             <thead class="text-xs uppercase bg-surface-900/50 text-surface-400">
                                 <tr>
                                     <th class="px-4 py-3 font-semibold rounded-tl-lg">Model</th>
-                                    <th class="px-4 py-3 font-semibold text-center">Master</th>
-                                    <th class="px-4 py-3 font-semibold text-center">Scribe</th>
-                                    <th class="px-4 py-3 font-semibold text-center">Agent</th>
-                                    <th class="px-4 py-3 font-semibold text-center">Coder</th>
-                                    <th class="px-4 py-3 font-semibold text-center">Chat</th>
-                                    <th class="px-4 py-3 font-semibold text-center">Project</th>
-                                    <th class="px-4 py-3 font-semibold text-center rounded-tr-lg" title="Remover entrada da Matrix">Del</th>
+                                    <th class="px-2 py-3 font-semibold text-center" title="Suporte a Tool Calling (JSON Functions)"><span class="text-emerald-400">Tools</span></th>
+                                    <th class="px-2 py-3 font-semibold text-center" title="Modelo com Chain-of-Thought nativo (thinking)"><span class="text-fuchsia-400">Think</span></th>
+                                    <th class="px-2 py-3 font-semibold text-center">Master</th>
+                                    <th class="px-2 py-3 font-semibold text-center">Scribe</th>
+                                    <th class="px-2 py-3 font-semibold text-center">Agent</th>
+                                    <th class="px-2 py-3 font-semibold text-center">Coder</th>
+                                    <th class="px-2 py-3 font-semibold text-center">Chat</th>
+                                    <th class="px-2 py-3 font-semibold text-center">Project</th>
+                                    <th class="px-2 py-3 font-semibold text-center" title="Modelo instalado e disponível no Ollama"><span class="text-sky-400">Live</span></th>
+                                    <th class="px-2 py-3 font-semibold text-center rounded-tr-lg" title="Remover entrada da Matrix">Del</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-surface-700/50">
@@ -485,20 +491,34 @@ import { API_BASE_URL } from '$lib/env_config';
                                     <tr class="hover:bg-surface-700/20 transition-colors">
                                         <td class="px-4 py-3">
                                             <div class="font-medium {row.is_installed ? 'text-surface-100' : 'text-surface-500 line-through decoration-surface-500/50'}">{row.model_name}</div>
-                                            <div class="text-xs text-surface-500 flex flex-wrap gap-2 mt-1 items-center">
+                                            <div class="text-xs text-surface-500 mt-1">
                                                 <span>{(row.parameter_size).toFixed(1)}B</span>
-                                                {#if row.supports_tools}<span class="text-emerald-500 text-[10px] uppercase border border-emerald-500/30 px-1 rounded">Tools</span>{/if}
-                                                {#if row.is_reasoner}<span class="text-fuchsia-500 text-[10px] uppercase border border-fuchsia-500/30 px-1 rounded">Reasoner</span>{/if}
-                                                {#if !row.is_installed}
-                                                    <span class="text-error-400 text-[10px] uppercase border border-error-500/30 px-1 rounded flex items-center gap-1 font-bold ring-1 ring-error-500/50 bg-error-500/10" title="Modelo offline ou excluído do nó. Sua configuração Cíbrida foi preservada.">
-                                                        OFFLINE
-                                                    </span>
-                                                {/if}
                                             </div>
                                         </td>
                                         
+                                        <!-- Tools: Suporte a JSON Tool Calling -->
+                                        <td class="px-2 py-3 text-center">
+                                            <input type="checkbox" 
+                                                class="w-4 h-4 rounded border-emerald-600/50 bg-surface-800 text-emerald-500 focus:ring-emerald-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                checked={row.supports_tools}
+                                                disabled={isSavingMatrix}
+                                                onchange={(e) => toggleMatrixCapability(row.model_name, 'supports_tools', (e.target as HTMLInputElement).checked)}
+                                            />
+                                        </td>
+
+                                        <!-- Reasoner/Thinker: CoT nativo -->
+                                        <td class="px-2 py-3 text-center">
+                                            <input type="checkbox" 
+                                                class="w-4 h-4 rounded border-fuchsia-600/50 bg-surface-800 text-fuchsia-500 focus:ring-fuchsia-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                checked={row.is_reasoner}
+                                                disabled={isSavingMatrix}
+                                                onchange={(e) => toggleMatrixCapability(row.model_name, 'is_reasoner', (e.target as HTMLInputElement).checked)}
+                                            />
+
+                                        </td>
+
                                         <!-- Master: Requer Tools. Se não tiver, desabilite visualmente e trave o checkbox -->
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="px-2 py-3 text-center">
                                             <input type="checkbox" 
                                                 class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 focus:ring-offset-surface-900 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                                                 checked={row.is_master}
@@ -508,7 +528,7 @@ import { API_BASE_URL } from '$lib/env_config';
                                         </td>
                                         
                                         <!-- Scribe -->
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="px-2 py-3 text-center">
                                             <input type="checkbox" 
                                                 class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                 checked={row.is_scribe}
@@ -518,7 +538,7 @@ import { API_BASE_URL } from '$lib/env_config';
                                         </td>
 
                                         <!-- Agent: Requer Tools -->
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="px-2 py-3 text-center">
                                             <input type="checkbox" 
                                                 class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                                                 checked={row.is_agent}
@@ -528,7 +548,7 @@ import { API_BASE_URL } from '$lib/env_config';
                                         </td>
 
                                         <!-- Coder -->
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="px-2 py-3 text-center">
                                             <input type="checkbox" 
                                                 class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                 checked={row.is_coder}
@@ -538,7 +558,7 @@ import { API_BASE_URL } from '$lib/env_config';
                                         </td>
 
                                         <!-- Chat -->
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="px-2 py-3 text-center">
                                             <input type="checkbox" 
                                                 class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                 checked={row.is_chat}
@@ -548,12 +568,22 @@ import { API_BASE_URL } from '$lib/env_config';
                                         </td>
 
                                         <!-- Project / Kanban -->
-                                        <td class="px-4 py-3 text-center">
+                                        <td class="px-2 py-3 text-center">
                                             <input type="checkbox" 
                                                 class="w-4 h-4 rounded border-surface-600 bg-surface-800 text-primary-500 focus:ring-primary-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                 checked={row.is_project}
                                                 disabled={isSavingMatrix || !row.is_installed}
                                                 onchange={(e) => toggleMatrixCapability(row.model_name, 'is_project', (e.target as HTMLInputElement).checked)}
+                                            />
+                                        </td>
+
+                                        <!-- Installed / Live -->
+                                        <td class="px-2 py-3 text-center">
+                                            <input type="checkbox" 
+                                                class="w-4 h-4 rounded border-sky-600/50 bg-surface-800 text-sky-500 focus:ring-sky-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                checked={row.is_installed}
+                                                disabled={isSavingMatrix}
+                                                onchange={(e) => toggleMatrixCapability(row.model_name, 'is_installed', (e.target as HTMLInputElement).checked)}
                                             />
                                         </td>
 
@@ -570,7 +600,7 @@ import { API_BASE_URL } from '$lib/env_config';
                                     </tr>
                                 {:else}
                                     <tr>
-                                        <td colspan="8" class="px-4 py-8 text-center text-surface-500 italic">No models registered in the Matrix yet. They auto-register when the system starts.</td>
+                                    <td colspan="11" class="px-4 py-8 text-center text-surface-500 italic">No models registered in the Matrix yet. They auto-register when the system starts.</td>
                                     </tr>
                                 {/each}
                             </tbody>
