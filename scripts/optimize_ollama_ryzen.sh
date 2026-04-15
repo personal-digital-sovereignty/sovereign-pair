@@ -28,7 +28,7 @@ mkdir -p "$SYSTEMD_DIR"
 cat > "$SYSTEMD_DIR/override.conf" << 'CONF'
 [Service]
 # Threads físicas vs virtuais: 16 threads para extrair 100% dos núcleos do 5800H
-Environment="OLLAMA_NUM_THREADS=16"
+Environment="OLLAMA_NUM_THREADS=12"
 # Parelização das requests do Sovereign Pair
 # GAP-3 FIX: Aumentado de 1→3 para alinhar com SOVEREIGN_PARALLEL_QUERIES=3 no Rust.
 # REGRA: OLLAMA_NUM_PARALLEL deve ser >= SOVEREIGN_PARALLEL_QUERIES ou as threads ficam em fila no servidor.
@@ -37,8 +37,8 @@ Environment="OLLAMA_NUM_PARALLEL=3"
 Environment="OLLAMA_MAX_LOADED_MODELS=2"
 
 # OpenBLAS (Aceleração matemática vetorial - AVX2)
-Environment="OPENBLAS_NUM_THREADS=16"
-Environment="OMP_NUM_THREADS=16"
+Environment="OPENBLAS_NUM_THREADS=12"
+Environment="OMP_NUM_THREADS=12"
 
 # Afinidade de CPU (Force uso coerente dos CCX da AMD)
 Environment="GOMP_CPU_AFFINITY=0-15"

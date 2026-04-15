@@ -769,11 +769,15 @@ pub async fn run_deep_research_handler(
             
             let _ = TRAINER_LOGS.send(format!("[Worker Graph - Stage {}/25] Invocando Mente Mestra ({})...", cycle, target_model_name));
 
+            // Ciclos de Tool Calling (1-24): precision budget — JSON de tool call cabe em ~300 tokens.
+            // Ciclo de Síntese Final (25): budget completo para o relatório Markdown.
+            let cycle_num_predict = if cycle < 25 { 768 } else { 4096 };
+
             let mut options_obj = serde_json::json!({
                 "num_ctx": dynamic_num_ctx,
                 "temperature": 0.0,
                 "repeat_penalty": 1.0,
-                "num_predict": 4096
+                "num_predict": cycle_num_predict
             });
 
             // O Dilema de Latência do Raciocínio Híbrido: Capar CoT em ciclos estritamente operacionais (Tools)
