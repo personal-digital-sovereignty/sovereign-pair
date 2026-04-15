@@ -310,9 +310,9 @@ def fetch_macro(indicator, country, years):
         "SELIC": 432,
         "IGPM": 189,
         "INPC": 188,
-        "DOLAR_PTAX": 800, # Bugfix 1.2.0: PTAX de Venda Institucional (Commodities) ao invés de Livre Compra Fim de Período
-        "CAMBIO": 800,
-        "USD": 800,
+        "DOLAR_PTAX": 10813, # PTAX Venda Média Diária (BCB SGS oficial) — substitui série 800 (descontinuada/404)
+        "CAMBIO": 10813,
+        "USD": 10813,
         "ANP_OCORRENCIA": 1393,
         "ANP_PRODUCAO": 1393,
         "PETROLEO_SGS": 1393
