@@ -19,6 +19,7 @@ O sistema opera com base nos seguintes componentes principais:
    - **Enterprise RAG e Agentic Search Loop**: As pesquisas web agora sao dotadas de Lógica Soberana de Tool-Calling e *CDX Fallback Chain* descentralizada. 
    - **Cross-Encoder Local (FastEmbed)**: O processamento vetorial baseia-se na poda massiva de lixo da Web via *BGE-Reranker-Base* rodando lado-a-lado no Kernel do processo e devolvendo unicamente Top-Chunks. 
      - ⚠️ **Nota Importante:** Ao invés de trafegar tensores em VRAM, a infraestrutura FastEmbed nativa puxa autonomamente o Reranker da web (.ONNX) para cache físico da CPU no seu primeiro Boot. **NENHUM modelo do tipo `bge-reranker` deve ser instalado via Ollama**, evite poluir sua instalação Ollama.
+   - **Epistemic Guard v2 (Deterministic SHA-256)**: O sistema de verificacao de proveniencia criptografica opera de forma **deterministicamente** pelo Motor Rust, re-hasheando arquivos fisicos em `/tmp/sovereign/` e comparando 1:1 com checksums originais. Nenhuma dependencia cognitiva do LLM para reproducao de hashes.
 
 4. Dashboard Web (Svelte 5)
    - Interface Web (PWA) de painel unico que centraliza logs do sistema, monitoramento de recursos (RAM/VRAM) e navegacao interativa e controlada do repositorio fisico de documentos. 
