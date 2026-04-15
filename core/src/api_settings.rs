@@ -494,12 +494,15 @@ pub async fn get_matrix_capabilities_handler(State(state): State<Arc<AppState>>)
 #[derive(Deserialize)]
 pub struct UpdateMatrixReq {
     pub model_name: String,
+    pub supports_tools: bool,
+    pub is_reasoner: bool,
     pub is_master: bool,
     pub is_scribe: bool,
     pub is_agent: bool,
     pub is_coder: bool,
     pub is_chat: bool,
     pub is_project: bool,
+    pub is_installed: bool,
 }
 
 /// POST /v1/settings/model_capabilities/toggles
@@ -507,13 +510,16 @@ pub async fn update_matrix_toggles_handler(
     State(state): State<Arc<AppState>>,
     Json(req): Json<UpdateMatrixReq>,
 ) -> impl IntoResponse {
-    let res = sqlx::query("UPDATE model_capabilities SET is_master = ?, is_scribe = ?, is_agent = ?, is_coder = ?, is_chat = ?, is_project = ? WHERE model_name = ?")
+    let res = sqlx::query("UPDATE model_capabilities SET supports_tools = ?, is_reasoner = ?, is_master = ?, is_scribe = ?, is_agent = ?, is_coder = ?, is_chat = ?, is_project = ?, is_installed = ? WHERE model_name = ?")
+        .bind(req.supports_tools)
+        .bind(req.is_reasoner)
         .bind(req.is_master)
         .bind(req.is_scribe)
         .bind(req.is_agent)
         .bind(req.is_coder)
         .bind(req.is_chat)
         .bind(req.is_project)
+        .bind(req.is_installed)
         .bind(&req.model_name)
         .execute(&state.db)
         .await;
