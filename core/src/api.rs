@@ -313,7 +313,9 @@ pub async fn discover_orchestrator_fallback(pool: Option<&sqlx::SqlitePool>, fai
         }
 
         // Tentativa secundária: Se nenhum Master existir, acione um Agente/Scribe mais denso (entre 5B e 9B)
-        let rows_mid = sqlx::query("SELECT model_name FROM model_capabilities WHERE parameter_size >= 5.0 AND parameter_size <= 9.5 AND is_installed = 1 AND model_name != ? ORDER BY parameter_size DESC")
+        // CRITICAL FIX: Exigir supports_tools = 1 para que o modelo substituto consiga invocar
+        // fetch_financial_ticker/fetch_macroeconomy em vez de cair no dispatch_sub_researcher genérico.
+        let rows_mid = sqlx::query("SELECT model_name FROM model_capabilities WHERE parameter_size >= 5.0 AND parameter_size <= 9.5 AND supports_tools = 1 AND is_installed = 1 AND model_name != ? ORDER BY parameter_size DESC")
             .bind(failed_model)
             .fetch_all(p)
             .await
