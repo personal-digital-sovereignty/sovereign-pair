@@ -1,7 +1,7 @@
 <script lang="ts">
 import { API_BASE_URL } from '$lib/env_config';
 
-    import { ChevronDown, Server, Cpu, Shield, User, GlobeLock, Cloud, Download, Upload, Brain, SlidersHorizontal, Loader2, BookOpen, Printer, X, Database } from 'lucide-svelte';
+    import { ChevronDown, Server, Cpu, Shield, User, GlobeLock, Cloud, Download, Upload, Brain, SlidersHorizontal, Loader2, BookOpen, Printer, X, Database, Trash2 } from 'lucide-svelte';
     import { onMount } from 'svelte';
     import { marked } from 'marked';
 
@@ -185,6 +185,23 @@ import { API_BASE_URL } from '$lib/env_config';
             console.error("Failed to update matrix toggle:", e);
         } finally {
             isSavingMatrix = false;
+        }
+    }
+
+    async function deleteMatrixEntry(modelName: string) {
+        if (!confirm(`⚠️ Remover '${modelName}' da Matrix?\n\nO Discover automático pode re-registrá-lo ao reiniciar o sistema, se o modelo ainda estiver instalado no Ollama.`)) return;
+        try {
+            const encoded = encodeURIComponent(modelName);
+            const res = await fetch(`${API_BASE_URL}/v1/settings/model_capabilities/${encoded}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                modelMatrix = modelMatrix.filter(m => m.model_name !== modelName);
+            } else {
+                alert('Falha ao remover entrada da Matrix.');
+            }
+        } catch(e) {
+            console.error('Failed to delete matrix entry:', e);
         }
     }
 
@@ -459,7 +476,8 @@ import { API_BASE_URL } from '$lib/env_config';
                                     <th class="px-4 py-3 font-semibold text-center">Agent</th>
                                     <th class="px-4 py-3 font-semibold text-center">Coder</th>
                                     <th class="px-4 py-3 font-semibold text-center">Chat</th>
-                                    <th class="px-4 py-3 font-semibold text-center rounded-tr-lg">Project</th>
+                                    <th class="px-4 py-3 font-semibold text-center">Project</th>
+                                    <th class="px-4 py-3 font-semibold text-center rounded-tr-lg" title="Remover entrada da Matrix">Del</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-surface-700/50">
@@ -538,10 +556,21 @@ import { API_BASE_URL } from '$lib/env_config';
                                                 onchange={(e) => toggleMatrixCapability(row.model_name, 'is_project', (e.target as HTMLInputElement).checked)}
                                             />
                                         </td>
+
+                                        <!-- Delete Entry -->
+                                        <td class="px-4 py-3 text-center">
+                                            <button
+                                                title="Remover {row.model_name} da Matrix"
+                                                onclick={() => deleteMatrixEntry(row.model_name)}
+                                                class="text-surface-600 hover:text-rose-400 transition-colors cursor-pointer p-1 rounded hover:bg-rose-500/10"
+                                            >
+                                                <Trash2 class="w-3.5 h-3.5" />
+                                            </button>
+                                        </td>
                                     </tr>
                                 {:else}
                                     <tr>
-                                        <td colspan="7" class="px-4 py-8 text-center text-surface-500 italic">No models registered in the Matrix yet. They auto-register when the system starts.</td>
+                                        <td colspan="8" class="px-4 py-8 text-center text-surface-500 italic">No models registered in the Matrix yet. They auto-register when the system starts.</td>
                                     </tr>
                                 {/each}
                             </tbody>
