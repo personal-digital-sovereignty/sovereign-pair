@@ -24,6 +24,35 @@ lazy_static! {
     };
 }
 
+/// Extrai blocos raw de dados temporais de `all_sources`.
+/// O `all_sources` contém strings como:
+///   `### Sovereign Open-Data Output:\n{"status":"success","data_compressed":"[CONTEXT: ...]\n2020-01 | 63.65"}`
+/// O joiner espera apenas o conteúdo de `data_compressed` (sem JSON wrapper).
+/// Esta função:
+/// 1. Tenta parsear o JSON de dentro de cada item
+/// 2. Extrai `data_compressed` se existir
+/// 3. Caso contrário, devolve o item raw (para blocos não-JSON como output de scraper)
+fn extract_raw_data_blocks(all_sources: &[String]) -> Vec<String> {
+    let mut blocks = Vec::new();
+    for src in all_sources {
+        // Remove headers de prefixo como "### Sovereign Open-Data Output:"
+        let mut json_candidate = src.as_str();
+        if let Some(pos) = json_candidate.find('{') {
+            json_candidate = &json_candidate[pos..];
+        }
+        // Tenta parsear como JSON e extrair data_compressed
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_candidate) {
+            if let Some(dc) = parsed.get("data_compressed").and_then(|v| v.as_str()) {
+                blocks.push(dc.to_string());
+                continue;
+            }
+        }
+        // Fallback: devolve o raw inteiro (scraper text, sandbox output, etc)
+        blocks.push(src.clone());
+    }
+    blocks
+}
+
 #[derive(Deserialize)]
 #[allow(dead_code)]
 pub struct DistillationReq {
@@ -1507,7 +1536,10 @@ pub async fn run_deep_research_handler(
                             // invocamos o joiner AGORA (durante o loop) para que o LLM receba
                             // Markdown pré-formatado em vez de JSONs brutos.
                             if all_sources.len() >= 2 && symbiotic_table_markdown.is_none() {
-                                let joiner_payload = serde_json::json!({ "raw_data_blocks": &all_sources });
+                                // BUGFIX: Extrair `data_compressed` dos JSONs wrapados antes de passar ao joiner.
+                                // Sem isso, o joiner não encontra os headers `[CONTEXT: ...]` e retorna vazio.
+                                let clean_blocks = extract_raw_data_blocks(&all_sources);
+                                let joiner_payload = serde_json::json!({ "raw_data_blocks": &clean_blocks });
                                 let payload_str = joiner_payload.to_string();
                                 let cur_dir_j = std::env::current_dir().unwrap_or_default();
                                 let joiner_path = if cur_dir_j.ends_with("core") { cur_dir_j.join("python_workers").join("analyze_and_join_time_series.py") } else { cur_dir_j.join("core").join("python_workers").join("analyze_and_join_time_series.py") };
@@ -1546,6 +1578,8 @@ pub async fn run_deep_research_handler(
                                                                 Prossiga DIRETAMENTE com a análise textual e síntese final.\n\n{}", mkd
                                                             )
                                                         }));
+                                                    } else {
+                                                        let _ = TRAINER_LOGS.send("[Symbiotic Pipeline INLINE] Joiner retornou sucesso mas sem chave 'markdown'. Verifique o parser.".to_string());
                                                     }
                                                 }
                                             } else {
@@ -1856,8 +1890,10 @@ pub async fn run_deep_research_handler(
             // Se houver múltiplas fontes espaciais, acionamos a marreta matemática do Pandas.
             if all_sources.len() > 1 {
                 let _ = TRAINER_LOGS.send("[Sovereign Symbiose] Múltiplos Fatos Brutos Detectados! Acionando Data Engineering (Pandas) sob os panos...".to_string());
+                // BUGFIX: Extrair `data_compressed` dos JSONs wrapados antes de passar ao joiner.
+                let clean_blocks = extract_raw_data_blocks(&all_sources);
                 let joiner_payload = serde_json::json!({
-                    "raw_data_blocks": all_sources
+                    "raw_data_blocks": clean_blocks
                 });
                 let payload_str = joiner_payload.to_string();
                 let joiner_path = std::env::current_dir().unwrap_or_default().join("python_workers").join("analyze_and_join_time_series.py");
@@ -1886,6 +1922,10 @@ pub async fn run_deep_research_handler(
                                     if let Some(mkd) = parsed.get("markdown").and_then(|m| m.as_str()) {
                                         let _ = TRAINER_LOGS.send("[Data Engineering] Fusão Matemática via Pandas e Correlação (Pearson) Concluída!".to_string());
                                         final_raw_dump = format!("{}\n\n=== FACTUAL BORDER ===\n\n[LOG INTERNO OLLAMA]\nNós recebemos múltiplas requisições assíncronas de você. O nosso motor Rust processou e fundiu todas elas magicamente usando DataFrames. Você NÃO precisa e NÃO DEVE tentar cruzar as linhas manualmente. Apenas contemple a tabela perfeita abaixo e redija sua síntese.\n\n{}", final_raw_dump, mkd);
+                                        // INSURANCE: Garantir que a tabela Markdown esteja disponível para o artefato final
+                                        if symbiotic_table_markdown.is_none() {
+                                            symbiotic_table_markdown = Some(mkd.to_string());
+                                        }
                                     }
                                 }
                             } else {
@@ -2104,11 +2144,17 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
             )
         };
 
-        // SEMPRE montar o relatório completo — NUNCA destruir conteúdo.
-        // Warnings e alertas são imbutidos no corpo para análise humana.
+        // Se o Symbiotic Pipeline gerou uma tabela Markdown (inline ou post-loop),
+        // ela DEVE aparecer no artefato final. Não importa se o Scribe acertou ou errou.
+        let symbiotic_section = if let Some(ref table_md) = symbiotic_table_markdown {
+            format!("\n\n---\n## 📊 Dados Consolidados (Symbiotic Pipeline)\n\n{}\n", table_md)
+        } else {
+            String::new()
+        };
+
         let md_content = format!(
-            "# Deep Research Report\n\n**Directive:** {}\n\n>[!INFO] This artifact was autonomously generated by the Sovereign Deep Research loop.\n\n## Abstract (LLM Synthesis)\n{}{}\n---\n## 📚 Fontes Pesquisadas\n{}\n",
-            prompt, final_markdown_report, provenance_block, sources_block
+            "# Deep Research Report\n\n**Directive:** {}\n\n>[!INFO] This artifact was autonomously generated by the Sovereign Deep Research loop.\n\n## Abstract (LLM Synthesis)\n{}{}{}\n---\n## 📚 Fontes Pesquisadas\n{}\n",
+            prompt, final_markdown_report, symbiotic_section, provenance_block, sources_block
         );
         
         let stage_id = uuid::Uuid::new_v4().to_string();
