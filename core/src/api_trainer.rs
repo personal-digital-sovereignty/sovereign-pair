@@ -768,6 +768,9 @@ pub async fn run_deep_research_handler(
         let mut failed_models: std::collections::HashSet<String> = std::collections::HashSet::new();
         // Contador de retries de conexão (cobre cold-start E reload pós-Sandbox em qualquer stage).
         let mut connection_retries: u8 = 0;
+        // SYMBIOTIC PIPELINE INLINE: Flag para sinalizar que a tabela Markdown já foi gerada
+        // e injetada no contexto. Previne o LLM de desperdiçar stages com execute_python_code.
+        let mut symbiotic_table_markdown: Option<String> = None;
         
         // --- THE WORKER GRAPH LOOP (MAX 15 STAGES: GATHER, ANALYZE, SYNTHESIZE) ---
         // Reduzido de 25 para 15: pesquisas reais completam em 8-10 stages.
@@ -984,6 +987,29 @@ pub async fn run_deep_research_handler(
                                             }
                                             
                                             if !py_code.is_empty() {
+                                                // SYMBIOTIC INTERCEPTOR: Se a tabela Markdown já foi gerada E o script
+                                                // está tentando processar dados que já foram mergeados, retornar a tabela
+                                                // diretamente em vez de desperdiçar um stage com Python.
+                                                let is_data_reprocessing = py_code.contains("sovereign_data_") || py_code.contains("pd.read_json") || py_code.contains("read_csv") || py_code.contains("/tmp/sovereign");
+                                                if is_data_reprocessing {
+                                                    if let Some(ref table_md) = symbiotic_table_markdown {
+                                                        let _ = TRAINER_LOGS.send("[Symbiotic Interceptor] Script Python interceptado! Dados já mergeados pelo Backend. Injetando tabela Markdown pré-construída.".to_string());
+                                                        let synthetic_response = format!(
+                                                            "### PYTHON SANDBOX OUTPUT (SUCCESS - SYMBIOTIC OVERRIDE):\n\
+                                                            ```text\n\
+                                                            [SISTEMA] Os dados de séries temporais já foram cruzados, mergeados e correlacionados\n\
+                                                            automaticamente pelo Motor Rust (Symbiotic Pipeline) usando Pandas nativo.\n\
+                                                            Você NÃO precisa escrever scripts para processar os arquivos JSON.\n\
+                                                            A tabela Markdown abaixo contém TODOS os dados cruzados prontos para sua análise textual.\n\
+                                                            Prossiga IMEDIATAMENTE com a síntese analítica.\n\
+                                                            ```\n\n{}", table_md
+                                                        );
+                                                        join_handles.push(tokio::spawn(async move {
+                                                            (py_code, synthetic_response, "Python Code Sandbox".to_string())
+                                                        }));
+                                                        continue; // Skip sandbox execution
+                                                    }
+                                                }
                                                 let _ = TRAINER_LOGS.send("[Sovereign Code Sandbox] Orquestrando Script Matemático Python...".to_string());
                                                 join_handles.push(tokio::spawn(async move {
                                                     let execution_res = crate::sandbox::execute_python_code(&py_code).await;
@@ -1473,6 +1499,60 @@ pub async fn run_deep_research_handler(
                                             "role": "tool",
                                             "content": limited_result
                                         }));
+                                    }
+                                }
+                            }
+                            // [SYMBIOTIC PIPELINE INLINE INTERCEPTOR]
+                            // Se temos ≥2 fontes de dados e a tabela ainda não foi gerada,
+                            // invocamos o joiner AGORA (durante o loop) para que o LLM receba
+                            // Markdown pré-formatado em vez de JSONs brutos.
+                            if all_sources.len() >= 2 && symbiotic_table_markdown.is_none() {
+                                let joiner_payload = serde_json::json!({ "raw_data_blocks": &all_sources });
+                                let payload_str = joiner_payload.to_string();
+                                let cur_dir_j = std::env::current_dir().unwrap_or_default();
+                                let joiner_path = if cur_dir_j.ends_with("core") { cur_dir_j.join("python_workers").join("analyze_and_join_time_series.py") } else { cur_dir_j.join("core").join("python_workers").join("analyze_and_join_time_series.py") };
+                                
+                                if joiner_path.exists() {
+                                    let venv_py = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
+                                    let python_exe = if venv_py.exists() { venv_py.to_string_lossy().to_string() } else { "python3".to_string() };
+                                    let mut cmd = std::process::Command::new(&python_exe);
+                                    cmd.arg(&joiner_path);
+                                    use std::io::Write as JoinerWrite;
+                                    cmd.stdin(std::process::Stdio::piped())
+                                       .stdout(std::process::Stdio::piped())
+                                       .stderr(std::process::Stdio::piped());
+                                       
+                                    if let Ok(mut child) = cmd.spawn() {
+                                        if let Some(mut stdin) = child.stdin.take() {
+                                            let _ = stdin.write_all(payload_str.as_bytes());
+                                        }
+                                        if let Ok(output) = child.wait_with_output() {
+                                            if output.status.success() {
+                                                let out_str = String::from_utf8_lossy(&output.stdout);
+                                                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&out_str) {
+                                                    if let Some(mkd) = parsed.get("markdown").and_then(|m| m.as_str()) {
+                                                        let _ = TRAINER_LOGS.send("[Symbiotic Pipeline INLINE] Fusão Matemática Concluída! Injetando tabela Markdown no contexto do LLM.".to_string());
+                                                        symbiotic_table_markdown = Some(mkd.to_string());
+                                                        
+                                                        // Injetar a tabela como uma mensagem do assistente no histórico
+                                                        // para que o LLM a LEIA diretamente em vez de tentar programar.
+                                                        messages.push(serde_json::json!({
+                                                            "role": "assistant",
+                                                            "content": format!(
+                                                                "[RESULTADO DA ENGENHARIA DE DADOS AUTOMÁTICA]\n\
+                                                                O Motor Rust (Symbiotic Pipeline) cruzou todas as séries temporais automaticamente.\n\
+                                                                Os dados já estão mergeados, correlacionados (Pearson) e formatados.\n\
+                                                                NÃO é necessário escrever código Python para processar os dados.\n\
+                                                                Prossiga DIRETAMENTE com a análise textual e síntese final.\n\n{}", mkd
+                                                            )
+                                                        }));
+                                                    }
+                                                }
+                                            } else {
+                                                let err_str = String::from_utf8_lossy(&output.stderr);
+                                                let _ = TRAINER_LOGS.send(format!("[Symbiotic Pipeline INLINE] Falha na fusão inline. Fallback para loop normal. ({})", err_str.trim()));
+                                            }
+                                        }
                                     }
                                 }
                             }
