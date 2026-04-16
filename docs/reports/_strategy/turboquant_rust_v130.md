@@ -220,21 +220,129 @@ fn unpack_4bit(packed: &[u8], dim: usize) -> Vec<u8> {
 
 ---
 
-## 4. Ponto de Integração no Sovereign
+## 4. Arquitetura WAG Efêmera — O Encaixe Perfeito
 
-### 4.1 Estado Atual (api_trainer.rs:337-358)
+### 4.0 O que já existe (e por que TurboQuant encaixa como luva)
+
+O Sovereign JÁ possui uma infraestrutura completa de **WAG (Web-Augmented Generation)**
+com memória efêmera temporizada. Esta arquitetura foi projetada EXATAMENTE para o caso
+de uso onde TurboQuant tem máximo impacto:
+
+```
+┌─ SCHEMA ATUAL (002_ephemeral_knowledge.sql) ──────────────────┐
+│                                                                │
+│  ephemeral_knowledge                                           │
+│  ├── id TEXT PRIMARY KEY                                       │
+│  ├── source_url TEXT                                           │
+│  ├── domain TEXT                                               │
+│  ├── expires_at DATETIME  ← EXPIRA EM 30 DIAS                │
+│  ├── content_raw TEXT                                          │
+│  └── FK → ephemeral_chunks (ON DELETE CASCADE)                │
+│                                                                │
+│  ephemeral_chunks                                              │
+│  ├── id INTEGER PRIMARY KEY                                    │
+│  ├── text_content TEXT                                          │
+│  ├── chunk_index INTEGER                                       │
+│  └── FK → vec_ephemeral_chunks                                │
+│                                                                │
+│  vec_ephemeral_chunks (sqlite-vec, VIRTUAL TABLE vec0)        │
+│  ├── chunk_id INTEGER PRIMARY KEY                              │
+│  └── embedding float[1024]  ← 1024 dims × 4 bytes = 4096 B  │
+│                                                                │
+│  garbage_collector.rs (roda a cada 1h)                         │
+│  └── DELETE WHERE expires_at < CURRENT_TIMESTAMP              │
+│      └── CASCADE → chunks → vec_ephemeral desorfanados        │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**Ciclo de vida de um embedding WAG:**
+```
+Scrape Web → Ollama (nomic-embed-text) → float[1024] → SQLite BLOB
+                                                           │
+                                                    4096 bytes/chunk
+                                                    × 50 chunks/doc
+                                                    = 200 KB/documento
+                                                           │
+                                              30 dias depois → EXPURGADO
+                                              pelo Garbage Collector
+```
+
+### 4.0.1 Por que WAG efêmero é o cenário IDEAL para TurboQuant
+
+A natureza efêmera cria um **fluxo contínuo de write+delete** onde o custo por byte
+se multiplica ao longo do tempo:
+
+| Métrica | float32 (hoje) | TurboQuant 4-bit | Economia |
+|---|---|---|---|
+| Bytes/chunk | 4096 | 514 | **7.9×** |
+| Bytes/documento (50 chunks) | 200 KB | 25 KB | **175 KB/doc** |
+| 10 pesquisas/dia × 5 docs/pesquisa × 30 dias | **300 MB** | **38 MB** | **262 MB** |
+| Em 1 ano (rotação contínua) | **3.6 GB write throughput** | **456 MB** | **3.1 GB menos I/O** |
+
+**Insight crítico:** Como os embeddings são EFÊMEROS (30 dias), o Sovereign não precisa
+migrar dados antigos. Basta ativar TurboQuant — novos embeddings entram comprimidos,
+antigos expiram naturalmente. **Zero migração, zero downtime.**
+
+### 4.0.2 Impacto Cognitivo (a pergunta real)
+
+A pergunta "melhoraremos performance cognitiva?" tem uma resposta direta nesta arquitetura:
+
+```
+HOJE: 10 pesquisas/dia × 5 docs × 50 chunks = 2.500 embeddings ativos
+      × 4096 bytes = ~10 MB de vetores na vec0
+
+      Com 27 GB de RAM e ~16 GB de modelos:
+      Espaço para embeddings: ~500 MB → suporta ~125K chunks
+
+COM TURBOQUANT:
+      Mesmos 2.500 embeddings = ~1.3 MB  (em vez de 10 MB)
+      Espaço para embeddings: ~500 MB → suporta ~1M chunks
+
+      = 8× MAIS contexto semântico para o LLM
+      = Recall mais rico quando o Mestre busca fontes
+      = MENOS alucinação (mais fatos disponíveis para RAG)
+```
+
+**Em termos cognitivos:**
+1. O Mestre faz tool-calling → `dispatch_sub_researcher` → scrape web
+2. Resultados são embeddados e armazenados na `vec_ephemeral_chunks`
+3. Em pesquisas FUTURAS (dentro de 30 dias), o Mestre pode **resgatar fatos anteriores** via busca semântica
+4. Com TurboQuant, o Vault comporta **8× mais fatos** → probabilidade de resgatar contexto relevante **aumenta proporcionalmente**
+
+> **Veredicto cognitivo:** TurboQuant não melhora a capacidade de raciocínio do LLM,
+> mas melhora dramaticamente a **qualidade do input que ele recebe**.
+> É como dar a um analista financeiro acesso a 8× mais relatórios —
+> ele não fica mais inteligente, mas suas conclusões ficam mais fundamentadas.
+
+### 4.0.3 Dimensionalidade Real: 1024, não 768
+
+**Observação importante:** O schema usa `float[1024]`, não `float[768]`.
+O `nomic-embed-text` gera vetores de **768 dimensões**, mas a declaração `vec0`
+reserva `float[1024]`. Isso significa:
+
+- **Hoje:** 1024 × 4 = **4096 bytes/chunk** (256 bytes desperdiçados se dim=768)
+- **Com TQ 4-bit:** 768 × 4/8 = **384 bytes** (pack real) + 2 bytes norm = **386 bytes**
+- **Compressão real:** 4096 → 386 = **10.6×** (melhor que os 7.9× teóricos!)
+
+A migração deve corrigir a dimensionalidade para `float[768]` ou manter `float[1024]`
+com padding zero — decisão a ser tomada na Fase 2.
+
+---
+
+### 4.1 Ponto de Inserção (api_trainer.rs:337-358)
 
 ```rust
-// HOJE: Embedding float32 bruto → SQLite BLOB
+// HOJE: Embedding float32 bruto → SQLite vec0 BLOB
 let emb_req = json!({"model": "nomic-embed-text", "prompt": ch});
 let embedding = emb_json.get("embedding"); // Vec<f64> do Ollama
 let floats_bytes: Vec<u8> = embedding.iter()
     .filter_map(|v| v.as_f64().map(|f| f as f32))
     .flat_map(|f| f.to_ne_bytes())
     .collect();
-// → 768 dimensions × 4 bytes = 3072 bytes/chunk no SQLite
+// → 1024 dims × 4 bytes = 4096 bytes/chunk (com padding) no SQLite
 sqlx::query("INSERT INTO vec_ephemeral_chunks (chunk_id, embedding) VALUES (?, ?)")
-    .bind(floats_bytes)  // BLOB de 3072 bytes
+    .bind(floats_bytes)  // BLOB de 4096 bytes
 ```
 
 ### 4.2 Estado Futuro (com TurboQuant)
@@ -246,15 +354,25 @@ let raw_embedding: Vec<f32> = embedding.iter()
     .collect();
 
 let (packed, norm) = turboquant::quantize_single(&raw_embedding, &TURBO_STATE);
-// → packed: 384 bytes (4-bit) + norm: 2 bytes = 386 bytes/chunk
-// → COMPRESSÃO: 3072 → 386 = 7.9×
+// → packed: 384 bytes (4-bit, dim=768) + norm: 2 bytes = 386 bytes/chunk
+// → COMPRESSÃO REAL: 4096 → 386 = 10.6×
 
 sqlx::query("INSERT INTO vec_ephemeral_chunks (chunk_id, embedding, norm) VALUES (?, ?, ?)")
-    .bind(packed)    // BLOB de 384 bytes (4-bit packed)
+    .bind(packed)    // BLOB comprimido
     .bind(norm)      // f16 (2 bytes)
 ```
 
-### 4.3 Busca (Dequantize + Cosseno)
+### 4.3 Garbage Collector — Zero Migração
+
+```rust
+// garbage_collector.rs NÃO PRECISA MUDAR!
+// O expurgo por CASCADE funciona idêntico — apaga o parent,
+// chunks e vetores são destruídos automaticamente.
+// Novos embeddings entram comprimidos, antigos expiram naturalmente.
+// Em 30 dias, 100% do Vault já é TurboQuant sem migração forçada.
+```
+
+### 4.4 Busca (Dequantize + Cosseno)
 
 ```rust
 // No momento da busca semântica:
@@ -266,7 +384,10 @@ fn search_similar(query_emb: &[f32], pool: &SqlitePool, top_k: usize) -> Vec<(i6
     // dot product com cada documento desquantizado...
 
     // Opção B: Comparar diretamente nos índices (mais rápido, aproximado)
-    // Distância entre codebook[i] e codebook[j] pré-computada em lookup table
+    // Lookup table de distâncias: codebook[i] × codebook[j] pré-computada (16×16)
+
+    // Opção C: vec0 nativo — se o sqlite-vec suportar custom distance functions,
+    // podemos armazenar os índices quantizados diretamente e usar vec0 para ANN search
 }
 ```
 
