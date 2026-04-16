@@ -2,9 +2,26 @@
 
 > **Classificação:** Estratégia de Implementação
 > **Target:** v1.3.0 (Epic: Resilience Shield + Memory Sovereignty)
-> **Paper:** [TurboQuant: Online Vector Quantization with Near-optimal Distortion Rate](https://arxiv.org/abs/2504.19874) (Google Research, 2025)
-> **Referência:** [rag-embedding-compression-lab](https://github.com/marcos2872/rag-embedding-compression-lab) (MarcosBritoDev)
-> **Inspiração complementar:** [Exo Labs](https://exolabs.net/) (inferência distribuída), [LLM em Pentium 1997](https://www.techspot.com/news/106136-llama-language-model-tamed-ancient-windows-98-computer.html)
+> **Sessão de Análise:** 2026-04-15 (22:08 ~ 23:10 BRT)
+> **Conversation ID:** `86152ec6-c83a-4535-af5f-400e8d7940a3`
+
+### Créditos e Citação Acadêmica
+
+**Paper original:**
+> Zandieh, A., Daliri, M., Han, I., Kacham, P., Karbasi, A., & Mirrokni, V. (2025).
+> *TurboQuant: Online Vector Quantization with Near-optimal Distortion Rate.*
+> arXiv preprint [arXiv:2504.19874](https://arxiv.org/abs/2504.19874).
+> Google Research, 2025.
+
+**Implementação de referência (Python/NumPy):**
+> MarcosBritoDev. (2025). *rag-embedding-compression-lab: Compressão de embeddings RAG.*
+> GitHub: [marcos2872/rag-embedding-compression-lab](https://github.com/marcos2872/rag-embedding-compression-lab)
+> Artigo: [TabNews — TurboQuant: 7,9× Menos RAM em Embeddings](https://www.tabnews.com.br/MarcosBritoDev/eu-descobri-que-50-linhas-de-codigo-fazem-mais-diferenca-do-que-300-iteracoes-de-otimizacao)
+
+**Inspiração complementar:**
+> - [Exo Labs](https://exolabs.net/) — Inferência distribuída entre dispositivos consumer
+> - [LLM em Pentium 1997](https://www.techspot.com/news/106136-llama-language-model-tamed-ancient-windows-98-computer.html) — Prova que o gargalo é software, não hardware
+> - [Exo Labs (X/Twitter)](https://x.com/exolabs/status/1873103218596811059)
 
 ---
 
@@ -703,3 +720,70 @@ def apply_inverse_rotation(Y, R):
 > 3.5-bit é quality-neutral com full precision (50.06 = 50.06 no LongBench-E).
 > Isso abre caminho para o Sovereign v2.0 com "memória de trabalho persistente"
 > entre sessões de pesquisa, comprimida em 4× via TurboQuant.
+
+---
+
+## Proveniência e Rastreabilidade
+
+Este documento foi gerado durante uma sessão de análise técnica em 2026-04-15.
+Para recuperar 100% do contexto de análise ao implementar, use as referências abaixo.
+
+### Hashes SHA-256 (Proveniência Criptográfica)
+
+```
+Paper Original (PDF):
+  Arquivo: _strategy/2504.19874v1.pdf
+  SHA-256: 431eb13926e10491f5fbd0bebd0813c51bd6c1e884426a1500c5db640b2997ab
+
+Este Documento (Strategy):
+  Arquivo: docs/reports/_strategy/turboquant_rust_v130.md
+  SHA-256: (recalcular após commits finais)
+
+Implementação de Referência (Python):
+  Repo: github.com/marcos2872/rag-embedding-compression-lab
+  Commit analisado: main @ 2efaf0bc08534e115e0ef3a6fa4e9f7cd6c57874
+```
+
+### Sessão de Análise (Antigravity)
+
+```
+Conversation ID: 86152ec6-c83a-4535-af5f-400e8d7940a3
+Date:            2026-04-15 (22:08 ~ 23:10 BRT)
+Branch:          release/1.2.0
+Commits desta sessão (TurboQuant):
+  860441e  docs: TurboQuantMSE Rust strategy for v1.3.0 Vault RAG
+  4a40132  docs(strategy): WAG ephemeral architecture analysis + cognitive impact
+  dd5803d  docs(strategy): complement from original paper (arxiv:2504.19874v1)
+  <final>  docs(strategy): credits, provenance and session context hash
+```
+
+### Arquivos Analisados (Código-Fonte de Referência)
+
+```
+Repositório Python (5 módulos lidos linha por linha):
+  src/quantization/turboquant_mse.py   — 80 linhas (core do algoritmo)
+  src/quantization/rotation.py         — 64 linhas (QR + rotação)
+  src/quantization/lloyd_max.py        — 187 linhas (codebook ótimo)
+  src/quantization/storage.py          — 243 linhas (pack/unpack bits)
+  src/quantization/turboquant_prod.py  — (lido via README, QJL bias correction)
+
+Sovereign Pair (pontos de integração):
+  core/src/api_trainer.rs              — linhas 325-360 (embedding pipeline WAG)
+  core/src/schemas/002_ephemeral_knowledge.sql — DDL vec0 float[1024]
+  core/src/garbage_collector.rs        — expurgo 30 dias + CASCADE
+```
+
+### Decisões Técnicas Registradas
+
+| # | Decisão | Justificativa |
+|---|---|---|
+| 1 | TurboQuantMSE (não Prod) para Fase 1 | MSE é suficiente para embedding search; QJL adiciona complexidade |
+| 2 | 4-bit como default | Melhor tradeoff: 7.9× compressão com <1pp recall loss |
+| 3 | Centróides hardcoded como `const` | Paper fornece fórmulas analíticas; elimina deps runtime |
+| 4 | Zero migração via expurgo natural | Embeddings efêmeros (30 dias) — transição orgânica |
+| 5 | Garbage Collector inalterado | CASCADE funciona igual para BLOBs comprimidos |
+| 6 | Dual-use (embeddings + KV Cache) | Mesma lib Rust, duas aplicações. KV Cache = v2.0 |
+| 7 | `nalgebra` como fallback de `ndarray-linalg` | Evita dependência de LAPACK externo |
+| 8 | Entropy encoding descartado | Ganho de 5% não justifica complexidade (decisão do paper) |
+| 9 | dim=768 (nomic-embed-text) validado | Paper testa de dim=100 a dim=4096 |
+| 10 | Schema vec0 float[1024] → corrigir para float[768] | 256 bytes/chunk desperdiçados hoje |
