@@ -1,7 +1,7 @@
 <script lang="ts">
     import { API_BASE_URL } from '$lib/env_config';
     import { onMount } from 'svelte';
-    import { Lock, Unlock, FileText, X, Loader2, Shield, AlertTriangle } from 'lucide-svelte';
+    import { Lock, Unlock, FileText, X, Loader2, Shield, AlertTriangle, Eye } from 'lucide-svelte';
 
     interface PromptEntry {
         id: string; slug: string; category: string; title: string;
@@ -20,6 +20,7 @@
     let newPromptText = $state('');
     let promptValidationError = $state('');
     let isSavingPrompt = $state(false);
+    let viewingPrompt = $state<PromptEntry | null>(null);
 
     onMount(async () => { await loadPrompts(); });
 
@@ -123,7 +124,7 @@
                             <th class="px-4 py-3.5 font-semibold">Category</th>
                             <th class="px-3 py-3.5 font-semibold text-center w-14">Lock</th>
                             <th class="px-3 py-3.5 font-semibold text-center w-14">Ver</th>
-                            <th class="px-3 py-3.5 font-semibold text-center w-20">Actions</th>
+                            <th class="px-3 py-3.5 font-semibold text-center w-24">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-outline-variant/10">
@@ -145,18 +146,19 @@
                                 </td>
                                 <td class="px-3 py-3 text-center text-[11px] text-on-surface-variant font-mono">v{p.version}</td>
                                 <td class="px-3 py-3 text-center">
-                                    {#if !p.is_core}
                                     <div class="flex items-center justify-center gap-1.5">
-                                        <button onclick={() => openEditPromptModal(p)} class="text-on-surface-variant/50 hover:text-primary transition-colors cursor-pointer p-1 rounded hover:bg-primary-container/20" title="Editar">
+                                        <button onclick={() => viewingPrompt = p} class="text-on-surface-variant/50 hover:text-tertiary transition-colors cursor-pointer p-1 rounded hover:bg-tertiary-container/20" title="View Prompt">
+                                            <Eye class="w-3.5 h-3.5" />
+                                        </button>
+                                        {#if !p.is_core}
+                                        <button onclick={() => openEditPromptModal(p)} class="text-on-surface-variant/50 hover:text-primary transition-colors cursor-pointer p-1 rounded hover:bg-primary-container/20" title="Edit">
                                             <FileText class="w-3.5 h-3.5" />
                                         </button>
-                                        <button onclick={() => deletePrompt(p.slug)} class="text-on-surface-variant/50 hover:text-error transition-colors cursor-pointer p-1 rounded hover:bg-error-container/20" title="Desativar">
+                                        <button onclick={() => deletePrompt(p.slug)} class="text-on-surface-variant/50 hover:text-error transition-colors cursor-pointer p-1 rounded hover:bg-error-container/20" title="Deactivate">
                                             <X class="w-3.5 h-3.5" />
                                         </button>
+                                        {/if}
                                     </div>
-                                    {:else}
-                                    <span class="text-[10px] text-on-surface-variant/30">—</span>
-                                    {/if}
                                 </td>
                             </tr>
                             {/each}
@@ -167,6 +169,45 @@
         </div>
     </div>
 </div>
+
+<!-- VIEWER MODAL -->
+{#if viewingPrompt}
+<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-12" onclick={() => viewingPrompt = null}>
+    <div class="bg-surface w-full max-w-3xl max-h-[85vh] rounded-3xl shadow-2xl flex flex-col border border-outline-variant/20 overflow-hidden animate-in fade-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()}>
+        <div class="px-8 py-5 border-b border-outline-variant/10 bg-surface-container-lowest flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full {viewingPrompt.is_core ? 'bg-error/10 text-error border-error/20' : 'bg-primary/10 text-primary border-primary/20'} flex items-center justify-center border">
+                    {#if viewingPrompt.is_core}<Lock class="w-5 h-5" />{:else}<FileText class="w-5 h-5" />{/if}
+                </div>
+                <div>
+                    <h2 class="text-base font-extrabold text-on-surface tracking-tight">{viewingPrompt.title}</h2>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <span class="text-[10px] font-mono text-on-surface-variant/70">{viewingPrompt.slug}</span>
+                        <span class="w-1 h-1 rounded-full bg-outline-variant/30"></span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider {CAT_COLORS[viewingPrompt.category] || CAT_COLORS.user}">{viewingPrompt.category}</span>
+                        <span class="w-1 h-1 rounded-full bg-outline-variant/30"></span>
+                        <span class="text-[10px] font-mono text-on-surface-variant/70">v{viewingPrompt.version}</span>
+                        {#if viewingPrompt.integrity_hash}
+                        <span class="w-1 h-1 rounded-full bg-outline-variant/30"></span>
+                        <span class="text-[10px] font-mono text-on-surface-variant/50" title={viewingPrompt.integrity_hash}>SHA-256: {viewingPrompt.integrity_hash.substring(0, 12)}…</span>
+                        {/if}
+                    </div>
+                </div>
+            </div>
+            <button onclick={() => viewingPrompt = null} class="w-8 h-8 rounded-full hover:bg-surface-variant flex items-center justify-center text-on-surface-variant hover:text-error transition-colors cursor-pointer">
+                <X class="w-5 h-5" />
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            <pre class="whitespace-pre-wrap font-mono text-sm text-on-surface leading-relaxed bg-surface-container-high/50 p-6 rounded-2xl border border-outline-variant/10">{viewingPrompt.prompt_text}</pre>
+        </div>
+        <div class="px-8 py-4 bg-surface-container border-t border-outline-variant/10 flex items-center justify-between shrink-0">
+            <p class="text-[10px] font-medium text-on-surface-variant">Created: {new Date(viewingPrompt.created_at).toLocaleString()} · By: {viewingPrompt.created_by}</p>
+            <button onclick={() => viewingPrompt = null} class="px-6 py-2 bg-surface-variant text-on-surface-variant font-bold text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer hover:bg-surface-container-highest active:scale-95">Close</button>
+        </div>
+    </div>
+</div>
+{/if}
 
 <!-- PROMPT MODAL -->
 {#if showPromptModal}
