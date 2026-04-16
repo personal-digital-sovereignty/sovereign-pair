@@ -825,7 +825,8 @@ if payload.deep_research.unwrap_or(false) {
         }
         all_links.sort();
         all_links.dedup();
-        all_links.truncate(6); // Poda agressiva p/ não atolar a KV Cache GPU!
+        let chat_cap = crate::api_settings::load_scrape_limits(&state.db).await.max_links_chat;
+        all_links.truncate(chat_cap);
 
         let _ = state.log_sender.send(crate::models::LogEntry {
             timestamp: chrono::Local::now().to_rfc3339(),
