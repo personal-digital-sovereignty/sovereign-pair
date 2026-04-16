@@ -7,6 +7,37 @@ use crate::kms;
 
 use serde::{Serialize, Deserialize};
 
+/// Limites configuráveis de scraping por contexto
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScrapeLimits {
+    pub max_links_chat: usize,           // Tool-call no Chat (default: 6)
+    pub max_links_deep_research: usize,  // Deep Research pipeline (default: 7)
+    pub max_links_per_search: usize,     // Links por query individual (default: 7)
+}
+
+impl Default for ScrapeLimits {
+    fn default() -> Self {
+        Self {
+            max_links_chat: 6,
+            max_links_deep_research: 7,
+            max_links_per_search: 7,
+        }
+    }
+}
+
+/// Carrega os limites de scraping do banco (hot-reload). Fallback: defaults seguros.
+pub async fn load_scrape_limits(pool: &sqlx::SqlitePool) -> ScrapeLimits {
+    if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'scrape_limits'")
+        .fetch_optional(pool).await
+    {
+        let val: String = row.get("value_json");
+        if let Ok(parsed) = serde_json::from_str::<ScrapeLimits>(&val) {
+            return parsed;
+        }
+    }
+    ScrapeLimits::default()
+}
+
 /// Rota GET /v1/settings - Retorna Chaves Essenciais do Hub
 pub async fn get_system_settings_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let result = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'system_settings'")
@@ -559,6 +590,43 @@ pub async fn delete_matrix_entry_handler(
         },
         Err(e) => {
             tracing::error!("Matrix Delete Error: {}", e);
+            (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true}))).into_response()
+        }
+    }
+}
+
+// =============================================
+// SCRAPE LIMITS — Configuração de Iterações
+// =============================================
+
+/// GET /v1/settings/scrape_limits
+pub async fn get_scrape_limits_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let limits = load_scrape_limits(&state.db).await;
+    Json(limits).into_response()
+}
+
+/// POST /v1/settings/scrape_limits
+pub async fn set_scrape_limits_handler(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<ScrapeLimits>,
+) -> impl IntoResponse {
+    // Guardrails de sanidade: mínimo 1, máximo 30
+    let clamped = ScrapeLimits {
+        max_links_chat: req.max_links_chat.clamp(1, 30),
+        max_links_deep_research: req.max_links_deep_research.clamp(1, 30),
+        max_links_per_search: req.max_links_per_search.clamp(1, 30),
+    };
+
+    let json_str = serde_json::to_string(&clamped).unwrap_or_default();
+    let res = sqlx::query("INSERT INTO global_settings (id, value_json) VALUES ('scrape_limits', ?) ON CONFLICT(id) DO UPDATE SET value_json = excluded.value_json")
+        .bind(&json_str)
+        .execute(&state.db)
+        .await;
+
+    match res {
+        Ok(_) => Json(serde_json::json!({"status": "success", "limits": clamped})).into_response(),
+        Err(e) => {
+            tracing::error!("Scrape Limits Save Error: {}", e);
             (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true}))).into_response()
         }
     }

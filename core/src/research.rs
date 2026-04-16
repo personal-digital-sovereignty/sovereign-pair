@@ -870,7 +870,10 @@ impl DeepResearchEngine {
 
         links.dedup();
         let mut prioritized_links = self.assign_sovereign_trust_score(links).await;
-        prioritized_links.truncate(7); // FIX-SCRAPE: Top 7 de Confiabilidade (era 20, causava scrape storm)
+        let scrape_cap = if let Some(pool) = &self.db_pool {
+            crate::api_settings::load_scrape_limits(pool).await.max_links_per_search
+        } else { 7 };
+        prioritized_links.truncate(scrape_cap);
         Ok(prioritized_links)
     }
 
@@ -910,7 +913,10 @@ impl DeepResearchEngine {
                                 }
                             }
                             let mut prioritized_links = self.assign_sovereign_trust_score(links).await;
-                            prioritized_links.truncate(7);
+                            let scrape_cap = if let Some(pool) = &self.db_pool {
+                                crate::api_settings::load_scrape_limits(pool).await.max_links_per_search
+                            } else { 7 };
+                            prioritized_links.truncate(scrape_cap);
                             return Ok(prioritized_links);
                         }
                 }
@@ -961,7 +967,10 @@ impl DeepResearchEngine {
                                     }
                                 }
                                 let mut prioritized_links = self.assign_sovereign_trust_score(links).await;
-                                prioritized_links.truncate(7);
+                                let scrape_cap = if let Some(pool) = &self.db_pool {
+                                    crate::api_settings::load_scrape_limits(pool).await.max_links_per_search
+                                } else { 7 };
+                                prioritized_links.truncate(scrape_cap);
                                 return Ok(prioritized_links);
                             }
                     } else {
