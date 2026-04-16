@@ -1,7 +1,7 @@
 <script lang="ts">
 import { API_BASE_URL } from '$lib/env_config';
 
-    import { ChevronDown, Server, Cpu, Shield, User, GlobeLock, Cloud, Download, Upload, Brain, SlidersHorizontal, Loader2, BookOpen, Printer, X, Database, Trash2 } from 'lucide-svelte';
+    import { ChevronDown, Server, Cpu, Shield, User, GlobeLock, Cloud, Download, Upload, Brain, SlidersHorizontal, Loader2, BookOpen, Printer, X, Database, Trash2, Lock, Unlock, FileText, Zap, AlertTriangle } from 'lucide-svelte';
     import { onMount } from 'svelte';
     import { marked } from 'marked';
 
@@ -128,6 +128,8 @@ import { API_BASE_URL } from '$lib/env_config';
         } catch(e) { console.error("Cold Storage DB unreachable:", e); }
 
         await loadTenantKeys();
+        await loadScrapeLimits();
+        await loadPrompts();
 
     });
 
@@ -269,6 +271,110 @@ import { API_BASE_URL } from '$lib/env_config';
     }
 
     let fileInput: HTMLInputElement | undefined = $state(undefined);
+
+    // ============ SCRAPE LIMITS ============
+    let scrapeLimits = $state({ max_links_chat: 6, max_links_deep_research: 7, max_links_per_search: 7 });
+    let isSavingScrape = $state(false);
+
+    async function loadScrapeLimits() {
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/settings/scrape_limits`);
+            if (res.ok) scrapeLimits = await res.json();
+        } catch(e) { console.error('Scrape limits load failed:', e); }
+    }
+
+    async function saveScrapeLimits() {
+        isSavingScrape = true;
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/settings/scrape_limits`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(scrapeLimits)
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.limits) scrapeLimits = data.limits;
+            }
+        } catch(e) { console.error('Scrape limits save failed:', e); }
+        finally { isSavingScrape = false; }
+    }
+
+    // ============ PROMPT VAULT ============
+    interface PromptEntry {
+        id: string; slug: string; category: string; title: string;
+        prompt_text: string; placeholders: string; is_core: boolean;
+        is_active: boolean; version: number; integrity_hash: string | null;
+        created_at: string; updated_at: string; created_by: string;
+    }
+
+    let prompts = $state<PromptEntry[]>([]);
+    let isLoadingPrompts = $state(false);
+    let editingPrompt = $state<PromptEntry | null>(null);
+    let showPromptModal = $state(false);
+    let newPromptSlug = $state('');
+    let newPromptTitle = $state('');
+    let newPromptCategory = $state('user');
+    let newPromptText = $state('');
+    let promptValidationError = $state('');
+    let isSavingPrompt = $state(false);
+
+    async function loadPrompts() {
+        isLoadingPrompts = true;
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/settings/prompts`);
+            if (res.ok) prompts = await res.json();
+        } catch(e) { console.error('Prompts load failed:', e); }
+        finally { isLoadingPrompts = false; }
+    }
+
+    function openNewPromptModal() {
+        editingPrompt = null;
+        newPromptSlug = ''; newPromptTitle = ''; newPromptCategory = 'user'; newPromptText = '';
+        promptValidationError = '';
+        showPromptModal = true;
+    }
+
+    function openEditPromptModal(p: PromptEntry) {
+        if (p.is_core) return;
+        editingPrompt = p;
+        newPromptSlug = p.slug; newPromptTitle = p.title;
+        newPromptCategory = p.category; newPromptText = p.prompt_text;
+        promptValidationError = '';
+        showPromptModal = true;
+    }
+
+    async function savePrompt() {
+        isSavingPrompt = true;
+        promptValidationError = '';
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/settings/prompts`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    slug: newPromptSlug, title: newPromptTitle,
+                    category: newPromptCategory, prompt_text: newPromptText
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showPromptModal = false;
+                loadPrompts();
+            } else {
+                promptValidationError = data.reason || data.error || 'Erro desconhecido';
+            }
+        } catch(e) { promptValidationError = 'Falha de conexão com o backend.'; }
+        finally { isSavingPrompt = false; }
+    }
+
+    async function deletePrompt(slug: string) {
+        if (!confirm(`Desativar prompt '${slug}'?`)) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/settings/prompts/${encodeURIComponent(slug)}`, { method: 'DELETE' });
+            if (res.ok) loadPrompts();
+            else {
+                const data = await res.json();
+                alert(data.error || 'Erro ao desativar prompt.');
+            }
+        } catch(e) {}
+    }
 
     async function handleFileImport(e: Event) {
         const input = e.target as HTMLInputElement;
@@ -809,5 +915,190 @@ import { API_BASE_URL } from '$lib/env_config';
             {/if}
         </section>
 
+        <!-- CARD: Scrape Limits -->
+        <section class="bg-surface-800/80 backdrop-blur-md rounded-2xl border border-surface-700/50 overflow-hidden shadow-lg transition-all duration-300">
+            <button class="w-full flex items-center justify-between p-5 text-left hover:bg-surface-700/30 cursor-pointer" onclick={() => toggleCard('scrape')}>
+                <div class="flex items-center gap-4">
+                    <div class="p-2 bg-amber-500/20 text-amber-400 rounded-lg">
+                        <Zap class="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h2 class="font-semibold text-surface-100 text-lg">Scrape Limits</h2>
+                        <p class="text-sm text-surface-400">Controle de iterações do Web Scraper por contexto</p>
+                    </div>
+                </div>
+                <ChevronDown class="w-5 h-5 text-surface-500 transition-transform duration-300 transform {expandedCard === 'scrape' ? 'rotate-180' : ''}" />
+            </button>
+            {#if expandedCard === 'scrape'}
+            <div class="p-5 border-t border-surface-700/50 bg-surface-900/30 flex flex-col gap-4">
+                <p class="text-xs text-surface-400">Define quantos links o sistema scrapea por contexto. Valores menores = mais rápido, menos custo de VRAM. Intervalo: 1-30.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-surface-800 p-4 rounded-xl border border-surface-700 flex flex-col gap-2">
+                        <label class="text-[10px] font-bold uppercase tracking-widest text-surface-400">Chat (Tool Call)</label>
+                        <input type="number" min="1" max="30" bind:value={scrapeLimits.max_links_chat}
+                            class="w-full bg-[#080e1d] border border-surface-700 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-amber-500 transition-colors" />
+                        <p class="text-[10px] text-surface-500">Links por tool-call no Chat</p>
+                    </div>
+                    <div class="bg-surface-800 p-4 rounded-xl border border-surface-700 flex flex-col gap-2">
+                        <label class="text-[10px] font-bold uppercase tracking-widest text-surface-400">Deep Research</label>
+                        <input type="number" min="1" max="30" bind:value={scrapeLimits.max_links_deep_research}
+                            class="w-full bg-[#080e1d] border border-surface-700 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-amber-500 transition-colors" />
+                        <p class="text-[10px] text-surface-500">Links por query no Trainer</p>
+                    </div>
+                    <div class="bg-surface-800 p-4 rounded-xl border border-surface-700 flex flex-col gap-2">
+                        <label class="text-[10px] font-bold uppercase tracking-widest text-surface-400">Per Search Engine</label>
+                        <input type="number" min="1" max="30" bind:value={scrapeLimits.max_links_per_search}
+                            class="w-full bg-[#080e1d] border border-surface-700 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-amber-500 transition-colors" />
+                        <p class="text-[10px] text-surface-500">Links retornados por busca</p>
+                    </div>
+                </div>
+                <button onclick={saveScrapeLimits} disabled={isSavingScrape}
+                    class="w-full py-2.5 rounded-lg bg-amber-600 text-white hover:bg-amber-500 transition-colors cursor-pointer disabled:opacity-50 font-semibold text-sm flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.15)]">
+                    {#if isSavingScrape}<Loader2 class="w-4 h-4 animate-spin" />{:else}<Zap class="w-4 h-4" />{/if}
+                    Salvar Limites
+                </button>
+            </div>
+            {/if}
+        </section>
+
+        <!-- CARD: Prompt Vault -->
+        <section class="bg-surface-800/80 backdrop-blur-md rounded-2xl border border-surface-700/50 overflow-hidden shadow-lg transition-all duration-300">
+            <button class="w-full flex items-center justify-between p-5 text-left hover:bg-surface-700/30 cursor-pointer" onclick={() => toggleCard('prompts')}>
+                <div class="flex items-center gap-4">
+                    <div class="p-2 bg-violet-500/20 text-violet-400 rounded-lg">
+                        <FileText class="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h2 class="font-semibold text-surface-100 text-lg">Sovereign Prompt Vault</h2>
+                        <p class="text-sm text-surface-400">Prompts e regras cognitivas do sistema (Hot-Reload)</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded-full font-mono">{prompts.length} prompts</span>
+                    <ChevronDown class="w-5 h-5 text-surface-500 transition-transform duration-300 transform {expandedCard === 'prompts' ? 'rotate-180' : ''}" />
+                </div>
+            </button>
+            {#if expandedCard === 'prompts'}
+            <div class="p-5 border-t border-surface-700/50 bg-surface-900/30 flex flex-col gap-4">
+                <p class="text-xs text-surface-400">Prompts com 🔒 são protegidos por SHA-256 e restaurados automaticamente se adulterados. Prompts do usuário são validados pelo Cognitive Firewall (LLM) antes da inserção.</p>
+
+                <div class="rounded-xl border border-surface-700 overflow-hidden">
+                    <table class="w-full text-left text-sm text-surface-300">
+                        <thead class="bg-surface-800/80 text-[10px] uppercase tracking-widest text-surface-400 border-b border-surface-700">
+                            <tr>
+                                <th class="px-3 py-2.5 font-semibold">ID</th>
+                                <th class="px-3 py-2.5 font-semibold">Slug</th>
+                                <th class="px-3 py-2.5 font-semibold">Título</th>
+                                <th class="px-3 py-2.5 font-semibold">Cat</th>
+                                <th class="px-3 py-2.5 font-semibold text-center w-12">🔒</th>
+                                <th class="px-3 py-2.5 font-semibold text-center w-12">v</th>
+                                <th class="px-3 py-2.5 font-semibold text-center w-16">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-surface-700/50">
+                            {#if isLoadingPrompts}
+                            <tr><td colspan="7" class="p-4 text-center text-surface-500 text-xs"><Loader2 class="w-4 h-4 animate-spin mx-auto"/></td></tr>
+                            {:else if prompts.length === 0}
+                            <tr><td colspan="7" class="p-6 text-center text-surface-500 text-xs italic">Nenhum prompt encontrado.</td></tr>
+                            {:else}
+                                {#each prompts as p (p.slug)}
+                                <tr class="hover:bg-surface-800/50 transition-colors {!p.is_active ? 'opacity-40' : ''}">
+                                    <td class="px-3 py-2 font-mono text-[11px] {p.is_core ? 'text-violet-400' : 'text-surface-500'}">{p.id.substring(0, 7)}</td>
+                                    <td class="px-3 py-2 font-mono text-xs text-surface-200">{p.slug}</td>
+                                    <td class="px-3 py-2 text-xs text-surface-300 truncate max-w-[160px]">{p.title}</td>
+                                    <td class="px-3 py-2">
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-medium
+                                            {p.category === 'core' ? 'bg-red-500/20 text-red-400' :
+                                             p.category === 'scribe' ? 'bg-blue-500/20 text-blue-400' :
+                                             p.category === 'auditor' ? 'bg-amber-500/20 text-amber-400' :
+                                             'bg-green-500/20 text-green-400'}">{p.category}</span>
+                                    </td>
+                                    <td class="px-3 py-2 text-center">
+                                        {#if p.is_core}<Lock class="w-3.5 h-3.5 text-red-400 mx-auto" />{:else}<Unlock class="w-3.5 h-3.5 text-green-400 mx-auto" />{/if}
+                                    </td>
+                                    <td class="px-3 py-2 text-center text-[11px] text-surface-500 font-mono">v{p.version}</td>
+                                    <td class="px-3 py-2 text-center">
+                                        {#if !p.is_core}
+                                        <div class="flex items-center justify-center gap-1">
+                                            <button onclick={() => openEditPromptModal(p)} class="text-surface-500 hover:text-violet-400 transition-colors cursor-pointer" title="Editar">
+                                                <FileText class="w-3.5 h-3.5" />
+                                            </button>
+                                            <button onclick={() => deletePrompt(p.slug)} class="text-surface-500 hover:text-rose-400 transition-colors cursor-pointer" title="Desativar">
+                                                <X class="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                        {:else}
+                                        <span class="text-[10px] text-surface-600">—</span>
+                                        {/if}
+                                    </td>
+                                </tr>
+                                {/each}
+                            {/if}
+                        </tbody>
+                    </table>
+                </div>
+
+                <button onclick={openNewPromptModal}
+                    class="w-full py-2.5 rounded-lg bg-violet-600 text-white hover:bg-violet-500 transition-colors cursor-pointer font-semibold text-sm flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(139,92,246,0.15)]">
+                    <FileText class="w-4 h-4" /> Novo Prompt
+                </button>
+            </div>
+            {/if}
+        </section>
+
     </main>
+
+    <!-- PROMPT MODAL -->
+    {#if showPromptModal}
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onclick={() => showPromptModal = false}>
+        <div class="bg-surface-800 border border-surface-700 rounded-2xl shadow-2xl w-full max-w-xl mx-4 p-6 flex flex-col gap-4" onclick={(e) => e.stopPropagation()}>
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold text-surface-100">{editingPrompt ? 'Editar Prompt' : 'Novo Prompt'}</h3>
+                <button onclick={() => showPromptModal = false} class="text-surface-500 hover:text-surface-200 cursor-pointer"><X class="w-5 h-5" /></button>
+            </div>
+
+            <div class="flex gap-3">
+                <div class="flex-1">
+                    <label class="text-[10px] font-bold uppercase tracking-widest text-surface-400 mb-1 block">Slug</label>
+                    <input type="text" bind:value={newPromptSlug} placeholder="meu_analista" disabled={!!editingPrompt}
+                        class="w-full bg-[#080e1d] border border-surface-700 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-violet-500 disabled:opacity-50" />
+                </div>
+                <div class="flex-1">
+                    <label class="text-[10px] font-bold uppercase tracking-widest text-surface-400 mb-1 block">Categoria</label>
+                    <select bind:value={newPromptCategory}
+                        class="w-full bg-[#080e1d] border border-surface-700 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-violet-500 cursor-pointer">
+                        <option value="user">user</option>
+                        <option value="scribe">scribe</option>
+                        <option value="auditor">auditor</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-[10px] font-bold uppercase tracking-widest text-surface-400 mb-1 block">Título</label>
+                <input type="text" bind:value={newPromptTitle} placeholder="Meu Analista Customizado"
+                    class="w-full bg-[#080e1d] border border-surface-700 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-violet-500" />
+            </div>
+
+            <div>
+                <label class="text-[10px] font-bold uppercase tracking-widest text-surface-400 mb-1 block">Prompt</label>
+                <textarea bind:value={newPromptText} rows="8" placeholder="Você é um analista especializado em..."
+                    class="w-full bg-[#080e1d] border border-surface-700 rounded-lg px-3 py-2 text-surface-200 text-sm outline-none focus:border-violet-500 resize-y font-mono"></textarea>
+            </div>
+
+            {#if promptValidationError}
+            <div class="bg-rose-500/10 border border-rose-500/30 rounded-lg p-3 flex items-start gap-2">
+                <AlertTriangle class="w-4 h-4 text-rose-400 mt-0.5 shrink-0" />
+                <p class="text-xs text-rose-300">{promptValidationError}</p>
+            </div>
+            {/if}
+
+            <button onclick={savePrompt} disabled={isSavingPrompt || !newPromptSlug || !newPromptTitle || !newPromptText}
+                class="w-full py-2.5 rounded-lg bg-violet-600 text-white hover:bg-violet-500 transition-colors cursor-pointer disabled:opacity-50 font-semibold text-sm flex items-center justify-center gap-2">
+                {#if isSavingPrompt}<Loader2 class="w-4 h-4 animate-spin" />{:else}<Shield class="w-4 h-4" />{/if}
+                {isSavingPrompt ? 'Validando com Cognitive Firewall...' : 'Salvar (com validação LLM)'}
+            </button>
+        </div>
+    </div>
+    {/if}
 </div>
