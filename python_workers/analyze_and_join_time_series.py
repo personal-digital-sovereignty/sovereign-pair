@@ -142,12 +142,32 @@ def join_and_extract(raw_data_blocks):
     # Outer join all datasets by Date
     merged_df = reduce(lambda left, right: pd.merge(left, right, on='Date', how='outer'), dfs)
     
-    # Dedup: Se 'DOLAR' e 'Taxa_Cambio' coexistem e são idênticos (ou quase),
-    # manter apenas 'DOLAR_CAMBIO' renomeado para clareza e eliminar a duplicata.
-    if 'DOLAR' in merged_df.columns and 'Taxa_Cambio' in merged_df.columns:
-        # Usar DOLAR como a coluna canônica (fonte oficial BRL=X), renomear
-        merged_df.rename(columns={'DOLAR': 'DOLAR_CAMBIO'}, inplace=True)
-        merged_df.drop(columns=['Taxa_Cambio'], inplace=True)
+    # Resolução de colunas de câmbio:
+    # - DOLAR (BRL=X Yahoo): Taxa spot interbancária COM prêmio de risco/forward premium
+    # - DOLAR_PTAX (BCB SGS 10813): Média ponderada de transações REAIS (câmbio oficial)
+    # - Taxa_Cambio: Derivada do ticker BRENT (BRL÷USD) — redundante quando PTAX existe
+    #
+    # Regra: "Dá-se por real o fechamento pago, não a promessa."
+    # PTAX é o índice oficial para impostos, PPI da Petrobras e impacto ao consumidor.
+    # BRL=X é complementar para análise de tendência e volatilidade.
+    has_ptax = 'DOLAR_PTAX' in merged_df.columns
+    has_dolar = 'DOLAR' in merged_df.columns
+    has_taxa = 'Taxa_Cambio' in merged_df.columns
+
+    if has_dolar:
+        # Renomear DOLAR (BRL=X) para DOLAR_SPOT para clareza semântica
+        merged_df.rename(columns={'DOLAR': 'DOLAR_SPOT'}, inplace=True)
+
+    if has_taxa:
+        if has_ptax:
+            # PTAX é a fonte oficial — Taxa_Cambio derivada é redundante
+            merged_df.drop(columns=['Taxa_Cambio'], inplace=True)
+        elif has_dolar:
+            # Sem PTAX disponível, Taxa_Cambio é derivada e DOLAR_SPOT já cobre
+            merged_df.drop(columns=['Taxa_Cambio'], inplace=True)
+        else:
+            # Taxa_Cambio é o único câmbio disponível — renomear para DOLAR_CAMBIO
+            merged_df.rename(columns={'Taxa_Cambio': 'DOLAR_CAMBIO'}, inplace=True)
     
     # Sort chronological
     merged_df.sort_index(inplace=True)

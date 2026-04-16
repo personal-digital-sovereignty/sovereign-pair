@@ -1505,13 +1505,28 @@ pub async fn run_deep_research_handler(
                                         let tmp_file_path = format!("/tmp/sovereign/sovereign_data_{}_{}.json", safe_sq.to_lowercase(), rand_id);
                                         
                                         let _ = std::fs::create_dir_all("/tmp/sovereign");
-                                        let _ = std::fs::write(&tmp_file_path, &final_result);
-                                        
-                                        use sha2::{Sha256, Digest};
-                                        let mut hasher = Sha256::new();
-                                        hasher.update(final_result.as_bytes());
-                                        let hash_result = format!("{:x}", hasher.finalize());
-                                        all_hashes.push(hash_result.clone());
+
+                                        // FIX-2: Não gravar arquivo nem gerar hash para resultados de scraping vazio.
+                                        // Quando o dispatch_sub_researcher falha (WAF block, 0 bytes úteis), ele retorna
+                                        // um texto placeholder que polui o sistema de proveniência com hashes falso-positivos.
+                                        let is_empty_extraction = final_result.starts_with("NÃO EXISTEM DADOS")
+                                            || final_result.starts_with("DADO NÃO ENCONTRADO")
+                                            || final_result.starts_with("FALHA")
+                                            || final_result.len() < 200;
+
+                                        if !is_empty_extraction {
+                                            let _ = std::fs::write(&tmp_file_path, &final_result);
+
+                                            use sha2::{Sha256, Digest};
+                                            let mut hasher = Sha256::new();
+                                            hasher.update(final_result.as_bytes());
+                                            let hash_result = format!("{:x}", hasher.finalize());
+                                            all_hashes.push(hash_result.clone());
+                                        } else {
+                                            let _ = TRAINER_LOGS.send(format!(
+                                                "⚠️ [Proveniência] Extração vazia para '{}'. Arquivo/hash NÃO gravado (placeholder descartado).", sq
+                                            ));
+                                        }
 
                                         // Nós guardamos o 'final_result' completo no 'all_sources' para The Scribe. Mas escondemos do Mestre guiando-o via disco.
                                         let limited_result = format!(
@@ -1531,74 +1546,13 @@ pub async fn run_deep_research_handler(
                                     }
                                 }
                             }
-                            // [SYMBIOTIC PIPELINE INLINE INTERCEPTOR]
-                            // Se temos ≥2 fontes de dados e a tabela ainda não foi gerada,
-                            // invocamos o joiner AGORA (durante o loop) para que o LLM receba
-                            // Markdown pré-formatado em vez de JSONs brutos.
-                            if all_sources.len() >= 2 && symbiotic_table_markdown.is_none() {
-                                // BUGFIX: Extrair `data_compressed` dos JSONs wrapados antes de passar ao joiner.
-                                // Sem isso, o joiner não encontra os headers `[CONTEXT: ...]` e retorna vazio.
-                                let clean_blocks = extract_raw_data_blocks(&all_sources);
-                                let joiner_payload = serde_json::json!({ "raw_data_blocks": &clean_blocks });
-                                let payload_str = joiner_payload.to_string();
-                                let cur_dir_j = std::env::current_dir().unwrap_or_default();
-                                let joiner_path = if cur_dir_j.ends_with("core") { cur_dir_j.join("python_workers").join("analyze_and_join_time_series.py") } else { cur_dir_j.join("core").join("python_workers").join("analyze_and_join_time_series.py") };
-                                
-                                if joiner_path.exists() {
-                                    let venv_py = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
-                                    let python_exe = if venv_py.exists() { venv_py.to_string_lossy().to_string() } else { "python3".to_string() };
-                                    let mut cmd = std::process::Command::new(&python_exe);
-                                    cmd.arg(&joiner_path);
-                                    use std::io::Write as JoinerWrite;
-                                    cmd.stdin(std::process::Stdio::piped())
-                                       .stdout(std::process::Stdio::piped())
-                                       .stderr(std::process::Stdio::piped());
-                                       
-                                    if let Ok(mut child) = cmd.spawn() {
-                                        if let Some(mut stdin) = child.stdin.take() {
-                                            let _ = stdin.write_all(payload_str.as_bytes());
-                                        }
-                                        if let Ok(output) = child.wait_with_output() {
-                                            if output.status.success() {
-                                                let out_str = String::from_utf8_lossy(&output.stdout);
-                                                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&out_str) {
-                                                    if let Some(mkd) = parsed.get("markdown").and_then(|m| m.as_str()) {
-                                                        let _ = TRAINER_LOGS.send("[Symbiotic Pipeline INLINE] Fusão Matemática Concluída! Injetando tabela Markdown no contexto do LLM.".to_string());
-                                                        symbiotic_table_markdown = Some(mkd.to_string());
-                                                        
-                                                        // Salvar a tabela em disco para proveniência criptográfica
-                                                        let rand_id: String = uuid::Uuid::new_v4().to_string().chars().take(8).collect();
-                                                        let table_file = format!("/tmp/sovereign/sovereign_symbiotic_table_{}.md", rand_id);
-                                                        let _ = std::fs::write(&table_file, mkd);
-                                                        use sha2::{Sha256 as Sha256Sym, Digest as DigestSym};
-                                                        let mut h = Sha256Sym::new();
-                                                        h.update(mkd.as_bytes());
-                                                        all_hashes.push(format!("{:x}", h.finalize()));
-                                                        
-                                                        // Injetar a tabela como uma mensagem do assistente no histórico
-                                                        // para que o LLM a LEIA diretamente em vez de tentar programar.
-                                                        messages.push(serde_json::json!({
-                                                            "role": "assistant",
-                                                            "content": format!(
-                                                                "[RESULTADO DA ENGENHARIA DE DADOS AUTOMÁTICA]\n\
-                                                                O Motor Rust (Symbiotic Pipeline) cruzou todas as séries temporais automaticamente.\n\
-                                                                Os dados já estão mergeados, correlacionados (Pearson) e formatados.\n\
-                                                                NÃO é necessário escrever código Python para processar os dados.\n\
-                                                                Prossiga DIRETAMENTE com a análise textual e síntese final.\n\n{}", mkd
-                                                            )
-                                                        }));
-                                                    } else {
-                                                        let _ = TRAINER_LOGS.send("[Symbiotic Pipeline INLINE] Joiner retornou sucesso mas sem chave 'markdown'. Verifique o parser.".to_string());
-                                                    }
-                                                }
-                                            } else {
-                                                let err_str = String::from_utf8_lossy(&output.stderr);
-                                                let _ = TRAINER_LOGS.send(format!("[Symbiotic Pipeline INLINE] Falha na fusão inline. Fallback para loop normal. ({})", err_str.trim()));
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            // [FIX-4] INLINE SYMBIOTIC PIPELINE REMOVIDO.
+                            // Motivo: A invocação inline gerava a tabela com os primeiros datasets
+                            // disponíveis (ex: BRENT+DOLAR no Stage 2) e bloqueava datasets posteriores
+                            // (GASOLINA, IPCA, INPC dos Stages 3-4) devido ao guard `is_none()`.
+                            // A tabela final é agora gerada APENAS no pós-loop (linhas ~1960+),
+                            // quando ALL_SOURCES está completo com TODAS as séries extraídas.
+                            // Benefícios: (1) Tabela sempre completa; (2) ~3KB a menos no contexto do Mestre;
                             // O loop continuará para a próxima inferência (o Qwen lerá a tool response e decidirá)
                             continue;
                         } 
@@ -1931,9 +1885,20 @@ pub async fn run_deep_research_handler(
                                     if let Some(mkd) = parsed.get("markdown").and_then(|m| m.as_str()) {
                                         let _ = TRAINER_LOGS.send("[Data Engineering] Fusão Matemática via Pandas e Correlação (Pearson) Concluída!".to_string());
                                         final_raw_dump = format!("{}\n\n=== FACTUAL BORDER ===\n\n[LOG INTERNO OLLAMA]\nNós recebemos múltiplas requisições assíncronas de você. O nosso motor Rust processou e fundiu todas elas magicamente usando DataFrames. Você NÃO precisa e NÃO DEVE tentar cruzar as linhas manualmente. Apenas contemple a tabela perfeita abaixo e redija sua síntese.\n\n{}", final_raw_dump, mkd);
-                                        // INSURANCE: Garantir que a tabela Markdown esteja disponível para o artefato final
-                                        if symbiotic_table_markdown.is_none() {
-                                            symbiotic_table_markdown = Some(mkd.to_string());
+                                        // FIX-4: Sempre atualizar a tabela (sem guard is_none).
+                                        // Esta é agora a ÚNICA invocação do Pandas — o inline foi removido.
+                                        symbiotic_table_markdown = Some(mkd.to_string());
+
+                                        // Salvar a tabela em disco para proveniência criptográfica
+                                        let rand_id: String = uuid::Uuid::new_v4().to_string().chars().take(8).collect();
+                                        let table_file = format!("/tmp/sovereign/sovereign_symbiotic_table_{}.md", rand_id);
+                                        let _ = std::fs::create_dir_all("/tmp/sovereign");
+                                        let _ = std::fs::write(&table_file, mkd);
+                                        {
+                                            use sha2::{Sha256 as Sha256Post, Digest as DigestPost};
+                                            let mut h = Sha256Post::new();
+                                            h.update(mkd.as_bytes());
+                                            all_hashes.push(format!("{:x}", h.finalize()));
                                         }
                                     }
                                 }
@@ -2053,7 +2018,18 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
                         }
 
                 if is_clean || attempt == max_retries {
-                    final_formatted_report = current_format;
+                    // FIX-7: Safety net — se current_format está vazio (OOM/timeout do Scribe),
+                    // usar o synthesized_report bruto como fallback. Garante que o Abstract
+                    // nunca fique em branco no artefato final.
+                    if current_format.trim().is_empty() {
+                        final_formatted_report = synthesized_report.clone();
+                        let _ = TRAINER_LOGS.send(
+                            "⚠️ [Scribe Failsafe] Output vazio detectado. Usando fatos brutos como fallback do Abstract."
+                                .to_string()
+                        );
+                    } else {
+                        final_formatted_report = current_format;
+                    }
                     let _ = TRAINER_LOGS.send("[The Scribe] Formatação C-Level aprovada pelo Sycophancy Breaker!".to_string());
                     break;
                 }
@@ -2095,13 +2071,21 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
         // Verificamos que os arquivos FÍSICOS ainda existem em disco E que o SHA-256
         // re-calculado bate. Isso é prova irrefutável de que os dados passaram pela
         // pipeline real, sem depender de um SLM reproduzir strings aleatórias.
+        //
+        // FIX-1: Exibir hash SHA-256 completo (64 chars) em vez de truncado (16 chars).
+        // FIX-3: Agrupar arquivos por hash via HashMap para dedup visual.
+        // FIX-8: Contar hashes ÚNICOS verificados, não total de arquivos em disco.
         let mut audit_verified = 0usize;
         let mut audit_failed = 0usize;
         let mut audit_details: Vec<String> = Vec::new();
+        let mut total_files_on_disk = 0usize;
         if !all_hashes.is_empty() {
             use sha2::{Sha256, Digest};
             let sovereign_dir = std::path::Path::new("/tmp/sovereign");
             if sovereign_dir.exists() {
+                // Fase 1: Ler todos os arquivos e agrupar por hash
+                let mut hash_to_files: std::collections::HashMap<String, Vec<String>> =
+                    std::collections::HashMap::new();
                 if let Ok(entries) = std::fs::read_dir(sovereign_dir) {
                     for entry in entries.flatten() {
                         let path = entry.path();
@@ -2111,14 +2095,34 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
                                 hasher.update(&contents);
                                 let file_hash = format!("{:x}", hasher.finalize());
                                 if all_hashes.contains(&file_hash) {
-                                    audit_verified += 1;
-                                    audit_details.push(format!("✅ `{}` — SHA-256: `{}`", path.file_name().unwrap_or_default().to_string_lossy(), &file_hash[..16]));
+                                    total_files_on_disk += 1;
+                                    hash_to_files.entry(file_hash)
+                                        .or_default()
+                                        .push(path.file_name().unwrap_or_default()
+                                            .to_string_lossy().to_string());
                                 }
                             }
                         }
                     }
                 }
-                audit_failed = all_hashes.len().saturating_sub(audit_verified);
+
+                // Fase 2: Construir audit_details com dedup visual
+                audit_verified = hash_to_files.len();
+                for (hash, files) in &hash_to_files {
+                    if files.len() == 1 {
+                        audit_details.push(format!("✅ `{}` — SHA-256: `{}`", files[0], hash));
+                    } else {
+                        audit_details.push(format!(
+                            "✅ `{}` (+{} cópias idempotentes) — SHA-256: `{}`",
+                            files[0], files.len() - 1, hash
+                        ));
+                    }
+                }
+
+                // Fase 3: Verificar se algum hash esperado NÃO foi encontrado em disco
+                let unique_expected: std::collections::HashSet<&String> = all_hashes.iter().collect();
+                let found_hashes: std::collections::HashSet<&String> = hash_to_files.keys().collect();
+                audit_failed = unique_expected.difference(&found_hashes).count();
             } else {
                 audit_failed = all_hashes.len();
             }
@@ -2128,7 +2132,7 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
         let provenance_block = if all_hashes.is_empty() {
             String::new()
         } else if audit_failed == 0 {
-            let _ = TRAINER_LOGS.send(format!("✅ [Epistemic Guard v2] Auditoria Determinística APROVADA: {}/{} arquivos verificados via SHA-256 em disco.", audit_verified, all_hashes.len()));
+            let _ = TRAINER_LOGS.send(format!("✅ [Epistemic Guard v2] Auditoria Determinística APROVADA: {} hashes únicos verificados ({} arquivos em disco).", audit_verified, total_files_on_disk));
             format!(
                 "\n\n---\n## 🛡️ Proveniência Criptográfica — Validação Sistêmica\n\n\
                  > [!NOTE]\n\
