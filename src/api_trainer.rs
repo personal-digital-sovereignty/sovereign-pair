@@ -307,7 +307,10 @@ async fn execute_sub_analyst(
         }
 
         let mut scrape_handles = Vec::new();
-        for link in res.links.clone().into_iter().take(7) {
+        let deep_research_cap = if let Some(pool) = engine_arc.db_pool.as_ref() {
+            crate::api_settings::load_scrape_limits(pool).await.max_links_deep_research
+        } else { 7 };
+        for link in res.links.clone().into_iter().take(deep_research_cap) {
             let engine_clone = engine_arc.clone();
             scrape_handles.push(tokio::spawn(async move {
                 if let Ok(md) = engine_clone.scrape_url(&link).await {
