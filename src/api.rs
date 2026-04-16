@@ -208,7 +208,7 @@ pub async fn sync_model_capabilities(pool: &sqlx::SqlitePool) {
                             
                         // Mapeamento heuristico caso templates não sigam o padrão exato
                         let name_lower = name.to_lowercase();
-                        if !supports_tools && (name_lower.contains("qwen") || name_lower.contains("llama3.1") || name_lower.contains("llama3.2") || name_lower.contains("mistral") || name_lower.contains("command-r")) {
+                        if !supports_tools && (name_lower.contains("qwen") || name_lower.contains("llama3.1") || name_lower.contains("llama3.2") || name_lower.contains("mistral") || name_lower.contains("command-r") || name_lower.contains("gemma4")) {
                             supports_tools = true;
                         }
                         if !is_reasoner && (name_lower.contains("deepseek") || name_lower.contains("reasoner")) {
