@@ -73,6 +73,115 @@ ARMAZENADO POR VETOR: {packed_indices: [192B], norm: [2B]} = 194 bytes
 **Observação crítica:** Uniform 2-bit destrói o sistema (0.200 recall). TurboQuantMSE 2-bit
 mantém 0.925. A diferença é **apenas** a rotação. Isso é o poder da álgebra linear.
 
+### 2.3 Complementos do Paper Original (arxiv:2504.19874v1)
+
+As seguintes informações são do paper original do Google Research e NÃO estão
+na implementação Python de referência nem no artigo TabNews.
+
+#### 2.3.1 Centróides Exatos para Codebook (Hardcode direto!)
+
+O paper fornece centróides analíticos para dimensões altas (quando d >> 1,
+a distribuição Beta converge para Normal):
+
+```
+b=1 (2 centróides):  { -√(2/πd),  +√(2/πd) }
+b=2 (4 centróides):  { -1.51/√d, -0.453/√d, +0.453/√d, +1.51/√d }
+```
+
+**Implicação para Rust:** Para dim=768 e b=1,2 NÃO PRECISAMOS executar Lloyd-Max.
+Os centróides podem ser calculados analiticamente em tempo constante:
+
+```rust
+// Para dim=768, b=1:
+const CENTROIDS_1BIT: [f32; 2] = [
+    -0.0287,  // -√(2/(π×768))
+     0.0287,  //  √(2/(π×768))
+];
+
+// Para dim=768, b=2:
+const CENTROIDS_2BIT: [f32; 4] = [
+    -0.0545,  // -1.51/√768
+    -0.0163,  // -0.453/√768
+     0.0163,  //  0.453/√768
+     0.0545,  //  1.51/√768
+];
+```
+
+#### 2.3.2 Garantias Teóricas Exatas (Theorems 1-3)
+
+O paper PROVA matematicamente os limites de distorção:
+
+| Bits (b) | MSE (Dmse) | Inner Product Error (Dprod/d) | Fator vs Lower Bound |
+|---|---|---|---|
+| 1 | 0.360 | 1.57/d | 1.45× (quase ótimo!) |
+| 2 | 0.117 | 0.56/d | ~2× |
+| 3 | 0.030 | 0.18/d | ~2.5× |
+| 4 | **0.009** | **0.047/d** | ~2.7× |
+
+**Lower bound (Shannon):** Dmse ≥ 1/4^b. TurboQuant está a **no máximo 2.7×** do
+limite teórico de informação — nenhum algoritmo pode fazer significativamente melhor.
+
+#### 2.3.3 KV Cache Quantization — A Segunda Aplicação
+
+**Descoberta crucial do paper que NÃO está na implementação de referência:**
+
+TurboQuant foi testado em **KV Cache de LLMs**, não apenas embeddings:
+
+```
+Llama-3.1-8B-Instruct — LongBench-E
+─────────────────────────────────────
+Full Cache (16-bit):     50.06 avg score
+TurboQuant (3.5-bit):    50.06 avg score  ← IDÊNTICO!
+TurboQuant (2.5-bit):    49.44 avg score  ← -1.2% com 6.4× compressão!
+KIVI (3-bit):            48.50 avg score  ← inferior ao TQ 2.5-bit
+KIVI (5-bit):            50.16 avg score  ← precisa de 5 bits para igualar
+```
+
+**Needle-in-a-Haystack (4K-104K tokens):**
+```
+Full Precision:    0.997 score
+TurboQuant (4×):   0.997 score  ← PERFEITO, idéntico!
+PolarQuant:        0.995
+KIVI:              0.981
+SnapKV:            0.858
+PyramidKV:         0.895
+```
+
+**Impacto para o Sovereign:** A mesma implementação Rust de TurboQuant pode ser
+usada para **DUAS coisas:**
+
+1. **Comprimir embeddings do Vault RAG** (caso atual, vec_ephemeral_chunks)
+2. **Comprimir KV Cache do Ollama** (futuro) — potencialmente dobrando
+   a janela de contexto efetiva dos modelos locais!
+
+O item 2 é revolucionário: se integrado ao pipeline Ollama, o Sovereign poderia
+manter KV caches de sessões anteriores comprimidos em 4×, permitindo "memória
+de trabalho" entre pesquisas sem reprocessar o contexto completo.
+
+#### 2.3.4 Entropy Encoding — Ganho Extra Descartado (por ora)
+
+O paper menciona que aplicar codificação de entropia nos índices do codebook
+pode reduzir o bit-width efetivo em ~5% (de 4.0 para ~3.8 bits). Os autores
+optaram por NÃO implementar para manter simplicidade e velocidade.
+
+**Para o Sovereign:** Concordamos com a decisão. O ganho de 5% não justifica
+a complexidade de Huffman coding no hot path. Pode ser revisitado na Fase 3
+se necessário.
+
+#### 2.3.5 Dados de Validação (datasets do paper)
+
+| Dataset | Dimensão | Pontos | Uso |
+|---|---|---|---|
+| DBpedia (OpenAI text-embedding-3-large) | 1536 | 100K train + 1K query | NN search |
+| DBpedia (OpenAI text-embedding-3-large) | 3072 | 100K + 1K | NN search alta-dim |
+| GloVe | 100-300 | 100K + 10K | NN search baixa-dim |
+| Llama-3.1-8B-Instruct | 4096 (KV) | 4K-104K tokens | KV cache |
+| Ministral-7B-Instruct | 4096 (KV) | LongBench-E | KV cache |
+
+**Relevância:** O Sovereign usa `nomic-embed-text` (dim=768) — está ENTRE os
+datasets testados (GloVe 300 e DBpedia 1536). O paper prova que TurboQuant
+funciona em todo esse espectro. Sem risco de incompatibilidade dimensional.
+
 ---
 
 ## 3. Mapeamento Python → Rust
@@ -588,3 +697,9 @@ def apply_inverse_rotation(Y, R):
 > resolvido (quantização escalar independente por coordenada).
 >
 > **Estimativa de implementação: ~200 linhas de Rust para o core funcional.**
+>
+> **Descoberta do paper original:** A mesma implementação serve para **2 propósitos**:
+> embeddings do Vault RAG E KV Cache do Ollama. No KV Cache, o paper prova que
+> 3.5-bit é quality-neutral com full precision (50.06 = 50.06 no LongBench-E).
+> Isso abre caminho para o Sovereign v2.0 com "memória de trabalho persistente"
+> entre sessões de pesquisa, comprimida em 4× via TurboQuant.
