@@ -21,6 +21,7 @@ import { API_BASE_URL } from '$lib/env_config';
         is_reasoner: boolean;
         is_master: boolean;
         is_scribe: boolean;
+        is_auditor: boolean;
         is_agent: boolean;
         is_coder: boolean;
         is_chat: boolean;
@@ -168,6 +169,7 @@ import { API_BASE_URL } from '$lib/env_config';
                 is_reasoner: fieldName === 'is_reasoner' ? value : model.is_reasoner,
                 is_master: fieldName === 'is_master' ? value : model.is_master,
                 is_scribe: fieldName === 'is_scribe' ? value : model.is_scribe,
+                is_auditor: fieldName === 'is_auditor' ? value : model.is_auditor,
                 is_agent: fieldName === 'is_agent' ? value : model.is_agent,
                 is_coder: fieldName === 'is_coder' ? value : model.is_coder,
                 is_chat: fieldName === 'is_chat' ? value : model.is_chat,
@@ -478,6 +480,7 @@ import { API_BASE_URL } from '$lib/env_config';
                                     <th class="px-2 py-3 font-semibold text-center" title="Modelo com Chain-of-Thought nativo (thinking)"><span class="text-fuchsia-400">Think</span></th>
                                     <th class="px-2 py-3 font-semibold text-center">Master</th>
                                     <th class="px-2 py-3 font-semibold text-center">Scribe</th>
+                                    <th class="px-2 py-3 font-semibold text-center" title="Auditor Adversarial (Sycophancy Breaker)"><span class="text-amber-400">Audit</span></th>
                                     <th class="px-2 py-3 font-semibold text-center">Agent</th>
                                     <th class="px-2 py-3 font-semibold text-center">Coder</th>
                                     <th class="px-2 py-3 font-semibold text-center">Chat</th>
@@ -534,6 +537,16 @@ import { API_BASE_URL } from '$lib/env_config';
                                                 checked={row.is_scribe}
                                                 disabled={isSavingMatrix || !row.is_installed}
                                                 onchange={(e) => toggleMatrixCapability(row.model_name, 'is_scribe', (e.target as HTMLInputElement).checked)}
+                                            />
+                                        </td>
+
+                                        <!-- Auditor: Sycophancy Breaker -->
+                                        <td class="px-2 py-3 text-center">
+                                            <input type="checkbox" 
+                                                class="w-4 h-4 rounded border-amber-600/50 bg-surface-800 text-amber-500 focus:ring-amber-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                checked={row.is_auditor}
+                                                disabled={isSavingMatrix || !row.is_installed}
+                                                onchange={(e) => toggleMatrixCapability(row.model_name, 'is_auditor', (e.target as HTMLInputElement).checked)}
                                             />
                                         </td>
 
@@ -600,7 +613,7 @@ import { API_BASE_URL } from '$lib/env_config';
                                     </tr>
                                 {:else}
                                     <tr>
-                                    <td colspan="11" class="px-4 py-8 text-center text-surface-500 italic">No models registered in the Matrix yet. They auto-register when the system starts.</td>
+                                    <td colspan="12" class="px-4 py-8 text-center text-surface-500 italic">No models registered in the Matrix yet. They auto-register when the system starts.</td>
                                     </tr>
                                 {/each}
                             </tbody>
