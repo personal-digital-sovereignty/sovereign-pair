@@ -1938,8 +1938,15 @@ pub async fn run_deep_research_handler(
 3. PROIBIÇÃO ABSOLUTA DA REPRODUÇÃO DE TABELAS: VOCÊ É ESTRITAMENTE PROIBIDO DE RECRIAR/TRANSCREVER MATRIZES OU TABELAS INTEIRAS. O Motor Rust as anexará mecanicamente ao rodapé após o seu texto. Apenas comente sobre elas no campo narrativo.\n\n\
 [TRAVAS EPISTÊMICAS E JURÍDICAS]:\n\
 - ALUCINAÇÃO ZERO (CEGUEIRA MATEMÁTICA): VOCÊ É PROIBIDO DE CALCULAR MÉDIAS, CORRELAÇÕES OU PERCENTUAIS 'DE CABEÇA'. Se cruzar números exatos que não estão visíveis nos [FATOS BRUTOS], nosso Auditor te punirá imediatamente.\n\
+- REGRA DE OURO (CITAÇÃO OBRIGATÓRIA): Cada afirmação sobre correlação DEVE citar o coeficiente Pearson exato (r=X.XX) conforme impresso na Matriz de Correlação Pandas. Cada afirmação sobre preço DEVE citar o valor e o período (ex: 'R$ 594,94 em Jun/2022'). Se o número exato NÃO consta nos dados, escreva 'dado não disponível nos fatos brutos' em vez de inventar.\n\
 Evite saudações. Reporte com excelência corporativa C-Level, focado estritamente na verdade irrefutável entregada.");
-            let scribe_user = format!("[PROMPT DO USUÁRIO]: {}\n\n[FATOS BRUTOS COLETADOS PELA IA PESQUISADORA]:\n{}", prompt, synthesized_report);
+
+            // FIX-9: Ancoragem de Dados — Colocar tabela Pandas ANTES dos JSONs crus no prompt
+            // para explorar o viés de posição (modelos ~8B priorizam o início do prompt).
+            let data_anchor = if let Some(ref table) = symbiotic_table_markdown {
+                format!("\n\n[DADOS MATEMÁTICOS VERIFICADOS PELO MOTOR RUST — ÂNCORA OBRIGATÓRIA]:\n{}\n\n", table)
+            } else { String::new() };
+            let scribe_user = format!("[PROMPT DO USUÁRIO]: {}\n{}[CONTEXTO BRUTO DO PESQUISADOR]:\n{}", prompt, data_anchor, synthesized_report);
 
             let mut scribe_model = crate::api::discover_cognitive_model_by_tier("senior").await;
             
@@ -1971,7 +1978,7 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
                     "stream": false,
                     "options": {
                         "num_ctx": 16384,
-                        "temperature": 0.25,
+                        "temperature": 0.1,
                         "repeat_penalty": 1.03,
                         "num_predict": 2048
                     }
@@ -2017,10 +2024,8 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
                             }
                         }
 
-                if is_clean || attempt == max_retries {
-                    // FIX-7: Safety net — se current_format está vazio (OOM/timeout do Scribe),
-                    // usar o synthesized_report bruto como fallback. Garante que o Abstract
-                    // nunca fique em branco no artefato final.
+                if is_clean {
+                    // Auditoria aprovada pelo Sycophancy Breaker.
                     if current_format.trim().is_empty() {
                         final_formatted_report = synthesized_report.clone();
                         let _ = TRAINER_LOGS.send(
@@ -2031,6 +2036,100 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
                         final_formatted_report = current_format;
                     }
                     let _ = TRAINER_LOGS.send("[The Scribe] Formatação C-Level aprovada pelo Sycophancy Breaker!".to_string());
+                    break;
+                }
+
+                // FIX-10: Após esgotar retries com o modelo primário, escalar para gemma4:e4b
+                // como Scribe de última instância antes de cair no failsafe de fatos brutos.
+                if attempt == max_retries {
+                    let gemma_fallback = "gemma4:e4b".to_string();
+                    // Só escalar se o Scribe atual NÃO é já o gemma4 (evitar loop)
+                    if scribe_model != gemma_fallback {
+                        let _ = TRAINER_LOGS.send(format!(
+                            "🔄 [Scribe Escalation] '{}' falhou {}× na auditoria. Escalando para '{}' como Scribe de resgate.",
+                            scribe_model, max_retries, gemma_fallback
+                        ));
+                        scribe_model = gemma_fallback;
+                        // Reset messages para o novo modelo (limpa o histórico de reprimendas do modelo anterior)
+                        scribe_messages = vec![
+                            serde_json::json!({"role": "system", "content": scribe_system}),
+                            serde_json::json!({"role": "user", "content": scribe_user})
+                        ];
+                        // Dar mais 2 tentativas ao gemma4
+                        for rescue_attempt in 1..=2u32 {
+                            let rescue_payload = serde_json::json!({
+                                "model": scribe_model,
+                                "messages": scribe_messages,
+                                "stream": false,
+                                "options": {
+                                    "num_ctx": 16384,
+                                    "temperature": 0.1,
+                                    "repeat_penalty": 1.03,
+                                    "num_predict": 2048
+                                }
+                            });
+                            let mut rescue_format = String::new();
+                            if let Ok(res) = synthesis_client.post(&olla_url).json(&rescue_payload).send().await
+                                && let Ok(json) = res.json::<serde_json::Value>().await
+                                    && let Some(content) = json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
+                                        let mut cleaned = content.trim().to_string();
+                                        if cleaned.starts_with("```markdown") { cleaned = cleaned.trim_start_matches("```markdown").trim_start().to_string(); }
+                                        else if cleaned.starts_with("```") { cleaned = cleaned.trim_start_matches("```").trim_start().to_string(); }
+                                        if cleaned.ends_with("```") { cleaned = cleaned.trim_end_matches("```").trim_end().to_string(); }
+                                        rescue_format = cleaned;
+                                    }
+
+                            // Re-auditar com o Sycophancy Breaker
+                            let rescue_audit_prompt = format!("Você é o Mestre de Auditoria. Avalie implacavelmente se o [Relatório] do seu subordinado inventou números, taxas matemáticas, ou falsificou fatos ausentes nos [Fatos Brutos]. Reposte APENAS 'OK' (nada mais) caso o relatório baseie-se estritamente na verdade extraída.\n\nSe ele inventou matemática, DEVOLVA A BRONCA DESTRUTIVA MENCIONANDO O ERRO.\n\n[FATOS BRUTOS]:\n{}\n\n[RELATÓRIO GERADO]:\n{}", synthesized_report, rescue_format);
+                            let rescue_audit_payload = serde_json::json!({
+                                "model": auth_inquisitor,
+                                "messages": [ {"role": "user", "content": rescue_audit_prompt} ],
+                                "stream": false,
+                                "options": { "num_ctx": 8192, "num_predict": 512, "temperature": 0.0 }
+                            });
+                            let _ = TRAINER_LOGS.send(format!("[Sycophancy Breaker] Auditando Scribe de resgate '{}' (Tentativa {}/2)...", scribe_model, rescue_attempt));
+                            let mut rescue_clean = true;
+                            if let Ok(aud_res) = synthesis_client.post(&olla_url).json(&rescue_audit_payload).send().await
+                                && let Ok(aud_json) = aud_res.json::<serde_json::Value>().await
+                                    && let Some(aud_content) = aud_json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
+                                        let clean_eval = aud_content.to_uppercase().trim().trim_matches(|c: char| !c.is_alphabetic()).to_string();
+                                        if !clean_eval.starts_with("OK") && aud_content.len() > 10 {
+                                            rescue_clean = false;
+                                            let raw_err = aud_content.to_string();
+                                            let _ = TRAINER_LOGS.send(format!("🚨 [Auditoria Resgate] Falha detectada no Scribe de resgate (tentativa {}/2).", rescue_attempt));
+                                            scribe_messages.push(serde_json::json!({"role": "assistant", "content": rescue_format}));
+                                            scribe_messages.push(serde_json::json!({"role": "user", "content": format!("🚨 [EPISTEMIC REPRIMAND]: {}\n\nREFAÇA o relatório citando APENAS valores exatos visíveis nos dados. Use r=X.XX para correlações e R$ XXX,XX para preços.", raw_err)}));
+                                        }
+                                    }
+                            if rescue_clean {
+                                if !rescue_format.trim().is_empty() {
+                                    final_formatted_report = rescue_format;
+                                    let _ = TRAINER_LOGS.send(format!("✅ [Scribe Resgate] '{}' aprovado pelo Sycophancy Breaker!", scribe_model));
+                                }
+                                break;
+                            }
+                            if rescue_attempt == 2 {
+                                // Gemma4 também falhou — usar o último output mesmo assim (melhor que raw)
+                                if !rescue_format.trim().is_empty() {
+                                    final_formatted_report = rescue_format;
+                                    let _ = TRAINER_LOGS.send("⚠️ [Scribe Resgate] Gemma4 não passou na auditoria, mas output será usado como melhor esforço.".to_string());
+                                }
+                            }
+                        }
+                    } else {
+                        // O Scribe JÁ era o gemma4 e falhou — usar current_format como fallback
+                        if !current_format.trim().is_empty() {
+                            final_formatted_report = current_format;
+                            let _ = TRAINER_LOGS.send("⚠️ [Scribe Failsafe] Scribe esgotou tentativas. Usando último output como melhor esforço.".to_string());
+                        } else {
+                            final_formatted_report = synthesized_report.clone();
+                            let _ = TRAINER_LOGS.send(
+                                "⚠️ [Scribe Failsafe] Output vazio detectado. Usando fatos brutos como fallback do Abstract."
+                                    .to_string()
+                            );
+                        }
+                    }
+                    let _ = TRAINER_LOGS.send("[The Scribe] Pipeline de formatação finalizado.".to_string());
                     break;
                 }
             }
