@@ -1998,7 +1998,7 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
 
             let mut final_formatted_report = synthesized_report.clone();
             
-            let max_retries = 1;
+            let max_retries = 2;
             for attempt in 1..=max_retries {
                 let scribe_payload = serde_json::json!({
                     "model": scribe_model,
