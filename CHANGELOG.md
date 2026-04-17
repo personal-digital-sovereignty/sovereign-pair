@@ -18,6 +18,7 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 ### Changed
 - **Auditor Context Flow**: O Sycophancy Breaker agora recebe `auditor_context` (derivado da tabela Pandas quando disponível) em vez de `synthesized_report` (JSONs brutos), eliminando a assimetria epistêmica que causava 4 rejeições espúrias por pipeline (~60 min desperdiçados).
 - **Scribe User Prompt Enrichment**: O `scribe_user` agora inclui 3 camadas adicionais de contexto: (1) Glossário de colunas com unidades e magnitudes, (2) Verdade qualitativa econômica do autobahn_rules.yml, (3) Column guard com restrição de variáveis disponíveis.
+- **FIX-23 — Reasoner Think-Tag Asphyxiation (Empty Abstract)**: Modelos reasoner (qwen3, gemma4, deepseek-r1) gastavam 100% do `num_predict: 2048` no bloco `<think>...</think>` interno, deixando **zero tokens** para o conteúdo visível. O Scribe produzia output vazio, disparando o failsafe que despejava JSONs brutos como Abstract. **Fix tríplice**: (1) `enable_thinking: false` no payload do Scribe e rescue Scribe, (2) stripping de `<think>` tags como defense-in-depth, (3) `num_predict` elevado para 3072 para relatórios mais ricos. Aplicado em ambos os pipelines primário e rescue (`api_trainer.rs`).
 
 ## [1.2.5] - 2026-04-16
 *Deep Research Performance Hardening (Prompt Cache, Sandbox Quarantine & KV Cache q8_0)*
