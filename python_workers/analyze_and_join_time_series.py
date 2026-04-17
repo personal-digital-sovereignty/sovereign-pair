@@ -77,8 +77,11 @@ def parse_markdown_blocks(raw_blocks):
             if current_ds_name == "":
                 current_ds_name = f"DATASET_{len(datasets)}"
 
+        # FIX-13: Deduplicação inteligente — se o dataset JÁ EXISTE (ex: DOLAR_PTAX chamado 2×),
+        # NÃO criar coluna com sufixo _N. Em vez disso, marcar para merge posterior.
+        merge_into_existing = False
         if current_ds_name in datasets:
-            current_ds_name = f"{current_ds_name}_{len(datasets)}"
+            merge_into_existing = True
             
         data = []
         for line in lines:
@@ -119,7 +122,15 @@ def parse_markdown_blocks(raw_blocks):
             df.set_index('Date', inplace=True)
             # Resample to monthly end ('ME' or 'M') to normalize Daily vs Monthly
             df = df.resample('ME').mean()
-            datasets[current_ds_name] = df
+            
+            # FIX-13: Merge com dataset existente se for duplicata (ex: DOLAR_PTAX chamado 2×)
+            if merge_into_existing and current_ds_name in datasets:
+                existing = datasets[current_ds_name]
+                # Combinar ambos, priorizando dados não-NaN do existente
+                combined = existing.combine_first(df)
+                datasets[current_ds_name] = combined
+            else:
+                datasets[current_ds_name] = df
             
     return datasets
 
@@ -169,6 +180,27 @@ def join_and_extract(raw_data_blocks):
             # Taxa_Cambio é o único câmbio disponível — renomear para DOLAR_CAMBIO
             merged_df.rename(columns={'Taxa_Cambio': 'DOLAR_CAMBIO'}, inplace=True)
     
+    # FIX-13: Deduplicação pós-merge por correlação Pearson ≥0.99
+    # Detecta colunas com nomes base similares E dados quase idênticos.
+    # Ex: DOLAR_PTAX vs DOLAR_PTAX_5, ou colunas geradas por chamadas duplicadas.
+    cols = merged_df.columns.tolist()
+    drop_cols = set()
+    for i, c1 in enumerate(cols):
+        for c2 in cols[i+1:]:
+            if c2 in drop_cols:
+                continue
+            # Nomes com base similar? (strip trailing _N suffix)
+            base1 = re.sub(r'_\d+$', '', c1)
+            base2 = re.sub(r'_\d+$', '', c2)
+            if base1 == base2 or c1.startswith(c2) or c2.startswith(c1):
+                shared = merged_df[[c1, c2]].dropna()
+                if len(shared) > 5:
+                    r = shared[c1].corr(shared[c2])
+                    if r >= 0.99:
+                        drop_cols.add(c2)  # Manter o com nome mais curto
+    if drop_cols:
+        merged_df.drop(columns=list(drop_cols), inplace=True)
+
     # Sort chronological
     merged_df.sort_index(inplace=True)
     
