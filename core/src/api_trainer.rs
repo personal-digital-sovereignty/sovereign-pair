@@ -826,7 +826,7 @@ pub async fn run_deep_research_handler(
             // Ciclo 15 (síntese final) recebe 4096 para relatórios completos.
             let cycle_num_predict = if cycle < 15 { 2048 } else { 4096 };
 
-            let mut options_obj = serde_json::json!({
+            let options_obj = serde_json::json!({
                 "num_ctx": dynamic_num_ctx,
                 "temperature": 0.0,
                 "repeat_penalty": 1.0,
@@ -837,9 +837,6 @@ pub async fn run_deep_research_handler(
             // O CoT interno do qwen3/gemma4 gasta 8-17 minutos POR STAGE num host de 27GB RAM
             // para "planejar" uma tool call que leva ~200 tokens. O thinking só é útil na
             // síntese final (cycle 15+), onde o modelo precisa raciocinar sobre os dados.
-            if cycle < 15 {
-                options_obj["enable_thinking"] = serde_json::json!(false);
-            }
 
             let mut synthesis_payload = serde_json::json!({
                 "model": target_model_name,
@@ -848,6 +845,12 @@ pub async fn run_deep_research_handler(
                 "keep_alive": "60m",
                 "options": options_obj
             });
+
+            // FIX-23b: "think" deve estar no TOP-LEVEL do payload, não dentro de "options".
+            // O Ollama ignora silenciosamente campos desconhecidos em "options".
+            if cycle < 15 {
+                synthesis_payload["think"] = serde_json::json!(false);
+            }
 
             if cycle < 25 {
                 synthesis_payload["tools"] = tools_schema.clone();
@@ -2115,7 +2118,7 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
                     "messages": scribe_messages,
                     "stream": false,
                     "keep_alive": "60m",
-                    "enable_thinking": false,
+                    "think": false,
                     "options": {
                         "num_ctx": 16384,
                         "temperature": 0.1,
@@ -2240,7 +2243,7 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
                                 "messages": scribe_messages,
                                 "stream": false,
                                 "keep_alive": "60m",
-                                "enable_thinking": false,
+                                "think": false,
                                 "options": {
                                     "num_ctx": 16384,
                                     "temperature": 0.1,
