@@ -5,6 +5,24 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
+## [1.2.5] - 2026-04-16
+*Deep Research Performance Hardening (Prompt Cache, Sandbox Quarantine & KV Cache q8_0)*
+
+### Fixed
+- **FIX-16 — Sandbox Hell (3h→35min Pipeline)**: O LLM gastava ~155 min em 5 tentativas falhadas de `execute_python_code` tentando manualmente processar JSONs em `/tmp/sovereign/` que a Symbiotic Pipeline (Pandas) já processaria automaticamente após o loop agentic. Cada tentativa: sandbox falha → modelo evictado da RAM → cold-start de 10 min. **Fix**: Sandbox Quarantine — quando `all_sources` já contém dados estruturados (`data_compressed`), scripts que referenciam `/tmp/sovereign/` são bloqueados com mensagem sintética ao LLM, preservando o modelo na RAM e o KV cache entre stages (`api_trainer.rs`).
+- **FIX-13 — DOLAR_PTAX Duplicação de Colunas**: O LLM chamava `fetch_macroeconomy(["DOLAR_PTAX"])` duas vezes (uma explícita, uma via Autobahn), gerando coluna `DOLAR_PTAX_5` no relatório. **Fix**: Deduplicação pré-merge (`combine_first` para datasets com mesmo nome) e pós-merge (Pearson r≥0.99 entre colunas com base name similar), eliminando colunas redundantes (`analyze_and_join_time_series.py`).
+- **FIX-14 — Scribe Data Blindness (Abstract Desconectado)**: O Scribe recebia JSONs crus + tabela Pandas + outputs de Sandbox falhados, enchendo o contexto de 12k tokens com lixo. Resultado: Abstract sobre "300 pontos unidimensionais" ignorando a tabela real de 7 variáveis. **Fix**: Quando `symbiotic_table_markdown` existe, `scribe_context = String::new()` — a tabela Pandas é a única fonte de dados do Scribe (`api_trainer.rs`).
+- **FIX-15 — Scribe Format Blindness (Pearson Não Citado)**: O modelo ~8B não interpretava automaticamente que "2024-01 | 79.20" é uma série temporal mensal. **Fix**: Injeção de header `[FORMATO DOS DADOS]` explicando formato YYYY-MM, semântica do Pearson (r=1.0 positivo, r=0 sem correlação), e formato obrigatório de citação monetária `R$ XXX,XX em MM/AAAA` (`api_trainer.rs`).
+
+### Changed
+- **FIX-17 — keep_alive: 60m (Prompt Cache Preservation)**: Nenhum payload do Deep Research enviava `keep_alive` ao Ollama — o servidor usava o default de 5 min. Com gaps de 10-20 min entre stages, o modelo era descarregado e o KV cache destruído. **Fix**: `"keep_alive": "60m"` em todos os 6 payloads: synthesis, scribe, auditor, rescue scribe, rescue auditor. O modelo permanece na RAM durante todo o pipeline, preservando o KV cache entre stages (`api_trainer.rs`).
+- **FIX-18 — System Prompt Estático (KV Cache Maximization)**: O `current_date` na posição 3 do system prompt invalidava 100% do KV cache diariamente — tudo após a data era recomputado. **Fix**: Elementos dinâmicos (`current_date`, `anchor_directive`) movidos para a `user` message. System prompt = 100% estático → Ollama reutiliza tensores KV do prefixo idêntico entre todos os stages, economizando ~800 tokens de prefill por stage (`api_trainer.rs`).
+- **KV Cache q8_0 (RAM Optimization)**: Migração de `OLLAMA_KV_CACHE_TYPE=f16` para `q8_0`. KV cache: 5.2 GB → 2.6 GB (~50% economia). q8_0 preserva precisão de RoPE (8-bit mantém senos/cossenos, ao contrário do q4_0 que causava NaN). Habilita co-residência dual-model mais confortável no cap de 24GB (`optimize_ollama_ryzen.sh`).
+- **Autobahn Anti-Duplicação (DOLAR_PTAX)**: Regra de câmbio simplificada: `fetch_financial_ticker` → DOLAR (spot Yahoo), `fetch_macroeconomy` → DOLAR_PTAX (BCB oficial). Instrução explícita "NUNCA em ambas as tools simultaneamente" em ambos os tiers (`autobahn_rules.yml`).
+
+### Performance
+- **Pipeline Deep Research**: Tempo total estimado reduzido de **~3h02m** para **~25-35 minutos** (~80% de redução). Breakdown: Sandbox Quarantine (-155 min), keep_alive 60m (-20 min cold-starts), System prompt estático (-10 min prefill), q8_0 KV cache (-5 min RAM pressure).
+
 ## [1.2.4] - 2026-04-15
 *Epistemic Guard v2 (Deterministic SHA-256) & Sycophancy Breaker Performance Fix*
 
