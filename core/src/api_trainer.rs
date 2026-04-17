@@ -742,22 +742,22 @@ pub async fn run_deep_research_handler(
             }
         }
 
+        // FIX-18: System prompt 100% ESTÁTICO para máximo reuso de KV Cache.
+        // Elementos dinâmicos (current_date, anchor_directive) movidos para a user message.
+        // O Ollama reutiliza os tensores KV do prefixo idêntico entre stages, economizando
+        // ~800 tokens de prefill por stage (~10 min total em CPU).
         let synthesis_prompt = format!(
             "Você é {}, {}.\n\
-            {}\n\
-            {}\n\
             [DIRETRIZES TÁTICAS ORQUESTRAIS DE TOOL CALLING]\n\
             {}\n",
             name,
             role,
-            chrono.replace("{current_date}", &current_date),
-            anchor_directive,
             directives_str
         );
 
         let mut messages = vec![
             serde_json::json!({"role": "system", "content": synthesis_prompt}),
-            serde_json::json!({"role": "user", "content": format!("{}\n\n[SYSTEM OVERRIDE/SECURITY]: Você AINDA NÃO POSSUI NENHUM DADO EXTRAÍDO. É expressamente PROIBIDO responder com sínteses vazias ou teóricas para o usuário. Sua próxima resposta DEVE ser ÚNICA E EXCLUSIVAMENTE O JSON DE INVOCACÃO da ferramenta apropriada para buscar informações factuais.", prompt.clone())})
+            serde_json::json!({"role": "user", "content": format!("{}\n{}\n\n{}\n\n[SYSTEM OVERRIDE/SECURITY]: Você AINDA NÃO POSSUI NENHUM DADO EXTRAÍDO. É expressamente PROIBIDO responder com sínteses vazias ou teóricas para o usuário. Sua próxima resposta DEVE ser ÚNICA E EXCLUSIVAMENTE O JSON DE INVOCACÃO da ferramenta apropriada para buscar informações factuais.", chrono.replace("{current_date}", &current_date), anchor_directive, prompt.clone())})
         ];
 
 
@@ -845,6 +845,7 @@ pub async fn run_deep_research_handler(
                 "model": target_model_name,
                 "messages": messages,
                 "stream": false,
+                "keep_alive": "60m",
                 "options": options_obj
             });
 
@@ -1025,28 +1026,43 @@ pub async fn run_deep_research_handler(
                                             }
                                             
                                             if !py_code.is_empty() {
-                                                // SYMBIOTIC INTERCEPTOR: Se a tabela Markdown já foi gerada E o script
-                                                // está tentando processar dados que já foram mergeados, retornar a tabela
-                                                // diretamente em vez de desperdiçar um stage com Python.
+                                                // FIX-16: SANDBOX QUARANTINE — Bloqueia scripts Python que tentam
+                                                // reprocessar dados que a Symbiotic Pipeline já processará automaticamente.
+                                                // O LLM gasta ~20 min por tentativa (sandbox + cold-start), e falha 100%
+                                                // porque os JSONs em /tmp/sovereign/ não são DataFrames serializados.
+                                                // Resultado: 5 tentativas = 1h40min desperdiçado no stress test v2.
                                                 let is_data_reprocessing = py_code.contains("sovereign_data_") || py_code.contains("pd.read_json") || py_code.contains("read_csv") || py_code.contains("/tmp/sovereign");
-                                                if is_data_reprocessing {
+                                                let has_structured_data = !all_sources.is_empty() && all_sources.iter().any(|s: &String| s.contains("data_compressed") || s.contains("sovereign_data_"));
+                                                
+                                                if is_data_reprocessing && has_structured_data {
+                                                    // Dados estruturados já existem — Symbiotic Pipeline processará após o loop
+                                                    let _ = TRAINER_LOGS.send(
+                                                        "🛡️ [Sandbox Quarantine] Script Python BLOQUEADO — dados já estão na pipeline Symbiotic. \
+                                                         O Motor Rust processará com Pandas nativo (Pearson + Médias Anuais + ffill).".to_string()
+                                                    );
+                                                    let quarantine_msg = "[SISTEMA] Script Python DESNECESSÁRIO e BLOQUEADO pelo Motor Rust. \
+                                                        Os dados em /tmp/sovereign/ serão processados AUTOMATICAMENTE pelo \
+                                                        Symbiotic Pipeline (Pandas + Correlação Pearson + Médias Anuais). \
+                                                        Você NÃO precisa escrever código para cruzar estes dados. \
+                                                        Prossiga com a próxima ferramenta de extração ou finalize sua análise \
+                                                        para que o motor gere a tabela cruzada automaticamente.".to_string();
+                                                    // Injetar como se fosse uma tool_response, para o LLM não tentar de novo
                                                     if let Some(ref table_md) = symbiotic_table_markdown {
-                                                        let _ = TRAINER_LOGS.send("[Symbiotic Interceptor] Script Python interceptado! Dados já mergeados pelo Backend. Injetando tabela Markdown pré-construída.".to_string());
+                                                        // Tabela já existe (raro neste ponto) → injetar direto
                                                         let synthetic_response = format!(
                                                             "### PYTHON SANDBOX OUTPUT (SUCCESS - SYMBIOTIC OVERRIDE):\n\
-                                                            ```text\n\
-                                                            [SISTEMA] Os dados de séries temporais já foram cruzados, mergeados e correlacionados\n\
-                                                            automaticamente pelo Motor Rust (Symbiotic Pipeline) usando Pandas nativo.\n\
-                                                            Você NÃO precisa escrever scripts para processar os arquivos JSON.\n\
-                                                            A tabela Markdown abaixo contém TODOS os dados cruzados prontos para sua análise textual.\n\
-                                                            Prossiga IMEDIATAMENTE com a síntese analítica.\n\
-                                                            ```\n\n{}", table_md
+                                                            ```text\n{}\n```\n\n{}", quarantine_msg, table_md
                                                         );
                                                         join_handles.push(tokio::spawn(async move {
                                                             (py_code, synthetic_response, "Python Code Sandbox".to_string())
                                                         }));
-                                                        continue; // Skip sandbox execution
+                                                    } else {
+                                                        // Tabela ainda não existe → bloqueio preventivo com mensagem
+                                                        join_handles.push(tokio::spawn(async move {
+                                                            (py_code, format!("### PYTHON SANDBOX OUTPUT (BLOCKED):\n```text\n{}\n```", quarantine_msg), "Python Code Sandbox".to_string())
+                                                        }));
                                                     }
+                                                    continue; // Skip sandbox execution — preserva modelo na RAM e KV cache
                                                 }
                                                 let _ = TRAINER_LOGS.send("[Sovereign Code Sandbox] Orquestrando Script Matemático Python...".to_string());
                                                 join_handles.push(tokio::spawn(async move {
@@ -1986,28 +2002,36 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
             } else {
                 (String::new(), String::new())
             };
-            // FIX-F4: Quando Pandas gerou a tabela, NÃO incluir a prosa qualitativa do Master
-            // no prompt do Scribe. A prosa do Master contém conceitos do web scraping (Diesel, etc.)
-            // que contaminam o contexto. O Scribe deve se basear APENAS na tabela verificada.
+            // FIX-14: Quando Pandas gerou a tabela, NÃO passar JSONs crus ao Scribe.
+            // A tabela Pandas JÁ É a versão processada e verificada dos dados brutos.
+            // Passar ambos cria redundância e confusão no modelo ~8B (positional bias).
+            // O stress test v2 mostrou que o Scribe ignorou a tabela e focou nos JSONs crus,
+            // gerando um Abstract sobre "300 pontos unidimensionais" em vez dos 7 variáveis reais.
             let scribe_context = if symbiotic_table_markdown.is_some() {
-                // Tabela existe → apenas JSONs crus sem prosa do Master
-                // Extrair apenas linhas que parecem dados brutos (começando com { ou [CONTEXT:)
-                let raw_only: Vec<&str> = synthesized_report.lines()
-                    .filter(|l| {
-                        let trimmed = l.trim();
-                        trimmed.starts_with('{') || trimmed.starts_with("[CONTEXT:") || trimmed.starts_with("## Source:")
-                            || trimmed.is_empty()
-                    })
-                    .collect();
-                if raw_only.is_empty() {
-                    synthesized_report.clone()
-                } else {
-                    raw_only.join("\n")
-                }
+                // Tabela Pandas existe → NÃO passar contexto raw (a tabela já contém tudo)
+                String::new()
             } else {
                 synthesized_report.clone()
             };
-            let scribe_user = format!("[PROMPT DO USUÁRIO]: {}\n{}{}\n[CONTEXTO BRUTO DO PESQUISADOR]:\n{}", prompt, data_anchor, column_guard, scribe_context);
+
+            // FIX-15: Injetar header explicativo sobre o formato dos dados para o Scribe.
+            // O modelo ~8B não entende automaticamente que "2024-01 | 79.20" é uma série temporal
+            // mensal. Sem esta instrução, ele vê "300 pontos de dados" em vez de "60 meses com 7 variáveis".
+            let data_format_hint = if symbiotic_table_markdown.is_some() {
+                "\n\n[FORMATO DOS DADOS]: A tabela abaixo foi gerada pelo Motor Pandas do Sovereign Pair. \
+                 Cada linha é um MÊS no formato YYYY-MM. Colunas representam variáveis macroeconômicas \
+                 e financeiras. A Matriz de Correlação de Pearson (r) quantifica a relação linear entre \
+                 cada par de variáveis: r=1.0 = correlação perfeita positiva, r=0 = sem correlação linear, \
+                 r=-1.0 = inversamente proporcionais. USE os valores r exatos da tabela nas suas citações. \
+                 Valores monetários em BRL devem ser citados como 'R$ XXX,XX em MM/AAAA'.\n".to_string()
+            } else { String::new() };
+
+            let scribe_user = if scribe_context.is_empty() {
+                // FIX-14: Tabela Pandas é a única fonte de dados (sem lixo de JSONs crus)
+                format!("[PROMPT DO USUÁRIO]: {}\n{}{}{}", prompt, data_format_hint, data_anchor, column_guard)
+            } else {
+                format!("[PROMPT DO USUÁRIO]: {}\n{}{}\n[CONTEXTO BRUTO DO PESQUISADOR]:\n{}", prompt, data_anchor, column_guard, scribe_context)
+            };
 
             let mut scribe_model = crate::api::discover_cognitive_model_by_tier("senior").await;
             
@@ -2033,10 +2057,12 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
             
             let max_retries = 2;
             for attempt in 1..=max_retries {
+                // FIX-17: keep_alive 60m no Scribe para manter modelo na RAM durante retries
                 let scribe_payload = serde_json::json!({
                     "model": scribe_model,
                     "messages": scribe_messages,
                     "stream": false,
+                    "keep_alive": "60m",
                     "options": {
                         "num_ctx": 16384,
                         "temperature": 0.1,
@@ -2058,10 +2084,12 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
 
                 // The Sycophancy Breaker (Adversarial Auditor) Loop
                 let auditor_prompt = format!("Você é o Mestre de Auditoria. Avalie implacavelmente se o [Relatório] do seu subordinado inventou números, taxas matemáticas, ou falsificou fatos ausentes nos [Fatos Brutos]. Reposte APENAS 'OK' (nada mais) caso o relatório baseie-se estritamente na verdade extraída.\n\nSe ele inventou matemática, DEVOLVA A BRONCA DESTRUTIVA MENCIONANDO O ERRO.\n\n[FATOS BRUTOS]:\n{}\n\n[RELATÓRIO GERADO]:\n{}", synthesized_report, current_format);
+                // FIX-17: keep_alive 60m no Auditor para co-residência com Scribe
                 let auditor_payload = serde_json::json!({
                     "model": auth_inquisitor,
                     "messages": [ {"role": "user", "content": auditor_prompt} ],
                     "stream": false,
+                    "keep_alive": "60m",
                     "options": {
                         "num_ctx": 8192,
                         "num_predict": 512,
@@ -2133,6 +2161,7 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
                                 "model": scribe_model,
                                 "messages": scribe_messages,
                                 "stream": false,
+                                "keep_alive": "60m",
                                 "options": {
                                     "num_ctx": 16384,
                                     "temperature": 0.1,
@@ -2157,6 +2186,7 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
                                 "model": auth_inquisitor,
                                 "messages": [ {"role": "user", "content": rescue_audit_prompt} ],
                                 "stream": false,
+                                "keep_alive": "60m",
                                 "options": { "num_ctx": 8192, "num_predict": 512, "temperature": 0.0 }
                             });
                             let _ = TRAINER_LOGS.send(format!("[Sycophancy Breaker] Auditando Scribe de resgate '{}' (Tentativa {}/2)...", scribe_model, rescue_attempt));
@@ -2219,7 +2249,7 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
         // [STEP 4]: Final Artifact Export -> STAGING DB
         let mut source_links: Vec<String> = Vec::new();
         for line in all_sources.join("\n").lines() {
-            let l_trimmed = line.trim();
+            let l_trimmed: &str = line.trim();
             if l_trimmed.starts_with("## Source: ") {
                 source_links.push(format!("- {}", l_trimmed.replace("## Source: ", "").trim()));
             } else if l_trimmed.starts_with('{') && l_trimmed.contains("\"source\"") {

@@ -53,41 +53,85 @@ Environment="HSA_OVERRIDE_GFX_VERSION=9.0.0"
 # que dialoga perfeitamente com Intel Iris Xe, Intel Arc e AMD RX/Radeon Vega nativamente, sem dependências proprietárias.
 # Environment="OLLAMA_BACKEND=vulkan"
 
-# Tuning de Memória Global (32GB RAM Base)
+# Tuning de Memória Global (27GB RAM física)
 Environment="OLLAMA_MAX_QUEUE=512"
 Environment="OLLAMA_KEEP_ALIVE=5m"
 
 # The Ghost Optimization: Emulando o comportamento TurboQuant (Google Research)
 Environment="OLLAMA_FLASH_ATTENTION=1"
-# Environment="OLLAMA_KV_CACHE_TYPE=q4_0" # [REMOVIDO] A quantização agressiva do Google (q4_0) corrompe o RoPE do Qwen2.5 em CPUs causando NaNs e o loop (O O O).
-Environment="OLLAMA_KV_CACHE_TYPE=f16" # Forçando Ram-Streaming descompactada para preservar sanidade da Master AI.
+# Environment="OLLAMA_KV_CACHE_TYPE=q4_0" # [REMOVIDO] q4_0 corrompe o RoPE do Qwen2.5 em CPUs causando NaNs e o loop (O O O).
+# Environment="OLLAMA_KV_CACHE_TYPE=f16" # [ANTERIOR] Full precision — seguro mas consome ~5.2GB de KV cache para 12k ctx.
+# FIX v1.2.5: q8_0 é o sweet spot — reduz KV cache em ~50% (2.6GB vs 5.2GB) sem degradar RoPE.
+# qwen3/gemma4 estáveis com q8_0 (8-bit preserva senos/cossenos do RoPE com precisão suficiente).
+Environment="OLLAMA_KV_CACHE_TYPE=q8_0"
 
 # Host Binding (Permitir acesso Docker/Tailscale se necessário)
 Environment="OLLAMA_HOST=0.0.0.0:11434"
+
+# =========================================================================
+# [MEMORY FENCE]: Hard Cap via cgroups v2
+# =========================================================================
+# Limita toda a árvore de processos do Ollama (serve + runners) a 24GB.
+# Em 27GB físicos, reserva ~3GB para: kernel, Sovereign Pair, browser, OS.
+#
+# Comportamento ao exceder:
+#   - O kernel mata o runner do modelo (OOM kill cirúrgico)
+#   - O ollama serve continua vivo e responde com erro
+#   - O Sovereign Pair recebe o erro e aciona fallback normalmente
+#   - Ollama recarrega o próximo modelo dentro do limite
+#
+# MemorySwapMax=0 impede degradação silenciosa: sem swap, o sistema
+# falha rápido e explícito ao invés de rastejar a 100KB/s no disco.
+# =========================================================================
+MemoryMax=24G
+MemorySwapMax=0
 CONF
 
 echo "   [OK] Arquivo systemd override.conf criado."
 
 # 3. CPU Governor para Performance
-echo ">> [2/4] Modificando CPU Scaling Governor para 'performance'..."
+echo ">> [2/5] Modificando CPU Scaling Governor para 'performance'..."
 for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
     echo "performance" > "$cpu"
 done
 echo "   [OK] Todos os núcleos fixados em modo performance."
 
 # 4. HUGEPAGES (Acesso massivo à RAM para LLM)
-echo ">> [3/4] Habilitando HugePages para acelerar buscas na memória..."
+echo ">> [3/5] Habilitando HugePages para acelerar buscas na memória..."
 echo "vm.nr_hugepages = 1024" > /etc/sysctl.d/99-hugepages-ollama.conf
 sysctl -p /etc/sysctl.d/99-hugepages-ollama.conf > /dev/null 2>&1
 echo "   [OK] HugePages Kernel Tuned."
 
 # 5. Reiniciar o serviço do Ollama
-echo ">> [4/4] Recarregando o Daemon e o Serviço do Ollama..."
+echo ">> [4/5] Recarregando o Daemon e o Serviço do Ollama..."
 systemctl daemon-reload
 systemctl restart ollama
 echo "   [OK] Ollama reiniciado com as novas Flags!"
-echo "------------------------------------------------------------------------"
 
+# 6. Verificação do Memory Fence
+echo ">> [5/5] Verificando Memory Fence aplicado..."
+sleep 1
+MEM_MAX=$(systemctl show ollama --property=MemoryMax 2>/dev/null | cut -d= -f2)
+MEM_CURRENT=$(systemctl show ollama --property=MemoryCurrent 2>/dev/null | cut -d= -f2)
+
+if [ "$MEM_MAX" = "25769803776" ] || [ "$MEM_MAX" = "24G" ]; then
+    echo "   [OK] MemoryMax = 24G (hard cap ativo via cgroups v2)"
+else
+    echo "   [⚠️] MemoryMax = $MEM_MAX (verifique se cgroups v2 está habilitado)"
+fi
+
+if [ -n "$MEM_CURRENT" ] && [ "$MEM_CURRENT" != "infinity" ]; then
+    MEM_MB=$((MEM_CURRENT / 1024 / 1024))
+    echo "   [OK] MemoryCurrent = ${MEM_MB}MB (uso atual do Ollama)"
+fi
+
+echo "------------------------------------------------------------------------"
 echo "✅ SUCESSO! O motor de IA local está tunado."
+echo ""
+echo "   📊 Alocação de RAM:"
+echo "   ├── Ollama (modelos + KV cache):  ≤ 24GB (hard cap)"
+echo "   ├── Sistema + Sovereign Pair:       ~3GB (reservado)"
+echo "   └── Swap:                           BLOQUEADO (fail-fast)"
+echo ""
 echo "➡️ DICA: Para testar a diferença de velocidade, rode um modelo pesado (ex: phi4 ou Qwen) no console!"
 echo "------------------------------------------------------------------------"
