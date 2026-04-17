@@ -6,6 +6,17 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
 
+## [1.2.7] - 2026-04-17
+*Scribe Infrastructure Hardening — HTTP Resilience & Ollama API Correctness*
+
+### Fixed
+- **FIX-23b — Ollama API Field Name (`enable_thinking` → `think`)**: O Ollama `/api/chat` usa `"think"` (não `"enable_thinking"`) para controlar CoT de modelos reasoner. O campo errado era silenciosamente ignorado, fazendo qwen3:8b gastar 100% dos tokens em `<think>` blocks. Adicionalmente, no agentic loop, `think` estava dentro de `"options"` quando deve estar no top-level do payload — Ollama ignora campos desconhecidos em `options`. Confirmado via `curl` teste direto (`api_trainer.rs`).
+- **FIX-25 — Scribe HTTP Retry with Backoff (Root Cause: Ollama Reload)**: O Scribe falhava com `"error sending request for url"` em 4/4 testes consecutivos. O FIX-24 (logging diagnóstico) revelou que o Ollama ficava temporariamente indisponível durante a transição do agentic loop (num_ctx: 12288) para o Scribe (num_ctx: 16384) — o model reload causa uma janela de ~3-5s onde conexões são recusadas. **Fix**: Loop de retry com 3 tentativas e 5s de backoff entre cada. O Scribe agora sobrevive a Ollama restarts, OOM recovery e model reloads (`api_trainer.rs`).
+
+### Changed
+- **FIX-24 — Scribe Diagnostic Logging**: A cadeia `if let Ok(res)...` anterior engolia TODOS os erros silenciosamente (HTTP failures, JSON parse errors, Ollama errors, empty content). Agora cada falha path registra: HTTP status, tipo de erro, raw content length, preview dos primeiros 200 chars, presença de think tags, e modelo/contexto sizes. Instrumentação que revelou o FIX-25 (`api_trainer.rs`).
+- **Agentic Loop `think` Placement**: Movido `think: false` de `options_obj` (ignorado por Ollama) para `synthesis_payload` top-level (corretamente processado). Performance: stages do qwen3:8b devem ser ~3x mais rápidos sem CoT desnecessário nos primeiros 15 ciclos (`api_trainer.rs`).
+
 ## [1.2.6] - 2026-04-17
 *Scribe Pipeline Regression Fix — Epistemic Symmetry & Qualitative Truth Restoration*
 
