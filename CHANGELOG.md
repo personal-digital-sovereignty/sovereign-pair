@@ -5,6 +5,20 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
+
+## [1.2.6] - 2026-04-17
+*Scribe Pipeline Regression Fix — Epistemic Symmetry & Qualitative Truth Restoration*
+
+### Fixed
+- **FIX-20 — Auditor Epistemic Asymmetry (Root Cause of 4× Audit Failures)**: O FIX-14 (v1.2.5) isolou o Scribe para receber APENAS a tabela Pandas, mas o Auditor continuou recebendo `synthesized_report` (JSONs brutos). Resultado: assimetria epistêmica — o Auditor rejeitava citações corretas (por não encontrá-las nos JSONs) e aprovava erros reais (por não ter a tabela para cross-check). **Fix**: Novo `auditor_context` simétrico que espelha exatamente os dados que o Scribe recebeu (tabela Pandas + glossário + verdade qualitativa). Aplicado em AMBOS os auditores: primário e rescue (`api_trainer.rs`).
+- **FIX-19 — VERDADE QUALITATIVA Perdida na Migração do Prompt Vault**: A v1.1.0 tinha conhecimento econômico factual hardcoded no system prompt do Scribe (composição de preço da gasolina: Refinaria ~27%, ICMS ~24%, etc.). Na migração para o Prompt Vault (v1.2.4), este guardrail foi perdido, deixando o Scribe incapaz de responder sobre cartéis, impostos e lucro de refinarias. **Fix**: Extração dinâmica da diretiva "DADO QUALITATIVO" do `autobahn_rules.yml` (onde já existia na linha 29) e injeção no `scribe_user`. Zero hardcode temporal — editável via YAML sem rebuild (`api_trainer.rs`).
+- **FIX-21 — Column Identity Confusion (BRENT_BRL↔GASOLINA)**: Nenhum prompt explicava que `BRENT_BRL` (~R$ 400) é preço por barril e `GASOLINA` (~R$ 6) é preço por litro. O LLM confundia naturalmente, atribuindo R$ 594 (barril) à gasolina no Abstract. **Fix**: Glossário semântico automático gerado dos nomes das colunas da tabela Pandas, com ordens de magnitude e aviso explícito de confusão (`api_trainer.rs`).
+- **FIX-22 — Auditor Prompt Vago (Keyword-Based, Não Semântico)**: O prompt do Auditor ("Avalie implacavelmente... Devolva a BRONCA DESTRUTIVA") não instruía cross-check específico. Aprovava erros de coluna e rejeitava verdades por razões espúrias. **Fix**: Prompt estruturado com instruções de auditoria obrigatórias: verificação de magnitude (R$ 500+ = barril, não gasolina), distinção mensal vs anual, e citação obrigatória de r exato da Pearson (`api_trainer.rs`).
+
+### Changed
+- **Auditor Context Flow**: O Sycophancy Breaker agora recebe `auditor_context` (derivado da tabela Pandas quando disponível) em vez de `synthesized_report` (JSONs brutos), eliminando a assimetria epistêmica que causava 4 rejeições espúrias por pipeline (~60 min desperdiçados).
+- **Scribe User Prompt Enrichment**: O `scribe_user` agora inclui 3 camadas adicionais de contexto: (1) Glossário de colunas com unidades e magnitudes, (2) Verdade qualitativa econômica do autobahn_rules.yml, (3) Column guard com restrição de variáveis disponíveis.
+
 ## [1.2.5] - 2026-04-16
 *Deep Research Performance Hardening (Prompt Cache, Sandbox Quarantine & KV Cache q8_0)*
 
