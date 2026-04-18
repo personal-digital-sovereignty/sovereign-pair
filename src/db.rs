@@ -3,22 +3,22 @@ use std::env;
 use tracing::info;
 
 pub async fn init_pool() -> SqlitePool {
-    // Escaneia a variável de ambiente ou injeta a raiz Cíbrida Master (Hardcoded fallback p/ o projeto)
-    // Escaneia a variável de ambiente ou usa a pasta nativa do Sistema Operacional (Evita crash Sidecar/AppImage)
+    // P2-03: Resolve DATABASE_URL ou constrói path padrão cross-platform sem PANICs
     let db_path = env::var("DATABASE_URL").unwrap_or_else(|_| {
-        let mut path = dirs::data_local_dir().expect("Sovereign: SO Data Local Dir Not Found");
-        path.push("sovereign-pair");
-        path.push("data");
-        
-        // Garante que a estrutura da pasta exista antes que o SQLite tente criar o arquivo
+        let base = dirs::data_local_dir().unwrap_or_else(|| {
+            eprintln!("❌ [Sovereign Boot] data_local_dir() não resolveu. Usando diretório atual.");
+            std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
+        });
+        let path = base.join("sovereign-pair").join("data");
+
         if !path.exists() {
-            std::fs::create_dir_all(&path).expect("Sovereign: Falha ao criar arvore de dados do O.S");
+            if let Err(e) = std::fs::create_dir_all(&path) {
+                eprintln!("❌ [Sovereign Boot] Falha ao criar arvore de dados: {}. Verifique permissões.", e);
+                std::process::exit(1);
+            }
         }
-        
-        path.push("sovereign_memory.db");
-        
-        let path_str = path.to_string_lossy().to_string();
-        // O mode=rwc obriga o libsqlite3 a criar o arquivo físico caso ele não exista na pasta
+
+        let path_str = path.join("sovereign_memory.db").to_string_lossy().to_string();
         format!("sqlite:{}?mode=rwc", path_str)
     });
 
@@ -28,7 +28,10 @@ pub async fn init_pool() -> SqlitePool {
         .max_connections(5)
         .connect(&db_path)
         .await
-        .expect("Sovereign Error: Falha crassa ao abrir a gaveta de memória SQLite");
+        .unwrap_or_else(|e| {
+            eprintln!("❌ [Sovereign Boot] Falha crítica ao abrir SQLite ({}): {}. Verifique permissões e DATABASE_URL.", db_path, e);
+            std::process::exit(1);
+        });
 
     // Ativa PRAGMA WAL para velocidade Extrema igual ao Node Python antigo e Foreign Keys.
     let _ = sqlx::query("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;")
