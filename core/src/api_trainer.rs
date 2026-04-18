@@ -43,7 +43,7 @@ fn resolve_venv_python() -> std::path::PathBuf {
 }
 
 /// Helper para varrer os diretórios e achar 'python_workers' no MacOS / Linux
-fn resolve_python_workers_dir() -> std::path::PathBuf {
+pub fn resolve_python_workers_dir() -> std::path::PathBuf {
     let cur_dir = std::env::current_dir().unwrap_or_default();
     
     // Tentativa 1: Dev environment (Cargo workspace root)
