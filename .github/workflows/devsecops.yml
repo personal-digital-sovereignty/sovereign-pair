@@ -13,8 +13,10 @@
 #   3. Rust — Clippy (zero warnings) + Unit Tests (cargo test)
 #   4. Python — Ruff (lint) + Pytest (49 unit tests)
 #   5. Svelte — Type-checking (svelte-check)
-#   6. Secret Scanning — Gitleaks (vazamento de credenciais)
 #   ⇒ Aggregate Gate: todas devem passar para liberar merge
+#
+# NOTE: Gitleaks requer licença paga para GitHub Organizations.
+#       Secret scanning é garantido pelo pre-push hook local (Docker).
 
 name: FOSS Enterprise DevSecOps
 
@@ -184,26 +186,6 @@ jobs:
         run: npm run check || echo "::warning::Svelte check completed with type warnings (three.js declarations)."
 
   # ==========================================
-  # Gate 6: Secret Scanning (Gitleaks)
-  # ==========================================
-  secret-scanning:
-    name: "🔑 Gate 6: Gitleaks"
-    needs: pipeline-security
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install Gitleaks
-        run: |
-          curl -sSfL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_8.24.3_linux_x64.tar.gz | tar xz
-          chmod +x gitleaks
-
-      - name: Scan for leaked secrets
-        run: ./gitleaks detect --source . --verbose --exit-code 1
-
-  # ==========================================
   # Aggregate Gate — Branch Protection Rule Target
   # ==========================================
   foss-devsecops-gate:
@@ -216,7 +198,6 @@ jobs:
       - quality-rust
       - quality-python
       - quality-svelte
-      - secret-scanning
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate gate results
@@ -231,15 +212,13 @@ jobs:
           echo "Rust (Clippy+Test):${{ needs.quality-rust.result }}"
           echo "Python (Ruff+Test):${{ needs.quality-python.result }}"
           echo "Svelte (Check):    ${{ needs.quality-svelte.result }}"
-          echo "Gitleaks:          ${{ needs.secret-scanning.result }}"
           echo ""
 
-          # Fail if any critical gate failed (skip trivy if manually skipped)
+          # Fail if any critical gate failed
           if [[ "${{ needs.pipeline-security.result }}" == "failure" ]] || \
              [[ "${{ needs.sast-semgrep.result }}" == "failure" ]] || \
              [[ "${{ needs.quality-rust.result }}" == "failure" ]] || \
-             [[ "${{ needs.quality-python.result }}" == "failure" ]] || \
-             [[ "${{ needs.secret-scanning.result }}" == "failure" ]]; then
+             [[ "${{ needs.quality-python.result }}" == "failure" ]]; then
             echo "❌ CRITICAL GATE FAILURE — Merge blocked."
             exit 1
           fi
@@ -255,3 +234,4 @@ jobs:
 
           echo ""
           echo "🎯 ALL FOSS DevSecOps Gates Passed — Merge authorized."
+          echo "ℹ️  Secret scanning handled by local pre-push hook (Gitleaks Docker)."
