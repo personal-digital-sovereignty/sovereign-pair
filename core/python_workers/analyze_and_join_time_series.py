@@ -2,7 +2,6 @@
 import sys
 import json
 import re
-import datetime
 
 try:
     import pandas as pd
@@ -11,7 +10,7 @@ except ImportError:
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "pandas"])
         import pandas as pd
-    except:
+    except Exception:
         print(json.dumps({"error": "Failed to install required pandas package"}))
         sys.exit(1)
 
@@ -271,4 +270,4 @@ if __name__ == "__main__":
     else:
         # Modos CLI de teste
         mode = sys.argv[1].lower()
-        print(json.dumps({"error": f"Modo nao suportado via argumentos. Use stdin json com raw_data_blocks."}))
+        print(json.dumps({"error": "Modo nao suportado via argumentos. Use stdin json com raw_data_blocks."}))

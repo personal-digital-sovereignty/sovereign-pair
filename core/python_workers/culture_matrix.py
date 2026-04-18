@@ -82,7 +82,7 @@ def fetch_cultural_data(query, source):
                                     for g in groups[:15]:
                                         date = g.get('first-release-date', '????')[:4]
                                         releases.append(f"[{date}] {g.get('title')} ({g.get('primary-type', 'Album')})")
-                                    results.append(f"\n### TOP DISCOGRAFIA (Compactada para RAG):\n" + "\n".join(releases))
+                                    results.append("\n### TOP DISCOGRAFIA (Compactada para RAG):\n" + "\n".join(releases))
                             except Exception as e:
                                 results.append(f"[Aviso] Falha ao extrair discografia profunda: {str(e)}")
                     else:
