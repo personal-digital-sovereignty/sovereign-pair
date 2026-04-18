@@ -242,8 +242,10 @@ import { API_BASE_URL } from '$lib/env_config';
                         </label>
                         <div class="relative">
                             <select bind:value={settingsState.modelName} class="w-full px-4 py-3 pr-10 bg-white dark:bg-slate-800 rounded-xl border border-indigo-200 dark:border-[#424859]/50 text-slate-800 dark:text-slate-200 text-sm font-medium shadow-sm appearance-none outline-none focus:ring-2 focus:ring-indigo-500/20 dark:focus:border-[#74b0ff] cursor-pointer">
-                                <option value={settingsState.modelName}>{settingsState.modelName}</option>
-                                {#each availableModels as m}
+                                {#if availableModels.length === 0}
+                                    <option value={settingsState.modelName}>{settingsState.modelName}</option>
+                                {/if}
+                                {#each availableModels.filter(m => !m.name.includes('embed') && !m.name.includes('bge-') && !m.name.includes('nomic')) as m}
                                     <option value={m.name}>{m.name}</option>
                                 {/each}
                             </select>

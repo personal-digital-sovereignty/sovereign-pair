@@ -6,6 +6,20 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
 
+## [1.2.8] - 2026-04-18
+*MacOS Deployment Stabilization — Chat Model Resolution & Data Pipeline Resilience*
+
+### Fixed
+- **FIX-26 — Chat Invisible Response (Frontend↔Backend Settings Key Mismatch)**: O frontend salvava o modelo selecionado como `modelName` no JSON de settings, mas o backend (`api.rs`) procurava `doctor_model` ou `llm_model`. Como nenhuma das chaves existia, o `resolved_model` permanecia `"gpt-4o"` (hardcoded no payload), que era então hijacked para uma hierarquia de modelos desatualizados (`qwen2.5:14b`, `gemma2:9b`...) que não existiam no MacOS. **Fix**: Bridge `llm_model: settingsState.modelName` adicionado ao `saveSettings()` do frontend (`settings.svelte.ts`).
+- **FIX-27 — Model Hierarchy Stale (qwen2.5→qwen3, gemma2→gemma4)**: A hierarquia de hijack de modelos comerciais (`gpt-4o`/`claude`) estava desatualizada, referenciando `qwen2.5:14b` e `gemma2:9b` em vez dos modelos modernos instalados no MacOS (`qwen3:8b`, `gemma4:e4b`). **Fix**: Hierarquia atualizada e fallback final via Model Capabilities Matrix (`is_chat=1 AND is_installed=1`) adicionado como última camada de resolução (`api.rs`).
+- **FIX-28 — Empty Chat Response Silent Failure**: Quando o modelo Ollama retornava 404 ou erro silencioso, o SSE stream terminava sem conteúdo e o frontend deixava a bolha de chat completamente vazia, sem nenhum feedback ao usuário. **Fix**: Guard pós-stream que detecta `text.trim() === ''` e injeta mensagem diagnóstica com instruções de resolução (`state.svelte.ts`).
+- **FIX-29 — Venv Sandbox Missing on MacOS (System Python Fallback)**: Os 10+ callsites que construíam o caminho do venv Python (`~/Library/Application Support/sovereign-pair/sandbox/venv/bin/python3`) falhavam silenciosamente quando o venv não existia no MacOS. **Fix**: Helper centralizado `resolve_venv_python()` com fallback automático para `python3` do sistema + log diagnóstico (`api_trainer.rs`).
+- **FIX-30 — Model Dropdown Duplicate & Embedding Pollution**: O dropdown de modelo no Engine Settings adicionava o modelo atual como primeira `<option>` estática, gerando duplicatas. Adicionalmente, modelos de embedding (`bge-m3`, `nomic-embed-text`) apareciam na lista apesar de não serem chat-capable. **Fix**: Opção estática removida (exibida apenas quando Ollama está offline), filtro de embeddings aplicado (`SettingsModal.svelte`).
+
+### Changed
+- **Model Discovery Architecture**: A resolução de modelo para chat agora segue uma cadeia de 5 camadas: (1) Tri-Agent Router (doctor_model/coder_model/nurse_model), (2) Legacy bridge (llm_model), (3) Hierarchy hijack (qwen3→gemma4→phi4→llama), (4) Matrix fallback (is_chat=1, is_installed=1), (5) Hard fallback (llama3.2:latest). Isso garante que qualquer combinação de modelos instalados resulta em resolução válida (`api.rs`).
+- **Venv Python Centralization**: Extraída função `resolve_venv_python()` eliminando duplicação em 10 callsites de `api_trainer.rs`. A função encapsula a lógica de detecção de venv com fallback para python3 do sistema.
+
 ## [1.2.7] - 2026-04-17
 *Scribe Infrastructure Hardening — HTTP Resilience & Ollama API Correctness*
 
