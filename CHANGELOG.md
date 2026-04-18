@@ -10,6 +10,8 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 *MacOS Critical Regression Hotfix — Auth Headers, Python Worker Path Resolution & Version Sync*
 *+ Tri-Platform Hardening Audit (MacOS · Windows · Linux) — Path Resolution, Security & OS Compatibility*
 *+ Zero-Trust Security Audit Pass 3 — JWT Hardening, XSS Prevention, DoS Mitigation*
+*+ Comprehensive Test Suite — 135+ Unit, Security, Regression, E2E, A11y & Performance Tests*
+*+ Repository Cleanup — 15 legacy patch files and obsolete scripts removed*
 
 ### Security (Passagem 3 — Módulos inéditos auditados)
 
@@ -82,6 +84,57 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 
 ### Changed
 - **Python Worker Path Resolution Architecture**: Extraída e centralizada a lógica de descoberta de `python_workers` em `resolve_python_workers_dir()`, eliminando o padrão duplicado `if cur_dir.ends_with("core") { ... } else { ... }` em 10 callsites do `api_trainer.rs`. A nova função garante compatibilidade entre desenvolvimento (Linux/macOS Cargo), release build e App Bundle nativo do MacOS.
+
+### Tests — Suíte Formal Abrangente (135+ testes)
+
+#### 🔐 Segurança (61 testes — Rust + Python + TypeScript)
+- **JWT Security** (`core/src/tests/security_tests.rs`): Rejeição de `none` algorithm, chave errada, token expirado, algoritmo HS256 explícito — cobertura da classe completa de JWT Algorithm Confusion attacks.
+- **SSRF Guard** (`core/src/tests/security_tests.rs`): Bloqueio de `0.0.0.0`, `::1`, GCP metadata, AWS IMDS (`169.254.169.254`), `localhost`, URL malformada e `javascript:` scheme.
+- **KMS Encryption** (`core/src/tests/security_tests.rs`): Roundtrip AES-256-GCM, unicidade de IV por operação, ciphertext corrompido → `None` gracioso, plaintext vazio → `None`.
+- **XSS Prevention** (`svelte-ui/src/lib/security.test.ts`): DOMPurify bloqueia `<script>`, `onerror` em `<img>`, `javascript:` scheme, `<iframe>`, event handlers inline — conteúdo LLM sanitizado antes de `{@html}`.
+- **SSRF Frontend** (`svelte-ui/src/lib/security.test.ts`): Guard de URL no layer frontend para URLs externas.
+- **Body Limit** (`core/src/tests/security_tests.rs` + TS): Constantes de 5 MB (`import_config`) e 50 MB (global) verificadas.
+- **AST Jail** (`core/python_workers/tests/test_security_regression.py`): Bloqueio de `os`, `subprocess`, `eval`, `exec`, `open`, `from os import` — permissão de `math`, `pandas`, `numpy`.
+- **Path Traversal** (`core/src/tests/security_tests.rs`): Anti-traversal `../` detectado fora do workspace, paths legítimos permitem acesso.
+
+#### 🔄 Regressão (25 testes — Rust + Python)
+- **Cross-Platform Paths** (`core/src/tests/regression_tests.rs`): DB path fallback absoluto, `temp_dir()` válido, sovereign temp cross-platform, vault path chain (env → XDG → home → cwd), DB filename correto.
+- **Venv Python por OS** (`core/src/tests/regression_tests.rs`): `Scripts\python.exe` no Windows, `bin/python3` no Unix.
+- **LIN-02 Regressão** (`core/python_workers/tests/test_security_regression.py`): `culture_matrix.py` e `market_pricing_matrix.py` usam `sovereign_memory.db` (não `SovereignHub_OS_System.db`).
+- **XDG-HOME** (`core/python_workers/tests/test_security_regression.py`): `DATABASE_URL` tem prioridade, `XDG_DATA_HOME` customizado é respeitado, path não contém `~/` literal.
+- **FSEvent Watcher** (`core/src/tests/regression_tests.rs`): Degradação graciosa sem inotify — sem PANIC.
+
+#### 🎭 E2E & Exploratório (14 testes — Playwright)
+Shell, Vault, Settings, RAG Pipeline e Dashboard loading; token JWT não exposto no HTML; sidebar toggle sem erros JS; login wall sem token. (`svelte-ui/tests/e2e/security_accessibility.spec.ts`)
+
+#### ♿ Acessibilidade — WCAG 2.1 (5 testes — Playwright)
+`aria-label` em botões, `alt` em imagens, labels em formulários, estrutura `<h1>` única por página, foco via teclado Tab. (`svelte-ui/tests/e2e/security_accessibility.spec.ts`)
+
+#### ⚡ Performance (5 testes — Vitest + Playwright)
+DOMPurify 100 mensagens < 2s, string vazia < 50ms, Shell mount < 3s, Vault navigation < 2s, EventSource cleanup sem memory leak. (`svelte-ui/src/lib/security.test.ts`)
+
+#### 📦 Qualidade de Código (8 testes — Vitest)
+TypeScript type safety (`ApiResponse`, `Model` interfaces), state management boundaries (200px min / 600px max sidebar), `env_config` URL resolution e fallback.
+
+#### 🛠️ Infraestrutura de Testes
+- `#[cfg(test)] pub mod tests` adicionado ao `main.rs` — módulos `security_tests` e `regression_tests` descobertos por `cargo test`.
+- Scripts `test`, `test:watch` e `test:coverage` adicionados ao `package.json` do frontend.
+- Feature `limit` adicionada ao `tower-http` em `Cargo.toml` para `RequestBodyLimitLayer`.
+
+**Resultados certificados:** ✅ Rust 35/35 · ✅ TypeScript 31/31 · ✅ Python 69/69
+
+### Removed — Repository Cleanup
+
+#### 🗑️ Patches One-Shot Aplicados (10 arquivos)
+Scripts de patch temporários já incorporados permanentemente ao código-fonte, removidos para eliminar ambiguidade sobre o estado atual:
+`scripts/patch_realtime.sh`, `scripts/patch_db_rs.py`, `scripts/patch_epic1.py`, `scripts/patch_epic3.py`, `scripts/patch_matrix_anp.py`, `scripts/patch_research.py`, `scripts/patch_rust_urls.py`, `scripts/patch_sandbox_rust.py`, `scripts/patch_svelte_urls.py`, `scripts/patch_tool_registry.py`.
+
+#### 🗑️ Backup e Scripts Legados (5 arquivos)
+- `core/src/api.rs.bak` — backup obsoleto (`api.rs` no estado production-ready correto).
+- `scripts/test_suite.sh` — substituído pela suíte formal `cargo test` + `vitest` + `pytest`.
+- `scripts/run_regression.sh` — substituído pela suíte formal com 135+ testes strukturados.
+- `scripts/legacy_pre_push.sh` — obsoleto desde migração para CI/CD automatizado.
+- `strip_headers.py` — script one-shot de migração já aplicado a todos os `+page.svelte`.
 
 ## [1.2.8] - 2026-04-18
 *MacOS Deployment Stabilization — Chat Model Resolution & Data Pipeline Resilience*
