@@ -9,6 +9,29 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 ## [1.2.9] - 2026-04-18
 *MacOS Critical Regression Hotfix — Auth Headers, Python Worker Path Resolution & Version Sync*
 *+ Tri-Platform Hardening Audit (MacOS · Windows · Linux) — Path Resolution, Security & OS Compatibility*
+*+ Zero-Trust Security Audit Pass 3 — JWT Hardening, XSS Prevention, DoS Mitigation*
+
+### Security (Passagem 3 — Módulos inéditos auditados)
+
+#### 🔐 Auth & Network Hardening
+- **P3-01 — /v1/network/pair Token Exposure (HIGH)**: O endpoint `GET /v1/network/pair` retornava o JWT token completo a qualquer dispositivo na LAN sem autenticação prévia — qualquer atacante na rede local podia obter o token e fazer chamadas autenticadas. **Fix**: Token restrito ao loopback (127.0.0.1/::1); dispositivos remotos na LAN recebem apenas o alias sem token. O pareamento agora exige acesso físico à máquina (`core/src/network.rs`).
+- **P3-02 — JWT Algorithm Confusion Attack (HIGH)**: `Validation::default()` aceita qualquer algoritmo JWT incluindo `none` (token não assinado) e permite forjamento via `RS256` com chave pública controlada pelo atacante. **Fix**: `Validation::new(Algorithm::HS256)` — algoritmo fixo e explícito; `validate_exp: true` mantido. Elimina classe inteira de JWT bypass attacks (`core/src/network.rs`).
+
+#### 🛡️ XSS Prevention
+- **P3-04 — XSS via LLM Research Content sem DOMPurify**: `{@html marked(selectedResearch.content)}` renderizava conteúdo gerado pelo LLM no WebView do Tauri sem sanitização. Um modelo comprometido ou output malicioso poderia injetar `<script>` tags com acesso ao IPC nativo do Tauri. **Fix**: `DOMPurify.sanitize()` via `parseResearchMarkdown()` — alinhado com o padrão já estabelecido no `ChatPanel.svelte` e `HubAssistant.svelte` (`svelte-ui/src/routes/engineer/rag-pipeline/+page.svelte`).
+
+#### 🚧 DoS Mitigation
+- **P3-03 — import_config Body Ilimitado (DoS)**: `POST /v1/system/import_config` aceitava `body: String` sem limite de tamanho — um payload de 1 GB alocaria memória e bloquearia o worker tokio. **Fix**: Guard de 5 MB antes do decode Base64 com `HTTP 413 Payload Too Large` (`core/src/api_settings.rs`).
+- **P3-05 — Nenhum Body Limit Global (DoS)**: Ausência de body limit global permitia que qualquer endpoint consumisse RAM ilimitada via multipart de áudio/imagem ou POST JSON gigante. **Fix**: `tower_http::limit::RequestBodyLimitLayer::new(50 MB)` como layer global no Router; feature `limit` adicionada ao `tower-http` em `Cargo.toml` (`core/src/main.rs`, `core/Cargo.toml`).
+
+#### ✅ Confirmado Seguro (auditado pela primeira vez nesta passagem)
+- **KMS (kms.rs)**: AES-256-GCM com nonce aleatório de 12 bytes via `OsRng` por operação — sem reutilização de IV. `zeroize()` aplicado tanto no vetor heap quanto no array stack após uso. `.env` no `.gitignore`. ✅
+- **Path Traversal (api_tools.rs)**: `read_vault_file_handler` usa `fs::canonicalize()` + `starts_with(workspace_path)` — path traversal bloqueado. ✅
+- **XSS ChatPanel/HubAssistant/ProjectAssistant**: Todos usam `DOMPurify.sanitize()` com allowlist de tags explícita. ✅
+- **SQL Injection**: 100% das queries usam sqlx parametrizado — nenhuma interpolação de string em SQL encontrada. ✅
+- **ReDoS**: Regexes em `research.rs` e `guardrails.rs` analisados — sem backtracking catastrófico. ✅
+- **ManualModal/ChangelogModal**: Conteúdo é importação estática (`?raw`) de arquivos do bundle — não dados externos. Risco XSS nulo. ✅
+- **Concorrência**: `RwLock`/`Mutex` globais em `api_trainer.rs` e `network.rs` usam `.write().unwrap()` com `lazy_static!` — poisoning seguro pois são sempre liberados. ✅
 
 ### Fixed
 
