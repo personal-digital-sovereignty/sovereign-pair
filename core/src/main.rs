@@ -125,7 +125,9 @@ async fn shutdown_signal() {
 /// Invoca dinamicamente o Binário Local C++ de Visão (sd.cpp) se ele estiver presente,
 /// garantindo uma subida atrelada ao backend da aplicação "Zero-Config".
 fn spawn_vision_daemon() {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/jefersonlopes".to_string());
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .unwrap_or_else(|_| dirs::home_dir().map(|p| p.to_string_lossy().to_string()).unwrap_or_default());
     let vision_path = std::path::PathBuf::from(&home).join("Sovereign_LLM/Vision");
     
     // Determina o caminho exato independente do script de compilação
@@ -334,8 +336,10 @@ async fn main() {
     let telemetry_ref = state.telemetry.clone();
     tokio::spawn(async move {
         tracing::info!("☁️ [Sovereign Hub] Spawning Python worker: market_pricing_matrix.py...");
+        let workers_dir = crate::api_trainer::resolve_python_workers_dir();
+        let script_path = workers_dir.join("market_pricing_matrix.py");
         let _ = std::process::Command::new("python3")
-            .arg("core/python_workers/market_pricing_matrix.py")
+            .arg(&script_path)
             .output();
 
         let avg_cost = sqlx::query_scalar::<_, String>("SELECT value_json FROM global_settings WHERE id = 'avg_cloud_token_cost_1k'")
