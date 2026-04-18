@@ -15,7 +15,7 @@ import { API_BASE_URL } from '$lib/env_config';
   import NotificationBell from '$lib/components/NotificationBell.svelte';
   import { settingsState, loadSettings } from '$lib/settings.svelte';
 
-  let appVersion = "1.1.0";
+  let appVersion = "1.2.9";
   let isChangelogOpen = $state(false);
   let { children } = $props();
 

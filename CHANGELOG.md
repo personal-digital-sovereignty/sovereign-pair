@@ -6,6 +6,18 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
 
+## [1.2.9] - 2026-04-18
+*MacOS Critical Regression Hotfix — Auth Headers, Python Worker Path Resolution & Version Sync*
+
+### Fixed
+- **FIX-31 — Prompt Vault Invisible on MacOS (Missing Auth Headers)**: A tela `Settings > Prompts` exibia lista vazia no MacOS porque as chamadas `fetch()` ao endpoint `/v1/settings/prompts` não incluíam o header `Authorization: Bearer <token>`. O backend Rust rejeitava silenciosamente as requisições não autenticadas. **Fix**: Header `Authorization` adicionado em todos os 3 métodos da página — `loadPrompts()` (GET), `savePrompt()` (POST) e `deletePrompt()` (DELETE) — vinculando o token do `localStorage` (`svelte-ui/src/routes/settings/prompts/+page.svelte`).
+- **FIX-32 — RIG Pipeline FileNotFoundError on MacOS App Bundle**: O pipeline de Deep Research falhava com `[Errno 2] No such file or directory` ao tentar invocar workers Python (`sovereign_matrix.py`, `academic_matrix.py`, `culture_matrix.py`, etc.) no MacOS. A causa raiz era `std::env::current_dir()` apontando para `/` ou o diretório raiz do processo dentro de App Bundles (`.app`), tornando a pasta `python_workers` invisível. **Fix**: Criada função `resolve_python_workers_dir()` com heurística de 4 camadas: (1) Cargo workspace root (`core/python_workers`), (2) single-crate run (`python_workers`), (3) MacOS App Bundle (`Contents/MacOS/../Resources/python_workers`), (4) fallback original. Substituídos todos os 10 callsites hardcoded em `api_trainer.rs` (`core/src/api_trainer.rs`).
+- **FIX-33 — Project Chat Not Working on MacOS (Wrong Origin URL)**: O `ProjectAssistant` e o `HubAssistant` usavam uma heurística frágil baseada em `window.location.origin` para detectar o URL da API (`window.location.origin.includes('5173') ? API_BASE_URL : window.location.origin`). Em ambientes nativos MacOS (Tauri/Webview), o `origin` retorna `tauri://localhost` ou similar, fazendo as requisições de chat falharem silenciosamente sem salvar nem responder. **Fix**: Substituído por `${API_BASE_URL}/v1/chat/completions` diretamente em ambos os componentes (`HubAssistant.svelte`, `ProjectAssistant.svelte`).
+- **FIX-34 — Control Hub Version Badge Stale (v1.1.0)**: O badge de versão no Control Hub exibia `v1.1.0` em vez da versão atual `1.2.8`, pois a constante `appVersion` em `+layout.svelte` estava hardcoded e desatualizada. **Fix**: Valor atualizado para `1.2.8` em `svelte-ui/src/routes/+layout.svelte`.
+
+### Changed
+- **Python Worker Path Resolution Architecture**: Extraída e centralizada a lógica de descoberta de `python_workers` em `resolve_python_workers_dir()`, eliminando o padrão duplicado `if cur_dir.ends_with("core") { ... } else { ... }` em 10 callsites do `api_trainer.rs`. A nova função garante compatibilidade entre desenvolvimento (Linux/macOS Cargo), release build e App Bundle nativo do MacOS.
+
 ## [1.2.8] - 2026-04-18
 *MacOS Deployment Stabilization — Chat Model Resolution & Data Pipeline Resilience*
 
