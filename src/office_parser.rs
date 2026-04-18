@@ -431,8 +431,10 @@ fn parse_spreadsheet(path: &str) -> Result<String, String> {
             }
 
             if let Some(_subgrid) = find_chartable_subgrid(&matrix) {
-                // Use standard TipTap Image Markdown Syntax pointing to the live local Sovereign Vault API!
-                let url = format!("http://localhost:38001/v1/vault/office_chart?path={}&sheet={}", urlencoding::encode(path), urlencoding::encode(&sheet));
+                // URL dinâmica: usa SOVEREIGN_API_URL para compatibilidade com MacOS App Bundle
+                let api_base = std::env::var("SOVEREIGN_API_URL")
+                    .unwrap_or_else(|_| "http://127.0.0.1:38001".to_string());
+                let url = format!("{}/v1/vault/office_chart?path={}&sheet={}", api_base.trim_end_matches('/'), urlencoding::encode(path), urlencoding::encode(&sheet));
                 result_md.push_str(&format!("![Native Chart]({})\n\n", url));
             }
 

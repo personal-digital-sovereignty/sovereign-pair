@@ -775,9 +775,20 @@ pub async fn run_deep_research_handler(
         
         let anchor_directive = format!("[DIRETRIZ MATEMÁTICA ABSOLUTA] O ano real atual é {}. Se for exigido 'N' anos atrás, obrigatoriamente calcule a data subtraindo 'N' de {}. É terminantemente PROIBIDO usar seu ano de treinamento base como âncora temporal.", current_year, current_year);
 
-        // AUTOBAHN RULES ENGINE DYNAMIC LOADING
-        let cur_dir = std::env::current_dir().unwrap_or_default();
-        let yaml_path = if cur_dir.ends_with("core") { cur_dir.join("autobahn_rules.yml") } else { cur_dir.join("core").join("autobahn_rules.yml") };
+        // AUTOBAHN RULES ENGINE DYNAMIC LOADING — path robusto para MacOS App Bundle
+        let yaml_path = {
+            let cur = std::env::current_dir().unwrap_or_default();
+            let candidate1 = cur.join("core").join("autobahn_rules.yml"); // cargo workspace root
+            let candidate2 = cur.join("autobahn_rules.yml");             // dentro de /core
+            // MacOS App Bundle: binário fica em Contents/MacOS, recursos em Contents/Resources
+            let candidate3 = std::env::current_exe().unwrap_or_default()
+                .parent().unwrap_or(std::path::Path::new("/"))
+                .parent().unwrap_or(std::path::Path::new("/"))
+                .join("Resources").join("autobahn_rules.yml");
+            if candidate1.exists() { candidate1 }
+            else if candidate2.exists() { candidate2 }
+            else { candidate3 }
+        };
         let yaml_content = std::fs::read_to_string(&yaml_path).unwrap_or_else(|_| "{}".to_string());
         
         let rules: serde_yaml::Value = serde_yaml::from_str(&yaml_content).unwrap_or_default();
@@ -1930,7 +1941,7 @@ pub async fn run_deep_research_handler(
                     "raw_data_blocks": clean_blocks
                 });
                 let payload_str = joiner_payload.to_string();
-                let joiner_path = std::env::current_dir().unwrap_or_default().join("python_workers").join("analyze_and_join_time_series.py");
+                let joiner_path = resolve_python_workers_dir().join("analyze_and_join_time_series.py");
                 
                 if joiner_path.exists() {
                     // GAP-5 FIX: Usar o mesmo venv isolado dos outros workers, não o python3 do sistema.
