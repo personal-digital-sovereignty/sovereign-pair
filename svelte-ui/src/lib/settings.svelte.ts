@@ -60,6 +60,7 @@ export async function saveSettings() {
             ...existingData,
             provider: settingsState.provider,
             modelName: settingsState.modelName,
+            llm_model: settingsState.modelName,  // Bridge: Backend Tri-Agent Router reads this key
             temperature: settingsState.temperature,
             personalityName: settingsState.personalityName,
             systemInstructions: settingsState.systemInstructions,
