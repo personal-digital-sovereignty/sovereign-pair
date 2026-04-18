@@ -159,26 +159,8 @@ jobs:
       - name: Pytest (AST Jail + Time-Series Pipeline)
         run: pytest core/python_workers/tests/ -v --tb=short
 
-  # ==========================================
-  # Gate 7: Secret Scanning (Gitleaks)
-  # ==========================================
-  secret-scanning:
-    name: "Gate 7: Gitleaks"
-    needs: pipeline-security
-    runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install Gitleaks
-        run: |
-          curl -sSfL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_8.24.3_linux_x64.tar.gz | tar xz
-          chmod +x gitleaks
-
-      - name: Scan for leaked secrets
-        run: ./gitleaks detect --source . --verbose --exit-code 1
+  # NOTE: Gitleaks removed — requires paid license for GitHub Organizations.
+  # Secret scanning is handled by local pre-push hook (Gitleaks Docker).
 
   # ==========================================
   # Aggregate Job for Branch Protection
@@ -186,7 +168,7 @@ jobs:
   foss-enterprise-devsecops:
     name: "FOSS Enterprise DevSecOps"
     # Needs all other gates to complete successfully
-    needs: [pipeline-security, sast-semgrep, sca-trivy, quality-rust, quality-svelte, quality-python, secret-scanning]
+    needs: [pipeline-security, sast-semgrep, sca-trivy, quality-rust, quality-svelte, quality-python]
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
