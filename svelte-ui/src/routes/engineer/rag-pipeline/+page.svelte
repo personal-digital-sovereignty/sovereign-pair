@@ -4,6 +4,17 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
     import { onMount, tick } from 'svelte';
     import { trainerState } from '$lib/trainer.svelte';
     import { marked } from 'marked';
+    import DOMPurify from 'dompurify';
+
+    // P3-04: Sanitização de conteúdo gerado por LLM antes de {@html}
+    function parseResearchMarkdown(text: string): string {
+        if (!text) return '';
+        const raw = marked.parse(text);
+        return DOMPurify.sanitize(raw as string, {
+            ADD_TAGS: ['svg', 'path', 'circle', 'line', 'g', 'rect'],
+            ADD_ATTR: ['target', 'class']
+        });
+    }
     
     let flowStep = $state(0);
     let sseClient: EventSource | null = null;
@@ -536,7 +547,7 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
                 <strong>Directive:</strong> {selectedResearch.directive}
             </div>
             <hr class="border-outline-variant/10 my-6" />
-            {@html marked(selectedResearch.content)}
+            {@html parseResearchMarkdown(selectedResearch.content)}
         </div>
         
         <!-- Modal Footer (Actions) -->
