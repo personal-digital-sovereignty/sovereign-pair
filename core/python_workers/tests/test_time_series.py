@@ -172,7 +172,7 @@ class TestJoinAndExtract:
         md = result["markdown"]
         # The Feb row should have "—" for IPCA (NaN, not ffilled)
         lines = md.split('\n')
-        feb_line = [l for l in lines if '2024-02' in l]
+        feb_line = [line for line in lines if '2024-02' in line]
         if feb_line:
             assert "—" in feb_line[0]  # IPCA gap → "—"
 

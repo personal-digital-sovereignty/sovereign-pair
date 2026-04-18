@@ -172,10 +172,10 @@ def print_human(results: list):
     
     if critical_failures:
         print(f"\n  🚨 CRITICAL FAILURES: {', '.join(critical_failures)}")
-        print(f"     These APIs are required for core functionality!")
-        print(f"     Action: Check series codes in sovereign_matrix.py code_map")
+        print("     These APIs are required for core functionality!")
+        print("     Action: Check series codes in sovereign_matrix.py code_map")
     else:
-        print(f"\n  🎯 All critical APIs operational.")
+        print("\n  🎯 All critical APIs operational.")
     
     print()
     return len(critical_failures) > 0
