@@ -12,14 +12,22 @@ pub fn init_vault() -> PathBuf {
     let vault_path = env::var("SOVEREIGN_VAULT_PATH")
         .map(PathBuf::from)
         .unwrap_or_else(|_| {
-            let mut p = dirs::home_dir().expect("Sovereign Error: Ambiente sem Home Directory");
-            p.push("Vault");
-            p
+            // P2-02: graceful fallback — sem panics
+            dirs::home_dir()
+                .or_else(|| {
+                    warn!("⚠️ [Sovereign RAG] HOME dir não detectado. Usando diretório atual como Vault.");
+                    std::env::current_dir().ok()
+                })
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("Vault")
         });
 
     if !vault_path.exists() {
         info!("📦 [Sovereign RAG] Gerando Vault Físico (Airgap) em: {:?}", vault_path);
-        fs::create_dir_all(&vault_path).expect("Sovereign Error: Falha Crítica ao criar o Vault. Permissão negada?");
+        // P2-02: .expect() -> graceful match
+        if let Err(e) = fs::create_dir_all(&vault_path) {
+            warn!("⚠️ [Sovereign RAG] Não foi possível criar o Vault em {:?}: {}. Operando sem persistência física.", vault_path, e);
+        }
     } else {
         info!("📦 [Sovereign RAG] Vault Localizador Ativo em: {:?}", vault_path);
     }

@@ -176,7 +176,7 @@ pub async fn run_distillation_handler(
     tokio::spawn(async move {
         let _ = TRAINER_LOGS.send(format!("Extraindo corpus de conhecimento local do Sensus Vault (Epochs: {}, Batch: {})...", req.epochs, req.batch_size));
         tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
-        let _ = TRAINER_LOGS.send("Sensus > JSONL Data Exportado (Target: /tmp/sovereign-pair/distill_vault.jsonl)".to_string());
+        let _ = TRAINER_LOGS.send(format!("Sensus > JSONL Data Exportado (Target: {})", std::env::temp_dir().join("sovereign-pair").join("distill_vault.jsonl").display()));
         tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
 
         let client = reqwest::Client::new();
@@ -248,7 +248,7 @@ pub async fn run_finetuning_handler(
     tokio::spawn(async move {
         let _ = TRAINER_LOGS.send(format!("Compilando Dataset Sensus Vault '{}' para JSONL...", req.dataset_name));
         tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
-        let _ = TRAINER_LOGS.send(format!("JSONL exportado para /tmp/sovereign-pair/{}.jsonl", req.dataset_name));
+        let _ = TRAINER_LOGS.send(format!("JSONL exportado para {}", std::env::temp_dir().join("sovereign-pair").join(format!("{}.jsonl", req.dataset_name)).display()));
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         let _ = TRAINER_LOGS.send(format!("Iniciando subprocess Unsloth: LR={}, LoRA_Rank={}, BatchSize={}", req.learning_rate, req.lora_rank, req.batch_size));
 
