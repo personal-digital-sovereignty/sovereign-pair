@@ -1758,11 +1758,19 @@ Sse::new(final_stream)
 /// Spawns the Sovereign Pair Desktop GUI (Tauri App) process natively from the OS.
 pub async fn launch_gui_handler() -> impl IntoResponse {
     tracing::info!("🚀 [Sovereign Core] Invocação de GUI Recebida! Spawning Sovereign Tauri Desktop...");
-    // Tenta spawnar o binário instalado globalmente no path do Linux (.deb / pacman)
+    // Tenta spawnar o binário instalado globalmente no path do O.S (Linux .deb / MacOS .app)
     if std::process::Command::new("sovereign-pair").spawn().is_err() {
-        // Fallback robusto para o ambiente de compilação de desenvolvimento local
-        let dev_bin_path = "/home/jefersonlopes/Developer/local-repositories/sovereign-pair/svelte-ui/src-tauri/target/release/sovereign-pair";
-        let _ = std::process::Command::new(dev_bin_path).spawn();
+        // Fallback dinâmico: resolve relativo ao executável atual (funciona em MacOS App Bundle e dev)
+        let current_exe_dir = std::env::current_exe()
+            .unwrap_or_default()
+            .parent()
+            .unwrap_or(std::path::Path::new("."))
+            .to_path_buf();
+        // MacOS App Bundle: .../Contents/MacOS/sovereign-core → procura sovereign-pair no mesmo dir
+        let bundle_bin = current_exe_dir.join("sovereign-pair");
+        // Dev Linux/MacOS: target/release/sovereign-core → target/release/sovereign-pair
+        let dev_bin = current_exe_dir.join("sovereign-pair");
+        let _ = std::process::Command::new(if bundle_bin.exists() { bundle_bin } else { dev_bin }).spawn();
     }
     axum::response::Json(serde_json::json!({ "status": "gui_dispatched" }))
 }

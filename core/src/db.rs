@@ -90,8 +90,8 @@ pub async fn init_pool() -> SqlitePool {
     }
 
     let path_str = env::var("RAG_VAULT_PATH").unwrap_or_else(|_| {
-        let mut path = env::current_dir().expect("Hostile Environment");
-        if path.ends_with("core") { path.pop(); }
+        let mut path = dirs::home_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from("."));
         path.push("Vault");
         path.to_string_lossy().into_owned()
     });
