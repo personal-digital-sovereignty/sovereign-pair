@@ -17,7 +17,7 @@ def normalize_date(raw):
             parts = s.split('-')
             if len(parts) >= 2:
                 return f"{parts[0]}-{parts[1]}"
-    except:
+    except Exception:
         pass
     return s
 
@@ -95,7 +95,7 @@ def fetch_finance(ticker, years):
         t = yf.Ticker(ticker)
         df = t.history(period=period)
     except Exception as e:
-        last_error_layer1 = f"Layer 1 (yfinance) failed: {e}"
+        last_error = f"Layer 1 (yfinance) failed: {e}"
         
     # === LAYER 2: YAHOO RAW API (Browser Spoofing) ===
     if df.empty:
@@ -156,7 +156,7 @@ def fetch_finance(ticker, years):
         try:
             t_usd = yf.Ticker('BRL=X')
             df_usd = t_usd.history(period=period)
-        except:
+        except Exception:
             pass
             
         if df_usd.empty:
@@ -172,7 +172,7 @@ def fetch_finance(ticker, years):
                     closes = raw_json['chart']['result'][0]['indicators']['quote'][0]['close']
                     dates = [datetime.datetime.fromtimestamp(ts) for ts in timestamps]
                     df_usd = pd.DataFrame({'Close': closes}, index=dates)
-            except:
+            except Exception:
                 pass
                 
         if not df_usd.empty:
@@ -188,7 +188,7 @@ def fetch_finance(ticker, years):
                     df['Close_brl'] = df['Close'] * df['Close_usd']
                     converted_to_brl = True
                     source_used += " | (+ Converted to BRL)"
-            except:
+            except Exception:
                 pass
                 
     if not converted_to_brl:
@@ -197,7 +197,7 @@ def fetch_finance(ticker, years):
             if int(clean_years) > 1:
                 df['YearMonth'] = df.index.strftime('%Y-%m')
                 df = df.groupby('YearMonth').mean()
-        except:
+        except Exception:
             pass
             
     # === ANALYST B: CIRCUIT BREAKER (DATA QUALITY ASSERTION) ===
@@ -280,7 +280,7 @@ def fetch_macro(indicator, country, years):
                             val = row[val_col]
                             if pd.notna(val):
                                 data_lines.append(f"{idx.strftime('%Y-%m')} | {round(float(val),2)}")
-                except Exception as e:
+                except Exception:  # noqa: F841
                     # Fallback to crude extraction if Pandas fails
                     for item in data_arr:
                         date_str = normalize_date(item.get("date", ""))
