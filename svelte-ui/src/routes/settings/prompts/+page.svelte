@@ -27,7 +27,9 @@
     async function loadPrompts() {
         isLoadingPrompts = true;
         try {
-            const res = await fetch(`${API_BASE_URL}/v1/settings/prompts`);
+            const res = await fetch(`${API_BASE_URL}/v1/settings/prompts`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` }
+            });
             if (res.ok) prompts = await res.json();
         } catch(e) { console.error('Prompts load failed:', e); }
         finally { isLoadingPrompts = false; }
@@ -54,7 +56,10 @@
         promptValidationError = '';
         try {
             const res = await fetch(`${API_BASE_URL}/v1/settings/prompts`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}`
+                },
                 body: JSON.stringify({ slug: newPromptSlug, title: newPromptTitle, category: newPromptCategory, prompt_text: newPromptText })
             });
             const data = await res.json();
@@ -67,7 +72,10 @@
     async function deletePrompt(slug: string) {
         if (!confirm(`Desativar prompt '${slug}'?`)) return;
         try {
-            const res = await fetch(`${API_BASE_URL}/v1/settings/prompts/${encodeURIComponent(slug)}`, { method: 'DELETE' });
+            const res = await fetch(`${API_BASE_URL}/v1/settings/prompts/${encodeURIComponent(slug)}`, { 
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` }
+            });
             if (res.ok) loadPrompts();
             else { const data = await res.json(); alert(data.error || 'Erro ao desativar prompt.'); }
         } catch(e) {}

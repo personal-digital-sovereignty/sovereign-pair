@@ -65,7 +65,6 @@ import { API_BASE_URL } from '$lib/env_config';
         
         try {
             const token = localStorage.getItem('sovereign_token') || '';
-            const origin = window.location.origin.includes('5173') ? API_BASE_URL : window.location.origin;
             
             // Construir o Contexto Dinâmico Soberano para o Hub (Otimizado para LLMs menores)
             const ativos = projectState.projects.filter(p => !p.is_archived);
@@ -105,7 +104,7 @@ import { API_BASE_URL } from '$lib/env_config';
                 ...chatLog.slice(0, -1)
             ];
 
-            const res = await fetch(`${origin}/v1/chat/completions`, {
+            const res = await fetch(`${API_BASE_URL}/v1/chat/completions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
