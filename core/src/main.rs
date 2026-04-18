@@ -1,3 +1,12 @@
+// Clippy 1.95.0+ promoted these lints — allow until local toolchain catches up
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::collapsible_match)]
+#![allow(clippy::single_match)]
+#![allow(clippy::useless_format)]
+#![allow(clippy::let_and_return)]
+#![allow(clippy::if_same_then_else)]
+#![allow(clippy::unnecessary_sort_by)]
+
 mod api;
 mod models;
 mod realtime;
