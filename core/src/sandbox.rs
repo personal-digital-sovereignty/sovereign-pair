@@ -117,8 +117,8 @@ pub async fn execute_python_code(code: &str) -> Result<String, String> {
     let _ = tracing_subscriber::fmt::format(); // Silencia logs de formatação
     info!("⚙️ [Plan & Execute] Disparando script na Sandbox Hermética: {}", script_name);
 
-    // AST Jail Injection (Epic 9)
-    let jail_script = env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("core/python_workers/ast_jail.py");
+    // AST Jail Injection (Epic 9) — usa resolve_python_workers_dir() para compatibilidade com MacOS App Bundle
+    let jail_script = crate::api_trainer::resolve_python_workers_dir().join("ast_jail.py");
     
     let output = if jail_script.exists() {
         Command::new(&python_bin)
