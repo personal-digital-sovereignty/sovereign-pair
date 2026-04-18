@@ -138,12 +138,52 @@ jobs:
         run: npm run check
 
   # ==========================================
+  # Gate 6: Python Workers Quality & Unit Tests
+  # ==========================================
+  quality-python:
+    name: "Gate 6: Ruff + Pytest"
+    needs: pipeline-security
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: pip install ruff pytest pandas tabulate
+      - name: Ruff lint (critical errors only)
+        run: ruff check core/python_workers/ --select E,F --ignore E501
+      - name: Pytest (AST Jail + Time-Series Pipeline)
+        run: pytest core/python_workers/tests/ -v --tb=short
+
+  # ==========================================
+  # Gate 7: Secret Scanning (Gitleaks)
+  # ==========================================
+  secret-scanning:
+    name: "Gate 7: Gitleaks"
+    needs: pipeline-security
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan for leaked secrets
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287e641aa41a099630d05dc7e # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ==========================================
   # Aggregate Job for Branch Protection
   # ==========================================
   foss-enterprise-devsecops:
     name: "FOSS Enterprise DevSecOps"
     # Needs all other gates to complete successfully
-    needs: [pipeline-security, sast-semgrep, sca-trivy, quality-rust, quality-svelte]
+    needs: [pipeline-security, sast-semgrep, sca-trivy, quality-rust, quality-svelte, quality-python, secret-scanning]
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
