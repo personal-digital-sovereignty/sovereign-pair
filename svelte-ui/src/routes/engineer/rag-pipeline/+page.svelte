@@ -4,6 +4,17 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
     import { onMount, tick } from 'svelte';
     import { trainerState } from '$lib/trainer.svelte';
     import { marked } from 'marked';
+    import DOMPurify from 'dompurify';
+
+    // P3-04: Sanitização de conteúdo gerado por LLM antes de {@html}
+    function parseResearchMarkdown(text: string): string {
+        if (!text) return '';
+        const raw = marked.parse(text);
+        return DOMPurify.sanitize(raw as string, {
+            ADD_TAGS: ['svg', 'path', 'circle', 'line', 'g', 'rect'],
+            ADD_ATTR: ['target', 'class']
+        });
+    }
     
     let flowStep = $state(0);
     let sseClient: EventSource | null = null;
@@ -18,36 +29,19 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
     onMount(async () => {
         fetchStagedResearch();
         try {
-            const res = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
-            const data = await res.json();
-            if (data && data.models) {
-                // Filtro Absoluto (Fase 8): O Orquestrador do UI Mestre precisa ser 3B+. Extirpamos embeddings e LLMs miniatura da lista visual.
-                const validScribes = data.models.filter((m: any) => {
-                    const n = m.name.toLowerCase();
-                    return !n.includes('embed') && !n.includes('bge-m3') && !n.includes('1.5b') && !n.includes('1.7b') && !n.includes('1b') && !n.includes('2b');
-                });
+            const res = await fetch(`${API_BASE_URL}/v1/settings/model_capabilities`);
+            const modelsArray = await res.json();
+            
+            if (modelsArray && Array.isArray(modelsArray)) {
+                // Filtro Absoluto: O Orquestrador UI só exibe quem foi marcado explícitamente como Escriba no Banco
+                const validScribes = modelsArray.filter((m: any) => m.is_scribe === true && m.is_installed === true);
                 
-                const checkedModels = await Promise.all(validScribes.map(async (m: any) => {
-                    try {
-                        const showRes = await fetch(`${OLLAMA_BASE_URL}/api/show`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ name: m.name })
-                        });
-                        const showData = await showRes.json();
-                        const template = showData.template || "";
-                        // Flexibilidade Restaurada: Modelos modernos de R1 (DeepSeek/Qwen) interpretam JSON puramente 
-                        // mesmo se o Modelfile do Ollama omitir a sintaxe ".Tools". 
-                        const isCapable = true;
-                        return { name: m.name, isCapable };
-                    } catch (e) {
-                        return { name: m.name, isCapable: true }; 
-                    }
+                availableModels = validScribes.map((m: any) => ({
+                    name: m.model_name,
+                    isCapable: true
                 }));
                 
-                availableModels = checkedModels;
-                
-                hasCapableModel = availableModels.some(m => m.isCapable);
+                hasCapableModel = availableModels.length > 0;
                 
                 if (availableModels.length > 0) {
                     const currentExists = availableModels.some(m => m.name === trainerState.deepResearchModel);
@@ -57,8 +51,8 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
                 }
             }
         } catch (err) {
-            console.error("Failed to fetch Ollama models:", err);
-            // Fallback so it doesn't break if Ollama API behaves weirdly during dev
+            console.error("Failed to fetch Scribe models from DB:", err);
+            // Fallback so it doesn't break if API behaves weirdly during dev
             hasCapableModel = true; 
         }
     });
@@ -71,7 +65,10 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
     });
     
     async function launchDeepResearch() {
-        if (!trainerState.deepResearchPrompt.trim() || trainerState.isDeepResearchActive) return;
+        if (!trainerState.deepResearchPrompt?.trim() || trainerState.isDeepResearchActive || !hasCapableModel) {
+            alert(`⚠️ SENSUS FAILSAFE ATIVADO! O motor se recusa a iniciar.\n\nMotivos (True = Bloqueado):\n- Prompt Vazio: ${!trainerState.deepResearchPrompt?.trim()}\n- Já está rodando: ${trainerState.isDeepResearchActive}\n- Matrix Sem Modelos (hasCapableModel=False): ${!hasCapableModel}\n\n-> DeepResearchModel selecionado: ${trainerState.deepResearchModel}`);
+            return;
+        }
         
         trainerState.isDeepResearchActive = true;
         trainerState.deepResearchScrapedSources = 0;
@@ -190,21 +187,6 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
 </script>
 
 <div class="p-8 h-full flex flex-col relative">
-    <!-- Header Section -->
-    <header class="mb-10 w-full flex items-center justify-between">
-        <div class="flex items-center gap-4 bg-surface-container-low px-4 py-2 rounded-full w-[400px] border border-outline-variant/10 shadow-sm relative">
-            <span class="material-symbols-outlined text-on-surface-variant text-[20px] absolute left-4">search</span>
-            <input class="bg-transparent border-none focus:ring-0 text-sm w-full pl-8 placeholder:text-on-surface-variant/70 text-on-surface outline-none" placeholder="Search pipeline nodes..." type="text" />
-        </div>
-        <div class="flex items-center gap-4 bg-surface-container-low p-1.5 rounded-xl border border-outline-variant/10">
-            <a href="/engineer/fine-tuning" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Fine-Tuning</a>
-            <a href="/engineer/distillation" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Distillation</a>
-            <a href="/engineer/reflection" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Reflection Lab</a>
-            <button class="px-4 py-2 bg-blue-600 dark:bg-[#74b0ff]/20 text-white dark:text-[#74b0ff] font-bold text-xs rounded-lg shadow-sm">RAG Pipeline</button>
-            <a href="/engineer/unsloth" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Unsloth Monitor</a>
-            <a href="/engineer/analytics" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Analytics</a>
-        </div>
-    </header>
 
     <!-- Main Canvas -->
     <div class="w-full space-y-10 flex-1">
@@ -510,7 +492,7 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
             <button onclick={cancelDeepResearch} disabled={!trainerState.isDeepResearchActive} class="cursor-pointer px-8 py-3 bg-white dark:bg-[#1e293b] text-on-surface-variant dark:text-slate-300 text-xs font-bold uppercase tracking-widest rounded-xl shadow-sm border border-outline-variant/20 dark:border-slate-800 hover:bg-surface-container-low transition-colors active:scale-95 disabled:opacity-50">
                 Cancel Crawler
             </button>
-            <button onclick={launchDeepResearch} disabled={trainerState.isDeepResearchActive || !trainerState.deepResearchPrompt.trim() || !hasCapableModel} class="cursor-pointer px-10 py-3 bg-gradient-to-br flex items-center gap-3 from-[#001360] to-[#002395] text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-md shadow-primary/20 hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
+            <button type="button" onclick={(e) => { e.preventDefault(); launchDeepResearch(); }} disabled={trainerState.isDeepResearchActive || !trainerState.deepResearchPrompt?.trim() || !hasCapableModel} class="cursor-pointer px-10 py-3 bg-gradient-to-br flex items-center gap-3 from-[#001360] to-[#002395] text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-md shadow-primary/20 hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:grayscale">
                 {#if trainerState.isDeepResearchActive}
                     <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                     Executing Analysis...
@@ -565,7 +547,7 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
                 <strong>Directive:</strong> {selectedResearch.directive}
             </div>
             <hr class="border-outline-variant/10 my-6" />
-            {@html marked(selectedResearch.content)}
+            {@html parseResearchMarkdown(selectedResearch.content)}
         </div>
         
         <!-- Modal Footer (Actions) -->

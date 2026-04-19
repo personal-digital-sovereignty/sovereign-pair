@@ -7,6 +7,37 @@ use crate::kms;
 
 use serde::{Serialize, Deserialize};
 
+/// Limites configuráveis de scraping por contexto
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScrapeLimits {
+    pub max_links_chat: usize,           // Tool-call no Chat (default: 6)
+    pub max_links_deep_research: usize,  // Deep Research pipeline (default: 7)
+    pub max_links_per_search: usize,     // Links por query individual (default: 7)
+}
+
+impl Default for ScrapeLimits {
+    fn default() -> Self {
+        Self {
+            max_links_chat: 6,
+            max_links_deep_research: 7,
+            max_links_per_search: 7,
+        }
+    }
+}
+
+/// Carrega os limites de scraping do banco (hot-reload). Fallback: defaults seguros.
+pub async fn load_scrape_limits(pool: &sqlx::SqlitePool) -> ScrapeLimits {
+    if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'scrape_limits'")
+        .fetch_optional(pool).await
+    {
+        let val: String = row.get("value_json");
+        if let Ok(parsed) = serde_json::from_str::<ScrapeLimits>(&val) {
+            return parsed;
+        }
+    }
+    ScrapeLimits::default()
+}
+
 /// Rota GET /v1/settings - Retorna Chaves Essenciais do Hub
 pub async fn get_system_settings_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let result = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'system_settings'")
@@ -234,6 +265,12 @@ pub async fn import_config_handler(
     State(state): State<Arc<AppState>>,
     body: String
 ) -> impl IntoResponse {
+    // P3-03: Body size guard — max 5 MB para prevenir DoS por payload gigante
+    const MAX_IMPORT_BYTES: usize = 5 * 1024 * 1024;
+    if body.len() > MAX_IMPORT_BYTES {
+        return (axum::http::StatusCode::PAYLOAD_TOO_LARGE, "Arquivo Cíbrido excede o limite de 5 MB").into_response();
+    }
+
     use base64::{Engine as _, engine::general_purpose};
     let decoded = match general_purpose::STANDARD.decode(&body) {
         Ok(b) => b,
@@ -377,4 +414,356 @@ pub async fn set_cold_storage_handler(
     }
 
     Json(serde_json::json!({"status": "ok"})).into_response()
+}
+
+// ---------------------------------------------------------
+// SECOPS VAULT: TENANT API KEYS (CRUD)
+// ---------------------------------------------------------
+
+#[derive(Serialize, Deserialize, sqlx::FromRow)]
+pub struct TenantApiKeyRow {
+    pub id: String,
+    pub provider_name: String,
+    pub created_at: Option<chrono::NaiveDateTime>,
+    // Nós NUNCA retornamos a chave em texto plano para o Frontend
+}
+
+#[derive(Deserialize)]
+pub struct CreateTenantKeyReq {
+    pub provider_name: String,
+    pub api_key_value: String,
+}
+
+/// GET /v1/settings/tenant_keys
+pub async fn get_tenant_keys_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let rows = sqlx::query_as::<_, TenantApiKeyRow>("SELECT id, provider_name, created_at FROM tenant_api_keys ORDER BY created_at DESC")
+        .fetch_all(&state.db)
+        .await;
+
+    match rows {
+        Ok(keys) => Json(keys).into_response(),
+        Err(_) => Json(Vec::<TenantApiKeyRow>::new()).into_response()
+    }
+}
+
+/// POST /v1/settings/tenant_keys
+pub async fn create_tenant_key_handler(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CreateTenantKeyReq>,
+) -> impl IntoResponse {
+    let new_id = uuid::Uuid::new_v4().to_string();
+    
+    // Criptografa a chave usando o KMS nativo (AES-GCM at rest)
+    let encrypted_key = match kms::encrypt_vault_secret(&req.api_key_value) {
+        Some(cipher) => cipher,
+        None => return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true, "message": "KMS Encryption failed"}))).into_response(),
+    };
+
+    let res = sqlx::query("INSERT INTO tenant_api_keys (id, provider_name, api_key_value) VALUES (?, ?, ?)")
+        .bind(&new_id)
+        .bind(&req.provider_name)
+        .bind(&encrypted_key)
+        .execute(&state.db)
+        .await;
+
+    match res {
+        Ok(_) => Json(serde_json::json!({"status": "created", "id": new_id})).into_response(),
+        Err(e) => {
+            if e.to_string().contains("UNIQUE") {
+                // Upsert se já existir
+                let _ = sqlx::query("UPDATE tenant_api_keys SET api_key_value = ?, updated_at = CURRENT_TIMESTAMP WHERE provider_name = ?")
+                    .bind(&encrypted_key)
+                    .bind(&req.provider_name)
+                    .execute(&state.db)
+                    .await;
+                Json(serde_json::json!({"status": "updated"})).into_response()
+            } else {
+                (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true, "message": "Database Error"}))).into_response()
+            }
+        }
+    }
+}
+
+/// DELETE /v1/settings/tenant_keys/:id
+pub async fn delete_tenant_key_handler(
+    axum::extract::Path(id): axum::extract::Path<String>,
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    let res = sqlx::query("DELETE FROM tenant_api_keys WHERE id = ?")
+        .bind(id)
+        .execute(&state.db)
+        .await;
+
+    match res {
+        Ok(_) => Json(serde_json::json!({"status": "deleted"})).into_response(),
+        Err(_) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true, "message": "Database Error"}))).into_response(),
+    }
+}
+
+// ---------------------------------------------------------
+// MODEL CAPABILITIES MATRIX API (EPIC 4)
+// ---------------------------------------------------------
+
+#[derive(Serialize, Deserialize, sqlx::FromRow)]
+pub struct ModelMatrixRow {
+    pub model_name: String,
+    pub parameter_size: f32,
+    pub supports_tools: bool,
+    pub is_reasoner: bool,
+    pub is_master: bool,
+    pub is_scribe: bool,
+    pub is_auditor: bool,
+    pub is_agent: bool,
+    pub is_coder: bool,
+    pub is_chat: bool,
+    pub is_project: bool,
+    pub is_installed: bool,
+}
+
+/// GET /v1/settings/model_capabilities
+pub async fn get_matrix_capabilities_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let q = "SELECT model_name, parameter_size, supports_tools, is_reasoner, is_master, is_scribe, is_auditor, is_agent, is_coder, is_chat, is_project, is_installed FROM model_capabilities ORDER BY parameter_size DESC";
+    match sqlx::query_as::<_, ModelMatrixRow>(q).fetch_all(&state.db).await {
+        Ok(rows) => Json(rows).into_response(),
+        Err(_) => Json(Vec::<ModelMatrixRow>::new()).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct UpdateMatrixReq {
+    pub model_name: String,
+    pub supports_tools: bool,
+    pub is_reasoner: bool,
+    pub is_master: bool,
+    pub is_scribe: bool,
+    pub is_auditor: bool,
+    pub is_agent: bool,
+    pub is_coder: bool,
+    pub is_chat: bool,
+    pub is_project: bool,
+    pub is_installed: bool,
+}
+
+/// POST /v1/settings/model_capabilities/toggles
+pub async fn update_matrix_toggles_handler(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<UpdateMatrixReq>,
+) -> impl IntoResponse {
+    let res = sqlx::query("UPDATE model_capabilities SET supports_tools = ?, is_reasoner = ?, is_master = ?, is_scribe = ?, is_auditor = ?, is_agent = ?, is_coder = ?, is_chat = ?, is_project = ?, is_installed = ? WHERE model_name = ?")
+        .bind(req.supports_tools)
+        .bind(req.is_reasoner)
+        .bind(req.is_master)
+        .bind(req.is_scribe)
+        .bind(req.is_auditor)
+        .bind(req.is_agent)
+        .bind(req.is_coder)
+        .bind(req.is_chat)
+        .bind(req.is_project)
+        .bind(req.is_installed)
+        .bind(&req.model_name)
+        .execute(&state.db)
+        .await;
+
+    match res {
+        Ok(_) => Json(serde_json::json!({"status": "success", "message": "Matrix Updated"})).into_response(),
+        Err(e) => {
+            tracing::error!("Matrix Update Error: {}", e);
+            (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true}))).into_response()
+        }
+    }
+}
+
+/// DELETE /v1/settings/model_capabilities/:model_name
+/// Remove manualmente uma entrada da Matrix de Capacidades.
+/// O Discover automático pode re-cadastrar o modelo ao reiniciar, se estiver instalado.
+pub async fn delete_matrix_entry_handler(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(model_name): axum::extract::Path<String>,
+) -> impl IntoResponse {
+    // O model_name vem URL-encoded (ex: qwen3%3A8b → qwen3:8b) — axum faz decode automaticamente.
+    let res = sqlx::query("DELETE FROM model_capabilities WHERE model_name = ?")
+        .bind(&model_name)
+        .execute(&state.db)
+        .await;
+
+    match res {
+        Ok(r) if r.rows_affected() > 0 => {
+            tracing::info!("🗑 [Matrix] Entrada '{}' removida manualmente da Model Capabilities.", model_name);
+            Json(serde_json::json!({"status": "deleted", "model_name": model_name})).into_response()
+        },
+        Ok(_) => {
+            (axum::http::StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Model not found in matrix"}))).into_response()
+        },
+        Err(e) => {
+            tracing::error!("Matrix Delete Error: {}", e);
+            (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true}))).into_response()
+        }
+    }
+}
+
+// =============================================
+// SCRAPE LIMITS — Configuração de Iterações
+// =============================================
+
+/// GET /v1/settings/scrape_limits
+pub async fn get_scrape_limits_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let limits = load_scrape_limits(&state.db).await;
+    Json(limits).into_response()
+}
+
+/// POST /v1/settings/scrape_limits
+pub async fn set_scrape_limits_handler(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<ScrapeLimits>,
+) -> impl IntoResponse {
+    // Guardrails de sanidade: mínimo 1, máximo 30
+    let clamped = ScrapeLimits {
+        max_links_chat: req.max_links_chat.clamp(1, 30),
+        max_links_deep_research: req.max_links_deep_research.clamp(1, 30),
+        max_links_per_search: req.max_links_per_search.clamp(1, 30),
+    };
+
+    let json_str = serde_json::to_string(&clamped).unwrap_or_default();
+    let res = sqlx::query("INSERT INTO global_settings (id, value_json) VALUES ('scrape_limits', ?) ON CONFLICT(id) DO UPDATE SET value_json = excluded.value_json")
+        .bind(&json_str)
+        .execute(&state.db)
+        .await;
+
+    match res {
+        Ok(_) => Json(serde_json::json!({"status": "success", "limits": clamped})).into_response(),
+        Err(e) => {
+            tracing::error!("Scrape Limits Save Error: {}", e);
+            (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true}))).into_response()
+        }
+    }
+}
+
+// =============================================
+// SOVEREIGN PROMPT VAULT — CRUD Handlers
+// =============================================
+
+/// GET /v1/settings/prompts
+pub async fn get_prompts_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let q = "SELECT id, slug, category, title, prompt_text, placeholders, is_core, is_active, version, integrity_hash, created_at, updated_at, created_by FROM sovereign_prompts ORDER BY id ASC";
+    match sqlx::query_as::<_, crate::prompt_vault::PromptRow>(q).fetch_all(&state.db).await {
+        Ok(rows) => Json(rows).into_response(),
+        Err(_) => Json(Vec::<crate::prompt_vault::PromptRow>::new()).into_response(),
+    }
+}
+
+#[derive(serde::Deserialize)]
+pub struct UpsertPromptReq {
+    pub slug: String,
+    pub title: String,
+    pub category: String,
+    pub prompt_text: String,
+    pub placeholders: Option<Vec<String>>,
+}
+
+/// POST /v1/settings/prompts
+pub async fn upsert_prompt_handler(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<UpsertPromptReq>,
+) -> impl IntoResponse {
+    // Guard: bloquear IDs no namespace reservado SP-9xxx
+    if req.slug.starts_with("SP-9") || req.slug.starts_with("sp-9") {
+        return (axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({
+            "error": "Namespace reservado SP-9xxx. Prompts core são gerenciados pelo sistema."
+        }))).into_response();
+    }
+
+    // Guard: não permitir overwrite de prompts is_core=1
+    if let Ok(Some(is_core)) = sqlx::query_scalar::<_, bool>(
+        "SELECT is_core FROM sovereign_prompts WHERE slug = ?"
+    ).bind(&req.slug).fetch_optional(&state.db).await {
+        if is_core {
+            return (axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({
+                "error": "Este prompt é protegido pelo Cognitive Firewall e não pode ser alterado."
+            }))).into_response();
+        }
+    }
+
+    // LLM Validation: verificar se o novo prompt conflita com regras core
+    match crate::prompt_vault::validate_prompt_with_llm(&state.db, &req.prompt_text).await {
+        Err(reason) => {
+            return (axum::http::StatusCode::CONFLICT, Json(serde_json::json!({
+                "error": "Prompt rejeitado pelo Cognitive Firewall",
+                "reason": reason
+            }))).into_response();
+        }
+        Ok(_) => {}
+    }
+
+    let placeholders_json = serde_json::to_string(&req.placeholders.unwrap_or_default()).unwrap_or("[]".to_string());
+    let id = uuid::Uuid::new_v4().to_string();
+    let hash = {
+        use sha2::{Sha256, Digest};
+        let mut hasher = Sha256::new();
+        hasher.update(req.prompt_text.as_bytes());
+        format!("{:x}", hasher.finalize())
+    };
+
+    let res = sqlx::query(
+        "INSERT INTO sovereign_prompts (id, slug, category, title, prompt_text, placeholders, is_core, is_active, version, integrity_hash, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, 0, 1, 1, ?, 'user')
+         ON CONFLICT(slug) DO UPDATE SET
+            title = excluded.title,
+            category = excluded.category,
+            prompt_text = excluded.prompt_text,
+            placeholders = excluded.placeholders,
+            integrity_hash = excluded.integrity_hash,
+            version = sovereign_prompts.version + 1,
+            updated_at = CURRENT_TIMESTAMP"
+    )
+    .bind(&id)
+    .bind(&req.slug)
+    .bind(&req.category)
+    .bind(&req.title)
+    .bind(&req.prompt_text)
+    .bind(&placeholders_json)
+    .bind(&hash)
+    .execute(&state.db)
+    .await;
+
+    match res {
+        Ok(_) => Json(serde_json::json!({"status": "success", "slug": req.slug})).into_response(),
+        Err(e) => {
+            tracing::error!("Prompt Vault Upsert Error: {}", e);
+            (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true}))).into_response()
+        }
+    }
+}
+
+/// DELETE /v1/settings/prompts/:slug (soft-delete)
+pub async fn delete_prompt_handler(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(slug): axum::extract::Path<String>,
+) -> impl IntoResponse {
+    // Guard: não permitir delete de prompts core
+    if let Ok(Some(is_core)) = sqlx::query_scalar::<_, bool>(
+        "SELECT is_core FROM sovereign_prompts WHERE slug = ?"
+    ).bind(&slug).fetch_optional(&state.db).await {
+        if is_core {
+            return (axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({
+                "error": "Prompts core não podem ser desativados."
+            }))).into_response();
+        }
+    }
+
+    // Soft-delete: apenas desativa
+    let res = sqlx::query("UPDATE sovereign_prompts SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE slug = ?")
+        .bind(&slug)
+        .execute(&state.db)
+        .await;
+
+    match res {
+        Ok(r) if r.rows_affected() > 0 => {
+            Json(serde_json::json!({"status": "deactivated", "slug": slug})).into_response()
+        },
+        Ok(_) => (axum::http::StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "Prompt not found"}))).into_response(),
+        Err(e) => {
+            tracing::error!("Prompt Vault Delete Error: {}", e);
+            (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true}))).into_response()
+        }
+    }
 }

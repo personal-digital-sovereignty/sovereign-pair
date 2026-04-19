@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS sovereign_chunks (
 -- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS chat_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workspace_id TEXT DEFAULT 'default',
     title TEXT NOT NULL,
     folder_name TEXT,
     tags_json TEXT,
@@ -127,6 +128,22 @@ CREATE TABLE IF NOT EXISTS remote_models (
     success_rate REAL DEFAULT 1.0,
     status TEXT DEFAULT 'Operational',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS model_capabilities (
+    model_name TEXT PRIMARY KEY,
+    parameter_size REAL NOT NULL,
+    supports_tools BOOLEAN DEFAULT 0,
+    is_reasoner BOOLEAN DEFAULT 0,
+    is_master BOOLEAN DEFAULT 0,
+    is_scribe BOOLEAN DEFAULT 0,
+    is_auditor BOOLEAN DEFAULT 0,
+    is_agent BOOLEAN DEFAULT 0,
+    is_coder BOOLEAN DEFAULT 0,
+    is_chat BOOLEAN DEFAULT 0,
+    is_project BOOLEAN DEFAULT 0,
+    template TEXT,
+    last_checked TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS model_hallucinations (
@@ -217,4 +234,29 @@ CREATE TABLE IF NOT EXISTS project_documents (
     file_path TEXT NOT NULL,
     PRIMARY KEY(project_id, file_path),
     FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+-- ---------------------------------------------------------
+-- 8. SOVEREIGN API GATEWAY (SANDBOX & O-DATA)
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public_api_directory (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    description TEXT,
+    auth TEXT,
+    https TEXT,
+    cors TEXT,
+    category TEXT
+);
+
+-- ---------------------------------------------------------
+-- 9. SECOPS VAULT (USER PRIVATE APIS)
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS tenant_api_keys (
+    id TEXT PRIMARY KEY,
+    provider_name TEXT NOT NULL UNIQUE,
+    api_key_value TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

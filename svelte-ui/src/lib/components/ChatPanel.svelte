@@ -1,7 +1,7 @@
 <script lang="ts">
 import { API_BASE_URL } from '$lib/env_config';
 
-    import { MessageSquare, Cpu, Shield, Send, Loader2, Paperclip, ThumbsUp, ThumbsDown, Bot, User, BrainCircuit, Copy, RotateCcw, Settings, Square, ChevronDown, Palette } from 'lucide-svelte';
+    import { MessageSquare, Cpu, Shield, Send, Plus, X, Loader2, Paperclip, ThumbsUp, ThumbsDown, Bot, User, BrainCircuit, Copy, RotateCcw, Settings, Square, ChevronDown, Palette } from 'lucide-svelte';
     import { globalState, loadGlobalSession, sendGlobalChatMessage, stopGeneration } from '$lib/state.svelte.js';
     import { settingsState } from '$lib/settings.svelte';
     import MicrophoneButton from './ui/actions/MicrophoneButton.svelte';
@@ -10,6 +10,7 @@ import { API_BASE_URL } from '$lib/env_config';
     import { onMount, untrack } from 'svelte';
 
     let message = $state('');
+    let showTools = $state(false);
 
     onMount(() => {
         // Inicializa a sessão uma única vez ao montar caso esteja vasio
@@ -143,9 +144,6 @@ import { API_BASE_URL } from '$lib/env_config';
     <!-- Chat Header -->
     <header class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-[#424859]/20 bg-white dark:bg-[#12192b] shrink-0 transition-colors">
         <div class="flex items-center gap-3">
-            <div class="p-2 bg-blue-50 dark:bg-blue-500/10 rounded-lg border border-transparent dark:border-[#74b0ff]/20">
-                <MessageSquare class="w-5 h-5 text-blue-600 dark:text-[#74b0ff]" />
-            </div>
             <div>
                 <h2 class="text-slate-800 dark:text-slate-200 font-bold tracking-tight">Cibrid Council <span class="text-[10px] bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-[#74b0ff] border border-transparent dark:border-blue-500/30 px-2 py-0.5 rounded ml-2 uppercase tracking-widest font-mono">Encrypted</span></h2>
                 <p class="text-xs text-slate-500 dark:text-slate-400">P2P Mesh Network routing active.</p>
@@ -164,11 +162,11 @@ import { API_BASE_URL } from '$lib/env_config';
     <!-- Message Feed -->
     <main class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-6 custom-scrollbar bg-slate-50 dark:bg-[#080e1d] transition-colors">
         
-        {#each globalState.chat.messages as msg}
+        {#each globalState.chat.messages as msg (msg.id)}
             {@const thoughtsMatch = msg.text.match(/<thought>([\s\S]*?)(?:<\/thought>|$)/g) || []}
             {@const thoughts = thoughtsMatch.map((t: string) => t.replace(/<\/?thought>/g, '').trim())}
             {@const cleanText = msg.text.replace(/<thought>[\s\S]*?(?:<\/thought>|$)/g, '').trim()}
-            <div class="flex flex-col max-w-3xl group {msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}">
+            <div class="flex flex-col w-full max-w-4xl xl:max-w-5xl 2xl:max-w-7xl group {msg.role === 'user' ? 'self-end items-end' : 'self-start items-start'}">
                 <div class="flex items-center gap-2 mb-1.5 px-1">
                     {#if msg.role === 'assistant'}
                         <div class="relative w-7 h-7 rounded-full flex items-center justify-center shrink-0">
@@ -260,55 +258,15 @@ import { API_BASE_URL } from '$lib/env_config';
                 </button>
             </div>
         {/if}
-        <form 
-            onsubmit={(e) => { e.preventDefault(); handleSend(); }}
-            class="max-w-4xl mx-auto relative flex items-center bg-white dark:bg-[#0c1324] border border-slate-300 dark:border-[#424859]/50 rounded-xl overflow-hidden focus-within:border-blue-500 dark:focus-within:border-[#74b0ff] focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-[#74b0ff]/20 transition-all shadow-sm dark:shadow-none"
+        <div 
+            class="w-full max-w-5xl xl:max-w-6xl 2xl:max-w-[85%] mx-auto flex flex-col bg-white dark:bg-[#0c1324] border border-slate-300 dark:border-[#424859]/50 rounded-xl overflow-hidden focus-within:border-blue-500 dark:focus-within:border-[#74b0ff] focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-[#74b0ff]/20 transition-all shadow-sm dark:shadow-none"
         >
             <input type="file" bind:this={fileInput} onchange={handleFileUpload} class="hidden" />
             
-            <button type="button" onclick={() => fileInput.click()} class="absolute left-2 bottom-2 p-2.5 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-[#74b0ff] hover:bg-blue-50 dark:hover:bg-[#1d253b] rounded-lg transition-colors cursor-pointer" title="Anexar Arquivo Rápido de Texto/Código">
-                <Paperclip class="w-5 h-5" />
-            </button>
-
-            <button type="button" 
-                onclick={() => globalState.chat.isDeepResearchEnabled = !globalState.chat.isDeepResearchEnabled}
-                class={`absolute left-12 bottom-2 p-2.5 rounded-lg transition-colors cursor-pointer ${globalState.chat.isDeepResearchEnabled ? 'text-indigo-600 dark:text-[#74b0ff] bg-indigo-100 dark:bg-indigo-500/20 shadow-inner dark:shadow-none border border-indigo-200 dark:border-indigo-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-indigo-500 dark:hover:text-[#74b0ff] hover:bg-slate-50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
-                title="Ativar Web-Augmented Generation (Deep Research)">
-                <Bot class="w-5 h-5" />
-            </button>
-
-            <button type="button" 
-                onclick={() => globalState.chat.isCognitiveFirewallEnabled = !globalState.chat.isCognitiveFirewallEnabled}
-                class={`absolute left-[88px] bottom-2 p-2.5 rounded-lg transition-colors cursor-pointer ${globalState.chat.isCognitiveFirewallEnabled ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/20 shadow-inner dark:shadow-none border border-emerald-200 dark:border-emerald-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
-                title={globalState.chat.isCognitiveFirewallEnabled ? 'Firewall Cognitivo: ON (Modo Estrito)' : 'Firewall Cognitivo: OFF (Modo Quarentena)'}>
-                <Shield class="w-5 h-5" />
-            </button>
-
-            <button type="button" 
-                onclick={() => globalState.chat.isVisualArtistEnabled = !globalState.chat.isVisualArtistEnabled}
-                class={`absolute left-[128px] bottom-2 p-2.5 rounded-lg transition-colors cursor-pointer ${globalState.chat.isVisualArtistEnabled ? 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-100 dark:bg-fuchsia-500/20 shadow-inner dark:shadow-none border border-fuchsia-200 dark:border-fuchsia-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:bg-slate-50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
-                title={globalState.chat.isVisualArtistEnabled ? 'Modo Visual: ON (Bypass LLM para Imagens)' : 'Modo Visual: OFF'}>
-                <Palette class="w-5 h-5" />
-            </button>
-
-            <button type="button" 
-                onclick={() => settingsState.isOpen = true}
-                class="absolute left-[168px] bottom-2 p-2.5 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-[#74b0ff] hover:bg-blue-50 dark:hover:bg-[#1d253b] rounded-lg transition-colors cursor-pointer" 
-                title="Parâmetros do Modelo">
-                <Settings class="w-5 h-5" />
-            </button>
-
-            <div class="absolute left-[210px] bottom-2">
-                <MicrophoneButton 
-                    disabled={globalState.chat.isTyping} 
-                    on:transcription={(e) => message += (message ? ' ' : '') + e.detail} 
-                />
-            </div>
-
             <textarea 
                 bind:value={message}
                 placeholder="Ask the Global Cybrid Council..." 
-                class="flex-1 bg-transparent border-none text-slate-800 dark:text-slate-200 text-sm p-4 pl-[260px] h-14 resize-none outline-none custom-scrollbar placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                class="w-full h-20 min-h-[80px] max-h-60 bg-transparent border-none text-slate-800 dark:text-slate-200 text-sm p-4 resize-y outline-none custom-scrollbar placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 onkeydown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -317,17 +275,76 @@ import { API_BASE_URL } from '$lib/env_config';
                 }}
             ></textarea>
 
-            {#if globalState.chat.isTyping}
-                <button type="button" onclick={stopGeneration} class="absolute right-2 bottom-2 px-3 py-2.5 bg-rose-600 hover:bg-rose-700 dark:bg-rose-500/80 dark:hover:bg-rose-500 text-white rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 group shadow-sm dark:shadow-none" title="Interromper Raciocínio (Stop)">
-                    <Square class="w-4 h-4 fill-white text-rose-600 dark:text-transparent" />
-                    <span class="text-[10px] font-bold uppercase tracking-widest hidden sm:inline-block">Stop</span>
-                </button>
-            {:else}
-                <button type="submit" disabled={!message.trim()} class="absolute right-2 bottom-2 p-2.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500/80 dark:hover:bg-blue-500 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                    <Send class="w-5 h-5" />
-                </button>
-            {/if}
-        </form>
+            <div class="flex flex-wrap items-center justify-between gap-3 p-2 bg-slate-50 dark:bg-[#12192b]/40 border-t border-slate-200 dark:border-[#424859]/30">
+                <div class="flex items-center gap-1.5 px-1 truncate flex-1 min-w-[200px]">
+                    <button type="button" onclick={() => showTools = !showTools} class="p-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-[#74b0ff] bg-slate-200/50 hover:bg-slate-300/50 dark:bg-[#1d253b] dark:hover:bg-[#424859]/50 rounded-full transition-all cursor-pointer shadow-sm dark:shadow-none" title="Expandir Ferramentas Avançadas">
+                        {#if showTools}<X class="w-4 h-4" />{:else}<Plus class="w-4 h-4" />{/if}
+                    </button>
+                    
+                    {#if showTools}
+                    <div class="flex items-center gap-1.5 animate-in fade-in slide-in-from-left-2 duration-300">
+                        <button type="button" onclick={() => fileInput.click()} class="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-[#74b0ff] hover:bg-slate-200/50 dark:hover:bg-[#1d253b] rounded-lg transition-colors cursor-pointer" title="Anexar Arquivo Rápido de Texto/Código">
+                            <Paperclip class="w-4 h-4" />
+                        </button>
+
+                        <button type="button" 
+                            onclick={() => globalState.chat.isDeepResearchEnabled = !globalState.chat.isDeepResearchEnabled}
+                            class={`p-2 rounded-lg transition-colors cursor-pointer ${globalState.chat.isDeepResearchEnabled ? 'text-indigo-600 dark:text-[#74b0ff] bg-indigo-100 dark:bg-indigo-500/20 shadow-inner dark:shadow-none border border-indigo-200 dark:border-indigo-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-indigo-500 dark:hover:text-[#74b0ff] hover:bg-slate-200/50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
+                            title="Ativar Web-Augmented Generation (Deep Research)">
+                            <Bot class="w-4 h-4" />
+                        </button>
+
+                        <button type="button" 
+                            onclick={() => globalState.chat.isCognitiveFirewallEnabled = !globalState.chat.isCognitiveFirewallEnabled}
+                            class={`p-2 rounded-lg transition-colors cursor-pointer ${globalState.chat.isCognitiveFirewallEnabled ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/20 shadow-inner dark:shadow-none border border-emerald-200 dark:border-emerald-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-slate-200/50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
+                            title={globalState.chat.isCognitiveFirewallEnabled ? 'Firewall Cognitivo: ON (Modo Estrito)' : 'Firewall Cognitivo: OFF (Modo Quarentena)'}>
+                            <Shield class="w-4 h-4" />
+                        </button>
+
+                        <button type="button" 
+                            onclick={() => globalState.chat.isVisualArtistEnabled = !globalState.chat.isVisualArtistEnabled}
+                            class={`p-2 rounded-lg transition-colors cursor-pointer ${globalState.chat.isVisualArtistEnabled ? 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-100 dark:bg-fuchsia-500/20 shadow-inner dark:shadow-none border border-fuchsia-200 dark:border-fuchsia-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:bg-slate-200/50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
+                            title={globalState.chat.isVisualArtistEnabled ? 'Modo Visual: ON (Bypass LLM para Imagens)' : 'Modo Visual: OFF'}>
+                            <Palette class="w-4 h-4" />
+                        </button>
+
+                        <button type="button" 
+                            onclick={() => settingsState.isOpen = true}
+                            class="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-[#74b0ff] hover:bg-slate-200/50 dark:hover:bg-[#1d253b] rounded-lg transition-colors cursor-pointer hidden sm:flex" 
+                            title="Parâmetros do Modelo">
+                            <Settings class="w-4 h-4" />
+                        </button>
+                    </div>
+                    {/if}
+                </div>
+
+                <div class="flex items-center gap-2 pr-1 shrink-0">
+                    <div class="pr-2 border-r border-slate-200 dark:border-[#424859]/30">
+                        <MicrophoneButton 
+                            disabled={globalState.chat.isTyping} 
+                            on:transcription={(e) => message += (message ? ' ' : '') + e.detail} 
+                        />
+                    </div>
+                    
+                    <button 
+                        type="button"
+                        onclick={(e) => { e.preventDefault(); handleSend(); }}
+                        disabled={!message.trim() || globalState.chat.isTyping}
+                        class="p-2 ml-2 bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors cursor-pointer shadow-sm dark:shadow-none"
+                        aria-label="Ask Cybrid"
+                    >
+                        <Send class="w-4 h-4 text-white" />
+                    </button>
+                    
+                    {#if globalState.chat.isTyping}
+                        <button type="button" onclick={stopGeneration} class="px-3 py-2 bg-rose-600 hover:bg-rose-700 dark:bg-rose-500/80 dark:hover:bg-rose-500 text-white rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm dark:shadow-none" title="Interromper Raciocínio (Stop)">
+                            <Square class="w-4 h-4 fill-white text-rose-600 dark:text-transparent" />
+                            <span class="text-[10px] font-bold uppercase tracking-widest hidden sm:inline-block">Stop</span>
+                        </button>
+                    {/if}
+                </div>
+            </div>
+        </div>
         <div class="text-[10px] text-center text-slate-400 dark:text-slate-500 mt-2 font-mono uppercase tracking-widest">
              End-to-End Local Execution • Context Limited to Graph Density
         </div>

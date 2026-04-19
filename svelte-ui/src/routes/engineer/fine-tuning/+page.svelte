@@ -4,12 +4,15 @@ import { API_BASE_URL } from '$lib/env_config';
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
     import { onMount, onDestroy } from 'svelte';
-    import { trainerState, exportTrainerConfig, fetchTrainerStats, sendUnslothControl } from '$lib/trainer.svelte';
+    import { trainerState, exportTrainerConfig, fetchTrainerStats, sendUnslothControl, AI_MODELS, populateTrainerModels } from '$lib/trainer.svelte';
+    
+    let targetModel = $derived(AI_MODELS.find(m => m.type === 'local')?.id || 'Sovereign-Base-Model');
 
     let isSubmitting = $state(false);
     let pollingInterval: any;
 
     onMount(() => {
+        populateTrainerModels();
         fetchTrainerStats();
         pollingInterval = setInterval(fetchTrainerStats, 10000);
         return () => clearInterval(pollingInterval);
@@ -23,8 +26,8 @@ import { API_BASE_URL } from '$lib/env_config';
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    base_model: 'Llama-3-8B-Instruct-v0.1',
-                    dataset_name: 'sovereign-hq-rag-dataset-v1',
+                    base_model: targetModel,
+                    dataset_name: `sovereign-hq-${new Date().toISOString().split('T')[0]}-tuning`,
                     learning_rate: trainerState.learningRate,
                     lora_rank: trainerState.loraRank,
                     batch_size: trainerState.batchSize,
@@ -42,22 +45,6 @@ import { API_BASE_URL } from '$lib/env_config';
 </script>
 
 <div class="p-8 h-full">
-    <!-- Header Section (Identical to Distillation) -->
-    <header class="mb-10 w-full flex items-center justify-between">
-        <div class="flex items-center gap-4 bg-surface-container-low px-4 py-2 rounded-full w-96 border border-outline-variant/10 shadow-sm">
-            <span class="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
-            <input class="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-on-surface-variant/70 text-on-surface outline-none" placeholder="Search experiments or datasets..." type="text" />
-        </div>
-        <div class="flex items-center gap-4 bg-surface-container-low p-1.5 rounded-xl border border-outline-variant/10">
-            <button class="px-4 py-2 bg-blue-600 dark:bg-[#74b0ff]/20 text-white dark:text-[#74b0ff] font-bold text-xs rounded-lg shadow-sm">Fine-Tuning</button>
-            <a href="/engineer/distillation" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Distillation</a>
-            <a href="/engineer/reflection" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Reflection Lab</a>
-            <a href="/engineer/rag-pipeline" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">RAG Pipeline</a>
-            <a href="/engineer/unsloth" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Unsloth Monitor</a>
-            <a href="/engineer/analytics" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Analytics</a>
-        </div>
-    </header>
-
     <div class="w-full flex-1">
         <!-- Title Section -->
         <section class="flex justify-between items-end mb-10">
@@ -144,7 +131,7 @@ import { API_BASE_URL } from '$lib/env_config';
                 </div>
             </section>
 
-            <!-- Unsloth Monitor Mini Section -->
+            {#if false} <!-- Unsloth Monitor Mini Section (v1.3.0 MOCK HIDDEN) -->
             <section class="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/10 shadow-sm">
                 <div class="flex justify-between items-center mb-8">
                     <div class="flex items-center gap-4">
@@ -212,13 +199,14 @@ import { API_BASE_URL } from '$lib/env_config';
                     </a>
                 </div>
             </section>
+            {/if}
         </div>
 
         <!-- Section 3: Right Sidebar Column -->
         <div class="xl:col-span-5 space-y-8">
             
             <!-- Alignment Metrics -->
-            <!-- Unsloth Native Configuration -->
+            {#if false} <!-- Unsloth Native Configuration (v1.3.0 MOCK HIDDEN) -->
             <section class="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/10 shadow-sm">
                 <div class="flex items-center gap-3 mb-8">
                     <span class="material-symbols-outlined text-secondary text-[24px]">memory</span>
@@ -253,6 +241,7 @@ import { API_BASE_URL } from '$lib/env_config';
                     </div>
                 </div>
             </section>
+            {/if}
 
             <!-- Perfection Controls & Reflection Lab -->
             <section class="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/10 shadow-sm">
@@ -295,7 +284,7 @@ import { API_BASE_URL } from '$lib/env_config';
                     </div>
                 </div>
 
-                <!-- Reflection Lab Mini -->
+                {#if false} <!-- Reflection Lab Mini (v1.3.0 MOCK HIDDEN) -->
                 <div class="mt-8 pt-6 border-t border-outline-variant/20">
                     <h3 class="text-xs font-bold text-on-surface mb-4 uppercase tracking-widest ">Reflection Lab</h3>
                     <div class="bg-surface p-5 rounded-2xl mb-4 border border-outline-variant/10">
@@ -331,6 +320,7 @@ import { API_BASE_URL } from '$lib/env_config';
                         Visualize Reasoning Chain
                     </a>
                 </div>
+                {/if}
             </section>
         </div>
     </div>

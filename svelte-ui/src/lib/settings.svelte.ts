@@ -48,9 +48,19 @@ export async function saveSettings() {
     try {
         // Uses snapshot to unwrap proxies
         // In Svelte 5, $state.snapshot unwraps deeply but we can just map the fields.
+        let existingData = {};
+        const fetchRes = await fetch(`${API_BASE_URL}/v1/settings`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` }
+        });
+        if (fetchRes.ok) {
+            existingData = await fetchRes.json();
+        }
+
         const payload = {
+            ...existingData,
             provider: settingsState.provider,
             modelName: settingsState.modelName,
+            llm_model: settingsState.modelName,  // Bridge: Backend Tri-Agent Router reads this key
             temperature: settingsState.temperature,
             personalityName: settingsState.personalityName,
             systemInstructions: settingsState.systemInstructions,

@@ -30,6 +30,9 @@ cat > "$SYSTEMD_DIR/override.conf" << 'CONF'
 # Threads limitados ao número de vCPUs disponíveis
 Environment="OLLAMA_NUM_THREADS=4"
 # Paralelização NULA para poupar RAM restrita (Processa 1 request por vez)
+# NOTA: Diferente da máquina Ryzen local (OLLAMA_NUM_PARALLEL=3) — aqui mantemos em 1
+# propositalmente pois 8GB RAM não suporta múltiplas inferências simultâneas sem OOM.
+# Para escalar, use o nó Oracle Cloud (OLLAMA_NUM_PARALLEL=4) ou atualize a RAM da VM.
 Environment="OLLAMA_NUM_PARALLEL=1"
 # Estritamente 1 ÚNICO modelo na RAM simultaneamente para não estourar os 8GB
 Environment="OLLAMA_MAX_LOADED_MODELS=1"

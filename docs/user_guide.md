@@ -13,7 +13,9 @@ A sala das máquinas. O **Settings** não é um painel genérico de chaves de AP
 - **Sovereign Identity (Cortex Continuity):** Onde você pode *Exportar* ou *Importar* um arquivo encriptado `.cybrid`. Ele salva todo o seu estado mental (pastas, preferências, chaves) te permitindo restaurar a IA inteira em outra máquina num clique.
 - **Sovereign Mesh P2P:** Mostra onde seus cérebros físicos estão operando. Pode ser o `ryzen-local-alpha` do seu quarto, ou uma placa remota. É aqui que você abre novos túneis P2P descentralizados.
 - **Cloud Sandboxing (OCI):** A configuração de contingência da Oracle Cloud. Usado apenas quando seu maquinário local ficar indisponível.
-- **Sovereign Core (AI Engine):** O configurador de Personalidade Matemática. Aqui você distribui funções: Qual modelo de IA atuará como a "Enfermeira" (Triagem e Web Scraping), qual será o "Doutor" (Planning e Chat), e qual será o "Coder" (Execução). Você escolhe a Temperatura, limita o Top-K de criatividade e pode injetar "Personas" mestres globais (Ex: *The Code Architect* ou *The Security Auditor*).
+- **Sovereign Core (AI Engine):** O controle de tráfego do sistema nervoso neural, subdividido em dois planos de atuação:
+  - **A Matriz Autônoma (Model Operations Matrix):** O painel do motor Assíncrono (Background). Aqui você configura papéis específicos (Mente Mestra, Scribe, Coder, Agent) via *checkboxes*. O sistema escolhe dinamicamente o maior modelo habilitado (`ORDER BY size DESC`). Toda vez que uma rotina massiva (Deep Research ou Projetos Complexos) for acordada, ela assumirá esta hierarquia isoladamente para operar ferramentas, caçar na web e sintetizar artefatos. *Nota Especial de Contingência Gratuita:* Se um modelo for desinstalado (`ollama rm`), ele não é perdido da Matriz: ele ganha um rótulo especial vermelho **[OFFLINE]** e é omitido dinamicamente das rotas mecânicas, blindando a arquitetura contra quebras. Baixá-lo novamente retorna suas características Cíbridas ativas na hora.
+  - **O Seletor de Chat (Engine Settings Modal):** O painel Síncrono (Zero-Shot). No ícone de engrenagem principal, o campo "Model Name" diz ao sistema quem deve responder a perguntas do dia a dia no Chat. Independente da "Matriz" rodando no fundo, o modelo escolhido aqui será o que conversará e analisará arquivos isolados que você enviar diretamente. Você escolhe a Temperatura, limita o Top-K de criatividade e gerencia o fluxo livre do Cíbrido em instantes imediatos.
 
 ## 1. Home (O Centro de Comando)
 A página **Home** é o seu *Dashboard* (painel de controle). Aqui você tem uma visão panorâmica e em tempo real da saúde da sua malha cíbrida.
@@ -33,6 +35,7 @@ O **Vault** (Cofre) é a manifestação física do espaço de HD que você conce
 - **Editor Markdown e Motor de Tabelas Complexas:** Escreva ou visualize os relatórios das IAs através do poderoso renderizador da UI, que constrói tabelas matemáticas, grids organizacionais e *code-highlights* com estética laboratorial polida.
 - **Gestão Viva de Interface e Documentos:** Com botões ágeis no próprio explorador, crie documentos interativos (`Novo Arquivo`), renomeie instantaneamente com cliques contínuos ou mande arquivos mortos para a exclusão física através do botão vermelho (*Trash2*).
 - **Chat Exclusivo Centrado no Contexto:** Um sistema impecável — quando você clica em um documento no Explorador do Vault, ele é aberto na Área de Leitura. Imediatamente, o painel Direito do Chat lateral restringe total e *estritamente* seus conhecimentos de leitura ao Escopo Analítico do que estava aberto. Se você perguntou, a resposta é blindada usando o seu arquivo.
+- **Isolamento de Sessão e Imersão Literária:** O Vault opera com "Amnésia de Contexto" proposital. Ao abrir esta área ou seus documentos, seu chat nace inteiramente limpo e isolado de conversas prévias trazidas de outros lugares do menu. Esse rigor impede o vazamento de ideias entre contextos diferentes. Adicionalmente, caso precise do máximo de atenção na leitura/escrita, clique no **ícone de Ocultar Painel** no canto superior direito para colapsar o Chat Cíbrido e expandir a tela de documentos, similar à liberdade da tela de Projetos.
 - **Sinalização Inteligente de Artefatos da IA:** Nossa UI classifica as pastas visualmente para você não se perder na poeira.
   - **✨ Deep Research Artifact:** Arquivos demarcados com bolhas lilás brilhantes. Relatórios destilados e gerados pela IA autônoma em jornadas pela internet (Salvos em `_agents/artifacts/`).
   - **🧠 Knowledge Gap:** Arquivos demarcados com insígnias âmbar/laranja. Diários alertando de "Buracos Lógicos Verificados no Modelo" a serem preenchidos com mais material intelectual (Salvos em `gaps/`).
@@ -74,12 +77,26 @@ A usina de expedições massivas em busca de verdade documental.
 - **Execution Flow Graph (Telemetria Viva):** Ao estourar o gatilho *Launch Deep Research*, você verá na tela lateral em `Real-time` o triturar impiedoso dos Scrapers (Raspadores HTML), injetando *Tokens* recém formados de volta na pasta de artefatos da sua máquina.
 
 #### B. Fine-Tuning Engine & Unsloth Monitor
+
+> **⚠️ Alerta de Cenografia Estrutural (Mocks vs Realidade na v1.2.0):** 
+> Transparência técnica é o pilar cíbrido. A atual aba de *Fine-Tuning Engine* é uma obra-prima de design hibrido: partes dela ditam verdade absoluta, enquanto a computação de Loss Gradient está simulada aguardando o Orquestrador Python (v1.3.0).
+> 
+> **✅ O Que Funciona (Ambiente Real):**
+> 1. **Telemetria Deep Research (RAG):** Os marcadores de *Knowledge Gap Percentage*, *Sources Scanned* e *Recently Acquired Knowledge* não são falsos. Eles buscam ativamente o seu tráfego de leitura do SQLite e contam as injeções em disco.
+> 2. **Perfection Controls (Controles Reais):** Seus ajustes de `Strict Grounding`, `Embedding Alignment Alpha` e `Top-K` alteram o vetor das buscas e a forma com a qual RAG injeta tokens nos prompts. O JSON montado vai até o motor Rust ileso.
+> 3. **Export Configurations:** O backup em `.json` extrai com fidelidade todo o payload modificado por você.
+> 
+> **🎭 O Que é Mock (Simulação para Interface):**
+> 1. **Treinamento de Redes Neurais (O Engano Seguro):** O motor *Ollama* nativo utilizado no momento recusa o retreino de tensores (Fine-tuning puro). Ao clicar em "Start Fine-Tuning", a interface Svelte e a API Rust conspiram num bypass inteligente: A *Engine* clona instantaneamente (`/api/create`) os Modelfiles, sem alterar "os cérebros" do IA via Python VRAM, retornando `Sucesso` falso.
+> 2. **Unsloth Matrix Monitor:** É uma *Casca Audiovisual* impressionante. As linhas subindo de *VRAM Usage*, a queda matemática da *Loss Curve* e o contador de *Epochs* são scripts Assíncronos controlados via tempo. Não se assuste se sua GPU nem aquecer! 
+
 O módulo onde você sintoniza os hiper-parâmetros dos Modelos de Base para deixá-los "no ponto" ideal.
-- **Perfection Controls:** Controles vetoriais reais em sliders magnéticos (`Alpha`, `Top-K Context Depth`, `Batch Sizes do Computador` e níveis táticos de `LoRA Rank`). 
-- **Painel Unsloth Matrix Monitor:** Você vislumbrará todo o poder de fogo computacional no monitor retangular: O ressoar estrondoso do uso da VRAM consumida pela sua Placa de Vídeo e o avanço milissegundo a milissegundo pelo console nativo logando taxas matemáticas (`Loss Curve`, `Grad Norm` e os `Tokens Processing`). Tudo administrado por 3 robustos botões de *Playback* (Start, Stop, Pause).
+- **Perfection Controls:** Controles vetoriais em sliders magnéticos (`Alpha`, `Top-K Context Depth`, `Batch Sizes do Computador` e níveis táticos de `LoRA Rank`). 
+- **Painel Unsloth Matrix Monitor:** Espaço onde você vislumbrará todo o poder de fogo computacional no monitor retangular: O ressoar estrondoso do uso da VRAM consumida pela sua Placa de Vídeo e o avanço pelo console nativo logando taxas matemáticas. O play control aciona as janelas.
 - **Export Configuration:** O extrator em um clique das matrizes JSON. Clique e guarde em backup toda a personalização que gerou bons resultados.
 
 #### C. Reflection Lab (O Monólogo Interno)
+> **⚠️ Em Desenvolvimento (v1.3.0 Mock):** Assim como o Unsloth Monitor, o laboratório de Reflexão está cenograficamente construído nesta versão para pavimentação da telemetria de métricas do sistema. O "Live Stream" gera auditorias randômicas temporárias em loop, simulando o que a próxima arquitetura de *SSE IPC* e Raciocínio Latente injetará em breve.
 É onde as consciências ocultas são transparentes no seu controle. Se a IA errava e não se justificava, agora ela passa semanas dissecando cadeias invisíveis para entregar o estado da arte.
 - **Internal Monologue:** A Chave Metacognitiva Mestra. Transforma o output do Cíbrido de uma geração imediata de texto numa escalada estruturada de "Pensar Primeiro".
 - **Reasoning Depth & Self-Correct Ratio:** Sliders de Intensidade. Quantos "passos" de duvidar ela terá de respeitar antes de imprimir um retorno? O marcador reativo *Self-Correct* expõe o quanto do raciocínio base precisou se re-alinhar baseando-se no teto das falhas matemáticas lidas pelo scanner de Knowledge Gaps do RAG.
@@ -97,3 +114,18 @@ Módulo de reportagem retroativa para contabilização estatística pesada do us
 
 ### O Fator Soberano
 O Sovereign Pair foi moldado com a intenção impiedosa de exterminar o comodismo opaco de Big-Techs, resgatando as rédeas vitais das suas mãos. Nada nesta UI é um *Dashboard de Vaidade*. Deslizar um botão implica invocar motores Rust blindados no fundo do seu HD. O controle absoluto não está apenas garantido, ele é o protocolo fundamental em operação.
+
+---
+
+## 6. Otimização de Hardware e S.O. Linux (A Armadilha do ZRAM)
+
+Quando operamos LLMs massivos locais (Ollama/llama.cpp), frequentemente ultrapassamos a capacidade nominal de RAM operando na "borda" (ex: 21GB/24GB). Sistemas modernos como Fedora, Ubuntu e Arch Linux trazem ativos geradores de **ZRAM** (Virtual Swap Compactado) acoplados a taxas agressivas de `swappiness` (como 133). 
+
+**Ponto de Atenção Crítica para Engenharia Cíbrida:**
+- **Pesos (GGUFs) de Modelos de IA são conjuntos de dados altamente quantizados e pseudo-aleatórios**. Eles são *matematicamente incomprimíveis*. 
+- Caso o Kernel tente evacuar um modelo em cache para o ZRAM no pico de pressão de memória, o algoritmo `zstd` irá disparar os ciclos de CPU para 100%, fritará o I/O tentando descompactar e compactar pó, falhará por falta de compressão possível, e despencará sua taxa de tokens para `0.1 T/s`.
+- Além de destruir o desempenho sem liberar espaço legítimo, isso estrangula a orquestração do Rust. O temor de usar Swift Swap em SSD (TBW - Toaster) não justifica a manutenção desse vilão compactador em nós de IA puristas com mais de 16GB de RAM.
+
+**Nossa Diretriz Oficial ("Keep It Simple"):**
+Na Arquitetura `v1.2.0`, implementamos o **Sovereign Swap (Memory GC)** (Evacuação Assíncrona Ativa e Mlock) via API, sem delegar falhas ao SO. 
+Recomendamos veementemente que **desative a ZRAM** na máquina hospedeira do Engine e despenque sua `vm.swappiness` para perto de 10 garantindo que o hardware opere LLMs nus, sem taxação inútil de Virtualização de Memória.

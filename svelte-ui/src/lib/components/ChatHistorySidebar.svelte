@@ -3,7 +3,7 @@ import { API_BASE_URL } from '$lib/env_config';
 
     import { MessageSquare, Plus, Folder as FolderIcon, Trash2, Hash, Edit2, Check, X, ChevronDown, ChevronRight } from 'lucide-svelte';
     import { globalState, loadGlobalSession, stopGeneration } from '$lib/state.svelte.js';
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
 
     let sessions = $state<{id: number, title: string, folder_name: string | null, updated_at: string}[]>([]);
     let isLoading = $state(true);
@@ -12,7 +12,8 @@ import { API_BASE_URL } from '$lib/env_config';
         isLoading = true;
         try {
             const token = localStorage.getItem('sovereign_token') || '';
-            const res = await fetch(`${API_BASE_URL}/v1/sessions`, {
+            const ws_id = globalState.activeWorkspaceId || 'default';
+            const res = await fetch(`${API_BASE_URL}/v1/sessions?workspace_id=${ws_id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -31,8 +32,23 @@ import { API_BASE_URL } from '$lib/env_config';
         }
     }
 
+    let isMounted = false;
+    let previousWorkspaceId = globalState.activeWorkspaceId;
+
     onMount(() => {
+        isMounted = true;
         fetchSessions();
+    });
+
+    $effect(() => {
+        const currentWorkspaceId = globalState.activeWorkspaceId;
+        untrack(() => {
+            if (isMounted && previousWorkspaceId !== currentWorkspaceId) {
+                previousWorkspaceId = currentWorkspaceId;
+                createNewSession();
+                fetchSessions();
+            }
+        });
     });
 
     function createNewSession() {
@@ -137,7 +153,7 @@ import { API_BASE_URL } from '$lib/env_config';
 <div class="flex flex-col h-full w-full bg-slate-50 dark:bg-[#0c1324] border-r border-slate-200 dark:border-[#424859]/20 text-slate-700 dark:text-slate-300 transition-colors">
     <div class="px-4 py-4 shrink-0 flex items-center justify-between border-b border-slate-200 dark:border-[#424859]/20 bg-white dark:bg-[#12192b] transition-colors">
         <h3 class="text-[11px] uppercase font-bold tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2">
-            <MessageSquare class="w-4 h-4 text-blue-500 dark:text-[#74b0ff]"/> Histórico
+            Histórico
         </h3>
         <button onclick={createNewSession} class="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-blue-500/20 dark:hover:bg-blue-500/30 text-white dark:text-[#74b0ff] transition-colors cursor-pointer shadow-sm" title="Nova Sessão">
             <Plus class="w-4 h-4" />
