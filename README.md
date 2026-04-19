@@ -29,6 +29,17 @@ O sistema opera com base nos seguintes componentes principais:
 5. Arquitetura Distribuida P2P (Sovereign Mesh)
    - Nos locais sincronizam dados par-a-par atraves de tuneis SSH dinamicos. A engine garante transmissividade de metadados, configuracoes de usuario (.cybrid) e vetores de embeddings em topologias distribuidas.
 
+## Padrão Arquitetural: Monorepo Híbrido
+
+O Sovereign Pair não é um monolito estrito, mas sim um **Monorepo Híbrido** com uma arquitetura de microsserviços fortemente acoplados de forma lógica, mas desacoplados fisicamente. Do ponto de vista arquitetônico:
+
+- **Monorepo (Repositório Único)**: Todo o ecossistema habita no mesmo repositório do Git para garantir consistência de versão e facilidade na sincronia de código. Isso inclui o backend Rust (`/core`), o frontend Desktop (`/svelte-ui`), infraestrutura (`/infra`) e os workers autônomos.
+- **Microsserviços e Sidecars (Não Monolítico)**: 
+  - O aplicativo nativo de mesa (Tauri) compila um cliente visual hermético (Svelte). 
+  - O Rust (`core`) pode ser iniciado independente da interface gráfica como um servidor puro de API rodando na porta `38001`. Em nuvem (Cloud), instala-se apenas o `/core`.
+  - Para usuários Desktop operando localmente, o processo principal (Svelte/Tauri) invoca invisivelmente o backend ativando-o como um sidecar integrado em segundo plano.
+- **Fator "Sandboxed" Externo (Workers Desacoplados)**: A lógica pesada do pipeline financeiro e de pesquisa não está compilada diretamente na biblioteca estrita do Rust. O `core` comanda um exército externo de binários e scripts em uma Sandbox Python auto providenciada e lançando-os em processos isolados. Em falhas por estouro de memória ou crashes, apenas o processo instanciado (Worker/Python) falha, protegendo a interface e o Processo Mestre. A soberania continua ativa.
+
 ## Instalacao
 
 Consulte o documento de [Guia de Instalacao](docs/install_guide.md) para instrucoes detalhadas de execucao do binario pre-compilado em ambientes Windows, Linux ou MacOS.
