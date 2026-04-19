@@ -7,6 +7,7 @@
 #![allow(clippy::if_same_then_else)]
 #![allow(clippy::unnecessary_sort_by)]
 
+pub mod turboquant;
 mod api;
 mod models;
 mod realtime;

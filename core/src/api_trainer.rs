@@ -487,10 +487,16 @@ async fn execute_sub_analyst(
                                 if let Ok(emb_res) = client.post(format!("{}/api/embeddings", olla_embed)).json(&emb_req).send().await {
                                     if let Ok(emb_json) = emb_res.json::<serde_json::Value>().await {
                                         if let Some(embedding) = emb_json.get("embedding").and_then(|e| e.as_array()) {
-                                            let floats_bytes: Vec<u8> = embedding.iter().filter_map(|v| v.as_f64().map(|f| f as f32)).flat_map(|f| f.to_ne_bytes()).collect();
-                                            let _ = sqlx::query("INSERT INTO vec_ephemeral_chunks (chunk_id, embedding) VALUES (?, ?)")
+                                            let raw_embedding: Vec<f32> = embedding.iter()
+                                                .filter_map(|v| v.as_f64().map(|f| f as f32))
+                                                .collect();
+                                                
+                                            let (packed, norm) = crate::turboquant::quantize_single(&raw_embedding, &crate::turboquant::TURBO_STATE);
+
+                                            let _ = sqlx::query("INSERT INTO vec_ephemeral_chunks (chunk_id, embedding, norm) VALUES (?, ?, ?)")
                                                 .bind(res_ch.last_insert_rowid())
-                                                .bind(floats_bytes)
+                                                .bind(packed)
+                                                .bind(norm)
                                                 .execute(pool).await;
                                         }
                                     }
