@@ -344,7 +344,8 @@ async fn main() {
         tracing::info!("☁️ [Sovereign Hub] Spawning Python worker: market_pricing_matrix.py...");
         let workers_dir = crate::api_trainer::resolve_python_workers_dir();
         let script_path = workers_dir.join("market_pricing_matrix.py");
-        let _ = std::process::Command::new("python3")
+        let python_bin = crate::sandbox::get_hermetic_python_bin();
+        let _ = std::process::Command::new(&python_bin)
             .arg(&script_path)
             .output();
 

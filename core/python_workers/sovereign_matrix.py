@@ -56,33 +56,99 @@ def fetch_finance(ticker, years):
         
     period = f"{clean_years}y"
     
+    # === SOVEREIGN TICKER RESOLVER (Fase 1: Mapeamento Semântico Expandido) ===
+    # Cobre os ativos mais comuns do mercado BR + commodities internacionais.
+    # Se o LLM enviar o nome popular (ex: "NUBANK"), resolve para o ticker Yahoo correto.
+    TICKER_MAP = {
+        # Commodities internacionais
+        'BRENT':         ('BZ=F',      'Barril de Petróleo (BRENT Crude)'),
+        'WTI':           ('CL=F',      'Barril de Petróleo (WTI Crude Spot)'),
+        'GOLD':          ('GC=F',      'Ouro (Gold Spot)'),
+        'SILVER':        ('SI=F',      'Prata (Silver Spot)'),
+        # Câmbio
+        'DOLAR':         ('BRL=X',     'Taxa de Câmbio (Dólar / BRL)'),
+        'USD':           ('BRL=X',     'Taxa de Câmbio (Dólar / BRL)'),
+        'EURO':          ('EURBRL=X',  'Taxa de Câmbio (Euro / BRL)'),
+        # Ações BR — Top 20+ por relevância
+        'PETROBRAS':     ('PETR4.SA',  'Ações Petrobras (PETR4)'),
+        'PETR4':         ('PETR4.SA',  'Ações Petrobras (PETR4)'),
+        'PETR3':         ('PETR3.SA',  'Ações Petrobras ON (PETR3)'),
+        'NUBANK':        ('NU',        'Ações NuBank (NU — NYSE)'),
+        'NU':            ('NU',        'Ações NuBank (NU — NYSE)'),
+        'ROXO34':        ('ROXO34.SA', 'BDR NuBank (ROXO34)'),
+        'VALE':          ('VALE3.SA',  'Ações Vale (VALE3)'),
+        'VALE3':         ('VALE3.SA',  'Ações Vale (VALE3)'),
+        'ITAU':          ('ITUB4.SA',  'Ações Itaú Unibanco (ITUB4)'),
+        'ITAÚ':          ('ITUB4.SA',  'Ações Itaú Unibanco (ITUB4)'),
+        'ITUB4':         ('ITUB4.SA',  'Ações Itaú Unibanco (ITUB4)'),
+        'BRADESCO':      ('BBDC4.SA',  'Ações Bradesco PN (BBDC4)'),
+        'BBDC4':         ('BBDC4.SA',  'Ações Bradesco PN (BBDC4)'),
+        'BBDC3':         ('BBDC3.SA',  'Ações Bradesco ON (BBDC3)'),
+        'BRADESCO_SEGUROS': ('BBSE3.SA', 'Ações BB Seguridade / Bradesco Seguros (BBSE3)'),
+        'BBSE3':         ('BBSE3.SA',  'Ações BB Seguridade (BBSE3)'),
+        'BANCO_DO_BRASIL': ('BBAS3.SA', 'Ações Banco do Brasil (BBAS3)'),
+        'BB':            ('BBAS3.SA',  'Ações Banco do Brasil (BBAS3)'),
+        'BBAS3':         ('BBAS3.SA',  'Ações Banco do Brasil (BBAS3)'),
+        'AMBEV':         ('ABEV3.SA',  'Ações Ambev (ABEV3)'),
+        'ABEV3':         ('ABEV3.SA',  'Ações Ambev (ABEV3)'),
+        'MAGAZINE':      ('MGLU3.SA',  'Ações Magazine Luiza (MGLU3)'),
+        'MAGALU':        ('MGLU3.SA',  'Ações Magazine Luiza (MGLU3)'),
+        'MGLU3':         ('MGLU3.SA',  'Ações Magazine Luiza (MGLU3)'),
+        'WEG':           ('WEGE3.SA',  'Ações WEG (WEGE3)'),
+        'WEGE3':         ('WEGE3.SA',  'Ações WEG (WEGE3)'),
+        'SUZANO':        ('SUZB3.SA',  'Ações Suzano (SUZB3)'),
+        'SUZB3':         ('SUZB3.SA',  'Ações Suzano (SUZB3)'),
+        'JBS':           ('JBSS3.SA',  'Ações JBS (JBSS3)'),
+        'JBSS3':         ('JBSS3.SA',  'Ações JBS (JBSS3)'),
+        'ELETROBRAS':    ('ELET3.SA',  'Ações Eletrobras (ELET3)'),
+        'ELET3':         ('ELET3.SA',  'Ações Eletrobras (ELET3)'),
+        'RENT3':         ('RENT3.SA',  'Ações Localiza (RENT3)'),
+        'LOCALIZA':      ('RENT3.SA',  'Ações Localiza (RENT3)'),
+        'B3':            ('B3SA3.SA',  'Ações B3 (B3SA3)'),
+        'B3SA3':         ('B3SA3.SA',  'Ações B3 (B3SA3)'),
+        'HAPVIDA':       ('HAPV3.SA',  'Ações Hapvida (HAPV3)'),
+        'HAPV3':         ('HAPV3.SA',  'Ações Hapvida (HAPV3)'),
+        'SANTANDER':     ('SANB11.SA', 'Ações Santander Brasil (SANB11)'),
+        'SANB11':        ('SANB11.SA', 'Ações Santander Brasil (SANB11)'),
+        # Futuros
+        'BRENT_FUTURE':  ('BZ=F',     'Contrato Futuro Brent (Especulativo)'),
+        'WTI_FUTURE':    ('CL=F',     'Contrato Futuro WTI (Especulativo)'),
+        'GOLD_FUTURE':   ('GC=F',     'Contrato Futuro Ouro (Especulativo)'),
+        'DI_FUTURE':     ('DI1F27.SA','Contrato DI Futuro (Especulativo)'),
+    }
+    
     semantic_name = ticker
-    if ticker.upper() == 'BRENT':
-        ticker = 'BZ=F'
-        semantic_name = 'Barril de Petróleo (BRENT Crude)'
-    elif ticker.upper() == 'WTI':
-        ticker = 'CL=F'
-        semantic_name = 'Barril de Petróleo (WTI Crude Spot)'
-    elif ticker.upper() == 'DOLAR' or ticker.upper() == 'USD':
-        ticker = 'BRL=X'
-        semantic_name = 'Taxa de Câmbio (Dólar / BRL)'
-    elif ticker.upper() == 'PETROBRAS':
-        ticker = 'PETR4.SA'
-        semantic_name = 'Ações Petrobras (PETR4)'
-    elif ticker.upper() == 'BRENT_FUTURE':
-        ticker = 'BZ=F'
-        semantic_name = 'Contrato Futuro Brent (Especulativo)'
-    elif ticker.upper() == 'WTI_FUTURE':
-        ticker = 'CL=F'
-        semantic_name = 'Contrato Futuro WTI (Especulativo)'
-    elif ticker.upper() == 'GOLD_FUTURE':
-        ticker = 'GC=F'
-        semantic_name = 'Contrato Futuro Ouro (Especulativo)'
-    elif ticker.upper() == 'DI_FUTURE':
-        ticker = 'DI1F27.SA' # Proxy genérico para DI
-        semantic_name = 'Contrato DI Futuro (Especulativo)'
+    upper_ticker = ticker.upper().replace(' ', '_')
+    
+    if upper_ticker in TICKER_MAP:
+        ticker, semantic_name = TICKER_MAP[upper_ticker]
+    else:
+        # === Fase 2: Fallback Dinâmico (tenta .SA para B3, depois ticker puro para NYSE/NASDAQ) ===
+        # Se o LLM enviar um ticker que não está no mapa, testa se funciona diretamente no yfinance.
+        import sys as _sys
+        _candidates = []
+        if not ticker.endswith('.SA'):
+            _candidates.append(f"{ticker.upper()}.SA")  # Tenta B3 primeiro para ativos BR
+        _candidates.append(ticker.upper())               # Tenta ticker puro (NYSE/NASDAQ)
         
+        _resolved = False
+        for _cand in _candidates:
+            try:
+                _t = yf.Ticker(_cand)
+                _test = _t.history(period="5d")
+                if not _test.empty:
+                    semantic_name = f"Ativo Financeiro ({_cand})"
+                    ticker = _cand
+                    _resolved = True
+                    break
+            except Exception:
+                continue
         
+        if not _resolved:
+            print(json.dumps({"error": f"Ticker '{ticker}' não reconhecido pelo Sovereign Matrix e não resolvido via yfinance. Tickers testados: {_candidates}. Verifique o símbolo exato do ativo (ex: PETR4, NU, VALE3, BRENT, ITUB4)."}))
+            _sys.exit(1)
+        
+
 
     start_date = (datetime.datetime.now() - datetime.timedelta(days=int(clean_years)*365)).strftime('%Y-%m-%d')
     end_date = datetime.datetime.now().strftime('%Y-%m-%d')
