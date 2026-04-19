@@ -25,9 +25,11 @@ CREATE TABLE IF NOT EXISTS ephemeral_chunks (
     FOREIGN KEY(ephemeral_id) REFERENCES ephemeral_knowledge(id) ON DELETE CASCADE
 );
 
--- Tabela Virtual do sqlite-vec (Camada de Embeddings Matemáticos)
--- 1024 é a dimensionalidade padrao do 'nomic-embed-text' (ou snowflake/bge)
-CREATE VIRTUAL TABLE IF NOT EXISTS vec_ephemeral_chunks USING vec0(
+-- Tabela TurboQuantMSE (Camada de Embeddings Matemáticos Compressos)
+-- Vetores comprimidos em 4-bit (10.6x menor pegada de memória)
+CREATE TABLE IF NOT EXISTS vec_ephemeral_chunks (
     chunk_id INTEGER PRIMARY KEY,
-    embedding float[1024]
+    embedding BLOB NOT NULL,
+    norm REAL NOT NULL,
+    FOREIGN KEY(chunk_id) REFERENCES ephemeral_chunks(id) ON DELETE CASCADE
 );
