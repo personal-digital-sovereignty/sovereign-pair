@@ -2,7 +2,7 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 use tokio::fs;
-use tracing::{info, warn};
+use tracing::{info, warn, error};
 use uuid::Uuid;
 
 /// Retorna o caminho base do ecossistema Sovereign
@@ -20,6 +20,17 @@ fn get_base_path() -> PathBuf {
         })
         .join("sovereign-pair")
         .join("sandbox")
+}
+
+/// Retorna o caminho do Python standalone baixado pelo Sovereign
+/// Este Python é 100% autocontido — não depende de nenhuma instalação do sistema.
+fn get_standalone_python_bin() -> PathBuf {
+    let base = get_base_path().join("python");
+    if cfg!(target_os = "windows") {
+        base.join("python.exe")
+    } else {
+        base.join("bin").join("python3")
+    }
 }
 
 /// Retorna o caminho do executável Python dentro da bolha (Venv)
@@ -44,7 +55,147 @@ pub fn get_hermetic_pip_bin() -> PathBuf {
     }
 }
 
-/// Inicializa e provisiona a sandbox na inicialização do sistema
+/// Tenta localizar qualquer Python >= 3.10 no sistema.
+/// Retorna None se nenhum Python adequado existir (Mac novo, por exemplo).
+fn find_system_python() -> Option<PathBuf> {
+    // 1. Caminhos absolutos conhecidos
+    let candidates: Vec<&str> = if cfg!(target_os = "windows") {
+        vec!["C:\\Python312\\python.exe", "C:\\Python311\\python.exe", "C:\\Python310\\python.exe"]
+    } else if cfg!(target_os = "macos") {
+        vec![
+            "/opt/homebrew/bin/python3",
+            "/usr/local/bin/python3",
+            "/Library/Frameworks/Python.framework/Versions/Current/bin/python3",
+            "/usr/bin/python3",
+        ]
+    } else {
+        vec!["/usr/bin/python3", "/usr/local/bin/python3", "/usr/bin/python"]
+    };
+
+    for c in &candidates {
+        let p = PathBuf::from(c);
+        if p.exists() { return Some(p); }
+    }
+
+    // 2. which/where (resolve via PATH)
+    let (which, probe) = if cfg!(target_os = "windows") { ("where", "python") } else { ("which", "python3") };
+    if let Ok(out) = Command::new(which).arg(probe).output() {
+        if out.status.success() {
+            let resolved = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if !resolved.is_empty() {
+                let p = PathBuf::from(&resolved);
+                if p.exists() { return Some(p); }
+            }
+        }
+    }
+
+    None
+}
+
+// ─────────────────────────────────────────────────────────────
+// Auto-Provisioning: Baixa um Python standalone se não existir
+// Usa builds oficiais do Astral (python-build-standalone)
+// Mesma infraestrutura usada pelo uv/rye — confiável e FOSS
+// ─────────────────────────────────────────────────────────────
+
+/// Versão do CPython standalone a baixar (formato Astral release)
+const STANDALONE_PYTHON_VERSION: &str = "3.12.13";
+const STANDALONE_RELEASE_TAG: &str = "20260414";
+
+/// Constrói a URL de download correta baseada no OS e arch atuais
+fn get_standalone_download_url() -> Option<String> {
+    let arch = if cfg!(target_arch = "aarch64") { "aarch64" }
+    else if cfg!(target_arch = "x86_64") { "x86_64" }
+    else { return None; };
+
+    let platform = if cfg!(target_os = "macos") { "apple-darwin" }
+    else if cfg!(target_os = "linux") { "unknown-linux-gnu" }
+    else if cfg!(target_os = "windows") { "pc-windows-msvc" }
+    else { return None; };
+
+    Some(format!(
+        "https://github.com/astral-sh/python-build-standalone/releases/download/{tag}/cpython-{ver}+{tag}-{arch}-{plat}-install_only_stripped.tar.gz",
+        tag = STANDALONE_RELEASE_TAG,
+        ver = STANDALONE_PYTHON_VERSION,
+        arch = arch,
+        plat = platform
+    ))
+}
+
+/// Baixa e extrai o Python standalone na sandbox do Sovereign.
+/// Retorna o caminho do binário python3 extraído.
+async fn provision_standalone_python() -> Result<PathBuf, String> {
+    let url = get_standalone_download_url()
+        .ok_or_else(|| "Arquitetura ou S.O. não suportado para auto-provisioning Python.".to_string())?;
+
+    let sandbox_dir = get_base_path();
+    let python_dir = sandbox_dir.join("python");
+    let tarball_path = sandbox_dir.join("cpython-standalone.tar.gz");
+
+    info!("🌐 [Sovereign Sandbox] Baixando Python {STANDALONE_PYTHON_VERSION} standalone (~24MB)...");
+    info!("🌐 [Sovereign Sandbox] URL: {}", url);
+
+    // Download via reqwest (já é dependência do core)
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(300))
+        .build()
+        .map_err(|e| format!("Falha ao criar HTTP client: {}", e))?;
+
+    let response = client.get(&url).send().await
+        .map_err(|e| format!("Falha ao baixar Python standalone: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Download falhou com HTTP {}: {}", response.status(), url));
+    }
+
+    let bytes = response.bytes().await
+        .map_err(|e| format!("Falha ao ler body do download: {}", e))?;
+
+    // Salvar tarball no disco
+    let _ = fs::create_dir_all(&sandbox_dir).await;
+    fs::write(&tarball_path, &bytes).await
+        .map_err(|e| format!("Falha ao salvar tarball: {}", e))?;
+
+    info!("📦 [Sovereign Sandbox] Download concluído ({:.1} MB). Extraindo...", bytes.len() as f64 / 1_048_576.0);
+
+    // Extrair via tar nativo (Unix) ou tar.exe (Windows)
+    // O tarball contém um diretório "python/" na raiz
+    let extract_status = if cfg!(target_os = "windows") {
+        Command::new("tar")
+            .arg("-xzf").arg(&tarball_path)
+            .arg("-C").arg(&sandbox_dir)
+            .status()
+    } else {
+        Command::new("tar")
+            .arg("-xzf").arg(&tarball_path)
+            .arg("-C").arg(&sandbox_dir)
+            .status()
+    };
+
+    // Limpar tarball após extração
+    let _ = fs::remove_file(&tarball_path).await;
+
+    match extract_status {
+        Ok(s) if s.success() => {
+            let python_bin = get_standalone_python_bin();
+            if python_bin.exists() {
+                info!("✅ [Sovereign Sandbox] Python {STANDALONE_PYTHON_VERSION} standalone extraído com sucesso em {:?}", python_dir);
+                Ok(python_bin)
+            } else {
+                Err(format!("Extração concluída mas binário não encontrado em {:?}", python_bin))
+            }
+        },
+        Ok(s) => Err(format!("tar retornou código de saída {:?}", s.code())),
+        Err(e) => Err(format!("Falha ao executar tar: {}", e)),
+    }
+}
+
+/// Inicializa e provisiona a sandbox na inicialização do sistema.
+/// Fluxo:
+///   1. Se venv já existe → retorna true (hot path)
+///   2. Tenta usar Python do sistema (Homebrew, APT, etc.)
+///   3. Se não existir → baixa Python standalone (python-build-standalone / Astral)
+///   4. Cria venv + instala pacotes analíticos
 pub async fn setup_python_sandbox() -> bool {
     let sandbox_dir = get_base_path();
     let venv_dir = sandbox_dir.join("venv");
@@ -58,35 +209,64 @@ pub async fn setup_python_sandbox() -> bool {
         let _ = fs::create_dir_all(&sandbox_dir).await;
     }
 
-    // 1. Criar o Venv usando o Python do Host
-    let python_cmds = if cfg!(target_os = "windows") {
-        vec!["python", "py", "python3"]
+    // ── FASE 1: Encontrar ou provisionar o Python base ──
+    let python_bin = if let Some(sys_python) = find_system_python() {
+        info!("🐍 [Sovereign Sandbox] Python do sistema encontrado: {:?}", sys_python);
+        sys_python
+    } else if get_standalone_python_bin().exists() {
+        info!("🐍 [Sovereign Sandbox] Python standalone já provisionado anteriormente.");
+        get_standalone_python_bin()
     } else {
-        vec!["python3", "python"]
+        // Auto-provisioning: baixa Python standalone
+        info!("⚠️ [Sovereign Sandbox] Nenhum Python detectado no sistema. Iniciando auto-download...");
+        match provision_standalone_python().await {
+            Ok(bin) => bin,
+            Err(e) => {
+                error!("❌ [Sovereign Sandbox] Auto-provisioning falhou: {}. \
+                        Instale Python 3.10+ manualmente: \
+                        MacOS: `brew install python3` | \
+                        Linux: `sudo apt install python3 python3-venv` | \
+                        Windows: python.org/downloads", e);
+                return false;
+            }
+        }
     };
 
-    let mut venv_created = false;
-    for cmd in python_cmds {
-        let status = Command::new(cmd)
+    // ── FASE 2: Criar o Venv usando o Python encontrado ──
+    let venv_status = Command::new(&python_bin)
+        .arg("-m")
+        .arg("venv")
+        .arg(&venv_dir)
+        .status();
+
+    if !venv_status.is_ok_and(|st| st.success()) {
+        // Fallback: se -m venv falha (ex: Python standalone sem ensurepip), tentar com --without-pip
+        info!("⚠️ [Sovereign Sandbox] venv padrão falhou. Tentando --without-pip...");
+        let fallback_status = Command::new(&python_bin)
             .arg("-m")
             .arg("venv")
+            .arg("--without-pip")
             .arg(&venv_dir)
             .status();
 
-        if status.is_ok_and(|st| st.success()) {
-            venv_created = true;
-            break;
+        if !fallback_status.is_ok_and(|st| st.success()) {
+            error!("❌ [Sovereign Sandbox] Falha ao criar venv com {:?}!", python_bin);
+            return false;
         }
-    }
 
-    if !venv_created {
-        warn!("❌ [Sovereign Sandbox] Falha ao criar a Sandbox! O host O.S possui módulo 'python3-venv' instalado?");
-        return false;
+        // Se criou sem pip, precisa bootstrap-ar o pip manualmente
+        info!("📥 [Sovereign Sandbox] Bootstrap do pip via ensurepip...");
+        let hermetic_python = get_hermetic_python_bin();
+        let _ = Command::new(&hermetic_python)
+            .arg("-m")
+            .arg("ensurepip")
+            .arg("--default-pip")
+            .status();
     }
 
     info!("🐍 [Sovereign Sandbox] Venv criado. Instalando pacotes analíticos universais (Numpy, Pandas, etc)...");
     
-    // 2. Instalar Pacotes Críticos via pip hermético
+    // ── FASE 3: Instalar Pacotes Críticos via pip hermético ──
     let pip_bin = get_hermetic_pip_bin();
     let install_status = Command::new(&pip_bin)
         .arg("install")
@@ -108,6 +288,7 @@ pub async fn setup_python_sandbox() -> bool {
     warn!("⚠️ [Sovereign Sandbox] Venv criado, mas a instalação de pacotes via pip falhou.");
     false
 }
+
 
 /// Executa um script Python puramente dentro da bolha hermética.
 /// Retorna Stdout puro ou Err(Stderr).
