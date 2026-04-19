@@ -15,7 +15,9 @@ import { API_BASE_URL } from '$lib/env_config';
   import NotificationBell from '$lib/components/NotificationBell.svelte';
   import { settingsState, loadSettings } from '$lib/settings.svelte';
 
-  let appVersion = "1.2.9";
+  // Versão injetada pelo Vite em build-time via package.json (vite.config.ts → define)
+  // @ts-ignore — __APP_VERSION__ é definido em vite.config.ts via `define`
+  let appVersion: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : "0.0.0";
   let isChangelogOpen = $state(false);
   let { children } = $props();
 
