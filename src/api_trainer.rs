@@ -25,9 +25,11 @@ lazy_static! {
 }
 
 /// FIX-MacOS/Windows: Resolve o caminho do Python para executar workers.
-/// Windows: venv\Scripts\python.exe  → fallback: python.exe
-/// Unix:    venv/bin/python3          → fallback: python3
+/// Prioridade: Venv Hermético > Caminhos Absolutos do Sistema > PATH do Shell
+/// No MacOS App Bundle o PATH é restrito (~3 dirs), impedindo a resolução de `python3`
+/// via nome relativo. Precisamos provar caminhos absolutos conhecidos.
 fn resolve_venv_python() -> std::path::PathBuf {
+    // 1. Venv Hermético (prioridade máxima)
     let venv_bin = if cfg!(target_os = "windows") {
         dirs::data_local_dir()
             .unwrap_or_default()
@@ -40,12 +42,88 @@ fn resolve_venv_python() -> std::path::PathBuf {
             .join("bin").join("python3")
     };
     if venv_bin.exists() {
-        venv_bin
-    } else {
-        let fallback = if cfg!(target_os = "windows") { "python" } else { "python3" };
-        tracing::warn!("⚠️ [Sandbox] Venv não encontrado em {:?}. Fallback para {} do sistema.", venv_bin, fallback);
-        std::path::PathBuf::from(fallback)
+        tracing::info!("🐍 [Sandbox] Python Hermético encontrado: {:?}", venv_bin);
+        return venv_bin;
     }
+    tracing::warn!("⚠️ [Sandbox] Venv não encontrado em {:?}. Varrendo fallbacks do sistema...", venv_bin);
+
+    // 2. Caminhos absolutos conhecidos (MacOS Homebrew, Xcode CLT, Linux, Windows)
+    let system_candidates: Vec<&str> = if cfg!(target_os = "windows") {
+        vec![
+            "C:\\Python312\\python.exe",
+            "C:\\Python311\\python.exe",
+            "C:\\Python310\\python.exe",
+        ]
+    } else if cfg!(target_os = "macos") {
+        vec![
+            "/opt/homebrew/bin/python3",           // MacOS ARM (Homebrew Apple Silicon)
+            "/usr/local/bin/python3",               // MacOS Intel (Homebrew x86)
+            "/Library/Frameworks/Python.framework/Versions/Current/bin/python3", // python.org installer
+            "/usr/bin/python3",                     // Xcode Command Line Tools
+        ]
+    } else {
+        // Linux
+        vec![
+            "/usr/bin/python3",
+            "/usr/local/bin/python3",
+            "/usr/bin/python",
+        ]
+    };
+
+    for candidate in &system_candidates {
+        let path = std::path::PathBuf::from(candidate);
+        if path.exists() {
+            tracing::info!("🐍 [Sandbox] Python do sistema encontrado via fallback absoluto: {:?}", path);
+            return path;
+        }
+    }
+
+    // 3. Último recurso: `which python3` / `where python` (resolve via PATH do shell pai)
+    let which_cmd = if cfg!(target_os = "windows") { "where" } else { "which" };
+    let probe_name = if cfg!(target_os = "windows") { "python" } else { "python3" };
+    if let Ok(output) = std::process::Command::new(which_cmd).arg(probe_name).output() {
+        if output.status.success() {
+            let resolved = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !resolved.is_empty() {
+                let path = std::path::PathBuf::from(&resolved);
+                if path.exists() {
+                    tracing::info!("🐍 [Sandbox] Python encontrado via '{}': {:?}", which_cmd, path);
+                    return path;
+                }
+            }
+        }
+    }
+
+    // 3.5 Sovereign Standalone Python (auto-provisionado pelo sandbox.rs)
+    let standalone_bin = crate::sandbox::get_hermetic_python_bin();
+    if standalone_bin.exists() {
+        tracing::info!("🐍 [Sandbox] Python Hermético (standalone/venv) encontrado: {:?}", standalone_bin);
+        return standalone_bin;
+    }
+
+    // Tenta o Python standalone root (sem venv, direto do download)
+    let standalone_root = if cfg!(target_os = "windows") {
+        dirs::data_local_dir().unwrap_or_default()
+            .join("sovereign-pair").join("sandbox").join("python").join("python.exe")
+    } else {
+        dirs::data_local_dir().unwrap_or_default()
+            .join("sovereign-pair").join("sandbox").join("python").join("bin").join("python3")
+    };
+    if standalone_root.exists() {
+        tracing::info!("🐍 [Sandbox] Python standalone root encontrado: {:?}", standalone_root);
+        return standalone_root;
+    }
+
+    // 4. Falha catastrófica — retorna nome relativo e loga erro acionável
+    let fallback = if cfg!(target_os = "windows") { "python" } else { "python3" };
+    tracing::error!(
+        "❌ [Sandbox] NENHUM Python encontrado no sistema! Caminhos testados: {:?}. \
+         Instale Python 3.10+ para habilitar o Deep Research Pipeline. \
+         MacOS: `brew install python3` ou `xcode-select --install`. \
+         Linux: `sudo apt install python3 python3-venv`.",
+        system_candidates
+    );
+    std::path::PathBuf::from(fallback)
 }
 
 /// Helper para varrer os diretórios e achar 'python_workers' no MacOS / Linux
