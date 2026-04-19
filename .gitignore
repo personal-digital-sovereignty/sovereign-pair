@@ -206,3 +206,6 @@ infra/terraform/.terraform.lock.hcl
 # Gitleaks Local License File
 .gitleaks.key
 core/.fastembed_cache/
+
+# Internal strategy docs (private — not for public repo)
+_strategy/
