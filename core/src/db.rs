@@ -3,22 +3,22 @@ use std::env;
 use tracing::info;
 
 pub async fn init_pool() -> SqlitePool {
-    // Escaneia a variável de ambiente ou injeta a raiz Cíbrida Master (Hardcoded fallback p/ o projeto)
-    // Escaneia a variável de ambiente ou usa a pasta nativa do Sistema Operacional (Evita crash Sidecar/AppImage)
+    // P2-03: Resolve DATABASE_URL ou constrói path padrão cross-platform sem PANICs
     let db_path = env::var("DATABASE_URL").unwrap_or_else(|_| {
-        let mut path = dirs::data_local_dir().expect("Sovereign: SO Data Local Dir Not Found");
-        path.push("sovereign-pair");
-        path.push("data");
-        
-        // Garante que a estrutura da pasta exista antes que o SQLite tente criar o arquivo
+        let base = dirs::data_local_dir().unwrap_or_else(|| {
+            eprintln!("❌ [Sovereign Boot] data_local_dir() não resolveu. Usando diretório atual.");
+            std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
+        });
+        let path = base.join("sovereign-pair").join("data");
+
         if !path.exists() {
-            std::fs::create_dir_all(&path).expect("Sovereign: Falha ao criar arvore de dados do O.S");
+            if let Err(e) = std::fs::create_dir_all(&path) {
+                eprintln!("❌ [Sovereign Boot] Falha ao criar arvore de dados: {}. Verifique permissões.", e);
+                std::process::exit(1);
+            }
         }
-        
-        path.push("sovereign_memory.db");
-        
-        let path_str = path.to_string_lossy().to_string();
-        // O mode=rwc obriga o libsqlite3 a criar o arquivo físico caso ele não exista na pasta
+
+        let path_str = path.join("sovereign_memory.db").to_string_lossy().to_string();
         format!("sqlite:{}?mode=rwc", path_str)
     });
 
@@ -28,7 +28,10 @@ pub async fn init_pool() -> SqlitePool {
         .max_connections(5)
         .connect(&db_path)
         .await
-        .expect("Sovereign Error: Falha crassa ao abrir a gaveta de memória SQLite");
+        .unwrap_or_else(|e| {
+            eprintln!("❌ [Sovereign Boot] Falha crítica ao abrir SQLite ({}): {}. Verifique permissões e DATABASE_URL.", db_path, e);
+            std::process::exit(1);
+        });
 
     // Ativa PRAGMA WAL para velocidade Extrema igual ao Node Python antigo e Foreign Keys.
     let _ = sqlx::query("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;")
@@ -37,6 +40,30 @@ pub async fn init_pool() -> SqlitePool {
 
     // CARREGAMENTO NATIVO DO SCHEMA MESTRE CIBRIDO (EPIC 4)
     let _ = sqlx::query(include_str!("schemas/001_sensus_init.sql")).execute(&pool).await;
+
+    // CARREGAMENTO DO EPHEMERAL RAG SCHEMA (MÓDULO DE NOTÍCIAS)
+    let _ = sqlx::query(include_str!("schemas/002_ephemeral_knowledge.sql")).execute(&pool).await;
+
+    // CARREGAMENTO DO SOVEREIGN PROMPT VAULT SCHEMA
+    let _ = sqlx::query(include_str!("schemas/003_sovereign_prompts.sql")).execute(&pool).await;
+
+    // Seed core prompts do TOML (com verificação SHA-256)
+    crate::prompt_vault::seed_core_prompts(&pool).await;
+
+    // PATCH AUTOMIGRATION (MATRIX CAPABILITIES): Injela as novas colunas silenciosamente sem destruir DBs antigos
+    let new_cols = vec!["is_master", "is_scribe", "is_auditor", "is_agent", "is_coder", "is_chat", "is_project"];
+    for col in new_cols {
+        let qs = format!("ALTER TABLE model_capabilities ADD COLUMN {} BOOLEAN DEFAULT 0", col);
+        let _ = sqlx::query(&qs).execute(&pool).await; // Ignora o erro se a coluna já existir
+    }
+    
+    // PATCH AUTOMIGRATION (OFFLINE SYNC FALLBACK)
+    let _ = sqlx::query("ALTER TABLE model_capabilities ADD COLUMN is_installed BOOLEAN DEFAULT 1").execute(&pool).await;
+
+    // PATCH 1.2.0 (MULTI-TENANCY): Resgata históricos antigos sem ID e os prende ao Workspace Primário
+    let _ = sqlx::query("UPDATE chat_sessions SET workspace_id = '1' WHERE workspace_id IS NULL OR workspace_id = '' OR workspace_id = 'default'")
+        .execute(&pool)
+        .await;
 
     // Seed Initial Trusted Sources (Ignora caso o domínio já exista)
     let initial_tier_1_sources = vec![
@@ -66,8 +93,8 @@ pub async fn init_pool() -> SqlitePool {
     }
 
     let path_str = env::var("RAG_VAULT_PATH").unwrap_or_else(|_| {
-        let mut path = env::current_dir().expect("Hostile Environment");
-        if path.ends_with("core") { path.pop(); }
+        let mut path = dirs::home_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from("."));
         path.push("Vault");
         path.to_string_lossy().into_owned()
     });

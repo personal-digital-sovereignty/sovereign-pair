@@ -12,9 +12,18 @@
     ];
 
     let validModels = $derived(telemetryState.historicalModels.filter(m => m.model_name && m.model_name.trim() !== '' && m.model_name !== '-'));
-
     let historicalTotalTokens = $derived(validModels.reduce((acc, m) => acc + (parseInt(m.total_tokens) || 0), 0));
     
+    // Cloud Economy Real-time Math
+    let lifetimeSavings = $derived((historicalTotalTokens / 1000) * telemetryState.avgCloudCostPer1k);
+    let earliestDate = $derived(validModels.length > 0 ? validModels.reduce((acc, m) => {
+        if (!m.first_used_at) return acc;
+        let d = new Date(m.first_used_at.replace(' ', 'T') + 'Z');
+        return d < acc ? d : acc;
+    }, new Date()) : new Date());
+    let activeDays = $derived(Math.max(1, (new Date().getTime() - earliestDate.getTime()) / (1000 * 60 * 60 * 24)));
+    let dailySavings = $derived(lifetimeSavings / activeDays);
+    let weeklySavings = $derived(dailySavings * 7);
     let historicalModelSplits = $derived(validModels.map((m, idx) => {
         let palette = tailwindPalette[idx % tailwindPalette.length];
         let tokens = parseInt(m.total_tokens) || 0;
@@ -59,22 +68,6 @@
 </script>
 
 <div class="p-8 h-full">
-    <!-- Header Section (Identical to Distillation) -->
-    <header class="mb-10 w-full flex items-center justify-between">
-        <div class="flex items-center gap-4 bg-surface-container-low px-4 py-2 rounded-full w-96 border border-outline-variant/10 shadow-sm">
-            <span class="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
-            <input class="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-on-surface-variant/70 text-on-surface outline-none" placeholder="Search analytics or metrics..." type="text" />
-        </div>
-        <div class="flex items-center gap-4 bg-surface-container-low p-1.5 rounded-xl border border-outline-variant/10">
-            <a href="/engineer/fine-tuning" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Fine-Tuning</a>
-            <a href="/engineer/distillation" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Distillation</a>
-            <a href="/engineer/reflection" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Reflection Lab</a>
-            <a href="/engineer/rag-pipeline" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">RAG Pipeline</a>
-            <a href="/engineer/unsloth" class="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-[#1d253b] transition-colors">Unsloth Monitor</a>
-            <button class="px-4 py-2 bg-blue-600 dark:bg-[#74b0ff]/20 text-white dark:text-[#74b0ff] font-bold text-xs rounded-lg shadow-sm">Analytics</button>
-        </div>
-    </header>
-
     <div class="w-full flex-1">
         <!-- Title Section -->
         <section class="flex justify-between items-end mb-10">
@@ -100,17 +93,17 @@
 
     <!-- Row 1: Vital Signs -->
     <div class="grid grid-cols-1 md:grid-cols-2 border border-slate-200/50 dark:border-slate-800/50 bg-white/50 dark:bg-[#12192b]/50 backdrop-blur p-2 rounded-3xl lg:grid-cols-5 gap-4 shrink-0 shadow-sm">
-        <!-- Total Cost -->
-        <div class="bg-white dark:bg-[#0c1324] p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50 shadow-sm hover:border-blue-200 dark:hover:border-blue-900/50 transition-all flex flex-col group">
+        <!-- Total Savings -->
+        <div class="bg-white dark:bg-[#0c1324] p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50 shadow-sm hover:border-emerald-200 dark:hover:border-emerald-900/50 transition-all flex flex-col group">
             <div class="flex justify-between items-start mb-4">
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest group-hover:text-blue-500 transition-colors">Total Cost</span>
-                <div class="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-                  <CircleDollarSign class="text-blue-600 dark:text-blue-400 w-5 h-5" />
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">Total Savings</span>
+                <div class="p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg">
+                  <CircleDollarSign class="text-emerald-600 dark:text-emerald-400 w-5 h-5" />
                 </div>
             </div>
             <div class="text-3xl font-extrabold text-slate-800 dark:text-slate-200 mb-1 leading-none">US$ {telemetryState.estimatedCost.toFixed(4)}</div>
-            <div class="flex items-center gap-1.5 text-xs font-bold text-rose-500 mt-4">
-                <TrendingUp class="w-4 h-4" /> 5% vs last 24h
+            <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-500 mt-4">
+                <TrendingUp class="w-4 h-4" /> Sovereign Cloud Economy
             </div>
         </div>
 
@@ -250,12 +243,20 @@
             </div>
             <div class="mt-auto pt-5 border-t border-slate-100 dark:border-slate-800 shrink-0">
                 <div class="flex items-center gap-5">
-                    <div class="w-16 h-16 rounded-full border-[5px] border-emerald-100 dark:border-emerald-900/50 flex items-center justify-center bg-white dark:bg-[#12192b] shadow-inner">
-                        <span class="text-lg font-black text-emerald-600 dark:text-emerald-400">34%</span>
+                    <div class="w-14 h-14 rounded-full border-[4px] border-emerald-100 dark:border-emerald-900/50 flex flex-col items-center justify-center bg-emerald-50 dark:bg-emerald-900/20 shadow-inner shrink-0">
+                        <span class="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 -mb-0.5">LIFETIME</span>
+                        <span class="text-[10px] font-black tracking-widest text-emerald-700 dark:text-emerald-300">$$$</span>
                     </div>
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">Semantic Cache Hit</h3>
-                        <p class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold tracking-wide uppercase">Est. savings: $124.20/day</p>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-end justify-between mb-0.5">
+                            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">Total Economy Extracted</h3>
+                            <span class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">US$ {lifetimeSavings.toFixed(2)}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                            <span title="Economia Estimada por Dia">Day: <span class="text-slate-600 dark:text-slate-300">US$ {dailySavings.toFixed(2)}</span></span>
+                            <span title="Economia Estimada por Semana">Week: <span class="text-slate-600 dark:text-slate-300">US$ {weeklySavings.toFixed(2)}</span></span>
+                            <span title="Economia Estimada por Mês">Month: <span class="text-slate-600 dark:text-slate-300">US$ {(dailySavings * 30).toFixed(2)}</span></span>
+                        </div>
                     </div>
                 </div>
             </div>

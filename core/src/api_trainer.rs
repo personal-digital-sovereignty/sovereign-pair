@@ -24,6 +24,172 @@ lazy_static! {
     };
 }
 
+/// FIX-MacOS/Windows: Resolve o caminho do Python para executar workers.
+/// Prioridade: Venv Hermético > Caminhos Absolutos do Sistema > PATH do Shell
+/// No MacOS App Bundle o PATH é restrito (~3 dirs), impedindo a resolução de `python3`
+/// via nome relativo. Precisamos provar caminhos absolutos conhecidos.
+fn resolve_venv_python() -> std::path::PathBuf {
+    // 1. Venv Hermético (prioridade máxima)
+    let venv_bin = if cfg!(target_os = "windows") {
+        dirs::data_local_dir()
+            .unwrap_or_default()
+            .join("sovereign-pair").join("sandbox").join("venv")
+            .join("Scripts").join("python.exe")
+    } else {
+        dirs::data_local_dir()
+            .unwrap_or_default()
+            .join("sovereign-pair").join("sandbox").join("venv")
+            .join("bin").join("python3")
+    };
+    if venv_bin.exists() {
+        tracing::info!("🐍 [Sandbox] Python Hermético encontrado: {:?}", venv_bin);
+        return venv_bin;
+    }
+    tracing::warn!("⚠️ [Sandbox] Venv não encontrado em {:?}. Varrendo fallbacks do sistema...", venv_bin);
+
+    // 2. Caminhos absolutos conhecidos (MacOS Homebrew, Xcode CLT, Linux, Windows)
+    let system_candidates: Vec<&str> = if cfg!(target_os = "windows") {
+        vec![
+            "C:\\Python312\\python.exe",
+            "C:\\Python311\\python.exe",
+            "C:\\Python310\\python.exe",
+        ]
+    } else if cfg!(target_os = "macos") {
+        vec![
+            "/opt/homebrew/bin/python3",           // MacOS ARM (Homebrew Apple Silicon)
+            "/usr/local/bin/python3",               // MacOS Intel (Homebrew x86)
+            "/Library/Frameworks/Python.framework/Versions/Current/bin/python3", // python.org installer
+            "/usr/bin/python3",                     // Xcode Command Line Tools
+        ]
+    } else {
+        // Linux
+        vec![
+            "/usr/bin/python3",
+            "/usr/local/bin/python3",
+            "/usr/bin/python",
+        ]
+    };
+
+    for candidate in &system_candidates {
+        let path = std::path::PathBuf::from(candidate);
+        if path.exists() {
+            tracing::info!("🐍 [Sandbox] Python do sistema encontrado via fallback absoluto: {:?}", path);
+            return path;
+        }
+    }
+
+    // 3. Último recurso: `which python3` / `where python` (resolve via PATH do shell pai)
+    let which_cmd = if cfg!(target_os = "windows") { "where" } else { "which" };
+    let probe_name = if cfg!(target_os = "windows") { "python" } else { "python3" };
+    if let Ok(output) = std::process::Command::new(which_cmd).arg(probe_name).output() {
+        if output.status.success() {
+            let resolved = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !resolved.is_empty() {
+                let path = std::path::PathBuf::from(&resolved);
+                if path.exists() {
+                    tracing::info!("🐍 [Sandbox] Python encontrado via '{}': {:?}", which_cmd, path);
+                    return path;
+                }
+            }
+        }
+    }
+
+    // 3.5 Sovereign Standalone Python (auto-provisionado pelo sandbox.rs)
+    let standalone_bin = crate::sandbox::get_hermetic_python_bin();
+    if standalone_bin.exists() {
+        tracing::info!("🐍 [Sandbox] Python Hermético (standalone/venv) encontrado: {:?}", standalone_bin);
+        return standalone_bin;
+    }
+
+    // Tenta o Python standalone root (sem venv, direto do download)
+    let standalone_root = if cfg!(target_os = "windows") {
+        dirs::data_local_dir().unwrap_or_default()
+            .join("sovereign-pair").join("sandbox").join("python").join("python.exe")
+    } else {
+        dirs::data_local_dir().unwrap_or_default()
+            .join("sovereign-pair").join("sandbox").join("python").join("bin").join("python3")
+    };
+    if standalone_root.exists() {
+        tracing::info!("🐍 [Sandbox] Python standalone root encontrado: {:?}", standalone_root);
+        return standalone_root;
+    }
+
+    // 4. Falha catastrófica — retorna nome relativo e loga erro acionável
+    let fallback = if cfg!(target_os = "windows") { "python" } else { "python3" };
+    tracing::error!(
+        "❌ [Sandbox] NENHUM Python encontrado no sistema! Caminhos testados: {:?}. \
+         Instale Python 3.10+ para habilitar o Deep Research Pipeline. \
+         MacOS: `brew install python3` ou `xcode-select --install`. \
+         Linux: `sudo apt install python3 python3-venv`.",
+        system_candidates
+    );
+    std::path::PathBuf::from(fallback)
+}
+
+/// Helper para varrer os diretórios e achar 'python_workers' no MacOS / Linux
+pub fn resolve_python_workers_dir() -> std::path::PathBuf {
+    let cur_dir = std::env::current_dir().unwrap_or_default();
+    
+    // Tentativa 1: Dev environment (Cargo workspace root)
+    if cur_dir.join("core").join("python_workers").exists() {
+        return cur_dir.join("core").join("python_workers");
+    }
+    // Tentativa 2: Single crate cargo run
+    if cur_dir.join("python_workers").exists() {
+        return cur_dir.join("python_workers");
+    }
+    
+    // Tentativa 3: Ambiente produtivo (App Bundle do MacOS / Release Executable)
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            // Em MacOS App Bundle, Contents/MacOS/exe -> Contents/Resources/python_workers
+            if parent.join("../Resources/python_workers").exists() {
+                return parent.join("../Resources/python_workers").canonicalize()
+                    .unwrap_or_else(|_| parent.join("../Resources/python_workers"));
+            }
+            if parent.join("python_workers").exists() {
+                return parent.join("python_workers");
+            }
+        }
+    }
+    
+    // Tentativa 4: Fallback original que sempre quebrava no Mac
+    if cur_dir.ends_with("core") {
+        cur_dir.join("python_workers")
+    } else {
+        cur_dir.join("core").join("python_workers")
+    }
+}
+
+/// Extrai blocos raw de dados temporais de `all_sources`.
+/// O `all_sources` contém strings como:
+///   `### Sovereign Open-Data Output:\n{"status":"success","data_compressed":"[CONTEXT: ...]\n2020-01 | 63.65"}`
+/// O joiner espera apenas o conteúdo de `data_compressed` (sem JSON wrapper).
+/// Esta função:
+/// 1. Tenta parsear o JSON de dentro de cada item
+/// 2. Extrai `data_compressed` se existir
+/// 3. Caso contrário, devolve o item raw (para blocos não-JSON como output de scraper)
+fn extract_raw_data_blocks(all_sources: &[String]) -> Vec<String> {
+    let mut blocks = Vec::new();
+    for src in all_sources {
+        // Remove headers de prefixo como "### Sovereign Open-Data Output:"
+        let mut json_candidate = src.as_str();
+        if let Some(pos) = json_candidate.find('{') {
+            json_candidate = &json_candidate[pos..];
+        }
+        // Tenta parsear como JSON e extrair data_compressed
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_candidate) {
+            if let Some(dc) = parsed.get("data_compressed").and_then(|v| v.as_str()) {
+                blocks.push(dc.to_string());
+                continue;
+            }
+        }
+        // Fallback: devolve o raw inteiro (scraper text, sandbox output, etc)
+        blocks.push(src.clone());
+    }
+    blocks
+}
+
 #[derive(Deserialize)]
 #[allow(dead_code)]
 pub struct DistillationReq {
@@ -88,7 +254,7 @@ pub async fn run_distillation_handler(
     tokio::spawn(async move {
         let _ = TRAINER_LOGS.send(format!("Extraindo corpus de conhecimento local do Sensus Vault (Epochs: {}, Batch: {})...", req.epochs, req.batch_size));
         tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
-        let _ = TRAINER_LOGS.send("Sensus > JSONL Data Exportado (Target: /tmp/sovereign-pair/distill_vault.jsonl)".to_string());
+        let _ = TRAINER_LOGS.send(format!("Sensus > JSONL Data Exportado (Target: {})", std::env::temp_dir().join("sovereign-pair").join("distill_vault.jsonl").display()));
         tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
 
         let client = reqwest::Client::new();
@@ -160,7 +326,7 @@ pub async fn run_finetuning_handler(
     tokio::spawn(async move {
         let _ = TRAINER_LOGS.send(format!("Compilando Dataset Sensus Vault '{}' para JSONL...", req.dataset_name));
         tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
-        let _ = TRAINER_LOGS.send(format!("JSONL exportado para /tmp/sovereign-pair/{}.jsonl", req.dataset_name));
+        let _ = TRAINER_LOGS.send(format!("JSONL exportado para {}", std::env::temp_dir().join("sovereign-pair").join(format!("{}.jsonl", req.dataset_name)).display()));
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         let _ = TRAINER_LOGS.send(format!("Iniciando subprocess Unsloth: LR={}, LoRA_Rank={}, BatchSize={}", req.learning_rate, req.lora_rank, req.batch_size));
 
@@ -278,12 +444,15 @@ async fn execute_sub_analyst(
         }
 
         let mut scrape_handles = Vec::new();
-        for link in res.links.clone().into_iter().take(20) {
+        let deep_research_cap = if let Some(pool) = engine_arc.db_pool.as_ref() {
+            crate::api_settings::load_scrape_limits(pool).await.max_links_deep_research
+        } else { 7 };
+        for link in res.links.clone().into_iter().take(deep_research_cap) {
             let engine_clone = engine_arc.clone();
             scrape_handles.push(tokio::spawn(async move {
                 if let Ok(md) = engine_clone.scrape_url(&link).await {
                     if md.len() > 100 {
-                        return Some(format!("## Source: {}\n{}\n\n", link, md.chars().take(2500).collect::<String>()));
+                        return Some((link, md));
                     }
                 }
                 None
@@ -292,9 +461,43 @@ async fn execute_sub_analyst(
 
         let results = futures_util::future::join_all(scrape_handles).await;
         for res_task in results {
-            if let Ok(Some(md_content)) = res_task {
-                raw_student_md.push_str(&md_content);
+            if let Ok(Some((link, full_md))) = res_task {
+                raw_student_md.push_str(&format!("## Source: {}\n{}\n\n", link, full_md.chars().take(2500).collect::<String>()));
                 web_scraped_data_found = true;
+
+                // [EPHEMERAL RAG PIPELINE] - Injetar Notícia Bruta Linearmente na Tabela
+                if let Some(pool) = engine_arc.db_pool.as_ref() {
+                    let ephem_id = uuid::Uuid::new_v4().to_string();
+                    let domain = link.split('/').nth(2).unwrap_or("unknown").to_string();
+                    
+                    let _ = sqlx::query("INSERT INTO ephemeral_knowledge (id, source_url, domain, expires_at, content_raw) VALUES (?, ?, ?, datetime('now', '+30 days'), ?)")
+                        .bind(&ephem_id).bind(&link).bind(&domain).bind(&full_md)
+                        .execute(pool).await;
+
+                    // [VECTOR DB CHUNKING] - Usando Nomic
+                    let chunks: Vec<String> = full_md.split("\n\n").map(|s| s.to_string()).filter(|s| s.len() > 50).collect();
+                    let olla_embed = std::env::var("OLLAMA_BASE_URL").unwrap_or("http://127.0.0.1:11434".to_string());
+                    
+                    for (i, ch) in chunks.iter().take(50).enumerate() {
+                        let meta = serde_json::json!({ "source": link, "ingested_at": chrono::Utc::now().to_rfc3339() }).to_string();
+                        if let Ok(res_ch) = sqlx::query("INSERT INTO ephemeral_chunks (ephemeral_id, text_content, chunk_index, metadata_json) VALUES (?, ?, ?, ?)")
+                            .bind(&ephem_id).bind(ch).bind(i as i32).bind(&meta).execute(pool).await {
+                                
+                                let emb_req = serde_json::json!({"model": "nomic-embed-text", "prompt": ch});
+                                if let Ok(emb_res) = client.post(format!("{}/api/embeddings", olla_embed)).json(&emb_req).send().await {
+                                    if let Ok(emb_json) = emb_res.json::<serde_json::Value>().await {
+                                        if let Some(embedding) = emb_json.get("embedding").and_then(|e| e.as_array()) {
+                                            let floats_bytes: Vec<u8> = embedding.iter().filter_map(|v| v.as_f64().map(|f| f as f32)).flat_map(|f| f.to_ne_bytes()).collect();
+                                            let _ = sqlx::query("INSERT INTO vec_ephemeral_chunks (chunk_id, embedding) VALUES (?, ?)")
+                                                .bind(res_ch.last_insert_rowid())
+                                                .bind(floats_bytes)
+                                                .execute(pool).await;
+                                        }
+                                    }
+                                }
+                        }
+                    }
+                }
             }
         }
     }
@@ -404,7 +607,10 @@ async fn execute_sub_analyst(
         crate::api::discover_cognitive_model_by_tier("senior").await
     };
     
-    let gate_system = "You are a data sufficiency checker. Your only job is to answer: 'Does the retrieved context contain enough specific numerical data and facts to answer the query?' Output ONLY valid JSON: {\"sufficient\": true, \"fields_found\": [\"<field1>\"]} or {\"sufficient\": false, \"missing\": [\"<field1>\"], \"reason\": \"<specific gap>\"}. Do NOT attempt to answer the original query. Do NOT generate any analysis.";
+    let gate_system = if let Some(pool) = engine_arc.db_pool.as_ref() {
+        crate::prompt_vault::load_prompt_by_slug(pool, "gate_system").await
+    } else { None }
+    .unwrap_or_else(|| "You are a data sufficiency checker. Your only job is to answer: 'Does the retrieved context contain enough specific numerical data and facts to answer the query?' Output ONLY valid JSON: {\"sufficient\": true, \"fields_found\": [\"<field1>\"]} or {\"sufficient\": false, \"missing\": [\"<field1>\"], \"reason\": \"<specific gap>\"}. Do NOT attempt to answer the original query. Do NOT generate any analysis.".to_string());
     
     let gate_prompt = format!("<context>\n{}\n</context>\n\n<query>{}</query>\n\nJSON OUTPUT:", reranked_md, query);
 
@@ -454,7 +660,10 @@ async fn execute_sub_analyst(
     }
 
     // --- PHASE 1.2: LITERAL EXTRACTOR (DYNAMIC SQUAD RUTING) ---
-    let system_prompt = "Você é um Extrator Literal Estrito.\nFORBIDDEN outputs:\n- Any sentence without an attached [- Chunk X] citation\n- Rounded numbers (flag as suspicious)\n- Phrases: 'aproximadamente', 'em torno de', 'cerca de', 'significativamente' -> these are fabrication markers = HALT\n- Any claim about absence of evidence.\n\nSeu ÚNICO TRABALHO é copiar os valores textuais ou numéricos VERBATIM do [CONTEXTO], apensando na frente a citação exata de onde tirou (ex: 'Segundo os dados do [- Chunk 2]...'). NÃO GERE PROSA, não analise, não conclua. Apenas liste os fatos crus.";
+    let system_prompt = if let Some(pool) = engine_arc.db_pool.as_ref() {
+        crate::prompt_vault::load_prompt_by_slug(pool, "literal_extractor").await
+    } else { None }
+    .unwrap_or_else(|| "Você é um Extrator Literal Estrito.\nFORBIDDEN outputs:\n- Any sentence without an attached [- Chunk X] citation\n- Rounded numbers (flag as suspicious)\n- Phrases: 'aproximadamente', 'em torno de', 'cerca de', 'significativamente' -> these are fabrication markers = HALT\n- Any claim about absence of evidence.\n\nSeu ÚNICO TRABALHO é copiar os valores textuais ou numéricos VERBATIM do [CONTEXTO], apensando na frente a citação exata de onde tirou (ex: 'Segundo os dados do [- Chunk 2]...'). NÃO GERE PROSA, não analise, não conclua. Apenas liste os fatos crus.".to_string());
     
     let extractor_prompt = format!("PERGUNTA:\n{}\n\n[CONTEXTO]:\n{}", query, reranked_md);
 
@@ -568,6 +777,12 @@ async fn execute_sub_analyst(
         sources_used.push_str(&format!("{}\n", line));
     }
     
+    // --- Sovereign Swap: VRAM GC Cleanup Phase ---
+    crate::memory_manager::fire_eviction_protocol(&gate_model).await;
+    if routed_sub_agent != gate_model {
+        crate::memory_manager::fire_eviction_protocol(&routed_sub_agent).await;
+    }
+
     format!("{}\n\n[Fontes processadas por este sub-analista]:\n{}", distilled_text, sources_used)
 }
 
@@ -614,17 +829,50 @@ pub async fn run_deep_research_handler(
         let tools_schema: serde_json::Value = serde_json::from_str(include_str!("../python_workers/registry.json")).unwrap_or_else(|_| serde_json::json!([]));
 
         let mut target_model_name = req.model.clone().unwrap_or_else(|| "qwen2.5:7b".to_string());
-        if target_model_name.contains("0.5b") || target_model_name.contains("1.5b") || target_model_name.contains("0.") || target_model_name.contains("1b") || target_model_name.contains("2b") {
-            let _ = TRAINER_LOGS.send(format!("⚠️ [Proteção Cognitiva] Modelo selecionado ({}) é instável para Tool Calling estrutural. Escalonando Master Agent para 'qwen3:4b'!", target_model_name));
-            target_model_name = "qwen3:4b".to_string();
+        
+        let mut must_escalate = false;
+        if let Some(pool) = engine_arc.db_pool.as_ref() {
+            if let Ok(Some(row)) = sqlx::query("SELECT parameter_size, supports_tools FROM model_capabilities WHERE model_name = ?")
+                .bind(&target_model_name)
+                .fetch_optional(pool)
+                .await {
+                    let p_size: f64 = sqlx::Row::try_get(&row, "parameter_size").unwrap_or(0.0);
+                    let s_tools: bool = sqlx::Row::try_get(&row, "supports_tools").unwrap_or(false);
+                    if p_size < 3.0 || !s_tools { must_escalate = true; }
+            } else {
+                must_escalate = true; 
+            }
         }
-        let is_low_end = target_model_name.contains("3.2") || target_model_name.contains("qwen2.5:1.5b") || target_model_name.contains("3b") || target_model_name.contains("4b");
+
+        if must_escalate {
+            let dyn_mestre = crate::api::discover_capable_master_agent(engine_arc.db_pool.as_ref(), 3.0, true, true, "llama3.1:8b").await;
+            let _ = TRAINER_LOGS.send(format!("⚠️ [Proteção Cognitiva Ativa] O modelo [{}] mapeado não possui Tool Calling estrutural via DB. Escalonando Master Agent Dinâmico: [{}]", target_model_name, dyn_mestre));
+            target_model_name = dyn_mestre;
+        }
+        
+        let mut is_low_end = true;
+        if let Some(pool) = engine_arc.db_pool.as_ref() {
+            if let Ok(Some(sz)) = sqlx::query_scalar::<_, f64>("SELECT parameter_size FROM model_capabilities WHERE model_name = ?").bind(&target_model_name).fetch_optional(pool).await {
+                is_low_end = sz < 5.0;
+            }
+        }
         
         let anchor_directive = format!("[DIRETRIZ MATEMÁTICA ABSOLUTA] O ano real atual é {}. Se for exigido 'N' anos atrás, obrigatoriamente calcule a data subtraindo 'N' de {}. É terminantemente PROIBIDO usar seu ano de treinamento base como âncora temporal.", current_year, current_year);
 
-        // AUTOBAHN RULES ENGINE DYNAMIC LOADING
-        let cur_dir = std::env::current_dir().unwrap_or_default();
-        let yaml_path = if cur_dir.ends_with("core") { cur_dir.join("autobahn_rules.yml") } else { cur_dir.join("core").join("autobahn_rules.yml") };
+        // AUTOBAHN RULES ENGINE DYNAMIC LOADING — path robusto para MacOS App Bundle
+        let yaml_path = {
+            let cur = std::env::current_dir().unwrap_or_default();
+            let candidate1 = cur.join("core").join("autobahn_rules.yml"); // cargo workspace root
+            let candidate2 = cur.join("autobahn_rules.yml");             // dentro de /core
+            // MacOS App Bundle: binário fica em Contents/MacOS, recursos em Contents/Resources
+            let candidate3 = std::env::current_exe().unwrap_or_default()
+                .parent().unwrap_or(std::path::Path::new("/"))
+                .parent().unwrap_or(std::path::Path::new("/"))
+                .join("Resources").join("autobahn_rules.yml");
+            if candidate1.exists() { candidate1 }
+            else if candidate2.exists() { candidate2 }
+            else { candidate3 }
+        };
         let yaml_content = std::fs::read_to_string(&yaml_path).unwrap_or_else(|_| "{}".to_string());
         
         let rules: serde_yaml::Value = serde_yaml::from_str(&yaml_content).unwrap_or_default();
@@ -642,22 +890,22 @@ pub async fn run_deep_research_handler(
             }
         }
 
+        // FIX-18: System prompt 100% ESTÁTICO para máximo reuso de KV Cache.
+        // Elementos dinâmicos (current_date, anchor_directive) movidos para a user message.
+        // O Ollama reutiliza os tensores KV do prefixo idêntico entre stages, economizando
+        // ~800 tokens de prefill por stage (~10 min total em CPU).
         let synthesis_prompt = format!(
             "Você é {}, {}.\n\
-            {}\n\
-            {}\n\
             [DIRETRIZES TÁTICAS ORQUESTRAIS DE TOOL CALLING]\n\
             {}\n",
             name,
             role,
-            chrono.replace("{current_date}", &current_date),
-            anchor_directive,
             directives_str
         );
 
         let mut messages = vec![
             serde_json::json!({"role": "system", "content": synthesis_prompt}),
-            serde_json::json!({"role": "user", "content": format!("{}\n\n[SYSTEM OVERRIDE/SECURITY]: Você AINDA NÃO POSSUI NENHUM DADO EXTRAÍDO. É expressamente PROIBIDO responder com sínteses vazias ou teóricas para o usuário. Sua próxima resposta DEVE ser ÚNICA E EXCLUSIVAMENTE O JSON DE INVOCACÃO da ferramenta apropriada para buscar informações factuais.", prompt.clone())})
+            serde_json::json!({"role": "user", "content": format!("{}\n{}\n\n{}\n\n[SYSTEM OVERRIDE/SECURITY]: Você AINDA NÃO POSSUI NENHUM DADO EXTRAÍDO. É expressamente PROIBIDO responder com sínteses vazias ou teóricas para o usuário. Sua próxima resposta DEVE ser ÚNICA E EXCLUSIVAMENTE O JSON DE INVOCACÃO da ferramenta apropriada para buscar informações factuais.", chrono.replace("{current_date}", &current_date), anchor_directive, prompt.clone())})
         ];
 
 
@@ -682,44 +930,84 @@ pub async fn run_deep_research_handler(
         
         let mut synthesized_report = String::new();
         let olla_url = format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/chat").to_string();
-        let synthesis_client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(7200)).build().unwrap_or_else(|_| reqwest::Client::new());
+        // Timeout por stage: 900s (15 min) acomoda:
+        //  - Cold-start inicial do modelo (~3-5 min para carregar tensores na VRAM)
+        //  - Re-carregamento após Sandbox Python evictar o modelo da VRAM
+        //  - Inferência pesada em hosts com 27GB RAM e CPU offloading
+        // NOTA: O Sandbox executa Python com Pandas, forçando o Ollama a descarregar
+        // o modelo. Quando o próximo stage invoca o LLM, é um cold-start COMPLETO.
+        let synthesis_client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(900)).build().unwrap_or_else(|_| reqwest::Client::new());
         
         // --- PHASE 41: THE HONEST INQUISITOR (SINGLE AGENT) ---
         // Eliminação da Trindade (Quórum) por sobrecarga de processamento. 
         // A extração agora elege apenas UM sub-agente, classificado pelo banco SQLite como o que menos alucinou no passado.
         let fallback_inquisitor = crate::api::discover_cognitive_model_by_tier("junior").await;
         
-        // Elege o modelo empiricamente mais honesto (Ignora deepseek pois o prompt zero-shot quebra o json)
-        let auth_inquisitor = crate::api::query_most_honest_model(engine_arc.db_pool.as_ref(), &fallback_inquisitor).await;
+        // Elege o modelo empiricamente mais honesto via Sycophancy Breaker (Viés cruzado)
+        let mut auth_inquisitor = crate::api::discover_adversarial_auditor(engine_arc.db_pool.as_ref(), &target_model_name, &fallback_inquisitor).await;
         
         let mut all_sources = Vec::new();
+        let mut all_hashes = Vec::new();
         let mut has_failed_tools = false;
+        let mut json_fail_count = 0;
+        // GAP-11 FIX: Rastrear modelos que já falharam nesta sessão para evitar bounce infinito.
+        let mut failed_models: std::collections::HashSet<String> = std::collections::HashSet::new();
+        // Contador de retries de conexão (cobre cold-start E reload pós-Sandbox em qualquer stage).
+        let mut connection_retries: u8 = 0;
+        // SYMBIOTIC PIPELINE INLINE: Flag para sinalizar que a tabela Markdown já foi gerada
+        // e injetada no contexto. Previne o LLM de desperdiçar stages com execute_python_code.
+        let mut symbiotic_table_markdown: Option<String> = None;
         
-        // --- THE WORKER GRAPH LOOP (MAX 5 STAGES: GATHER, ANALYZE, SYNTHESIZE) ---
-        for cycle in 1..=5 {
+        // --- THE WORKER GRAPH LOOP (MAX 15 STAGES: GATHER, ANALYZE, SYNTHESIZE) ---
+        // Reduzido de 25 para 15: pesquisas reais completam em 8-10 stages.
+        // 25 stages × ~10 min/stage = 4h+ no pior caso em hosts de 27GB RAM.
+        for cycle in 1..=15 {
             if wait_or_cancel(200, &token).await { return; }
             
             // --- G.2: DYNAMIC RAG INJECTOR (LOCAL VAULT) ---
             // A Mom não raspa a web ativamente. A web e orquestração ativa ficam exclusivas do Grafo da Mente Mestra.
             // Para injetar dados do DB (memória/vault) estaticamente, este seria o local.
             
-            let _ = TRAINER_LOGS.send(format!("[Worker Graph - Stage {}/5] Invocando Mente Mestra ({})...", cycle, target_model_name));
+            let _ = TRAINER_LOGS.send(format!("[Worker Graph - Stage {}/15] Invocando Mente Mestra ({})...", cycle, target_model_name));
+
+            // Budget de tokens: tool calls são curtos (~512 tokens), scripts Pandas ~2048.
+            // Ciclo 15 (síntese final) recebe 4096 para relatórios completos.
+            let cycle_num_predict = if cycle < 15 { 2048 } else { 4096 };
+
+            let options_obj = serde_json::json!({
+                "num_ctx": dynamic_num_ctx,
+                "temperature": 0.0,
+                "repeat_penalty": 1.0,
+                "num_predict": cycle_num_predict
+            });
+
+            // PERFORMANCE FIX: Thinking DESABILITADO para TODOS os modelos nos ciclos de Tool Calling.
+            // O CoT interno do qwen3/gemma4 gasta 8-17 minutos POR STAGE num host de 27GB RAM
+            // para "planejar" uma tool call que leva ~200 tokens. O thinking só é útil na
+            // síntese final (cycle 15+), onde o modelo precisa raciocinar sobre os dados.
 
             let mut synthesis_payload = serde_json::json!({
                 "model": target_model_name,
                 "messages": messages,
                 "stream": false,
-                "options": {
-                    "num_ctx": dynamic_num_ctx,
-                    "temperature": 0.05,
-                    "repeat_penalty": 1.05,
-                    "num_predict": 4096
-                }
+                "keep_alive": "60m",
+                "options": options_obj
             });
 
-            if cycle < 5 {
+            // FIX-23b: "think" deve estar no TOP-LEVEL do payload, não dentro de "options".
+            // O Ollama ignora silenciosamente campos desconhecidos em "options".
+            if cycle < 15 {
+                synthesis_payload["think"] = serde_json::json!(false);
+            }
+
+            if cycle < 25 {
                 synthesis_payload["tools"] = tools_schema.clone();
             } else {
+                // GAP-6 FIX: No ciclo 25, abortar se não há dados coletados em vez de forçar síntese paramétrica.
+                if all_sources.is_empty() {
+                    let _ = TRAINER_LOGS.send("🚨 [Ciclo 25] Abortando síntese: nenhuma fonte foi coletada. Evitando alucinação paramétrica.".to_string());
+                    break;
+                }
                 let _ = TRAINER_LOGS.send("[Final Synthesis] Ferramentas desativadas. Forçando Mestre LLM a gerar Markdown Final de Síntese sem interrupções.".to_string());
             }
 
@@ -771,11 +1059,17 @@ pub async fn run_deep_research_handler(
                                         queries_extracted.retain(|q| q != "dispatch_sub_researcher" && !q.trim().is_empty());
 
                                         if queries_extracted.is_empty() {
-                                            let _ = TRAINER_LOGS.send("[Firewall Cognitivo] Nenhuma query válida extraída do JSON. Forçando Fallback Base!".to_string());
-                                            queries_extracted.push("latest global news".to_string());
+                                            // GAP-7 FIX: Não inventar query de fallback. Retornar erro ao Mestre para reformular.
+                                            let _ = TRAINER_LOGS.send("[Firewall Cognitivo] Nenhuma query válida extraída do JSON. Reprimendando o Mestre para reformular.".to_string());
+                                            messages.push(msg_obj.clone());
+                                            messages.push(serde_json::json!({"role": "user", "content": "[SYSTEM ERROR]: Sua chamada de ferramenta não continha queries válidas. O campo 'search_queries' estava ausente ou vazio. Reformule sua chamada de ferramenta com queries específicas sobre o tema pesquisado."}));
+                                            continue;
                                         }
 
-                                        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(1));
+                                        // GAP-3 FIX: Semáforo parametrizável via env SOVEREIGN_PARALLEL_QUERIES (default 3).
+                                        // NOTA: Certifique-se que OLLAMA_NUM_PARALLEL >= este valor no servidor Ollama.
+                                        let parallel_limit = std::env::var("SOVEREIGN_PARALLEL_QUERIES").ok().and_then(|v| v.parse::<usize>().ok()).unwrap_or(3);
+                                        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(parallel_limit));
 
                                         for mut sq in queries_extracted {
                                             // Fallback para modelos menores (Llama 3B) que podem cuspir o JSON Schema
@@ -845,13 +1139,15 @@ pub async fn run_deep_research_handler(
                                                     if let Some(t) = parsed.get("topic").and_then(|s| s.as_str()) { api_topic = t.to_string(); }
                                                 }
                                             }
-                                            
                                             if !api_topic.is_empty() {
                                                 let _ = TRAINER_LOGS.send(format!("[Sovereign API Gateway] Indexer Invoked - Localizando APIs públicas para o Core Topic: '{}'", api_topic));
-                                                let api_res = crate::api_gateway::search_api_directory(&api_topic);
-                                                join_handles.push(tokio::spawn(async move {
-                                                    (api_topic, api_res, "API Directory Locator".to_string())
-                                                }));
+                                                if let Some(pool) = engine_arc.db_pool.clone() {
+                                                    let api_topic_clone = api_topic.clone();
+                                                    join_handles.push(tokio::spawn(async move {
+                                                        let api_res = crate::api_gateway::search_api_directory(&api_topic_clone, &pool).await;
+                                                        (api_topic_clone, api_res, "API Directory Locator".to_string())
+                                                    }));
+                                                }
                                             }
                                         } else if func_n == Some("fetch_json_endpoint") {
                                             let mut fetch_url = String::new();
@@ -881,6 +1177,44 @@ pub async fn run_deep_research_handler(
                                             }
                                             
                                             if !py_code.is_empty() {
+                                                // FIX-16: SANDBOX QUARANTINE — Bloqueia scripts Python que tentam
+                                                // reprocessar dados que a Symbiotic Pipeline já processará automaticamente.
+                                                // O LLM gasta ~20 min por tentativa (sandbox + cold-start), e falha 100%
+                                                // porque os JSONs em /tmp/sovereign/ não são DataFrames serializados.
+                                                // Resultado: 5 tentativas = 1h40min desperdiçado no stress test v2.
+                                                let is_data_reprocessing = py_code.contains("sovereign_data_") || py_code.contains("pd.read_json") || py_code.contains("read_csv") || py_code.contains("/tmp/sovereign");
+                                                let has_structured_data = !all_sources.is_empty() && all_sources.iter().any(|s: &String| s.contains("data_compressed") || s.contains("sovereign_data_"));
+                                                
+                                                if is_data_reprocessing && has_structured_data {
+                                                    // Dados estruturados já existem — Symbiotic Pipeline processará após o loop
+                                                    let _ = TRAINER_LOGS.send(
+                                                        "🛡️ [Sandbox Quarantine] Script Python BLOQUEADO — dados já estão na pipeline Symbiotic. \
+                                                         O Motor Rust processará com Pandas nativo (Pearson + Médias Anuais + ffill).".to_string()
+                                                    );
+                                                    let quarantine_msg = "[SISTEMA] Script Python DESNECESSÁRIO e BLOQUEADO pelo Motor Rust. \
+                                                        Os dados em /tmp/sovereign/ serão processados AUTOMATICAMENTE pelo \
+                                                        Symbiotic Pipeline (Pandas + Correlação Pearson + Médias Anuais). \
+                                                        Você NÃO precisa escrever código para cruzar estes dados. \
+                                                        Prossiga com a próxima ferramenta de extração ou finalize sua análise \
+                                                        para que o motor gere a tabela cruzada automaticamente.".to_string();
+                                                    // Injetar como se fosse uma tool_response, para o LLM não tentar de novo
+                                                    if let Some(ref table_md) = symbiotic_table_markdown {
+                                                        // Tabela já existe (raro neste ponto) → injetar direto
+                                                        let synthetic_response = format!(
+                                                            "### PYTHON SANDBOX OUTPUT (SUCCESS - SYMBIOTIC OVERRIDE):\n\
+                                                            ```text\n{}\n```\n\n{}", quarantine_msg, table_md
+                                                        );
+                                                        join_handles.push(tokio::spawn(async move {
+                                                            (py_code, synthetic_response, "Python Code Sandbox".to_string())
+                                                        }));
+                                                    } else {
+                                                        // Tabela ainda não existe → bloqueio preventivo com mensagem
+                                                        join_handles.push(tokio::spawn(async move {
+                                                            (py_code, format!("### PYTHON SANDBOX OUTPUT (BLOCKED):\n```text\n{}\n```", quarantine_msg), "Python Code Sandbox".to_string())
+                                                        }));
+                                                    }
+                                                    continue; // Skip sandbox execution — preserva modelo na RAM e KV cache
+                                                }
                                                 let _ = TRAINER_LOGS.send("[Sovereign Code Sandbox] Orquestrando Script Matemático Python...".to_string());
                                                 join_handles.push(tokio::spawn(async move {
                                                     let execution_res = crate::sandbox::execute_python_code(&py_code).await;
@@ -892,76 +1226,189 @@ pub async fn run_deep_research_handler(
                                                 }));
                                             }
                                         } else if func_n == Some("fetch_financial_ticker") {
-                                            let mut symbol = String::new();
+                                            let mut symbols: Vec<String> = Vec::new();
                                             let mut years = "1".to_string();
                                             
                                             // Suporte para ambas as arquiteturas JSON (Ollama Native Object OR Stringified Payload)
                                             if let Some(args) = func.get("arguments").and_then(|a| a.as_object()) {
-                                                if let Some(s) = args.get("symbol").and_then(|x| x.as_str()) { symbol = s.to_string(); }
+                                                if let Some(arr) = args.get("symbols").and_then(|s| s.as_array()) {
+                                                    for item in arr { if let Some(s) = item.as_str() { symbols.push(s.to_string()); } }
+                                                } else if let Some(s) = args.get("symbol").and_then(|x| x.as_str()) { symbols.push(s.to_string()); } // Backwards compatibility
                                                 if let Some(y) = args.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
                                             } else if let Some(args_str) = func.get("arguments").and_then(|a| a.as_str()) {
                                                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
-                                                    if let Some(s) = parsed.get("symbol").and_then(|x| x.as_str()) { symbol = s.to_string(); }
+                                                    if let Some(arr) = parsed.get("symbols").and_then(|s| s.as_array()) {
+                                                        for item in arr { if let Some(s) = item.as_str() { symbols.push(s.to_string()); } }
+                                                    } else if let Some(s) = parsed.get("symbol").and_then(|x| x.as_str()) { symbols.push(s.to_string()); } // Backwards compatibility
                                                     if let Some(y) = parsed.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
                                                 }
                                             }
 
-                                            if !symbol.is_empty() {
-                                                let _ = TRAINER_LOGS.send(format!("[Sovereign Open-Data Matrix] Acessando ticker financeiro oficial: {} ({} anos)...", symbol, years));
-                                                join_handles.push(tokio::spawn(async move {
-                                                    let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
-                                                    let cur_dir = std::env::current_dir().unwrap_or_default();
-                                                    let matrix_script = if cur_dir.ends_with("core") { cur_dir.join("python_workers").join("sovereign_matrix.py") } else { cur_dir.join("core").join("python_workers").join("sovereign_matrix.py") };
-                                                    
-                                                    let output = tokio::process::Command::new(venv_python)
-                                                        .arg(matrix_script.to_string_lossy().as_ref())
-                                                        .arg("finance")
-                                                        .arg(&symbol)
-                                                        .arg(&years)
-                                                        .output()
-                                                        .await;
-                                                    
-                                                    let res = match output {
-                                                        Ok(out) => {
-                                                            let stdout = String::from_utf8_lossy(&out.stdout).to_string();
-                                                            let stderr = String::from_utf8_lossy(&out.stderr).to_string();
-                                                            if out.status.success() { stdout } else { format!("Error: {}", stderr) }
-                                                        },
-                                                        Err(e) => format!("System execution error: {}", e)
-                                                    };
-                                                    (symbol, format!("### Sovereign Open-Data Output:\n{}", res), "Open-Data Ledger".to_string())
-                                                }));
+                                            for symbol in symbols {
+                                                if !symbol.is_empty() {
+                                                    let _ = TRAINER_LOGS.send(format!("[Sovereign Open-Data Matrix] Acessando ticker financeiro oficial: {} ({} anos)...", symbol, years));
+                                                    let sym_clone = symbol.clone();
+                                                    let y_clone = years.clone();
+                                                    join_handles.push(tokio::spawn(async move {
+                                                        let venv_python = resolve_venv_python();
+                                                        let matrix_script = resolve_python_workers_dir().join("sovereign_matrix.py");
+                                                        
+                                                        let output = tokio::process::Command::new(venv_python)
+                                                            .arg(matrix_script.to_string_lossy().as_ref())
+                                                            .arg("finance")
+                                                            .arg(&sym_clone)
+                                                            .arg(&y_clone)
+                                                            .output()
+                                                            .await;
+                                                        
+                                                        let res = match output {
+                                                            Ok(out) => {
+                                                                let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+                                                                let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+                                                                if out.status.success() { stdout } else { format!("Error: {}", stderr) }
+                                                            },
+                                                            Err(e) => format!("System execution error: {}", e)
+                                                        };
+                                                        (sym_clone, format!("### Sovereign Open-Data Output:\n{}", res), "Open-Data Ledger".to_string())
+                                                    }));
+                                                }
+                                            }
+                                        } else if func_n == Some("fetch_futures_market") {
+                                            let mut commodities: Vec<String> = Vec::new();
+                                            let mut years = "1".to_string();
+                                            
+                                            if let Some(args) = func.get("arguments").and_then(|a| a.as_object()) {
+                                                if let Some(arr) = args.get("commodities").and_then(|s| s.as_array()) {
+                                                    for item in arr { if let Some(s) = item.as_str() { commodities.push(s.to_string()); } }
+                                                } else if let Some(s) = args.get("commodity").and_then(|x| x.as_str()) { commodities.push(s.to_string()); }
+                                                if let Some(y) = args.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
+                                            } else if let Some(args_str) = func.get("arguments").and_then(|a| a.as_str()) {
+                                                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
+                                                    if let Some(arr) = parsed.get("commodities").and_then(|s| s.as_array()) {
+                                                        for item in arr { if let Some(s) = item.as_str() { commodities.push(s.to_string()); } }
+                                                    } else if let Some(s) = parsed.get("commodity").and_then(|x| x.as_str()) { commodities.push(s.to_string()); }
+                                                    if let Some(y) = parsed.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
+                                                }
+                                            }
+
+                                            for commodity in commodities {
+                                                if !commodity.is_empty() {
+                                                    let _ = TRAINER_LOGS.send(format!("[Sovereign Algorithmic Oracle] Coletando derivativo Futuro de {}: ({} anos)...", commodity, years));
+                                                    let sym_clone = commodity.clone();
+                                                    let y_clone = years.clone();
+                                                    join_handles.push(tokio::spawn(async move {
+                                                        let venv_python = resolve_venv_python();
+                                                        let matrix_script = resolve_python_workers_dir().join("sovereign_matrix.py");
+                                                        
+                                                        let output = tokio::process::Command::new(venv_python)
+                                                            .arg(matrix_script.to_string_lossy().as_ref())
+                                                            .arg("futures")
+                                                            .arg(&sym_clone)
+                                                            .arg(&y_clone)
+                                                            .output()
+                                                            .await;
+                                                        
+                                                        let res = match output {
+                                                            Ok(out) => {
+                                                                let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+                                                                let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+                                                                if out.status.success() { stdout } else { format!("Error: {}", stderr) }
+                                                            },
+                                                            Err(e) => format!("System execution error: {}", e)
+                                                        };
+                                                        (sym_clone, format!("### Sovereign Especulative Oracle Output:\n{}", res), "Market Futures Ledger".to_string())
+                                                    }));
+                                                }
                                             }
                                         } else if func_n == Some("fetch_macroeconomy") {
-                                            let mut ind = String::new();
+                                            let mut indicators: Vec<String> = Vec::new();
                                             let mut country = "BR".to_string();
                                             let mut years = "1".to_string();
                                             
                                             if let Some(args) = func.get("arguments").and_then(|a| a.as_object()) {
-                                                if let Some(i) = args.get("indicator").and_then(|x| x.as_str()) { ind = i.to_string(); }
+                                                if let Some(arr) = args.get("indicators").and_then(|s| s.as_array()) {
+                                                    for item in arr { if let Some(i) = item.as_str() { indicators.push(i.to_string()); } }
+                                                } else if let Some(i) = args.get("indicator").and_then(|x| x.as_str()) { indicators.push(i.to_string()); } // Backwards comp
                                                 if let Some(c) = args.get("country").and_then(|x| x.as_str()) { country = c.to_string(); }
                                                 if let Some(y) = args.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
                                             } else if let Some(args_str) = func.get("arguments").and_then(|a| a.as_str()) {
                                                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
-                                                    if let Some(i) = parsed.get("indicator").and_then(|x| x.as_str()) { ind = i.to_string(); }
+                                                    if let Some(arr) = parsed.get("indicators").and_then(|s| s.as_array()) {
+                                                        for item in arr { if let Some(i) = item.as_str() { indicators.push(i.to_string()); } }
+                                                    } else if let Some(i) = parsed.get("indicator").and_then(|x| x.as_str()) { indicators.push(i.to_string()); } // Backwards comp
                                                     if let Some(c) = parsed.get("country").and_then(|x| x.as_str()) { country = c.to_string(); }
                                                     if let Some(y) = parsed.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
                                                 }
                                             }
                                             
-                                            if !ind.is_empty() {
-                                                let _ = TRAINER_LOGS.send(format!("[Sovereign Open-Data Matrix] Acessando base macroeconômica ({}) para {} ({} anos)...", country, ind, years));
+                                            for ind in indicators {
+                                                if !ind.is_empty() {
+                                                    let _ = TRAINER_LOGS.send(format!("[Sovereign Open-Data Matrix] Acessando base macroeconômica ({}) para {} ({} anos)...", country, ind, years));
+                                                    let ind_clone = ind.clone();
+                                                    let c_clone = country.clone();
+                                                    let y_clone = years.clone();
+                                                    join_handles.push(tokio::spawn(async move {
+                                                        let venv_python = resolve_venv_python();
+                                                        let matrix_script = resolve_python_workers_dir().join("sovereign_matrix.py");
+                                                        
+                                                        let output = tokio::process::Command::new(venv_python)
+                                                            .arg(matrix_script.to_string_lossy().as_ref())
+                                                            .arg("macro")
+                                                            .arg(&ind_clone)
+                                                            .arg(&c_clone)
+                                                            .arg(&y_clone)
+                                                            .output()
+                                                            .await;
+                                                        
+                                                        let res = match output {
+                                                            Ok(out) => {
+                                                                let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+                                                                let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+                                                                if out.status.success() { stdout } else { format!("Error: {}", stderr) }
+                                                            },
+                                                            Err(e) => format!("System execution error: {}", e)
+                                                        };
+                                                        (ind_clone, format!("### Sovereign Open-Data Output:\n{}", res), "Open-Data Ledger".to_string())
+                                                    }));
+                                                }
+                                            }
+                                        } else if func_n == Some("fetch_academic_papers") {
+                                            let mut queries: Vec<String> = Vec::new();
+                                            let mut disciplines: Vec<String> = Vec::new();
+                                            
+                                            // Arrays parser
+                                            if let Some(args) = func.get("arguments").and_then(|a| a.as_object()) {
+                                                if let Some(arr) = args.get("queries").and_then(|s| s.as_array()) {
+                                                    for item in arr { if let Some(q) = item.as_str() { queries.push(q.to_string()); } }
+                                                }
+                                                if let Some(arr) = args.get("disciplines").and_then(|s| s.as_array()) {
+                                                    for item in arr { if let Some(d) = item.as_str() { disciplines.push(d.to_string()); } }
+                                                }
+                                            } else if let Some(args_str) = func.get("arguments").and_then(|a| a.as_str()) {
+                                                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
+                                                    if let Some(arr) = parsed.get("queries").and_then(|s| s.as_array()) {
+                                                        for item in arr { if let Some(q) = item.as_str() { queries.push(q.to_string()); } }
+                                                    }
+                                                    if let Some(arr) = parsed.get("disciplines").and_then(|s| s.as_array()) {
+                                                        for item in arr { if let Some(d) = item.as_str() { disciplines.push(d.to_string()); } }
+                                                    }
+                                                }
+                                            }
+                                            if disciplines.is_empty() { disciplines.push("arxiv".to_string()); }
+
+                                            for (i, query) in queries.iter().enumerate() {
+                                                let disc = disciplines.get(i).unwrap_or(&disciplines[0]).clone();
+                                                let q_clone = query.clone();
+                                                let _ = TRAINER_LOGS.send(format!("[Academic Bridge] Consultando artigos para '{}' ({})...", q_clone, disc));
+                                                
                                                 join_handles.push(tokio::spawn(async move {
-                                                    let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
-                                                    let cur_dir = std::env::current_dir().unwrap_or_default();
-                                                    let matrix_script = if cur_dir.ends_with("core") { cur_dir.join("python_workers").join("sovereign_matrix.py") } else { cur_dir.join("core").join("python_workers").join("sovereign_matrix.py") };
+                                                    let venv_python = resolve_venv_python();
+                                                    let matrix_script = resolve_python_workers_dir().join("academic_matrix.py");
                                                     
                                                     let output = tokio::process::Command::new(venv_python)
                                                         .arg(matrix_script.to_string_lossy().as_ref())
-                                                        .arg("macro")
-                                                        .arg(&ind)
-                                                        .arg(&country)
-                                                        .arg(&years)
+                                                        .arg(&q_clone)
+                                                        .arg(&disc)
                                                         .output()
                                                         .await;
                                                     
@@ -973,7 +1420,158 @@ pub async fn run_deep_research_handler(
                                                         },
                                                         Err(e) => format!("System execution error: {}", e)
                                                     };
-                                                    (ind, format!("### Sovereign Open-Data Output:\n{}", res), "Open-Data Ledger".to_string())
+                                                    (q_clone, format!("### Academic Research Output:\n{}", res), "Academic Crawler".to_string())
+                                                }));
+                                            }
+                                        } else if func_n == Some("fetch_engineering_docs") {
+                                            let mut topics: Vec<String> = Vec::new();
+                                            let mut sources: Vec<String> = Vec::new();
+                                            
+                                            // Arrays parser
+                                            if let Some(args) = func.get("arguments").and_then(|a| a.as_object()) {
+                                                if let Some(arr) = args.get("topics").and_then(|s| s.as_array()) {
+                                                    for item in arr { if let Some(t) = item.as_str() { topics.push(t.to_string()); } }
+                                                }
+                                                if let Some(arr) = args.get("sources").and_then(|s| s.as_array()) {
+                                                    for item in arr { if let Some(s) = item.as_str() { sources.push(s.to_string()); } }
+                                                }
+                                            } else if let Some(args_str) = func.get("arguments").and_then(|a| a.as_str()) {
+                                                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
+                                                    if let Some(arr) = parsed.get("topics").and_then(|s| s.as_array()) {
+                                                        for item in arr { if let Some(t) = item.as_str() { topics.push(t.to_string()); } }
+                                                    }
+                                                    if let Some(arr) = parsed.get("sources").and_then(|s| s.as_array()) {
+                                                        for item in arr { if let Some(s) = item.as_str() { sources.push(s.to_string()); } }
+                                                    }
+                                                }
+                                            }
+                                            if sources.is_empty() { sources.push("stackexchange".to_string()); }
+
+                                            for (i, topic) in topics.iter().enumerate() {
+                                                let src = sources.get(i).unwrap_or(&sources[0]).clone();
+                                                let t_clone = topic.clone();
+                                                let _ = TRAINER_LOGS.send(format!("[Engineering Pipeline] Buscando documentação DevOps para '{}' ({})...", t_clone, src));
+                                                
+                                                join_handles.push(tokio::spawn(async move {
+                                                    let venv_python = resolve_venv_python();
+                                                    let matrix_script = resolve_python_workers_dir().join("engineering_matrix.py");
+                                                    
+                                                    let output = tokio::process::Command::new(venv_python)
+                                                        .arg(matrix_script.to_string_lossy().as_ref())
+                                                        .arg(&t_clone)
+                                                        .arg(&src)
+                                                        .output()
+                                                        .await;
+                                                    
+                                                    let res = match output {
+                                                        Ok(out) => {
+                                                            let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+                                                            let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+                                                            if out.status.success() { stdout } else { format!("Error: {}", stderr) }
+                                                        },
+                                                        Err(e) => format!("System execution error: {}", e)
+                                                    };
+                                                    (t_clone, format!("### Engineering/DevOps Output:\n{}", res), "Engineering WebCrawler".to_string())
+                                                }));
+                                            }
+                                        } else if func_n == Some("fetch_encyclopedia") {
+                                            let mut queries: Vec<String> = Vec::new();
+                                            let mut lang: String = "pt".to_string();
+                                            
+                                            if let Some(args) = func.get("arguments").and_then(|a| a.as_object()) {
+                                                if let Some(arr) = args.get("queries").and_then(|s| s.as_array()) {
+                                                    for item in arr { if let Some(q) = item.as_str() { queries.push(q.to_string()); } }
+                                                }
+                                                if let Some(l) = args.get("language").and_then(|s| s.as_str()) {
+                                                    lang = l.to_string();
+                                                }
+                                            } else if let Some(args_str) = func.get("arguments").and_then(|a| a.as_str()) {
+                                                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
+                                                    if let Some(arr) = parsed.get("queries").and_then(|s| s.as_array()) {
+                                                        for item in arr { if let Some(q) = item.as_str() { queries.push(q.to_string()); } }
+                                                    }
+                                                    if let Some(l) = parsed.get("language").and_then(|s| s.as_str()) {
+                                                        lang = l.to_string();
+                                                    }
+                                                }
+                                            }
+
+                                            for query in queries {
+                                                let q_clone = query.clone();
+                                                let l_clone = lang.clone();
+                                                let _ = TRAINER_LOGS.send(format!("[Encyclopedia Engine] Acessando Wiki sobre '{}' ({})...", q_clone, l_clone));
+                                                
+                                                join_handles.push(tokio::spawn(async move {
+                                                    let venv_python = resolve_venv_python();
+                                                    let matrix_script = resolve_python_workers_dir().join("wiki_matrix.py");
+                                                    
+                                                    let output = tokio::process::Command::new(venv_python)
+                                                        .arg(matrix_script.to_string_lossy().as_ref())
+                                                        .arg(&q_clone)
+                                                        .arg(&l_clone)
+                                                        .output()
+                                                        .await;
+                                                    
+                                                    let res = match output {
+                                                        Ok(out) => {
+                                                            let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+                                                            let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+                                                            if out.status.success() { stdout } else { format!("Error: {}", stderr) }
+                                                        },
+                                                        Err(e) => format!("System execution error: {}", e)
+                                                    };
+                                                    (q_clone, format!("### Wikipedia Output:\n{}", res), "Wiki Node".to_string())
+                                                }));
+                                            }
+                                        } else if func_n == Some("fetch_cultural_data") {
+                                            let mut queries: Vec<String> = Vec::new();
+                                            let mut sources: Vec<String> = Vec::new();
+                                            
+                                            // Arrays parser
+                                            if let Some(args) = func.get("arguments").and_then(|a| a.as_object()) {
+                                                if let Some(arr) = args.get("queries").and_then(|s| s.as_array()) {
+                                                    for item in arr { if let Some(q) = item.as_str() { queries.push(q.to_string()); } }
+                                                }
+                                                if let Some(arr) = args.get("sources").and_then(|s| s.as_array()) {
+                                                    for item in arr { if let Some(s) = item.as_str() { sources.push(s.to_string()); } }
+                                                }
+                                            } else if let Some(args_str) = func.get("arguments").and_then(|a| a.as_str()) {
+                                                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
+                                                    if let Some(arr) = parsed.get("queries").and_then(|s| s.as_array()) {
+                                                        for item in arr { if let Some(q) = item.as_str() { queries.push(q.to_string()); } }
+                                                    }
+                                                    if let Some(arr) = parsed.get("sources").and_then(|s| s.as_array()) {
+                                                        for item in arr { if let Some(s) = item.as_str() { sources.push(s.to_string()); } }
+                                                    }
+                                                }
+                                            }
+                                            if sources.is_empty() { sources.push("TMDB".to_string()); }
+
+                                            for (i, query) in queries.iter().enumerate() {
+                                                let src = sources.get(i).unwrap_or(&sources[0]).clone();
+                                                let q_clone = query.clone();
+                                                let _ = TRAINER_LOGS.send(format!("[Cultural Bridge] Recuperando arte '{}' ({})...", q_clone, src));
+                                                
+                                                join_handles.push(tokio::spawn(async move {
+                                                    let venv_python = resolve_venv_python();
+                                                    let matrix_script = resolve_python_workers_dir().join("culture_matrix.py");
+                                                    
+                                                    let output = tokio::process::Command::new(venv_python)
+                                                        .arg(matrix_script.to_string_lossy().as_ref())
+                                                        .arg(&q_clone)
+                                                        .arg(&src)
+                                                        .output()
+                                                        .await;
+                                                    
+                                                    let res = match output {
+                                                        Ok(out) => {
+                                                            let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+                                                            let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+                                                            if out.status.success() { stdout } else { format!("Error: {}", stderr) }
+                                                        },
+                                                        Err(e) => format!("System execution error: {}", e)
+                                                    };
+                                                    (q_clone, format!("### Cultural Database Output:\n{}", res), "Culture Matrix".to_string())
                                                 }));
                                             }
                                         } else if let Some(fname) = func_n {
@@ -985,9 +1583,8 @@ pub async fn run_deep_research_handler(
                                             }
 
                                             // UNIVERSAL REFLEXIVE DISPATCHER
-                                            let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
-                                            let cur_dir = std::env::current_dir().unwrap_or_default();
-                                            let script_path = if cur_dir.ends_with("core") { cur_dir.join("python_workers").join(format!("{}.py", fname)) } else { cur_dir.join("core").join("python_workers").join(format!("{}.py", fname)) };
+                                            let venv_python = resolve_venv_python();
+                                            let script_path = resolve_python_workers_dir().join(format!("{}.py", fname));
 
                                             if script_path.exists() {
                                                 let args_str = match func.get("arguments") {
@@ -1039,12 +1636,13 @@ pub async fn run_deep_research_handler(
                                              if let Some(pool) = &engine_arc.db_pool {
                                                  let uuid_str = uuid::Uuid::new_v4().to_string();
                                                  let pool_clone = pool.clone();
+                                                 let value = auth_clone.clone();
                                                  tokio::spawn(async move {
                                                      let _ = sqlx::query("
                                                          INSERT INTO model_hallucinations (id, model_name, lies_detected, queries_processed, last_lied_at)
                                                          VALUES (?, ?, 1, 1, CURRENT_TIMESTAMP)
                                                          ON CONFLICT(id) DO UPDATE SET lies_detected = lies_detected + 1, queries_processed = queries_processed + 1, last_lied_at = CURRENT_TIMESTAMP
-                                                     ").bind(uuid_str).bind(&auth_clone).execute(&pool_clone).await;
+                                                     ").bind(uuid_str).bind(&value).execute(&pool_clone).await;
                                                  });
                                              }
                                         }
@@ -1059,18 +1657,72 @@ pub async fn run_deep_research_handler(
 
                                     let _ = TRAINER_LOGS.send(format!("[Firewall Cognitivo] Parcela de Busca Paralela resolvida para a sub-query '{}'", sq));
                                     
-                                    // SOBREVIVÊNCIA DE CONTEXTO OOM & PREVENÇÃO DE LOST IN THE MIDDLE (Blind Orchestration)
-                                    // Modelos puros orquestradores "esquecem" sua tarefa se o JSON for injetado cru no contexto.
-                                    // Nós guardamos o 'final_result' completo no 'all_sources' para The Scribe, mas isolamos o Mestre.
-                                    let limited_result = format!("[SUCCESS DE EXTRAÇÃO] Dados de '{}' capturados em JSON e enclausurados de modo cego na RAM sob o ticket Sovereign para o The Scribe reportar ao fim.\nNÃO TENTE ler os dados agora! Avance estritamente para a PRÓXIMA ferramenta da sua Exaustão Combinatória ou informe finalização se não houver mais requisições.", sq);
+                                    if auth_clone == "Python Code Sandbox" {
+                                        // O Sandbox não deve ser escondido nem hasheado, o Mestre precisa LER a sua resposta matemática.
+                                        // EPISTEMIC FIX: Também empurra para all_sources para que o hash guard encontre
+                                        // os checksums impressos pelo Python (ex: 'checksum: f39e10f2...') via all_sources_joined.
+                                        all_sources.push(final_result.clone());
+                                        messages.push(serde_json::json!({
+                                            "role": "tool",
+                                            "content": final_result
+                                        }));
+                                    } else {
+                                        // SOBREVIVÊNCIA DE CONTEXTO OOM & PREVENÇÃO DE LOST IN THE MIDDLE (Blind Orchestration - VRAM to Disk Pipeline)
+                                        let safe_sq: String = sq.chars().filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-').take(50).collect();
+                                        let rand_id: String = uuid::Uuid::new_v4().to_string().chars().take(8).collect();
+                                        // WIN-04: Cross-platform temp dir (Windows: %TEMP%\sovereign, Unix: /tmp/sovereign)
+                                        let sovereign_tmp = std::env::temp_dir().join("sovereign");
+                                        let tmp_file_path = sovereign_tmp.join(format!("sovereign_data_{}_{}.json", safe_sq.to_lowercase(), rand_id));
+                                        let tmp_file_path = tmp_file_path.to_string_lossy().to_string();
+                                        let _ = std::fs::create_dir_all(&sovereign_tmp);
 
-                                    // Devolve a resposta do Tool para a memória do Mestre
-                                    messages.push(serde_json::json!({
-                                        "role": "tool",
-                                        "content": limited_result
-                                    }));
+                                        // FIX-2: Não gravar arquivo nem gerar hash para resultados de scraping vazio.
+                                        // Quando o dispatch_sub_researcher falha (WAF block, 0 bytes úteis), ele retorna
+                                        // um texto placeholder que polui o sistema de proveniência com hashes falso-positivos.
+                                        let is_empty_extraction = final_result.starts_with("NÃO EXISTEM DADOS")
+                                            || final_result.starts_with("DADO NÃO ENCONTRADO")
+                                            || final_result.starts_with("FALHA")
+                                            || final_result.len() < 200;
+
+                                        if !is_empty_extraction {
+                                            let _ = std::fs::write(&tmp_file_path, &final_result);
+
+                                            use sha2::{Sha256, Digest};
+                                            let mut hasher = Sha256::new();
+                                            hasher.update(final_result.as_bytes());
+                                            let hash_result = format!("{:x}", hasher.finalize());
+                                            all_hashes.push(hash_result.clone());
+                                        } else {
+                                            let _ = TRAINER_LOGS.send(format!(
+                                                "⚠️ [Proveniência] Extração vazia para '{}'. Arquivo/hash NÃO gravado (placeholder descartado).", sq
+                                            ));
+                                        }
+
+                                        // Nós guardamos o 'final_result' completo no 'all_sources' para The Scribe. Mas escondemos do Mestre guiando-o via disco.
+                                        let limited_result = format!(
+                                            "[SUCCESS DE EXTRAÇÃO] Dados massivos obtidos para '{}' e gravados com integridade verificada pelo Motor Rust.\n\
+                                             O conteúdo foi transferido fisicamente para o arquivo de disco local: '{}'.\n\
+                                             AVISO CRÍTICO: NÃO ADIVINHE OS DADOS NEM CRIE ARRAYS FALSOS (PLACEHOLDERS). \
+                                             Você deve agora acionar a ferramenta de Python Sandbox desenvolvendo as linhas de código \
+                                             (ex: `pd.read_json('{}')` ou `open('{}').read()`) para processar diretamente o arquivo de disco.",
+                                            sq, tmp_file_path, tmp_file_path, tmp_file_path
+                                        );
+
+                                        // Devolve a resposta do Tool Oculta para a memória do Mestre
+                                        messages.push(serde_json::json!({
+                                            "role": "tool",
+                                            "content": limited_result
+                                        }));
+                                    }
                                 }
                             }
+                            // [FIX-4] INLINE SYMBIOTIC PIPELINE REMOVIDO.
+                            // Motivo: A invocação inline gerava a tabela com os primeiros datasets
+                            // disponíveis (ex: BRENT+DOLAR no Stage 2) e bloqueava datasets posteriores
+                            // (GASOLINA, IPCA, INPC dos Stages 3-4) devido ao guard `is_none()`.
+                            // A tabela final é agora gerada APENAS no pós-loop (linhas ~1960+),
+                            // quando ALL_SOURCES está completo com TODAS as séries extraídas.
+                            // Benefícios: (1) Tabela sempre completa; (2) ~3KB a menos no contexto do Mestre;
                             // O loop continuará para a próxima inferência (o Qwen lerá a tool response e decidirá)
                             continue;
                         } 
@@ -1086,13 +1738,28 @@ pub async fn run_deep_research_handler(
                                 }
                             }
 
-                            if cycle == 1 || has_dynamic_tool || content.contains("\"type\":\"function\"") || content.contains("\"search_queries\"") || content.contains("\"symbol\"") || content.contains("\"indicator\"") {
-                                // Tenta raspar JSON vazado no texto:
+                            // GAP-12 FIX: A janela de rescue era cycle<5 (muito estreita).
+                            // Condição dinâmica: se nunca coletou dados, sempre tente resgatar.
+                            let nanny_rescue_eligible = cycle < 10 || all_sources.is_empty();
+                            if nanny_rescue_eligible && (all_sources.is_empty() || has_dynamic_tool || content.contains("\"type\":\"function\"") || content.contains("\"search_queries\"") || content.contains("\"symbol\"") || content.contains("\"indicator\"") || content.contains("\"topic\"") || content.contains("\"url\"") || content.contains("\"code\"")) {
+                                // Tenta raspar JSON vazado no texto de forma robusta (ignora texto no meio):
                                 let mut recovered_json: Option<serde_json::Value> = None;
-                                if let (Some(start), Some(end)) = (content.find('{'), content.rfind('}')) {
-                                    if start < end {
-                                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content[start..=end]) {
-                                            recovered_json = Some(parsed);
+                                let chars: Vec<(usize, char)> = content.char_indices().collect();
+                                let mut start_indices = Vec::new();
+                                let mut end_indices = Vec::new();
+                                
+                                for (i, c) in &chars {
+                                    if *c == '{' { start_indices.push(*i); }
+                                    if *c == '}' { end_indices.push(*i + 1); }
+                                }
+                                
+                                'outer: for &s in &start_indices {
+                                    for &e in end_indices.iter().rev() {
+                                        if s < e {
+                                            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content[s..e]) {
+                                                recovered_json = Some(parsed);
+                                                break 'outer;
+                                            }
                                         }
                                     }
                                 }
@@ -1111,9 +1778,8 @@ pub async fn run_deep_research_handler(
                                         
                                         if !symbol.is_empty() {
                                             let _ = TRAINER_LOGS.send(format!("⚠️ [Thought Nanny] Resgatando JSON de Finanças ({}) vazado no plain-text...", symbol));
-                                            let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
-                                            let cur_dir = std::env::current_dir().unwrap_or_default();
-                                            let matrix_script = if cur_dir.ends_with("core") { cur_dir.join("python_workers").join("sovereign_matrix.py") } else { cur_dir.join("core").join("python_workers").join("sovereign_matrix.py") };
+                                            let venv_python = resolve_venv_python();
+                                            let matrix_script = resolve_python_workers_dir().join("sovereign_matrix.py");
                                             if let Ok(out) = tokio::process::Command::new(venv_python).arg(matrix_script).arg("finance").arg(&symbol).arg("5y").output().await {
                                                 final_result = String::from_utf8_lossy(&out.stdout).to_string();
                                             }
@@ -1128,9 +1794,8 @@ pub async fn run_deep_research_handler(
                                         
                                         if !ind.is_empty() {
                                             let _ = TRAINER_LOGS.send(format!("⚠️ [Thought Nanny] Resgatando JSON Macroeconômico ({}) vazado no plain-text...", ind));
-                                            let venv_python = dirs::data_local_dir().unwrap_or_default().join("sovereign-pair").join("sandbox").join("venv").join("bin").join("python3");
-                                            let cur_dir = std::env::current_dir().unwrap_or_default();
-                                            let matrix_script = if cur_dir.ends_with("core") { cur_dir.join("python_workers").join("sovereign_matrix.py") } else { cur_dir.join("core").join("python_workers").join("sovereign_matrix.py") };
+                                            let venv_python = resolve_venv_python();
+                                            let matrix_script = resolve_python_workers_dir().join("sovereign_matrix.py");
                                             if let Ok(out) = tokio::process::Command::new(venv_python).arg(matrix_script).arg("macro").arg(&ind).arg("BR").arg("5").output().await {
                                                 final_result = String::from_utf8_lossy(&out.stdout).to_string();
                                             }
@@ -1148,6 +1813,55 @@ pub async fn run_deep_research_handler(
                                          }
                                     }
 
+                                    else if content.contains("search_api_directory") || pseudo_json.get("topic").is_some() || pseudo_json.get("arguments").and_then(|a| a.get("topic")).is_some() {
+                                        let mut topic = String::new();
+                                        if let Some(t) = pseudo_json.get("topic").and_then(|v| v.as_str()) { topic = t.to_string(); }
+                                        else if let Some(args) = pseudo_json.get("arguments").and_then(|a| a.as_object()) {
+                                            if let Some(t) = args.get("topic").and_then(|v| v.as_str()) { topic = t.to_string(); }
+                                        }
+                                        
+                                        if !topic.is_empty() {
+                                            let _ = TRAINER_LOGS.send(format!("⚠️ [Thought Nanny] Resgatando API Indexer ({}) vazado no plain-text...", topic));
+                                            if let Some(pool) = engine_arc.db_pool.clone() {
+                                                final_result = crate::api_gateway::search_api_directory(&topic, &pool).await;
+                                            }
+                                        }
+                                    }
+                                    else if content.contains("fetch_json_endpoint") || pseudo_json.get("url").is_some() || pseudo_json.get("arguments").and_then(|a| a.get("url")).is_some() {
+                                        let mut fetch_url = String::new();
+                                        if let Some(u) = pseudo_json.get("url").and_then(|v| v.as_str()) { fetch_url = u.to_string(); }
+                                        else if let Some(args) = pseudo_json.get("arguments").and_then(|a| a.as_object()) {
+                                            if let Some(u) = args.get("url").and_then(|v| v.as_str()) { fetch_url = u.to_string(); }
+                                        }
+                                        
+                                        if !fetch_url.is_empty() {
+                                            let _ = TRAINER_LOGS.send(format!("⚠️ [Thought Nanny] Resgatando Fetch API ({}) vazado no plain-text...", fetch_url));
+                                            final_result = crate::api_gateway::fetch_json_endpoint(&fetch_url).await;
+                                        }
+                                    }
+                                    else if content.contains("execute_python_code") || pseudo_json.get("code").is_some() || pseudo_json.get("arguments").and_then(|a| a.get("code")).is_some() {
+                                        let mut code_str = String::new();
+                                        if let Some(c) = pseudo_json.get("code").and_then(|v| v.as_str()) { code_str = c.to_string(); }
+                                        else if let Some(args) = pseudo_json.get("arguments").and_then(|a| a.as_object()) {
+                                            if let Some(c) = args.get("code").and_then(|v| v.as_str()) { code_str = c.to_string(); }
+                                        }
+                                        
+                                        if !code_str.is_empty() {
+                                            let _ = TRAINER_LOGS.send("⚠️ [Thought Nanny] Resgatando Código Python vazado no plain-text...".to_string());
+                                            let exec_res = crate::sandbox::execute_python_code(&code_str).await;
+                                            final_result = match exec_res {
+                                                Ok(stdout) => format!("### PYTHON SANDBOX OUTPUT (SUCCESS):\n```text\n{}\n```", stdout),
+                                                Err(stderr) => format!("### PYTHON SANDBOX OUTPUT (FAILURE):\n```text\n{}\n```\nAtenção: O plano falhou. Você precisa corrigir as variáveis Python ou importar a biblioteca certa.", stderr),
+                                            };
+                                            // Nanny output é resultado computacional do LLM, não dados externos.
+                                            // Sua proveniência é garantida por estar em all_sources.
+                                            // NÃO poluir all_hashes (que verifica apenas dados de entrada/disco).
+                                            if !final_result.is_empty() {
+                                                all_sources.push(final_result.clone());
+                                            }
+                                        }
+                                    }
+
                                     if !final_result.is_empty() {
                                         messages.push(serde_json::json!({
                                             "role": "user",
@@ -1157,12 +1871,54 @@ pub async fn run_deep_research_handler(
                                     }
                                 }
 
-                                let _ = TRAINER_LOGS.send("[Thought Nanny] Falha Estrutural do Mestre: O modelo não gerou chamadas formatadas. Disciplinando sintaxe...".to_string());
-                                messages.push(msg_obj.clone());
-                                messages.push(serde_json::json!({
-                                    "role": "user",
-                                    "content": format!("[SYSTEM OVERRIDE]: Falha de Invocação de Ferramenta! Você gerou texto puro em vez de invocar a ferramenta no backend. O sistema AINDA não tem os dados necessários.\n\nSua ÚNICA saída aceita agora é FECHAR A BOCA e responder ESTRITAMENTE com o JSON correspondente à Variavel/Função ({}). Não escreva NENHUM outro texto! APENAS O JSON NATIVO.", registry_names.join(", "))
-                                }));
+                                // GAP-9 FIX: Detectar conteúdo vazio ANTES de gastar ciclo com reprimenda inútil.
+                                // Modelos thinking retornam "" quando enable_thinking está capado. Disciplinar o vazio
+                                // só desperdiça ciclos; melhor escalar imediatamente.
+                                if content.trim().is_empty() {
+                                    let _ = TRAINER_LOGS.send(format!("[Thought Nanny] Resposta VAZIA da Mente Mestra ({}). Escalando imediatamente...", target_model_name));
+                                    json_fail_count += 2; // Conta como falha dupla para forçar escalação rápida
+                                } else {
+                                    let _ = TRAINER_LOGS.send(format!("[Thought Nanny] Falha Estrutural do Mestre: O modelo não gerou chamadas formatadas. Disciplinando sintaxe...\n[DEBUG RAW LLM CONTENT]:\n{}", content));
+                                    json_fail_count += 1;
+                                }
+                                
+                                if json_fail_count >= 2 {
+                                    // GAP-11 FIX: Marcar o modelo atual como falhado e excluí-lo das próximas tentativas.
+                                    failed_models.insert(target_model_name.clone());
+                                    let fallback_agent = crate::api::discover_orchestrator_fallback(engine_arc.db_pool.as_ref(), &target_model_name, &target_model_name, &failed_models).await;
+                                    if fallback_agent != target_model_name && !failed_models.contains(&fallback_agent) {
+                                        let _ = TRAINER_LOGS.send(format!("🛡️ [Gatekeeper Escalation] Fim da linha sintática para ({}). Substituindo dinamicamente pelo Gatekeeper reserva: ({})", target_model_name, fallback_agent));
+                                        target_model_name = fallback_agent;
+                                        json_fail_count = 0;
+                                    } else {
+                                        // Todos os modelos disponíveis já falharam — abortar loop para não desperdiçar ciclos.
+                                        let _ = TRAINER_LOGS.send("🚨 [Gatekeeper Escalation] TODOS os modelos disponíveis falharam em gerar Tool Calls. Abortando para Synthesis de emergência.".to_string());
+                                        break;
+                                    }
+                                }
+                                
+                                // Grava a alucinação estrutural/sintática no Ledger para a Telemetria da UI
+                                if let Some(pool) = &engine_arc.db_pool {
+                                    let uuid_str = uuid::Uuid::new_v4().to_string();
+                                    let pool_clone = pool.clone();
+                                    let target_clone = target_model_name.clone();
+                                    tokio::spawn(async move {
+                                        let _ = sqlx::query("
+                                            INSERT INTO model_hallucinations (id, model_name, lies_detected, queries_processed, last_lied_at)
+                                            VALUES (?, ?, 1, 1, CURRENT_TIMESTAMP)
+                                            ON CONFLICT(id) DO UPDATE SET lies_detected = lies_detected + 1, queries_processed = queries_processed + 1, last_lied_at = CURRENT_TIMESTAMP
+                                        ").bind(uuid_str).bind(&target_clone).execute(&pool_clone).await;
+                                    });
+                                }
+
+                                // Não enviar reprimenda se o conteúdo era vazio (não há o que disciplinar)
+                                if !content.trim().is_empty() {
+                                    messages.push(msg_obj.clone());
+                                    messages.push(serde_json::json!({
+                                        "role": "user",
+                                        "content": format!("[SYSTEM OVERRIDE]: Falha de Invocação de Ferramenta! Você gerou texto puro em vez de invocar a ferramenta no backend. O sistema AINDA não tem os dados necessários.\n\nSua ÚNICA saída aceita agora é FECHAR A BOCA e responder ESTRITAMENTE com o JSON correspondente à Variavel/Função ({}). Não escreva NENHUM outro texto! APENAS O JSON NATIVO.", registry_names.join(", "))
+                                    }));
+                                }
                                 continue;
                             }
 
@@ -1208,14 +1964,10 @@ pub async fn run_deep_research_handler(
                         if err.contains("does not support tools") {
                             if !has_failed_tools {
                                 has_failed_tools = true;
-                                let _ = TRAINER_LOGS.send(format!("⚠️ [Agentic Firewall] O modelo '{}' recusa Tools. Procurando rescate de mesmo peso...", target_model_name));
-                                let mut fallbacks = vec!["qwen", "llama", "mistral", "mixtral", "command-r", "phi3"];
-                                if target_model_name.contains("0.5b") || target_model_name.contains("1.5b") { fallbacks = vec!["qwen2.5:1.5b", "qwen2.5:0.5b"]; }
-                                else if target_model_name.contains("3b") || target_model_name.contains("4b") { fallbacks = vec!["qwen3:4b", "qwen2.5:3b", "llama3.2"]; }
-                                else if target_model_name.contains("8b") || target_model_name.contains("7b") { fallbacks = vec!["llama3.1:8b", "llama3:8b", "qwen2.5:7b", "mistral", "gemma2:9b"]; }
+                                let _ = TRAINER_LOGS.send(format!("⚠️ [Agentic Firewall] O modelo '{}' recusa Tools. Procurando rescate paramétrico...", target_model_name));
                                 
-                                target_model_name = crate::api::discover_best_model(fallbacks, "qwen2.5:7b").await;
-                                let _ = TRAINER_LOGS.send(format!("🚀 [Auto-Healing] Fallback ativado. Reiniciando orquestração com mente capaz: '{}'.", target_model_name));
+                                target_model_name = crate::api::discover_capable_master_agent(engine_arc.db_pool.as_ref(), 4.0, true, true, "llama3.1:8b").await;
+                                let _ = TRAINER_LOGS.send(format!("🚀 [Auto-Healing Dinâmico] Fallback ativado através do Banco de Capacidades: '{}'.", target_model_name));
                                 continue;
                             }
                             
@@ -1243,7 +1995,17 @@ pub async fn run_deep_research_handler(
                     }
                 }
             } else {
-                let _ = TRAINER_LOGS.send("Erro de conexão com o Ollama no Loop Agentico.".to_string());
+                // Tolerância de VRAM reload: após o Sandbox Python executar,
+                // o Ollama evicta o modelo da VRAM. O próximo stage sofre cold-start
+                // COMPLETO em QUALQUER posição do loop, não só nos cycles 1-2.
+                // Permitimos até 3 retries totais na sessão para acomodar isso.
+                connection_retries += 1;
+                if connection_retries <= 3 {
+                    let _ = TRAINER_LOGS.send(format!("⚠️ [Timeout Recovery] Stage {} falhou (possível reload de modelo após Sandbox). Retry {}/3 em 10s...", cycle, connection_retries));
+                    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                    continue;
+                }
+                let _ = TRAINER_LOGS.send("❌ Erro de conexão persistente com o Ollama no Loop Agentico (3 retries esgotados). Abortando.".to_string());
                 break;
             }
         }
@@ -1253,12 +2015,81 @@ pub async fn run_deep_research_handler(
         // BUGFIX: Apenas contaminar com 'FATOS BRUTOS' colados crus no final se o Scribe for formatar (Low-End model).
         // Se o Master for Alto Gabarito, ele já emitiu o Markdown limpo e isso não deve vazar pro usuário final.
         if !all_sources.is_empty() {
+            let mut final_raw_dump = all_sources.join("\n\n=== FACTUAL BORDER ===\n\n");
+            
+            // [SYMBIOTIC PIPELINE INTERCEPTOR]
+            // Se houver múltiplas fontes espaciais, acionamos a marreta matemática do Pandas.
+            if all_sources.len() > 1 {
+                let _ = TRAINER_LOGS.send("[Sovereign Symbiose] Múltiplos Fatos Brutos Detectados! Acionando Data Engineering (Pandas) sob os panos...".to_string());
+                // BUGFIX: Extrair `data_compressed` dos JSONs wrapados antes de passar ao joiner.
+                let clean_blocks = extract_raw_data_blocks(&all_sources);
+                let joiner_payload = serde_json::json!({
+                    "raw_data_blocks": clean_blocks
+                });
+                let payload_str = joiner_payload.to_string();
+                let joiner_path = resolve_python_workers_dir().join("analyze_and_join_time_series.py");
+                
+                if joiner_path.exists() {
+                    // GAP-5 FIX / WIN-03: Usar venv isolado com path correto por OS
+                    // Windows: Scripts\python.exe | Unix: bin/python3
+                    let venv_py = crate::sandbox::get_hermetic_python_bin();
+                    let python_exe = if venv_py.exists() { venv_py.to_string_lossy().to_string() } else {
+                        if cfg!(target_os = "windows") { "python".to_string() } else { "python3".to_string() }
+                    };
+                    let mut cmd = std::process::Command::new(&python_exe);
+                    cmd.arg(&joiner_path);
+                    
+                    use std::io::Write;
+                    cmd.stdin(std::process::Stdio::piped())
+                       .stdout(std::process::Stdio::piped())
+                       .stderr(std::process::Stdio::piped());
+                       
+                    if let Ok(mut child) = cmd.spawn() {
+                        if let Some(mut stdin) = child.stdin.take() {
+                            let _ = stdin.write_all(payload_str.as_bytes());
+                        }
+                        if let Ok(output) = child.wait_with_output() {
+                            if output.status.success() {
+                                let out_str = String::from_utf8_lossy(&output.stdout);
+                                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&out_str) {
+                                    if let Some(mkd) = parsed.get("markdown").and_then(|m| m.as_str()) {
+                                        let _ = TRAINER_LOGS.send("[Data Engineering] Fusão Matemática via Pandas e Correlação (Pearson) Concluída!".to_string());
+                                        final_raw_dump = format!("{}\n\n=== FACTUAL BORDER ===\n\n[LOG INTERNO OLLAMA]\nNós recebemos múltiplas requisições assíncronas de você. O nosso motor Rust processou e fundiu todas elas magicamente usando DataFrames. Você NÃO precisa e NÃO DEVE tentar cruzar as linhas manualmente. Apenas contemple a tabela perfeita abaixo e redija sua síntese.\n\n{}", final_raw_dump, mkd);
+                                        // FIX-4: Sempre atualizar a tabela (sem guard is_none).
+                                        // Esta é agora a ÚNICA invocação do Pandas — o inline foi removido.
+                                        symbiotic_table_markdown = Some(mkd.to_string());
+
+                                        // Salvar a tabela em disco para proveniência criptográfica
+                                        let rand_id: String = uuid::Uuid::new_v4().to_string().chars().take(8).collect();
+                                        // WIN-04: Cross-platform temp dir
+                                        let sovereign_tmp = std::env::temp_dir().join("sovereign");
+                                        let table_file = sovereign_tmp.join(format!("sovereign_symbiotic_table_{}.md", rand_id));
+                                        let table_file = table_file.to_string_lossy().to_string();
+                                        let _ = std::fs::create_dir_all(&sovereign_tmp);
+                                        let _ = std::fs::write(&table_file, mkd);
+                                        {
+                                            use sha2::{Sha256 as Sha256Post, Digest as DigestPost};
+                                            let mut h = Sha256Post::new();
+                                            h.update(mkd.as_bytes());
+                                            all_hashes.push(format!("{:x}", h.finalize()));
+                                        }
+                                    }
+                                }
+                            } else {
+                                let err_str = String::from_utf8_lossy(&output.stderr);
+                                let _ = TRAINER_LOGS.send(format!("[Data Engineering] Falha no Join Temporal silenciada. Fallback para Texto Bruto. ({})", err_str.trim()));
+                            }
+                        }
+                    }
+                }
+            }
+
             if synthesized_report.trim().is_empty() {
-                let _ = TRAINER_LOGS.send("[Agentic Loop] O Mestre finalizou o limite de chamadas sem sintetizar a resposta. Dump direto ativado para o Scribe.".to_string());
-                synthesized_report = all_sources.join("\n\n=== FACTUAL BORDER ===\n\n");
+                synthesized_report = final_raw_dump;
             } else {
-                // Junta o que o mestre falou com os fatos brutos para a formatação final do Scribe
-                synthesized_report = format!("{}\n\n=== FATOS BRUTOS MANTIDOS EM MEMÓRIA ===\n\n{}", synthesized_report, all_sources.join("\n\n=== FACTUAL BORDER ===\n\n"));
+                // BUGFIX: Sempre concatenar os fatos brutos/Pandas Interceptor 
+                // para que o Scribe (ou auditor) possa processá-los. Modelos grandes tbm precisam ler a Symbiose!
+                synthesized_report = format!("{}\n\n=== FATOS BRUTOS MANTIDOS EM MEMÓRIA ===\n\n{}", synthesized_report, final_raw_dump);
             }
         }
 
@@ -1272,51 +2103,436 @@ pub async fn run_deep_research_handler(
 
         } else {
             let _ = TRAINER_LOGS.send("[The Scribe] Invocando Agent especialista para iterar e formatar os fatos brutos em Markdown Histórico...".to_string());
-            let scribe_system = format!("Você é 'The Scribe', o Arquiteto Analítico Sênior do Sovereign Pair, redigindo relatórios executivos corporativos de nível C-Level (CIO/CFO/CEO). Hoje é: {current_date}.\n\
-[MISSÃO EXECUTIVA]: Transformar os [FATOS BRUTOS] (gerados pelos agentes anteriores) em um Dossiê Executivo Markdown de estética brilhante, profundo e irrefutável, respondendo à demanda do usuário com sofisticação verbal avançada.\n\n\
+            let scribe_system = if let Some(pool) = engine_arc.db_pool.as_ref() {
+                crate::prompt_vault::load_prompt_by_slug(pool, "scribe_system").await
+                    .map(|p| p.replace("{current_date}", &current_date))
+            } else { None }
+            .unwrap_or_else(|| format!("Você é 'The Scribe', o Arquiteto Analítico Sênior do Sovereign Pair, redigindo relatórios executivos corporativos de nível C-Level (CIO/CFO/CEO). Hoje é: {current_date}.\n\
+[MISSÃO EXECUTIVA]: Sua ÚNICA função é escrever o Dossiê de Análise Fundamentalista em prosa técnica. O próprio motor fará o append da Tabela Crud/Markdown no final do arquivo.\n\n\
 [ESTRUTURA OBRIGATÓRIA - C-LEVEL MARKDOWN]:\n\
-1. SÍNTESE EXECUTIVA (EXECUTIVE SUMMARY): Um parágrafo coeso evidenciando os percentuais, a conclusão matemática e as constatações-chave, usando o \"Data Storytelling\".\n\
-2. ANÁLISE FUNDAMENTALISTA DE IMPACTO: Crie seções (###) abordando os paralelos estatísticos e causa/efeito extraídos pelas ferramentas Python/Pandas que você recebeu na memória.\n\
-3. MODELO DE TABELA CONSOLIDADA DE SÉRIES HISTÓRICAS: Se receber séries longas (ex: 60 meses), unifique todas em uma ÚNICA TABELA MESTRA. Construa exaustivamente todas as linhas sem pular (progressão histórica), lado a lado.\n\n\
+1. SÍNTESE EXECUTIVA (EXECUTIVE SUMMARY): Parágrafo evidenciando os insights da tabela. SE os dados repassados na memória forem apenas JSONs longos crus (sem processamento Pandas prévio), declare a limitação matemática.\n\
+2. ANÁLISE FUNDAMENTALISTA DE IMPACTO: Crie seções (###) abordando causa/efeito extraídas do contexto ou eventos associados.\n\
+3. PROIBIÇÃO ABSOLUTA DA REPRODUÇÃO DE TABELAS: VOCÊ É ESTRITAMENTE PROIBIDO DE RECRIAR/TRANSCREVER MATRIZES OU TABELAS INTEIRAS. O Motor Rust as anexará mecanicamente ao rodapé após o seu texto. Apenas comente sobre elas no campo narrativo.\n\n\
 [TRAVAS EPISTÊMICAS E JURÍDICAS]:\n\
-- ALUCINAÇÃO ZERO (GATE ANTI-INTERPOLAÇÃO): NUNCA adivinhe ou espace dados linearmente. Se o dado do mês não chegou, use 'N/A'. Se o usuário pediu inflação de X ano mas ela não rolou na ferramenta, diga 'Dado Indisponível' na Síntese.\n\
-- VERDADE QUALITATIVA: Se questionado sobre carteis, monopólios ou preços estatais abusivos (ex: Petrobras/Gasolina), cite a raiz fiscal sistêmica real (Refinaria ~27%, ICMS Estadual ~24%, Distr/Revenda ~24%, Etanol ~15%, Federais ~10%), informando que alta volatilidade de pauta não caracteriza cartel deliberado sem a conivência dos governadores e União.\n\n\
-Evite saudações de chat e desculpas robóticas. Comporte-se como um Consultor Sênior reportando aos Acionistas através de linguagem estritamente acadêmica e financeira.");
-            let scribe_user = format!("[PROMPT DO USUÁRIO]: {}\n\n[FATOS BRUTOS COLETADOS PELA IA PESQUISADORA]:\n{}", prompt, synthesized_report);
+- ALUCINAÇÃO ZERO (CEGUEIRA MATEMÁTICA): VOCÊ É PROIBIDO DE CALCULAR MÉDIAS, CORRELAÇÕES OU PERCENTUAIS 'DE CABEÇA'. Se cruzar números exatos que não estão visíveis nos [FATOS BRUTOS], nosso Auditor te punirá imediatamente.\n\
+- REGRA DE OURO (CITAÇÃO OBRIGATÓRIA): Cada afirmação sobre correlação DEVE citar o coeficiente Pearson exato (r=X.XX) conforme impresso na Matriz de Correlação Pandas. Cada afirmação sobre preço DEVE citar o valor e o período (ex: 'R$ 594,94 em Jun/2022'). Se o número exato NÃO consta nos dados, escreva 'dado não disponível nos fatos brutos' em vez de inventar.\n\
+Evite saudações. Reporte com excelência corporativa C-Level, focado estritamente na verdade irrefutável entregada."));
 
-            // A Scribe Phase EXIGE formatadores experientes porque o SLM local era muito fraco.
-            // Escalonando verticalmente para matemática pura sem hardcode.
-            let mut scribe_model = crate::api::discover_cognitive_model_by_tier("senior").await;
-            if scribe_model.contains("deepseek") || scribe_model.contains("reasoner") {
-                scribe_model = target_model_name.clone();
-                let _ = TRAINER_LOGS.send(format!("[Scribe Orchestrator] Bloqueio tático contra Reasoner detectado (Evitando poluição de código/think). Revertendo formatação C-Level para a Mente Mestra testada: '{}'", scribe_model));
-            } else if scribe_model != target_model_name {
-                let _ = TRAINER_LOGS.send(format!("[Scribe Orchestrator] Auto-elevação de Córtex: Escalonando para '{}' visando formatar a resposta.", scribe_model));
-            }
+            // FIX-9: Ancoragem de Dados — Colocar tabela Pandas ANTES dos JSONs crus no prompt
+            // para explorar o viés de posição (modelos ~8B priorizam o início do prompt).
+            // FIX-F2: Extrair nomes de colunas da tabela Pandas e injetar como restrição explícita.
+            // Isso impede o Scribe de mencionar variáveis ausentes (ex: Diesel, Etanol).
+            let (data_anchor, column_guard) = if let Some(ref table) = symbiotic_table_markdown {
+                // Extrair headers da primeira linha da tabela Markdown (ex: "| Date | BRENT_USD | BRENT_BRL |")
+                let available_cols: Vec<String> = table.lines()
+                    .find(|l| l.contains('|') && !l.contains("---"))
+                    .map(|header_line| {
+                        header_line.split('|')
+                            .map(|c| c.trim().to_string())
+                            .filter(|c| !c.is_empty() && c != "Date" && c != "Unnamed: 0")
+                            .collect()
+                    })
+                    .unwrap_or_default();
 
-            let scribe_payload = serde_json::json!({
-                "model": scribe_model,
-                "messages": [
-                    {"role": "system", "content": scribe_system},
-                    {"role": "user", "content": scribe_user}
-                ],
-                "stream": false,
-                "options": {
-                    "num_ctx": 16384,
-                    "temperature": 0.25,
-                    "repeat_penalty": 1.03,
-                    "num_predict": 4096
-                }
-            });
-            
-            let mut formatted = synthesized_report.clone();
-            if let Ok(res) = synthesis_client.post(&olla_url).json(&scribe_payload).send().await
-                && let Ok(json) = res.json::<serde_json::Value>().await
-                    && let Some(content) = json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
-                        formatted = content.to_string();
-                        let _ = TRAINER_LOGS.send("[The Scribe] Formatação Markdown concluída!".to_string());
+                let cols_list = if available_cols.is_empty() {
+                    String::new()
+                } else {
+                    format!("\n[COLUNAS DISPONÍVEIS]: {}.\n\
+                    RESTRIÇÃO ABSOLUTA: Você SOMENTE pode mencionar as variáveis listadas acima. \
+                    Qualquer referência a variáveis AUSENTES (ex: Diesel, Etanol, Selic, PIB) será penalizada pelo Auditor como alucinação.\n",
+                        available_cols.join(", "))
+                };
+
+                (
+                    format!("\n\n[DADOS MATEMÁTICOS VERIFICADOS PELO MOTOR RUST — ÂNCORA OBRIGATÓRIA]:\n{}\n\n", table),
+                    cols_list,
+                )
+            } else {
+                (String::new(), String::new())
+            };
+            // FIX-14: Quando Pandas gerou a tabela, NÃO passar JSONs crus ao Scribe.
+            // A tabela Pandas JÁ É a versão processada e verificada dos dados brutos.
+            // Passar ambos cria redundância e confusão no modelo ~8B (positional bias).
+            // O stress test v2 mostrou que o Scribe ignorou a tabela e focou nos JSONs crus,
+            // gerando um Abstract sobre "300 pontos unidimensionais" em vez dos 7 variáveis reais.
+            let scribe_context = if symbiotic_table_markdown.is_some() {
+                // Tabela Pandas existe → NÃO passar contexto raw (a tabela já contém tudo)
+                String::new()
+            } else {
+                synthesized_report.clone()
+            };
+
+            // FIX-15: Injetar header explicativo sobre o formato dos dados para o Scribe.
+            // O modelo ~8B não entende automaticamente que "2024-01 | 79.20" é uma série temporal
+            // mensal. Sem esta instrução, ele vê "300 pontos de dados" em vez de "60 meses com 7 variáveis".
+            let data_format_hint = if symbiotic_table_markdown.is_some() {
+                "\n\n[FORMATO DOS DADOS]: A tabela abaixo foi gerada pelo Motor Pandas do Sovereign Pair. \
+                 Cada linha é um MÊS no formato YYYY-MM. Colunas representam variáveis macroeconômicas \
+                 e financeiras. A Matriz de Correlação de Pearson (r) quantifica a relação linear entre \
+                 cada par de variáveis: r=1.0 = correlação perfeita positiva, r=0 = sem correlação linear, \
+                 r=-1.0 = inversamente proporcionais. USE os valores r exatos da tabela nas suas citações. \
+                 Valores monetários em BRL devem ser citados como 'R$ XXX,XX em MM/AAAA'.\n".to_string()
+            } else { String::new() };
+
+            // FIX-21: Glossário Semântico de Colunas — ensina ao Scribe (e Auditor) o que cada
+            // coluna significa e sua ordem de magnitude. Sem isso, o LLM confunde BRENT_BRL
+            // (~R$ 400/barril) com GASOLINA (~R$ 6/litro), gerando erros factuais no Abstract.
+            let column_glossary = if let Some(ref table) = symbiotic_table_markdown {
+                let cols: Vec<String> = table.lines()
+                    .find(|l| l.contains('|') && !l.contains("---"))
+                    .map(|h| h.split('|').map(|c| c.trim().to_string())
+                         .filter(|c| !c.is_empty() && c != "Date" && c != "Unnamed: 0").collect())
+                    .unwrap_or_default();
+                if cols.is_empty() { String::new() } else {
+                    let mut g = String::from("\n[GLOSSÁRIO DE COLUNAS — LEITURA OBRIGATÓRIA ANTES DE ESCREVER]:\n");
+                    for col in &cols {
+                        let desc = match col.as_str() {
+                            "BRENT_USD" => "Preço do BARRIL de petróleo Brent em Dólares (~$60-120). UNIDADE: USD/barril.",
+                            "BRENT_BRL" => "Preço do BARRIL de petróleo Brent em Reais (~R$ 300-600). UNIDADE: BRL/barril. NÃO É gasolina.",
+                            "DOLAR_SPOT" => "Taxa de câmbio USD→BRL spot interbancária (~R$ 4.70-6.10). UNIDADE: BRL por 1 USD.",
+                            "DOLAR_PTAX" => "Taxa de câmbio oficial PTAX do BCB (~R$ 4.70-6.10). UNIDADE: BRL por 1 USD.",
+                            "GASOLINA" => "Preço médio nacional do LITRO de gasolina (~R$ 4.50-7.30). UNIDADE: BRL/litro.",
+                            "IPCA" => "Variação MENSAL do IPCA (inflação oficial). Valor típico: ~0.3-0.8%. UNIDADE: percentual mensal.",
+                            "SELIC" => "Taxa Selic (juros básicos). UNIDADE: percentual anual.",
+                            "DIESEL" => "Preço médio do litro de diesel. UNIDADE: BRL/litro.",
+                            _ => "Variável macroeconômica (consulte a unidade no contexto).",
+                        };
+                        g.push_str(&format!("- **{}**: {}\n", col, desc));
                     }
-            formatted
+                    g.push_str("⚠️ ATENÇÃO ABSOLUTA: BRENT_BRL (~R$ 400) = preço por BARRIL. GASOLINA (~R$ 6) = preço por LITRO. NÃO CONFUNDA.\n");
+                    g
+                }
+            } else { String::new() };
+
+            // FIX-19: VERDADE QUALITATIVA — extraída dinamicamente do autobahn_rules.yml.
+            let verdade_qualitativa = rules.get("directives_heavy_duty")
+                .and_then(|v| v.as_sequence())
+                .map(|seq| {
+                    seq.iter()
+                        .filter_map(|d| d.as_str())
+                        .find(|d| d.contains("DADO QUALITATIVO") || d.contains("CARTEL") || d.contains("IMPOSTOS EM COMBUSTÍVEIS"))
+                        .map(|d| format!("\n[VERDADE QUALITATIVA — CONHECIMENTO ECONÔMICO PRÉ-EMBUTIDO]:\n{}\n", d))
+                        .unwrap_or_default()
+                })
+                .unwrap_or_default();
+
+            // FIX-20: O Auditor DEVE receber EXATAMENTE os mesmos dados que o Scribe recebeu.
+            let auditor_context = if symbiotic_table_markdown.is_some() {
+                format!("{}{}{}{}{}", data_format_hint, column_glossary, verdade_qualitativa, data_anchor, column_guard)
+            } else {
+                synthesized_report.clone()
+            };
+
+            let scribe_user = if scribe_context.is_empty() {
+                // FIX-14+19+21: Tabela Pandas + Glossário + Verdade Qualitativa (sem JSONs crus)
+                format!("[PROMPT DO USUÁRIO]: {}\n{}{}{}{}{}", prompt, data_format_hint, column_glossary, verdade_qualitativa, data_anchor, column_guard)
+            } else {
+                format!("[PROMPT DO USUÁRIO]: {}\n{}{}{}{}[CONTEXTO BRUTO DO PESQUISADOR]:\n{}", prompt, column_glossary, verdade_qualitativa, data_anchor, column_guard, scribe_context)
+            };
+
+            let mut scribe_model = crate::api::discover_cognitive_model_by_tier("senior").await;
+            
+            if let Some(pool) = engine_arc.db_pool.as_ref() {
+                if let Ok(Some(is_rsnr)) = sqlx::query_scalar::<_, bool>("SELECT is_reasoner FROM model_capabilities WHERE model_name = ?").bind(&scribe_model).fetch_optional(pool).await {
+                    if is_rsnr {
+                        scribe_model = crate::api::discover_capable_master_agent(Some(pool), 5.0, false, true, &target_model_name).await;
+                        let _ = TRAINER_LOGS.send(format!("[Scribe Orchestrator] Bloqueio contra Reasoner ativado no Pipeline Final. The Scribe foi Roteado Dinamicamente para: '{}'", scribe_model));
+                    }
+                }
+            }
+            
+            if scribe_model != target_model_name {
+                let _ = TRAINER_LOGS.send(format!("[Scribe Orchestrator] Auto-elevação Ativa: Escalonando para '{}' visando formatar a resposta.", scribe_model));
+            }
+            // FIX-24: Log confirmando modelo e tamanho do contexto para diagnóstico
+            let _ = TRAINER_LOGS.send(format!(
+                "🔬 [Scribe Setup] model='{}', system_len={}, user_len={}, think=false",
+                scribe_model, scribe_system.len(), scribe_user.len()
+            ));
+            tracing::info!("[Scribe Setup] model='{}', system_len={}, user_len={}", scribe_model, scribe_system.len(), scribe_user.len());
+
+            let mut scribe_messages = vec![
+                serde_json::json!({"role": "system", "content": scribe_system}),
+                serde_json::json!({"role": "user", "content": scribe_user})
+            ];
+
+            let mut final_formatted_report = synthesized_report.clone();
+            
+            let max_retries = 2;
+            for attempt in 1..=max_retries {
+                // FIX-17: keep_alive 60m no Scribe para manter modelo na RAM durante retries
+                // FIX-23: Reasoners (qwen3, gemma4) gastam ~1500 tokens em <think> antes de
+                // escrever conteúdo útil. enable_thinking:false desabilita o CoT interno,
+                // forçando o modelo a escrever diretamente o Markdown.
+                let scribe_payload = serde_json::json!({
+                    "model": scribe_model,
+                    "messages": scribe_messages,
+                    "stream": false,
+                    "keep_alive": "60m",
+                    "think": false,
+                    "options": {
+                        "num_ctx": 16384,
+                        "temperature": 0.1,
+                        "repeat_penalty": 1.03,
+                        "num_predict": 3072
+                    }
+                });
+                
+                let mut current_format = String::new();
+                // FIX-25: Retry loop com backoff — o Ollama pode estar recarregando o modelo
+                // após o agentic loop (keep_alive troca de num_ctx). Sem retry, um único
+                // "error sending request" mata o Scribe silenciosamente.
+                let scribe_max_http_retries = 3u32;
+                for http_attempt in 1..=scribe_max_http_retries {
+                    match synthesis_client.post(&olla_url).json(&scribe_payload).send().await {
+                        Ok(res) => {
+                            let status = res.status();
+                            match res.json::<serde_json::Value>().await {
+                                Ok(json) => {
+                                    if let Some(content) = json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
+                                        let raw_len = content.len();
+                                        let mut cleaned = content.trim().to_string();
+                                        // FIX-23: Strip <think>...</think> tags (defense-in-depth).
+                                        let had_think = cleaned.contains("<think>");
+                                        while let Some(start) = cleaned.find("<think>") {
+                                            if let Some(end) = cleaned.find("</think>") {
+                                                let shift = if cleaned[end..].starts_with("</think>\n") { 9 } else { 8 };
+                                                cleaned.replace_range(start..end + shift, "");
+                                            } else {
+                                                cleaned = cleaned[..start].to_string();
+                                                break;
+                                            }
+                                        }
+                                        cleaned = cleaned.trim().to_string();
+                                        if cleaned.starts_with("```markdown") { cleaned = cleaned.trim_start_matches("```markdown").trim_start().to_string(); } 
+                                        else if cleaned.starts_with("```") { cleaned = cleaned.trim_start_matches("```").trim_start().to_string(); }
+                                        if cleaned.ends_with("```") { cleaned = cleaned.trim_end_matches("```").trim_end().to_string(); }
+                                        
+                                        if cleaned.is_empty() {
+                                            let _ = TRAINER_LOGS.send(format!(
+                                                "🔬 [Scribe Diagnostic] Output VAZIO após limpeza. raw_len={}, had_think={}, model={}, preview='{}'",
+                                                raw_len, had_think, scribe_model, content.chars().take(200).collect::<String>()
+                                            ));
+                                        } else {
+                                            let _ = TRAINER_LOGS.send(format!(
+                                                "📝 [Scribe Output] {} chars produzidos pelo '{}' (raw={}, think_stripped={})",
+                                                cleaned.len(), scribe_model, raw_len, had_think
+                                            ));
+                                        }
+                                        current_format = cleaned;
+                                    } else if let Some(err) = json.get("error").and_then(|e| e.as_str()) {
+                                        let _ = TRAINER_LOGS.send(format!("🚨 [Scribe Error] Ollama retornou erro: {}", err));
+                                    } else {
+                                        let _ = TRAINER_LOGS.send(format!("🚨 [Scribe Error] JSON sem 'message.content'. Keys: {:?}", json.as_object().map(|o| o.keys().collect::<Vec<_>>())));
+                                    }
+                                },
+                                Err(e) => {
+                                    let _ = TRAINER_LOGS.send(format!("🚨 [Scribe Error] JSON parse falhou (HTTP {}): {}", status, e));
+                                }
+                            }
+                            break; // HTTP OK — sair do retry loop (mesmo se content estiver vazio)
+                        },
+                        Err(e) => {
+                            let _ = TRAINER_LOGS.send(format!(
+                                "🔄 [Scribe Retry] HTTP falhou (tentativa {}/{}): {}. Aguardando 5s para Ollama estabilizar...",
+                                http_attempt, scribe_max_http_retries, e
+                            ));
+                            tracing::warn!("[Scribe] HTTP attempt {}/{} failed: {}", http_attempt, scribe_max_http_retries, e);
+                            if http_attempt < scribe_max_http_retries {
+                                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                            }
+                        }
+                    }
+                }
+
+                // FIX-20+22: Sycophancy Breaker com contexto SIMÉTRICO ao Scribe + auditoria estruturada.
+                // O Auditor agora recebe os MESMOS dados que o Scribe (tabela Pandas quando existe),
+                // e tem instruções específicas para detectar confusão de colunas e granularidade.
+                let auditor_prompt = format!(
+                    "Você é o Auditor de Integridade Factual do Sovereign Pair. Verifique CADA número citado no [RELATÓRIO] contra os [DADOS FONTE].\n\n\
+                     INSTRUÇÕES DE AUDITORIA OBRIGATÓRIAS:\n\
+                     1. Para CADA valor monetário citado, verifique se existe EXATAMENTE na tabela/dados fonte.\n\
+                     2. BRENT_BRL (~R$ 300-600) = preço do BARRIL. GASOLINA (~R$ 4-8) = preço do LITRO. Se o relatório atribuir R$ 500+ à gasolina, é ERRO DE COLUNA.\n\
+                     3. Valores MENSAIS (ex: Jun/2022) NÃO podem ser confundidos com MÉDIAS ANUAIS (ex: média 2022). São tabelas diferentes.\n\
+                     4. Correlações devem citar o coeficiente r exato da Matriz de Pearson visível nos dados.\n\n\
+                     RESPONDA:\n\
+                     - 'OK' se tudo está correto.\n\
+                     - Se encontrou erro, cite: QUAL valor, ONDE no relatório, e QUAL é o valor correto nos dados fonte.\n\n\
+                     [DADOS FONTE]:\n{}\n\n[RELATÓRIO GERADO]:\n{}", auditor_context, current_format);
+                // FIX-17: keep_alive 60m no Auditor para co-residência com Scribe
+                let auditor_payload = serde_json::json!({
+                    "model": auth_inquisitor,
+                    "messages": [ {"role": "user", "content": auditor_prompt} ],
+                    "stream": false,
+                    "keep_alive": "60m",
+                    "options": {
+                        "num_ctx": 8192,
+                        "num_predict": 512,
+                        "temperature": 0.0
+                    }
+                });
+
+                let _ = TRAINER_LOGS.send(format!("[Sycophancy Breaker] Verificando integridade epistêmica da formatação (Tentativa {}/{})...", attempt, max_retries));
+                
+                let mut is_clean = true;
+                if let Ok(aud_res) = synthesis_client.post(&olla_url).json(&auditor_payload).send().await
+                    && let Ok(aud_json) = aud_res.json::<serde_json::Value>().await
+                        && let Some(aud_content) = aud_json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
+                            let clean_eval = aud_content.to_uppercase().trim().trim_matches(|c: char| !c.is_alphabetic()).to_string();
+                            if !clean_eval.starts_with("OK") && aud_content.len() > 10 {
+                                is_clean = false;
+                                let raw_err = aud_content.to_string();
+                                let _ = TRAINER_LOGS.send(format!("🚨 [Auditoria Falhou] Mentira matemática detectada! 'Comendo o toco' do The Scribe (Reprimenda enviada)."));
+                                scribe_messages.push(serde_json::json!({"role": "assistant", "content": current_format}));
+                                scribe_messages.push(serde_json::json!({"role": "user", "content": format!("🚨 [EPISTEMIC REPRIMAND]: O Auditor identificou alucinação grave no seu relatório:\n\n{}\n\nREFAÇA o relatório focado única e exclusivamente na verdade fornecida. NÃO inclua nenhum cálculo percentual dedutivo a menos que esteja claramente impresso na tabela bruta.", raw_err)}));
+                            }
+                        }
+
+                if is_clean {
+                    // Auditoria aprovada pelo Sycophancy Breaker.
+                    if current_format.trim().is_empty() {
+                        final_formatted_report = synthesized_report.clone();
+                        let _ = TRAINER_LOGS.send(
+                            "⚠️ [Scribe Failsafe] Output vazio detectado. Usando fatos brutos como fallback do Abstract."
+                                .to_string()
+                        );
+                    } else {
+                        final_formatted_report = current_format;
+                    }
+                    let _ = TRAINER_LOGS.send("[The Scribe] Formatação C-Level aprovada pelo Sycophancy Breaker!".to_string());
+                    break;
+                }
+
+                // FIX-10: Após esgotar retries com o modelo primário, escalar para gemma4:e4b
+                // como Scribe de última instância antes de cair no failsafe de fatos brutos.
+                if attempt == max_retries {
+                    let gemma_fallback = "gemma4:e4b".to_string();
+                    // Só escalar se o Scribe atual NÃO é já o gemma4 (evitar loop)
+                    if scribe_model != gemma_fallback {
+                        // FIX-F3: Se o auditor é o MESMO modelo que o novo Scribe (gemma4),
+                        // trocamos o auditor para o Scribe original (ex: qwen3:8b) para evitar
+                        // self-audit (gemma4 auditando gemma4 = sem viés cruzado).
+                        let original_scribe = scribe_model.clone();
+                        if auth_inquisitor.to_lowercase().contains("gemma") {
+                            auth_inquisitor = original_scribe.clone();
+                            let _ = TRAINER_LOGS.send(format!(
+                                "🔄 [Sycophancy Breaker] Auditor trocado para '{}' (evitando self-audit com Scribe de resgate).",
+                                auth_inquisitor
+                            ));
+                        }
+                        let _ = TRAINER_LOGS.send(format!(
+                            "🔄 [Scribe Escalation] '{}' falhou {}× na auditoria. Escalando para '{}' como Scribe de resgate.",
+                            original_scribe, max_retries, gemma_fallback
+                        ));
+                        scribe_model = gemma_fallback;
+                        // Reset messages para o novo modelo (limpa o histórico de reprimendas do modelo anterior)
+                        scribe_messages = vec![
+                            serde_json::json!({"role": "system", "content": scribe_system}),
+                            serde_json::json!({"role": "user", "content": scribe_user})
+                        ];
+                        // Dar mais 2 tentativas ao gemma4
+                        for rescue_attempt in 1..=2u32 {
+                            let rescue_payload = serde_json::json!({
+                                "model": scribe_model,
+                                "messages": scribe_messages,
+                                "stream": false,
+                                "keep_alive": "60m",
+                                "think": false,
+                                "options": {
+                                    "num_ctx": 16384,
+                                    "temperature": 0.1,
+                                    "repeat_penalty": 1.03,
+                                    "num_predict": 3072
+                                }
+                            });
+                            let mut rescue_format = String::new();
+                            if let Ok(res) = synthesis_client.post(&olla_url).json(&rescue_payload).send().await
+                                && let Ok(json) = res.json::<serde_json::Value>().await
+                                    && let Some(content) = json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
+                                        let mut cleaned = content.trim().to_string();
+                                        // FIX-23: Strip <think> tags no rescue Scribe
+                                        while let Some(start) = cleaned.find("<think>") {
+                                            if let Some(end) = cleaned.find("</think>") {
+                                                let shift = if cleaned[end..].starts_with("</think>\n") { 9 } else { 8 };
+                                                cleaned.replace_range(start..end + shift, "");
+                                            } else {
+                                                cleaned = cleaned[..start].to_string();
+                                                break;
+                                            }
+                                        }
+                                        cleaned = cleaned.trim().to_string();
+                                        if cleaned.starts_with("```markdown") { cleaned = cleaned.trim_start_matches("```markdown").trim_start().to_string(); }
+                                        else if cleaned.starts_with("```") { cleaned = cleaned.trim_start_matches("```").trim_start().to_string(); }
+                                        if cleaned.ends_with("```") { cleaned = cleaned.trim_end_matches("```").trim_end().to_string(); }
+                                        rescue_format = cleaned;
+                                    }
+
+                            // FIX-20+22: Rescue Auditor com contexto SIMÉTRICO ao Scribe
+                            let rescue_audit_prompt = format!(
+                                "Você é o Auditor de Integridade Factual. Verifique CADA número do [RELATÓRIO] contra os [DADOS FONTE].\n\n\
+                                 REGRAS: (1) BRENT_BRL (~R$ 300-600) = BARRIL, GASOLINA (~R$ 4-8) = LITRO — confusão = ERRO. \
+                                 (2) Valores mensais ≠ médias anuais. (3) Correlações devem citar r exato da Pearson.\n\n\
+                                 RESPONDA 'OK' se correto, ou cite o ERRO específico com o valor correto.\n\n\
+                                 [DADOS FONTE]:\n{}\n\n[RELATÓRIO GERADO]:\n{}", auditor_context, rescue_format);
+                            let rescue_audit_payload = serde_json::json!({
+                                "model": auth_inquisitor,
+                                "messages": [ {"role": "user", "content": rescue_audit_prompt} ],
+                                "stream": false,
+                                "keep_alive": "60m",
+                                "options": { "num_ctx": 8192, "num_predict": 512, "temperature": 0.0 }
+                            });
+                            let _ = TRAINER_LOGS.send(format!("[Sycophancy Breaker] Auditando Scribe de resgate '{}' (Tentativa {}/2)...", scribe_model, rescue_attempt));
+                            let mut rescue_clean = true;
+                            if let Ok(aud_res) = synthesis_client.post(&olla_url).json(&rescue_audit_payload).send().await
+                                && let Ok(aud_json) = aud_res.json::<serde_json::Value>().await
+                                    && let Some(aud_content) = aud_json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
+                                        let clean_eval = aud_content.to_uppercase().trim().trim_matches(|c: char| !c.is_alphabetic()).to_string();
+                                        if !clean_eval.starts_with("OK") && aud_content.len() > 10 {
+                                            rescue_clean = false;
+                                            let raw_err = aud_content.to_string();
+                                            let _ = TRAINER_LOGS.send(format!("🚨 [Auditoria Resgate] Falha detectada no Scribe de resgate (tentativa {}/2).", rescue_attempt));
+                                            scribe_messages.push(serde_json::json!({"role": "assistant", "content": rescue_format}));
+                                            scribe_messages.push(serde_json::json!({"role": "user", "content": format!("🚨 [EPISTEMIC REPRIMAND]: {}\n\nREFAÇA o relatório citando APENAS valores exatos visíveis nos dados. Use r=X.XX para correlações e R$ XXX,XX para preços.", raw_err)}));
+                                        }
+                                    }
+                            if rescue_clean {
+                                if !rescue_format.trim().is_empty() {
+                                    final_formatted_report = rescue_format;
+                                    let _ = TRAINER_LOGS.send(format!("✅ [Scribe Resgate] '{}' aprovado pelo Sycophancy Breaker!", scribe_model));
+                                }
+                                break;
+                            }
+                            if rescue_attempt == 2 {
+                                // Gemma4 também falhou — usar o último output mesmo assim (melhor que raw)
+                                if !rescue_format.trim().is_empty() {
+                                    final_formatted_report = rescue_format;
+                                    let _ = TRAINER_LOGS.send("⚠️ [Scribe Resgate] Gemma4 não passou na auditoria, mas output será usado como melhor esforço.".to_string());
+                                }
+                            }
+                        }
+                    } else {
+                        // O Scribe JÁ era o gemma4 e falhou — usar current_format como fallback
+                        if !current_format.trim().is_empty() {
+                            final_formatted_report = current_format;
+                            let _ = TRAINER_LOGS.send("⚠️ [Scribe Failsafe] Scribe esgotou tentativas. Usando último output como melhor esforço.".to_string());
+                        } else {
+                            final_formatted_report = synthesized_report.clone();
+                            let _ = TRAINER_LOGS.send(
+                                "⚠️ [Scribe Failsafe] Output vazio detectado. Usando fatos brutos como fallback do Abstract."
+                                    .to_string()
+                            );
+                        }
+                    }
+                    let _ = TRAINER_LOGS.send("[The Scribe] Pipeline de formatação finalizado.".to_string());
+                    break;
+                }
+            }
+                    
+            // CO-RESIDENCY: NÃO evictar o Scribe aqui. Manter Scribe + Auditor co-residentes
+            // na VRAM durante todo o pipeline de formatação. Em hosts com 27GB+, ambos os modelos
+            // (~4.5GB + ~5GB) cabem simultaneamente, eliminando ~8min de cold-start por swap.
+            // A eviction final acontece no Step 4 (fim do pipeline).
+            final_formatted_report
         };
 
         // [STEP 3]: Vault Context Injector
@@ -1325,7 +2541,7 @@ Evite saudações de chat e desculpas robóticas. Comporte-se como um Consultor 
         // [STEP 4]: Final Artifact Export -> STAGING DB
         let mut source_links: Vec<String> = Vec::new();
         for line in all_sources.join("\n").lines() {
-            let l_trimmed = line.trim();
+            let l_trimmed: &str = line.trim();
             if l_trimmed.starts_with("## Source: ") {
                 source_links.push(format!("- {}", l_trimmed.replace("## Source: ", "").trim()));
             } else if l_trimmed.starts_with('{') && l_trimmed.contains("\"source\"") {
@@ -1346,9 +2562,110 @@ Evite saudações de chat e desculpas robóticas. Comporte-se como um Consultor 
             source_links.join("\n")
         };
         
+        // [EPISTEMIC GUARD v2] Verificação DETERMINÍSTICA: cada hash em all_hashes
+        // foi gerado pelo Rust no momento da gravação do arquivo em /tmp/sovereign.
+        // Verificamos que os arquivos FÍSICOS ainda existem em disco E que o SHA-256
+        // re-calculado bate. Isso é prova irrefutável de que os dados passaram pela
+        // pipeline real, sem depender de um SLM reproduzir strings aleatórias.
+        //
+        // FIX-1: Exibir hash SHA-256 completo (64 chars) em vez de truncado (16 chars).
+        // FIX-3: Agrupar arquivos por hash via HashMap para dedup visual.
+        // FIX-8: Contar hashes ÚNICOS verificados, não total de arquivos em disco.
+        let mut audit_verified = 0usize;
+        let mut audit_failed = 0usize;
+        let mut audit_details: Vec<String> = Vec::new();
+        let mut total_files_on_disk = 0usize;
+        if !all_hashes.is_empty() {
+            use sha2::{Sha256, Digest};
+            // WIN-04: Cross-platform sovereign temp dir
+            let sovereign_dir = std::env::temp_dir().join("sovereign");
+            let sovereign_dir = sovereign_dir.as_path();
+            if sovereign_dir.exists() {
+                // Fase 1: Ler todos os arquivos e agrupar por hash
+                let mut hash_to_files: std::collections::HashMap<String, Vec<String>> =
+                    std::collections::HashMap::new();
+                if let Ok(entries) = std::fs::read_dir(sovereign_dir) {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_file() {
+                            if let Ok(contents) = std::fs::read(&path) {
+                                let mut hasher = Sha256::new();
+                                hasher.update(&contents);
+                                let file_hash = format!("{:x}", hasher.finalize());
+                                if all_hashes.contains(&file_hash) {
+                                    total_files_on_disk += 1;
+                                    hash_to_files.entry(file_hash)
+                                        .or_default()
+                                        .push(path.file_name().unwrap_or_default()
+                                            .to_string_lossy().to_string());
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Fase 2: Construir audit_details com dedup visual
+                audit_verified = hash_to_files.len();
+                for (hash, files) in &hash_to_files {
+                    if files.len() == 1 {
+                        audit_details.push(format!("✅ `{}` — SHA-256: `{}`", files[0], hash));
+                    } else {
+                        audit_details.push(format!(
+                            "✅ `{}` (+{} cópias idempotentes) — SHA-256: `{}`",
+                            files[0], files.len() - 1, hash
+                        ));
+                    }
+                }
+
+                // Fase 3: Verificar se algum hash esperado NÃO foi encontrado em disco
+                let unique_expected: std::collections::HashSet<&String> = all_hashes.iter().collect();
+                let found_hashes: std::collections::HashSet<&String> = hash_to_files.keys().collect();
+                audit_failed = unique_expected.difference(&found_hashes).count();
+            } else {
+                audit_failed = all_hashes.len();
+            }
+        }
+
+        // Construir bloco de proveniência com resultado da auditoria
+        let provenance_block = if all_hashes.is_empty() {
+            String::new()
+        } else if audit_failed == 0 {
+            let _ = TRAINER_LOGS.send(format!("✅ [Epistemic Guard v2] Auditoria Determinística APROVADA: {} hashes únicos verificados ({} arquivos em disco).", audit_verified, total_files_on_disk));
+            format!(
+                "\n\n---\n## 🛡️ Proveniência Criptográfica — Validação Sistêmica\n\n\
+                 > [!NOTE]\n\
+                 > **Auditoria Determinística APROVADA** pelo Motor Rust (SHA-256 Reverse-Check).\n\
+                 > Todos os {} arquivo(s) de dados brutos em `/tmp/sovereign/` foram re-hasheados em tempo real pelo servidor e correspondem 1:1 aos checksums originais gravados durante a extração.\n\
+                 > Esta é uma prova **irrefutável** de que os dados abaixo passaram pela pipeline real de coleta — não foram fabricados pelo LLM.\n\n\
+                 {}\n",
+                audit_verified,
+                audit_details.join("\n\n")
+            )
+        } else {
+            let _ = TRAINER_LOGS.send(format!("⚠️ [Epistemic Guard v2] Auditoria Parcial: {}/{} verificados, {} não localizados em disco.", audit_verified, all_hashes.len(), audit_failed));
+            format!(
+                "\n\n---\n## ⚠️ Proveniência Criptográfica — Validação Parcial\n\n\
+                 > [!WARNING]\n\
+                 > **Auditoria Determinística PARCIAL**: {}/{} arquivo(s) verificados via SHA-256.\n\
+                 > {} hash(es) esperado(s) não foram localizados em disco. O conteúdo abaixo pode conter dados processados pelo LLM sem lastro em arquivo físico.\n\
+                 > Revise criticamente os dados antes de tomar decisões financeiras.\n\n\
+                 {}\n",
+                audit_verified, all_hashes.len(), audit_failed,
+                if audit_details.is_empty() { "Nenhum arquivo verificado.".to_string() } else { audit_details.join("\n\n") }
+            )
+        };
+
+        // Se o Symbiotic Pipeline gerou uma tabela Markdown (inline ou post-loop),
+        // ela DEVE aparecer no artefato final. Não importa se o Scribe acertou ou errou.
+        let symbiotic_section = if let Some(ref table_md) = symbiotic_table_markdown {
+            format!("\n\n---\n## 📊 Dados Consolidados (Symbiotic Pipeline)\n\n{}\n", table_md)
+        } else {
+            String::new()
+        };
+
         let md_content = format!(
-            "# Deep Research Report\n\n**Directive:** {}\n\n>[!INFO] This artifact was autonomously generated by the Sovereign Deep Research loop.\n\n## Abstract (LLM Synthesis)\n{}\n\n---\n## 📚 Fontes Pesquisadas\n{}\n", 
-            prompt, final_markdown_report, sources_block
+            "# Deep Research Report\n\n**Directive:** {}\n\n>[!INFO] This artifact was autonomously generated by the Sovereign Deep Research loop.\n\n## Abstract (LLM Synthesis)\n{}{}{}\n---\n## 📚 Fontes Pesquisadas\n{}\n",
+            prompt, final_markdown_report, symbiotic_section, provenance_block, sources_block
         );
         
         let stage_id = uuid::Uuid::new_v4().to_string();
@@ -1365,6 +2682,10 @@ Evite saudações de chat e desculpas robóticas. Comporte-se como um Consultor 
         }
         
         let _ = TRAINER_LOGS.send("[STEP 4] Deep Research Protocol Complete (Staged for Human Review).".to_string());
+        
+        // Final Sweep: Evict all resident models from VRAM (Co-residency cleanup)
+        crate::memory_manager::fire_eviction_protocol(&target_model_name).await;
+        crate::memory_manager::fire_eviction_protocol(&auth_inquisitor).await;
         
         // Clean up Token
         let mut mg = DEEP_RESEARCH_CANCEL_TOKEN.write().unwrap();

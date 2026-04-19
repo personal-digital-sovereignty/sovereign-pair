@@ -119,8 +119,12 @@ pub async fn generate_image_handler(
             }
             if let Ok(sd_resp) = res.json::<SdApiTxt2ImgResponse>().await {
                 if let Some(b64_img) = sd_resp.images.first() {
-                    let home_dir = std::env::var("HOME").unwrap_or_else(|_| "/home/jefersonlopes".to_string());
-                    let images_dir = std::path::PathBuf::from(home_dir).join("Vault").join("Images");
+                    // Usa dirs padrão do SO (MacOS: ~/Library/Application Support, Linux: ~/.local/share)
+                    let images_dir = dirs::data_local_dir()
+                        .unwrap_or_else(|| std::path::PathBuf::from(std::env::var("HOME").unwrap_or_default()))
+                        .join("sovereign-pair")
+                        .join("vault")
+                        .join("images");
                     
                     fs::create_dir_all(&images_dir).await.ok();
                     
@@ -134,9 +138,10 @@ pub async fn generate_image_handler(
                                 return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Failed to save image locally: {}", e)})));
                             }
                             
-                            // Map the absolute path to a URL reachable by Svelte UI / LLM
-                            // Assuming /v1/vault/media/... can serve this, or we just pass the URL back via the Office Parser vault trick
-                            let img_url = format!("http://localhost:38001/v1/vault/media?path={}", urlencoding::encode(&file_path.to_string_lossy()));
+                            // URL dinâmica usando SOVEREIGN_API_URL para compatibilidade com MacOS App Bundle
+                            let api_base = std::env::var("SOVEREIGN_API_URL")
+                                .unwrap_or_else(|_| "http://127.0.0.1:38001".to_string());
+                            let img_url = format!("{}/v1/vault/media?path={}", api_base.trim_end_matches('/'), urlencoding::encode(&file_path.to_string_lossy()));
                             
                             return (StatusCode::OK, Json(json!({
                                 "created": chrono::Utc::now().timestamp(),

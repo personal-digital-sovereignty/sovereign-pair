@@ -17,7 +17,7 @@ def normalize_date(raw):
             parts = s.split('-')
             if len(parts) >= 2:
                 return f"{parts[0]}-{parts[1]}"
-    except:
+    except Exception:
         pass
     return s
 
@@ -56,21 +56,99 @@ def fetch_finance(ticker, years):
         
     period = f"{clean_years}y"
     
+    # === SOVEREIGN TICKER RESOLVER (Fase 1: Mapeamento Semântico Expandido) ===
+    # Cobre os ativos mais comuns do mercado BR + commodities internacionais.
+    # Se o LLM enviar o nome popular (ex: "NUBANK"), resolve para o ticker Yahoo correto.
+    TICKER_MAP = {
+        # Commodities internacionais
+        'BRENT':         ('BZ=F',      'Barril de Petróleo (BRENT Crude)'),
+        'WTI':           ('CL=F',      'Barril de Petróleo (WTI Crude Spot)'),
+        'GOLD':          ('GC=F',      'Ouro (Gold Spot)'),
+        'SILVER':        ('SI=F',      'Prata (Silver Spot)'),
+        # Câmbio
+        'DOLAR':         ('BRL=X',     'Taxa de Câmbio (Dólar / BRL)'),
+        'USD':           ('BRL=X',     'Taxa de Câmbio (Dólar / BRL)'),
+        'EURO':          ('EURBRL=X',  'Taxa de Câmbio (Euro / BRL)'),
+        # Ações BR — Top 20+ por relevância
+        'PETROBRAS':     ('PETR4.SA',  'Ações Petrobras (PETR4)'),
+        'PETR4':         ('PETR4.SA',  'Ações Petrobras (PETR4)'),
+        'PETR3':         ('PETR3.SA',  'Ações Petrobras ON (PETR3)'),
+        'NUBANK':        ('NU',        'Ações NuBank (NU — NYSE)'),
+        'NU':            ('NU',        'Ações NuBank (NU — NYSE)'),
+        'ROXO34':        ('ROXO34.SA', 'BDR NuBank (ROXO34)'),
+        'VALE':          ('VALE3.SA',  'Ações Vale (VALE3)'),
+        'VALE3':         ('VALE3.SA',  'Ações Vale (VALE3)'),
+        'ITAU':          ('ITUB4.SA',  'Ações Itaú Unibanco (ITUB4)'),
+        'ITAÚ':          ('ITUB4.SA',  'Ações Itaú Unibanco (ITUB4)'),
+        'ITUB4':         ('ITUB4.SA',  'Ações Itaú Unibanco (ITUB4)'),
+        'BRADESCO':      ('BBDC4.SA',  'Ações Bradesco PN (BBDC4)'),
+        'BBDC4':         ('BBDC4.SA',  'Ações Bradesco PN (BBDC4)'),
+        'BBDC3':         ('BBDC3.SA',  'Ações Bradesco ON (BBDC3)'),
+        'BRADESCO_SEGUROS': ('BBSE3.SA', 'Ações BB Seguridade / Bradesco Seguros (BBSE3)'),
+        'BBSE3':         ('BBSE3.SA',  'Ações BB Seguridade (BBSE3)'),
+        'BANCO_DO_BRASIL': ('BBAS3.SA', 'Ações Banco do Brasil (BBAS3)'),
+        'BB':            ('BBAS3.SA',  'Ações Banco do Brasil (BBAS3)'),
+        'BBAS3':         ('BBAS3.SA',  'Ações Banco do Brasil (BBAS3)'),
+        'AMBEV':         ('ABEV3.SA',  'Ações Ambev (ABEV3)'),
+        'ABEV3':         ('ABEV3.SA',  'Ações Ambev (ABEV3)'),
+        'MAGAZINE':      ('MGLU3.SA',  'Ações Magazine Luiza (MGLU3)'),
+        'MAGALU':        ('MGLU3.SA',  'Ações Magazine Luiza (MGLU3)'),
+        'MGLU3':         ('MGLU3.SA',  'Ações Magazine Luiza (MGLU3)'),
+        'WEG':           ('WEGE3.SA',  'Ações WEG (WEGE3)'),
+        'WEGE3':         ('WEGE3.SA',  'Ações WEG (WEGE3)'),
+        'SUZANO':        ('SUZB3.SA',  'Ações Suzano (SUZB3)'),
+        'SUZB3':         ('SUZB3.SA',  'Ações Suzano (SUZB3)'),
+        'JBS':           ('JBSS3.SA',  'Ações JBS (JBSS3)'),
+        'JBSS3':         ('JBSS3.SA',  'Ações JBS (JBSS3)'),
+        'ELETROBRAS':    ('ELET3.SA',  'Ações Eletrobras (ELET3)'),
+        'ELET3':         ('ELET3.SA',  'Ações Eletrobras (ELET3)'),
+        'RENT3':         ('RENT3.SA',  'Ações Localiza (RENT3)'),
+        'LOCALIZA':      ('RENT3.SA',  'Ações Localiza (RENT3)'),
+        'B3':            ('B3SA3.SA',  'Ações B3 (B3SA3)'),
+        'B3SA3':         ('B3SA3.SA',  'Ações B3 (B3SA3)'),
+        'HAPVIDA':       ('HAPV3.SA',  'Ações Hapvida (HAPV3)'),
+        'HAPV3':         ('HAPV3.SA',  'Ações Hapvida (HAPV3)'),
+        'SANTANDER':     ('SANB11.SA', 'Ações Santander Brasil (SANB11)'),
+        'SANB11':        ('SANB11.SA', 'Ações Santander Brasil (SANB11)'),
+        # Futuros
+        'BRENT_FUTURE':  ('BZ=F',     'Contrato Futuro Brent (Especulativo)'),
+        'WTI_FUTURE':    ('CL=F',     'Contrato Futuro WTI (Especulativo)'),
+        'GOLD_FUTURE':   ('GC=F',     'Contrato Futuro Ouro (Especulativo)'),
+        'DI_FUTURE':     ('DI1F27.SA','Contrato DI Futuro (Especulativo)'),
+    }
+    
     semantic_name = ticker
-    if ticker.upper() == 'BRENT':
-        ticker = 'BZ=F'
-        semantic_name = 'Barril de Petróleo (BRENT Crude)'
-    elif ticker.upper() == 'WTI':
-        ticker = 'CL=F'
-        semantic_name = 'Barril de Petróleo (WTI Crude)'
-    elif ticker.upper() == 'DOLAR' or ticker.upper() == 'USD':
-        ticker = 'BRL=X'
-        semantic_name = 'Taxa de Câmbio (Dólar / BRL)'
-    elif ticker.upper() == 'PETROBRAS':
-        ticker = 'PETR4.SA'
-        semantic_name = 'Ações Petrobras (PETR4)'
+    upper_ticker = ticker.upper().replace(' ', '_')
+    
+    if upper_ticker in TICKER_MAP:
+        ticker, semantic_name = TICKER_MAP[upper_ticker]
+    else:
+        # === Fase 2: Fallback Dinâmico (tenta .SA para B3, depois ticker puro para NYSE/NASDAQ) ===
+        # Se o LLM enviar um ticker que não está no mapa, testa se funciona diretamente no yfinance.
+        import sys as _sys
+        _candidates = []
+        if not ticker.endswith('.SA'):
+            _candidates.append(f"{ticker.upper()}.SA")  # Tenta B3 primeiro para ativos BR
+        _candidates.append(ticker.upper())               # Tenta ticker puro (NYSE/NASDAQ)
         
+        _resolved = False
+        for _cand in _candidates:
+            try:
+                _t = yf.Ticker(_cand)
+                _test = _t.history(period="5d")
+                if not _test.empty:
+                    semantic_name = f"Ativo Financeiro ({_cand})"
+                    ticker = _cand
+                    _resolved = True
+                    break
+            except Exception:
+                continue
         
+        if not _resolved:
+            print(json.dumps({"error": f"Ticker '{ticker}' não reconhecido pelo Sovereign Matrix e não resolvido via yfinance. Tickers testados: {_candidates}. Verifique o símbolo exato do ativo (ex: PETR4, NU, VALE3, BRENT, ITUB4)."}))
+            _sys.exit(1)
+        
+
 
     start_date = (datetime.datetime.now() - datetime.timedelta(days=int(clean_years)*365)).strftime('%Y-%m-%d')
     end_date = datetime.datetime.now().strftime('%Y-%m-%d')
@@ -83,7 +161,7 @@ def fetch_finance(ticker, years):
         t = yf.Ticker(ticker)
         df = t.history(period=period)
     except Exception as e:
-        last_error_layer1 = f"Layer 1 (yfinance) failed: {e}"
+        last_error = f"Layer 1 (yfinance) failed: {e}"
         
     # === LAYER 2: YAHOO RAW API (Browser Spoofing) ===
     if df.empty:
@@ -144,7 +222,7 @@ def fetch_finance(ticker, years):
         try:
             t_usd = yf.Ticker('BRL=X')
             df_usd = t_usd.history(period=period)
-        except:
+        except Exception:
             pass
             
         if df_usd.empty:
@@ -160,23 +238,23 @@ def fetch_finance(ticker, years):
                     closes = raw_json['chart']['result'][0]['indicators']['quote'][0]['close']
                     dates = [datetime.datetime.fromtimestamp(ts) for ts in timestamps]
                     df_usd = pd.DataFrame({'Close': closes}, index=dates)
-            except:
+            except Exception:
                 pass
                 
         if not df_usd.empty:
             try:
                 if int(clean_years) > 1:
                     df['YearMonth'] = df.index.strftime('%Y-%m')
-                    df = df.groupby('YearMonth').last()
+                    df = df.groupby('YearMonth').mean()
                     
                     df_usd['YearMonth'] = df_usd.index.strftime('%Y-%m')
-                    df_usd = df_usd.groupby('YearMonth').last()
+                    df_usd = df_usd.groupby('YearMonth').mean()
                     
                     df = df.join(df_usd['Close'], rsuffix='_usd', how='inner')
                     df['Close_brl'] = df['Close'] * df['Close_usd']
                     converted_to_brl = True
                     source_used += " | (+ Converted to BRL)"
-            except:
+            except Exception:
                 pass
                 
     if not converted_to_brl:
@@ -184,9 +262,17 @@ def fetch_finance(ticker, years):
         try:
             if int(clean_years) > 1:
                 df['YearMonth'] = df.index.strftime('%Y-%m')
-                df = df.groupby('YearMonth').last()
-        except:
+                df = df.groupby('YearMonth').mean()
+        except Exception:
             pass
+            
+    # === ANALYST B: CIRCUIT BREAKER (DATA QUALITY ASSERTION) ===
+    if ticker in ['BZ=F', 'CL=F'] and not df.empty and 'Close' in df.columns:
+        max_usd = float(df['Close'].max())
+        min_usd = float(df['Close'].min())
+        if max_usd > 200.0 or min_usd < 5.0:
+            print(json.dumps({"error": f"CRÍTICO (Circuit Breaker): Anomalia estrutural no Ticker {ticker}. Valor histórico em USD (Max: {round(max_usd, 2)}, Min: {round(min_usd, 2)}) rompeu barreira de viabilidade física do mercado de petróleo bruto. Abortando injeção para prevenir alucinação estatística (Dissonância Cognitiva) na Mente Mestra."}))
+            sys.exit(1)
             
     data_lines = []
     for index, row in df.iterrows():
@@ -242,10 +328,30 @@ def fetch_macro(indicator, country, years):
             
             data_arr = proxy_data.get("data", [])
             data_lines = []
-            for item in data_arr:
-                date_str = normalize_date(item.get("date", ""))
-                val = item.get("value", item.get("close", ""))
-                data_lines.append(f"{date_str} | {val}")
+            if len(data_arr) > 0:
+                try:
+                    import pandas as pd
+                    df = pd.DataFrame(data_arr)
+                    # Support multiple date keys
+                    if 'date' in df.columns:
+                        df['date_col'] = pd.to_datetime(df['date'], errors='coerce')
+                    else:
+                        df['date_col'] = pd.to_datetime(df.index, errors='coerce')
+                        
+                    val_col = 'value' if 'value' in df.columns else 'close' if 'close' in df.columns else None
+                    if val_col and df['date_col'].notna().any():
+                        df = df.set_index('date_col').resample('ME').last().ffill()
+                        
+                        for idx, row in df.iterrows():
+                            val = row[val_col]
+                            if pd.notna(val):
+                                data_lines.append(f"{idx.strftime('%Y-%m')} | {round(float(val),2)}")
+                except Exception:  # noqa: F841
+                    # Fallback to crude extraction if Pandas fails
+                    for item in data_arr:
+                        date_str = normalize_date(item.get("date", ""))
+                        val = item.get("value", item.get("close", ""))
+                        data_lines.append(f"{date_str} | {val}")
                 
             ctx_header = f"[CONTEXT: DADOS HISTÓRICOS BRUTOS REFERENTES AO MACRO INDICADOR {indicator.upper()}]\n"
             data_compressed = ctx_header + "\n".join(data_lines)
@@ -263,21 +369,26 @@ def fetch_macro(indicator, country, years):
         except Exception as e:
             print(json.dumps({"error": f"Autobahn Proxy Error resolving '{indicator}': {str(e)}"}))
             sys.exit(1)
-            
 
-    code_map = {
-        "IPCA": 433,
-        "SELIC": 432,
-        "IGPM": 189,
-        "INPC": 188,
-        "ANP_OCORRENCIA": 1393,
-        "ANP_PRODUCAO": 1393,
-        "PETROLEO_SGS": 1393
+    # Fallback Chain: cada indicador tem uma série primária e alternativas.
+    # Se a primária falhar (404/erro), a próxima é tentada automaticamente.
+    # Formato: [(sgs_code, label), ...]
+    FALLBACK_CHAINS = {
+        "IPCA":           [(433, "IPCA Mensal")],
+        "SELIC":          [(432, "SELIC Meta"), (4189, "SELIC Diária")],
+        "IGPM":           [(189, "IGP-M")],
+        "INPC":           [(188, "INPC")],
+        "DOLAR_PTAX":     [(10813, "PTAX Venda Média"), (1, "Dólar Comercial Compra"), (3698, "Dólar Livre Venda")],
+        "CAMBIO":         [(10813, "PTAX Venda Média"), (1, "Dólar Comercial Compra")],
+        "USD":            [(10813, "PTAX Venda Média"), (1, "Dólar Comercial Compra")],
+        "ANP_OCORRENCIA": [(1393, "ANP Ocorrências")],
+        "ANP_PRODUCAO":   [(1393, "ANP Produção")],
+        "PETROLEO_SGS":   [(1393, "Petróleo SGS")],
     }
-    
-    ind_code = code_map.get(indicator.upper())
-    if not ind_code:
-        print(json.dumps({"error": f"Unknown macro indicator '{indicator}'. Supported: IPCA, SELIC, IGPM, INPC, ANP_OCORRENCIA"}))
+
+    chain = FALLBACK_CHAINS.get(indicator.upper())
+    if not chain:
+        print(json.dumps({"error": f"Unknown macro indicator '{indicator}'. Supported: {', '.join(FALLBACK_CHAINS.keys())}"}))
         sys.exit(1)
         
     end_date = datetime.datetime.now()
@@ -286,30 +397,51 @@ def fetch_macro(indicator, country, years):
     start_str = start_date.strftime('%d/%m/%Y')
     end_str = end_date.strftime('%d/%m/%Y')
     
-    url = f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.{ind_code}/dados?formato=json&dataInicial={start_str}&dataFinal={end_str}"
+    last_error = None
+    for ind_code, label in chain:
+        url = f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.{ind_code}/dados?formato=json&dataInicial={start_str}&dataFinal={end_str}"
+        
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Sovereign-Pair/1.2'})
+            with urllib.request.urlopen(req, timeout=30) as response:  # nosemgrep
+                resp_data = json.loads(response.read().decode())
+                
+                # Verificar se é erro estruturado do BCB
+                if isinstance(resp_data, dict) and "erro" in resp_data:
+                    last_error = f"SGS {ind_code} ({label}): {resp_data['erro'].get('detail', 'Unknown')}"
+                    continue  # Tentar próximo fallback
+                
+                data_lines = []
+                for item in resp_data:
+                    date_str = normalize_date(item.get('data', ''))
+                    data_lines.append(f"{date_str} | {item.get('valor', '')}")
+                
+                ctx_header = f"[CONTEXT: DADOS HISTÓRICOS BRUTOS REFERENTES AO MACRO INDICADOR {indicator.upper()}]\n"
+                data_compressed = ctx_header + "\n".join(data_lines)
+                
+                source_label = f"Banco Central do Brasil (SGS {ind_code} — {label})"
+                if len(chain) > 1 and ind_code != chain[0][0]:
+                    source_label += " [FALLBACK — série primária indisponível]"
+                
+                print(json.dumps({
+                    "status": "success",
+                    "source": source_label,
+                    "indicator": indicator, 
+                    "country": country, 
+                    "period": f"{years}y",
+                    "data_compressed": data_compressed
+                }))
+                sys.exit(0)
+                
+        except urllib.error.HTTPError as e:
+            last_error = f"SGS {ind_code} ({label}): HTTP {e.code} — {e.reason}"
+            continue  # Tentar próximo fallback
+        except Exception as e:
+            last_error = f"SGS {ind_code} ({label}): {str(e)}"
+            continue  # Tentar próximo fallback
     
-    try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'Sovereign-Pair/1.0'})
-        with urllib.request.urlopen(req) as response:  # nosemgrep
-            resp_data = json.loads(response.read().decode())
-            data_lines = []
-            for item in resp_data:
-                date_str = normalize_date(item.get('data', ''))
-                data_lines.append(f"{date_str} | {item.get('valor', '')}")
-            
-            ctx_header = f"[CONTEXT: DADOS HISTÓRICOS BRUTOS REFERENTES AO MACRO INDICADOR {indicator.upper()}]\n"
-            data_compressed = ctx_header + "\n".join(data_lines)
-            
-            print(json.dumps({
-                "status": "success",
-                "source": f"Banco Central do Brasil (SGS {ind_code})",
-                "indicator": indicator, 
-                "country": country, 
-                "period": f"{years}y", 
-                "data_compressed": data_compressed
-            }))
-    except Exception as e:
-        print(json.dumps({"error": f"Macro API Error: {str(e)}"}))
+    # Todos os fallbacks falharam
+    print(json.dumps({"error": f"Macro API Error: All {len(chain)} fallback(s) failed for '{indicator}'. Last: {last_error}"}))
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
@@ -331,5 +463,11 @@ if __name__ == "__main__":
         years = sys.argv[4] if len(sys.argv) > 4 else "1"
         fetch_macro(indicator, country, years)
         
+    elif mode == "futures":
+        # Usage: sovereign_matrix.py futures BRENT_FUTURE 5
+        ticker = sys.argv[2]
+        years = sys.argv[3] if len(sys.argv) > 3 else "1"
+        fetch_finance(ticker, years)
+        
     else:
-        print(json.dumps({"error": f"Unknown mode: {mode}. Use 'finance' or 'macro'."}))
+        print(json.dumps({"error": f"Unknown mode: {mode}. Use 'finance', 'macro', or 'futures'."}))

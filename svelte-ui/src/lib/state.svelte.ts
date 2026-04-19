@@ -109,11 +109,17 @@ export const sendGlobalChatMessage = async (userText: string) => {
     if (!userText.trim() || globalState.chat.isTyping) return;
     
     // 1. Injeta Pergunta na UI
-    globalState.chat.messages.push({ id: Date.now(), role: 'user', agent: 'Commander', text: userText, time: new Date().toLocaleTimeString() });
+    globalState.chat.messages = [
+        ...globalState.chat.messages,
+        { id: Date.now(), role: 'user', agent: 'Commander', text: userText, time: new Date().toLocaleTimeString() }
+    ];
     globalState.chat.isTyping = true;
     
     const newMsgId = Date.now() + 1;
-    globalState.chat.messages.push({ id: newMsgId, role: 'assistant', agent: 'Sovereign Evaluator', text: '', time: new Date().toLocaleTimeString() });
+    globalState.chat.messages = [
+        ...globalState.chat.messages,
+        { id: newMsgId, role: 'assistant', agent: 'Sovereign Evaluator', text: '', time: new Date().toLocaleTimeString() }
+    ];
     const assistantIdx = globalState.chat.messages.length - 1;
 
     try {
@@ -189,21 +195,34 @@ export const sendGlobalChatMessage = async (userText: string) => {
 
                         if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
                             globalState.chat.messages[assistantIdx].text += data.choices[0].delta.content;
+                            // Force proxy trigger violently
+                            globalState.chat.messages[assistantIdx] = { ...globalState.chat.messages[assistantIdx] };
                         }
                     } catch(e) { }
                 }
             }
         }
         
+        // FIX-MacOS: Guard contra resposta invisível — se o stream acabou mas não produziu conteúdo,
+        // o modelo provavelmente não foi encontrado (404) ou retornou erro silencioso.
+        if (globalState.chat.messages[assistantIdx] && !globalState.chat.messages[assistantIdx].text.trim()) {
+            globalState.chat.messages[assistantIdx].text = '⚠️ **Resposta Vazia do Motor Neural**\n\nO modelo configurado não retornou conteúdo. Verifique:\n1. Se o modelo está instalado no Ollama (`ollama list`)\n2. Se o nome nas **Configurações do Engine** corresponde exatamente ao nome do Ollama\n3. Se a **Model Capabilities Matrix** (System Settings → AI Models) tem o flag **CHAT** ativo para o seu modelo';
+            globalState.chat.messages[assistantIdx] = { ...globalState.chat.messages[assistantIdx] };
+        }
+
         // Dispara a Notificacão com Link Garantido caso o processamento finalize com sucesso
         addNotification("Análise Concluída", "Sovereign Evaluator encerrou o raciocínio estratégico.", "/chat");
 
     } catch (error: any) {
         if (error.name === 'AbortError') {
-            globalState.chat.messages[assistantIdx].text += `\n\n[INFERÊNCIA INTERROMPIDA PELO USUÁRIO]`;
+            if (globalState.chat.messages[assistantIdx]) {
+                globalState.chat.messages[assistantIdx].text += `\n\n[INFERÊNCIA INTERROMPIDA PELO USUÁRIO]`;
+            }
         } else {
             console.error("Global Inference Engine Error:", error);
-            globalState.chat.messages[assistantIdx].text += `\n\n[SYSTEM ERROR]\nDetalhes Técnicos: ${error?.message}\nFalha Sensus Node Loss.`;
+            if (globalState.chat.messages[assistantIdx]) {
+                globalState.chat.messages[assistantIdx].text += `\n\n[SYSTEM ERROR]\nDetalhes Técnicos: ${error?.message}\nFalha Sensus Node Loss.`;
+            }
         }
     } finally {
         globalState.chat.isTyping = false;

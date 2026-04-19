@@ -90,22 +90,6 @@ import { API_BASE_URL } from '$lib/env_config';
     });
 </script>
 
-<!-- Header Section -->
-<header class="h-20 border-b border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-[#12192b] flex items-center px-6 shrink-0 justify-between mb-8 rounded-2xl shadow-sm border transition-colors">
-    <div class="flex items-center gap-4">
-        <div class="bg-indigo-600/10 p-2.5 rounded-xl border border-indigo-100/50">
-            <svg class="w-6 h-6 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.5" r="2.5"/><path d="m10.2 6.3-3.9 3.9"/><circle cx="4.5" cy="12" r="2.5"/><path d="M7 12h10"/><circle cx="19.5" cy="12" r="2.5"/><path d="m13.8 17.7 3.9-3.9"/><circle cx="12" cy="19.5" r="2.5"/></svg>
-        </div>
-        <div class="flex flex-col">
-            <div class="flex items-center gap-2">
-                <h1 class="text-lg font-bold tracking-tight text-slate-800">Model Router & Resilience</h1>
-                <span class="px-2 py-0.5 bg-emerald-100/50 text-emerald-700 text-[9px] uppercase tracking-widest font-bold rounded-full border border-emerald-200/50">ACTIVE</span>
-            </div>
-            <span class="text-xs text-slate-500 font-medium">Gerencie o tráfego de IA com roteamento inteligente entre modelos locais e em nuvem para otimizar custo e latência.</span>
-        </div>
-    </div>
-</header>
-
 <!-- Top Grid: Routing Rules & Real-time Monitor -->
 <div class="grid grid-cols-12 gap-8 mb-8 font-inter">
     

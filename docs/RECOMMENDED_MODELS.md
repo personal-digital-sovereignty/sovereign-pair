@@ -1,42 +1,56 @@
-# Sovereign Engine: Local Models Guide (v1.0.1)
+# Sovereign Engine: Local Models Guide (v1.2.4)
 
-O Sovereign Pair foi arquitetado para operar em topologias híbridas e locais. Porém, para evitar *Out-of-Memory (OOM)*, "swap freezing" do sistema operacional ou baixa velocidade de geração de tokens (Lentidão Severa), os modelos executados localmente (via Ollama) devem ser milimetricamente escolhidos de acordo com o seu hardware.
-
-Este documento traz a recomendação das matrizes cognitivas oficiais aprovadas para o Engine v1.0.0+.
+O Sovereign Pair V1.2.4 exige um esquema de "Hardware-Model Matching" altamente otimizado para evitar *OOM (Out-of-Memory)* e garantir inferência local em tempo hábil. Mantenha em seu disco OLLAMA apenas as ferramentas cognitivas essenciais da nossa *Elite Pipeline*.
 
 ---
 
-## 🚀 Tier 1: Perfil Sênior (Hardware de Alta Performance)
-**Público-Alvo:** Workstations com Placas de Vídeo Dedicadas (GPUs Nvidia RTX 3060+ / Mac M-Series com 32GB+ RAM unificada) ou Desktops com +32GB RAM DDR5 rápidos.
+## 1. A Elite Pipeline (Configuração Sênior)
+**Recomendado para:** Workstations (Nvidia RTX 3060+) ou Desktops/M-Series com 32GB+ RAM.
 
-Neste cenário de hardware generoso, o sistema pode alocar simultaneamente Modelos Roteadores Rápidos e Orquestradores Pesados ("Mistura de Especialistas" - MoE).
+A topologia ideal isola responsabilidades para erradicar sobreposição arquitetural e latência.
 
-### Os Modelos (Trindade Oficial)
-*   `phi4:14b` **(Agente Crítico e Auditor)**: Essencial para revisões de segurança e lógicas. Implacável na matemática.
-*   `qwen2.5-coder:14b` **(Interpretador de Código)**: SOTA local para geração e execução de DataFrames e lógica complexa de programação no Terminal.
-*   `deepseek-r1:8b` ou `r1:7b` **(Orquestrador Cognitivo)**: Usado antes do RAG (*WAG Optimizer*) para gerar blocos de raciocínio lógico `<think>` antes de buscar ativamente na web.
-*   `llama3.1:8b` **(Master Scribe)**: Focado em orquestrar as ferramentas e gerar o relatório corporativo Markdown perfeitamente finalizado.
-*   **Porteiros Rápidos:** `gemma3:4b` ou `llama3.2:3b`. Aprovam ferramentas JSON em milissegundos servindo como a "porta de entrada" do Kanban e Hub.
+*   🧠 **`qwen3:8b` (Master / Scribe):** O Assistente principal. Opera com *No-Think Bypass* ativado para extração ultrarrápida de Tools, retornando ao Modo Híbrido apenas no ciclo de Síntese Final em Markdown.
+*   ⚖️ **`phi4-mini:latest` (Auditor Primário — TIER 1):** Modelo Microsoft 3.8B ultra-literal e factual. Especialista no *Sycophancy Breaker* (quebra de viés confirmatório). Extremamente rápido (~2.5GB VRAM), cross-family a todos os demais.
+*   👁️ **`gemma4:e4b` (Recepcionista Multimodal / Auditor Reserva):** Modelo compacto Sub-5B para triagem rápida, leitura de imagens e backup do Scribe. Atua como Auditor TIER-2 quando o Master é qwen.
+*   🔍 **`gemma3:12b` (Specialist / Heavy RAG):** Modelo largo para análises complexas multi-documento e recuperação de informação massiva. Acionado via tier `specialist` (>9.5B).
+*   ⛓️ **`bge-m3:latest` & `nomic-embed-text:latest`:** Motores vetoriais essenciais do nosso Knowledge Hub. Nunca devem ser apagados.
+
+### Topologia de Auditoria (Sycophancy Breaker v1.2.4+)
+
+```
+Master (qwen3:8b) → Auditor: phi4-mini (cross-family Microsoft)
+Scribe (qwen3:8b) → Auditor: phi4-mini (TIER 1) ou gemma4:e4b (TIER 2)
+Scribe Resgate (gemma4:e4b) → Auditor SWAP: qwen3:8b (evita self-audit)
+```
+
+> **Co-Residency (27GB+):** Durante o pipeline Scribe↔Auditor, ambos os modelos permanecem carregados na VRAM simultaneamente. Isso elimina ~8min de cold-start por swap VRAM.
 
 ---
 
-## ⚖️ Tier 2: Perfil Agilidade (Notebooks e Hardware Doméstico)
-**Hardware Simulado:** Notebooks APU Modernos (ex: **Ryzen 7 5500U, i7 de 10ª+ Geração, 16GB a 20GB de RAM, Gráficos Integrados**).
+## 2. Configuração de Baixa Borda (Hardwares com 16GB-20GB RAM)
+**Recomendado para:** Notebooks APU (Ryzen 7, i7) de gráficos integrados e uso diário isolado.
 
-### Diagnóstico do Ambiente (20GB RAM)
-Um processador Ryzen 7 5500U utiliza gráficos integrados (Radeon Vega). A RAM do sistema (20GB) é totalmente compartilhada entre o CPU e a Placa de Vídeo. 
-Se você carregar um modelo de **14B** (que ocupa ~9GB na RAM) junto a outro modelo roteador **3B** (~2 GB), sobrarão menos de 8GB para o Windows/Linux, O IDE (VSCode/Cursor), o backend do Sovereign e centenas de abas do navegador. 
-Se a RAM engasgar, o sistema começará a fazer "Paging/Swap" no SSD, tornando a geração de texto brutalmente lenta (~2 a 4 tokens por segundo) e a máquina congelará.
+Para impedir o *Swap Freezing* (paginação no SSD forçada), extirpe do banco todas as IAs entre 12B e 14B+ (Ex: Phi-4, Gemma 3 12b). O ecossistema roda limpo com:
 
-### Solução e Corte de Pesos Morte
-Para este perfil, nós **bloqueamos terminantemente o download de modelos 14B**. A estratégia deve focar em modelos de 8B super-destilados que entregam a mesma qualidade consumindo metade da memória.
+*   **Ponto Focal Absoluto:** `qwen3:8b`. Resoluto o suficiente para encapsular o Multi-Agent reasoning e o Output diário do RAG sem fundir a VRAM reservada do sistema operacional.
+*   **Apoio Tático Visual:** `gemma4:e4b`. 
+*   **Auditor:** `phi4-mini:latest` (3.8B — cabe em qualquer hardware).
 
-### Os Modelos Seguros (Tier 2 Matrix)
-*   **[Removido]** ❌ `phi4:14b` e `qwen2.5-coder:14b` — *Motivo: Heavy-lifting fatal para 20GB compartilhados.*
-*   `deepseek-r1:7b` **(WAG Reasoner & Orquestrador)**: Use o modelo de 7B no lugar do 14B. O Deepseek 7B destilado da Qwen possui capacidades analíticas que humilham antigos modelos de 30B, custando apenas **4.7 GB de RAM**. 
-*   `qwen2.5-coder:7b` **(Codificador e Lógico)**: Custando míseros 4.7 GB, atende perfeitamente ao *Sandbox Python* no lugar do colossal 14B.
-*   `llama3.2:3b` **(Agente de Retaguarda Kanban/Hub)**: Pesando gloriosos **2.0 GB**, será o roteador de base. Não crasheia a máquina quando rola paralelamente com os motores pesados de 7B.
-*   `phi4-mini:3.8b` **(O Auditor Matemático Menor)**: O substituto do gigante 14b quando precisarmos fazer cruza estrita de matemática sem explodir a memória. Pesa apenas 2.5 GB.
+---
 
-**Resumo da Ópera (Para Ryzen 7 5500U - 20GB):**
-O seu ecossistema perfeito de máxima eficiência se construirá na intersecção do `DeepSeek-r1 7B` com o `Llama3.2:3b`. Deletando arquivos de 14B e finetunings de 9B, você resgata gigabytes vitais de banda de memória SSD para fazer a sua infraestrutura Multi-Agente voar nativamente!
+## 3. Matriz de Guardrails Sub-5B (O Fallback Essencial)
+O *Sovereign Core* implementa funções SQL ativas ("Thought Nanny") projetadas para ejetar agentes do pool caso emitam saídas textuais rompendo esquemas estruturais JSON. 
+
+* **⚠️ A Regra do Gatekeeper Reserva:** 
+Apesar da limpeza de disco, **nunca apague 100% dos modelos abaixo de 5 Bilhões de parâmetros**. 
+Você deve manter o `llama3.2:3b` ou o `nous-hermes3:3b` instalados silenciamente na sua máquina. Eles atuam como **backup nativo**. Se no meio da noite a recepção de Extração (`gemma4:e4b`) falhar os testes lógicos estruturais de loop, a *Dynamic Agentic Fallback* varrerá o banco procurando o reserva Imediato mais leve sem causar pânico ao Backend.
+
+---
+
+## 4. Modelos Obsoletos (Remover do Ollama)
+
+| Modelo | Motivo |
+|---|---|
+| `mistral-nemo:12b` | Nunca é eleito por nenhum scanner automático. Consome ~7.4GB de disco sem uso. |
+| `deepseek-r1:7b` | Reasoner lento (thinking overhead). Para chat, use qwen3:8b. |
+| `qwen2.5:7b` | Geração anterior. Substituído por qwen3:8b em todas as funções. |
