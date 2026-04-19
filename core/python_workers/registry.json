@@ -82,7 +82,7 @@
         "type": "function",
         "function": {
             "name": "execute_python_code",
-            "description": "Ferramenta para executar código Python seguro localmente. Ideal para matemática complexa, cruzamento de dados de inflação/preços, cálculos precisos, e extração manipulada de arrays. Você DEVE imprimir os resultados finais EXPLICITAMENTE (via print()) para conseguir ler a resposta e utiliza-la para redigir seu relatório.",
+            "description": "Ferramenta para executar código Python seguro localmente. OBRIGATÓRIA A LEITURA FÍSICA de repositórios dinâmicos (arquivos JSON enclausurados e passados ao seu contexto via pd.read_json() do Pandas). É EXPRESSAMENTE PROIBIDO fabricar ou construir manualmente DataFrames usando variáveis ou arrays mockados/falsos em código-fonte. Todo output gerado print() sobre arquivos oficiais deve obrigatoriamente estampar o Hash SHA-256 de Proveniência no rodapé do relatório. Se você não usar read_json no arquivo dado, você será ejetado.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -101,21 +101,24 @@
         "type": "function",
         "function": {
             "name": "fetch_financial_ticker",
-            "description": "Acessa a Sovereign Open-Data Matrix (yfinance) para baixar diretamente dados históricos fechados de Ações, Petróleo, Ouro ou Câmbio. USE SEMPRE ESTA FERRAMENTA PARA COMMODITIES, AÇÕES OU PREÇO DO DÓLAR EM VEZ DO SCRAPER WEB.",
+            "description": "Acessa a Sovereign Open-Data Matrix (yfinance) para baixar diretamente dados históricos de Ações, Commodities, Ouro ou Câmbio. USE SEMPRE ESTA FERRAMENTA para obter cotações de ações de empresas (NuBank, Petrobras, Vale, Bradesco, Itaú, etc), commodities internacionais (BRENT, WTI, GOLD) ou câmbio (DOLAR). O motor interno resolve automaticamente nomes populares para o ticker correto (ex: 'NUBANK' → NU, 'BRADESCO' → BBDC4.SA). REGRA DE CÂMBIO: Inclua 'DOLAR' apenas quando o ativo for cotado em USD e precisar de conversão cambial.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "symbol": {
-                        "type": "string",
-                        "description": "O símbolo financeiro. Exemplo: 'BRENT' (Petróleo Brent), 'WTI' (Petróleo Texas), 'DOLAR' (Dólar/BRL), 'PETROBRAS' (Ações)."
+                    "symbols": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Array OBRIGATÓRIO de símbolos financeiros correspondentes à entidade pedida pelo usuário. Use EXATAMENTE o nome da empresa ou ativo mencionado pelo usuário. O motor resolve automaticamente (ex: 'NUBANK', 'VALE', 'BRADESCO', 'BRENT'). Inclua 'DOLAR' apenas se houver ativos em USD que precisem de conversão. Exemplo: ['NUBANK'] ou ['BRENT', 'DOLAR']."
                     },
                     "years": {
                         "type": "string",
-                        "description": "A quantidade de anos de histórico necessários. Exemplo: '5'."
+                        "description": "A quantidade de anos de histórico necessários. Exemplo: '1'."
                     }
                 },
                 "required": [
-                    "symbol",
+                    "symbols",
                     "years"
                 ]
             }
@@ -125,13 +128,16 @@
         "type": "function",
         "function": {
             "name": "fetch_macroeconomy",
-            "description": "Acessa a Sovereign Open-Data Matrix (Banco Central API) para baixar taxas macroeconômicas oficiais de um país, como Inflação, Selic, IGPM, e Petróleo/ANP. USE SEMPRE ESTA FERRAMENTA PARA DADOS ECONÔMICOS, DE INFLAÇÃO, JUROS, OU OCORRÊNCIAS/PRODUÇÃO ANP (Agência Nacional do Petróleo) EM VEZ DO SCRAPER WEB.",
+            "description": "Acessa a Sovereign Open-Data Matrix (Banco Central API) para baixar taxas macroeconômicas oficiais de um país, como Inflação, Selic, IGPM, Câmbio PTAX e indicadores ANP. USE SEMPRE ESTA FERRAMENTA PARA DADOS ECONÔMICOS, DE INFLAÇÃO, JUROS OU CÂMBIO PTAX (DÓLAR OFICIAL). NÃO use esta tool para ações de empresas (use fetch_financial_ticker para isso). Inclua 'DOLAR_PTAX' apenas quando o usuário pedir explicitamente o câmbio oficial.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "indicator": {
-                        "type": "string",
-                        "description": "O indicador (ex: 'IPCA', 'SELIC', 'IGPM', 'INPC', 'ANP_OCORRENCIA')."
+                    "indicators": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Array OBRIGATÓRIO contendo os indicadores macroeconômicos. Indicadores suportados: IPCA, SELIC, IGPM, INPC, ANP_OCORRENCIA, DOLAR_PTAX, CAMBIO, USD. Exemplo: ['IPCA', 'SELIC']."
                     },
                     "country": {
                         "type": "string",
@@ -143,13 +149,36 @@
                     }
                 },
                 "required": [
-                    "indicator",
+                    "indicators",
                     "country",
                     "years"
                 ]
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "fetch_futures_market",
+            "description": "Somente utilize esta ferramenta se o usuário estiver perguntando ESTRITAMENTE sobre o Mercado Futuro, Especulações, Hedging, ou 'Expectativas de preço para os próximos meses'. NUNCA use esta ferramenta para analisar dados passados ou preço Spot real do produto.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "commodities": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de Commodities Futuras em formato global standard (ex: ['BRENT_FUTURE', 'WTI_FUTURE', 'GOLD_FUTURE', 'DI_FUTURE'])."
+                    },
+                    "years": {
+                        "type": "string",
+                        "description": "Retrocesso ou horizonte temporal em anos (ex: '1', '5')."
+                    }
+                },
+                "required": ["commodities", "years"]
+            }
+        }
+    },
+
     {
         "type": "function",
         "function": {
@@ -171,6 +200,131 @@
                     "user_premise",
                     "hypothesis"
                 ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fetch_academic_papers",
+            "description": "Busca artigos científicos, abstracts originais e relatórios técnicos em bibliotecas de alto impacto (arXiv para Física/Matemática/Computação, PubMed para Biomédica, NASA para Aeroespacial/Geociências). Utilize matrizes de termos em 'queries' para obter dados de ponta.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "queries": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Lista de temas ou dorks de pesquisa acadêmica (ex: ['quantum computing', 'LLM cross attention'])."
+                    },
+                    "disciplines": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Áreas de foco correspondentes para roteamento (ex: ['arXiv', 'PubMed', 'NASA'])."
+                    }
+                },
+                "required": ["queries", "disciplines"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fetch_engineering_docs",
+            "description": "Busca em repositórios oficiais e comunidades de base sobre Engenharia de Software, Cloud, DevOps e SRE (ex: StackExchange, Github, Microsoft Learn, Docker Hub, Hugging Face). Traz documentações estruturais e códigos de produção solucionados.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "topics": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Lista de ferramentas ou problemas de infraestrutura (ex: ['Docker swarm limitations', 'Kubernetes ingress controller', 'Azure SLA'])."
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Fontes de consulta de engenharia a direcionar (ex: ['StackExchange', 'Github', 'MicrosoftLearn', 'DockerHub', 'HuggingFace'])."
+                    }
+                },
+                "required": ["topics", "sources"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fetch_encyclopedia",
+            "description": "Acesso direto à Wikipedia/Wikimedia para recuperar em alta velocidade dados de conhecimentos gerais, históricos, políticos, geográficos e biográficos.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "queries": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Lista de entidades, nomes ou fatos para pesquisar nativamente na Wiki (ex: ['Alan Turing', 'Revolução Francesa'])."
+                    },
+                    "language": {
+                        "type": "string",
+                        "description": "Língua nativa alvo (ex: 'pt' para Português, 'en' para Inglês)."
+                    }
+                },
+                "required": ["queries", "language"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fetch_cultural_data",
+            "description": "Extrator massivo de cultura pop, artes e entretenimento. Acessa as bibliotecas TMDB (Filmes/Séries), RAWG (Jogos), MusicBrainz (Música) e Wikipedia. As restrições de limite de acesso (Rate Limits) para opções corporativas são mitigadas automaticamente pelo motor caso o Usuário não possua chave.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "queries": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Obras, filmes, nomes de álbuns ou jogos em questão (ex: ['O Poderoso Chefão', 'The Legend of Zelda', 'Pink Floyd'])."
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "O repositório cultural correspondente (ex: ['TMDB', 'RAWG', 'MusicBrainz', 'TheMet', 'WIKIPEDIA'])."
+                    }
+                },
+                "required": ["queries", "sources"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fetch_geopolitics_wikileaks",
+            "description": "[PLANO FUTURO] Extrator para banco de dados avançado do WikiLeaks e inteligência geopolítica descentralizada. Traz transparência radical e análise profunda baseada em documentos vazados autênticos.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Entidade de interesse de Estado ou diplomacia (ex: 'Vault 7', 'Guantanamo Bay')."
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fetch_cloud_pricing",
+            "description": "Ferramenta autônoma que consulta o valor médio atualizado por token (Input/Output) dos modelos de IA proprietários líderes de mercado (Gemini, ChatGPT, Claude) para calcular economia local.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "provider": {
+                        "type": "string",
+                        "description": "Fornecedor da Nuvem para consultar os preços (ex: 'All', 'OpenAI', 'Anthropic', 'Google'). Se omitido retorna a média geral."
+                    }
+                },
+                "required": []
             }
         }
     }

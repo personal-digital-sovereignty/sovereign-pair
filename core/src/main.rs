@@ -1,3 +1,12 @@
+// Clippy 1.95.0+ promoted these lints — allow until local toolchain catches up
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::collapsible_match)]
+#![allow(clippy::single_match)]
+#![allow(clippy::useless_format)]
+#![allow(clippy::let_and_return)]
+#![allow(clippy::if_same_then_else)]
+#![allow(clippy::unnecessary_sort_by)]
+
 mod api;
 mod models;
 mod realtime;
@@ -33,9 +42,16 @@ pub mod adblocker;
 pub mod multimodal;
 pub mod office_parser;
 pub mod sandbox;
+pub mod memory_manager;
+pub mod garbage_collector; // <-- Adicionado
+pub mod prompt_vault;
+
+#[cfg(test)]
+pub mod tests;
 
 use axum::{routing::post, Router, response::IntoResponse, http::{header, StatusCode, Uri}};
 use reqwest::Client;
+
 use std::sync::{Arc, RwLock};
 use tokio::sync::broadcast;
 use tower_http::cors::CorsLayer;
@@ -112,14 +128,19 @@ async fn shutdown_signal() {
 /// Invoca dinamicamente o Binário Local C++ de Visão (sd.cpp) se ele estiver presente,
 /// garantindo uma subida atrelada ao backend da aplicação "Zero-Config".
 fn spawn_vision_daemon() {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/jefersonlopes".to_string());
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .unwrap_or_else(|_| dirs::home_dir().map(|p| p.to_string_lossy().to_string()).unwrap_or_default());
     let vision_path = std::path::PathBuf::from(&home).join("Sovereign_LLM/Vision");
     
+    // WIN-06: Extensão de binário condicional por OS
+    let bin_ext = if cfg!(target_os = "windows") { ".exe" } else { "" };
+    
     // Determina o caminho exato independente do script de compilação
-    let bin1 = vision_path.join("sd_bin/sd-server");
-    let bin2 = vision_path.join("stable-diffusion.cpp/build/bin/sd-server");
-    let bin3 = vision_path.join("sd_bin/sd"); // Retro-compatibilidade com versões pré-2024
-    let bin4 = vision_path.join("stable-diffusion.cpp/build/bin/sd");
+    let bin1 = vision_path.join(format!("sd_bin/sd-server{}", bin_ext));
+    let bin2 = vision_path.join(format!("stable-diffusion.cpp/build/bin/sd-server{}", bin_ext));
+    let bin3 = vision_path.join(format!("sd_bin/sd{}", bin_ext)); // Retro-compatibilidade com versões pré-2024
+    let bin4 = vision_path.join(format!("stable-diffusion.cpp/build/bin/sd{}", bin_ext));
     
     let target_bin = if bin1.exists() {
         Some(bin1)
@@ -180,18 +201,77 @@ pub struct AppState {
     pub adblock_engine: adblocker::AdblockHandle,
 }
 
+struct StringVisitor {
+    message: String,
+}
+impl StringVisitor {
+    fn new() -> Self { Self { message: String::new() } }
+}
+impl tracing::field::Visit for StringVisitor {
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+        if field.name() == "message" {
+            self.message = format!("{:?}", value); // Note: that usually includes quotes, maybe we need formatting, but let's keep it simple
+        }
+    }
+}
+
+struct SseLogLayer {
+    sender: broadcast::Sender<models::LogEntry>,
+}
+impl<S: tracing::Subscriber> tracing_subscriber::Layer<S> for SseLogLayer {
+    fn on_event(&self, event: &tracing::Event<'_>, _ctx: tracing_subscriber::layer::Context<'_, S>) {
+        let mut visitor = StringVisitor::new();
+        event.record(&mut visitor);
+        // Clean leading/trailing quotes if any
+        let clean_msg = visitor.message.trim_matches('"').to_string();
+        
+        let _ = self.sender.send(models::LogEntry {
+            timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+            level: event.metadata().level().to_string(),
+            message: clean_msg,
+        });
+    }
+}
+
+pub async fn system_logs_sse_handler(axum::extract::State(state): axum::extract::State<Arc<AppState>>) -> axum::response::sse::Sse<impl futures::Stream<Item = Result<axum::response::sse::Event, std::convert::Infallible>>> {
+    let mut rx = state.log_sender.subscribe();
+    let stream = async_stream::stream! {
+        // Envia log sintético confirmando conexão
+        let welcome_log = crate::models::LogEntry {
+            timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+            level: "INFO".to_string(),
+            message: "✨ [SOVEREIGN] Terminal de Telemetria SSE conectado com sucesso.".to_string(),
+        };
+        if let Ok(json) = serde_json::to_string(&welcome_log) {
+            yield Ok(axum::response::sse::Event::default().data(json));
+        }
+
+        while let Ok(log) = rx.recv().await {
+            // Encode as JSON
+            if let Ok(json) = serde_json::to_string(&log) {
+                yield Ok(axum::response::sse::Event::default().data(json));
+            }
+        }
+    };
+    axum::response::sse::Sse::new(stream).keep_alive(axum::response::sse::KeepAlive::new())
+}
+
 #[tokio::main]
 async fn main() {
-    // Inicializa a Telemetria (Logs avançados estilo Uvicorn)
+    // Inicializa o Corredor de Eventos Cíbridos antes do Tracing para capturar tudo
+    let (log_tx, _) = broadcast::channel(500);
+
+    // Inicializa a Telemetria e injeta o broadcast layer
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| "sovereign_core=info,axum=info".into()),
         )
         .with(tracing_subscriber::fmt::layer().with_timer(LocalTimer))
+        .with(SseLogLayer { sender: log_tx.clone() })
         .init();
 
-    tracing::info!("🦀 Sovereign Core (Rust) Initializing...");
+    tracing::info!("🦀 Sovereign Core (Rust) Initializing Native Terminal Capture...");
 
     // BOOT ASYNC DAEMONS PARALELOS
     spawn_vision_daemon();
@@ -217,18 +297,28 @@ async fn main() {
     // Invoca o SQLite Master O.S
     let db_pool = db::init_pool().await;
 
+    // Booting the GC for Ephemeral Volatile RAG Memory (News/Texts)
+    crate::garbage_collector::spawn_ephemeral_garbage_collector(db_pool.clone()).await;
+
+    // Booting Model Capabilities Discovery in background
+    let db_pool_sync = db_pool.clone();
+    tokio::spawn(async move {
+        crate::api::sync_model_capabilities(&db_pool_sync).await;
+    });
+
     // Hotfix 0.9.4: Windows DOS Extended Path Cleanup (Remove \\?\ quebrando a interface e prompts)
     tracing::info!("🧹 [Sovereign DB] Higienizando possíveis rastros de prefixos DOS (\\?\\) em Workspaces...");
     let _ = sqlx::query(r#"UPDATE workspaces SET path = REPLACE(path, '\\?\', '')"#).execute(&db_pool).await;
     let _ = sqlx::query(r#"UPDATE sensus_documents SET path = REPLACE(path, '\\?\', '')"#).execute(&db_pool).await;
 
+    // Hotfix 1.2.0: Multi-Tenancy Chat Isolation (Adiciona workspace_id pra separar histórico do Vault / Projetos)
+    tracing::info!("🔒 [Sovereign DB] Injetando Multi-tenancy Isolation no Chat History...");
+    let _ = sqlx::query("ALTER TABLE chat_sessions ADD COLUMN workspace_id TEXT DEFAULT 'default'").execute(&db_pool).await;
+
     // Inicializa o Motor Físico RAG O.S Multi-Drive
     let r_sync_engine = sync_engine::SyncEngine::new(db_pool.clone());
     r_sync_engine.start_watcher().await;
     let sync_tx = r_sync_engine.tx.clone();
-
-    // Inicializa o Corredor de Eventos Cíbridos (Capacidade p/ 100 Logs antes de lag)
-    let (log_tx, _) = broadcast::channel(100);
 
     // Despacha o Daemon Assíncrono do AdGuard (Toda a lógica RAG depende das assinaturas dele)
     let adblock_handle = adblocker::start_adblock_daemon(active_vault.clone(), db_pool.clone());
@@ -246,6 +336,31 @@ async fn main() {
 
     // Boot the Auto-Evaluator (LLM-as-a-Judge Mesh Loop)
     auto_evaluator::start_evaluator_loop(state.clone()).await;
+
+    // Booting autonomous python worker for Cloud Savings Economy
+    let db_pool_pricing = state.db.clone();
+    let telemetry_ref = state.telemetry.clone();
+    tokio::spawn(async move {
+        tracing::info!("☁️ [Sovereign Hub] Spawning Python worker: market_pricing_matrix.py...");
+        let workers_dir = crate::api_trainer::resolve_python_workers_dir();
+        let script_path = workers_dir.join("market_pricing_matrix.py");
+        let python_bin = crate::sandbox::get_hermetic_python_bin();
+        let _ = std::process::Command::new(&python_bin)
+            .arg(&script_path)
+            .output();
+
+        let avg_cost = sqlx::query_scalar::<_, String>("SELECT value_json FROM global_settings WHERE id = 'avg_cloud_token_cost_1k'")
+            .fetch_one(&db_pool_pricing)
+            .await
+            .unwrap_or_else(|_| "0.00625".to_string())
+            .parse::<f64>()
+            .unwrap_or(0.00625);
+
+        if let Ok(mut t) = telemetry_ref.write() {
+            t.avg_cloud_cost_per_1k = avg_cost;
+            tracing::info!("☁️ [Sovereign Hub] Live Market Pricing Set to: ${:.5}/1k tokens", avg_cost);
+        }
+    });
 
     let app = Router::new()
         // ------------------ System Actions & Launchers ---------------
@@ -298,10 +413,22 @@ async fn main() {
             .post(api_settings::set_searxng_nodes_handler))
         .route("/v1/settings/cold_storage", axum::routing::get(api_settings::get_cold_storage_handler)
             .post(api_settings::set_cold_storage_handler))
+        .route("/v1/settings/tenant_keys", axum::routing::get(api_settings::get_tenant_keys_handler)
+            .post(api_settings::create_tenant_key_handler))
+        .route("/v1/settings/tenant_keys/:id", axum::routing::delete(api_settings::delete_tenant_key_handler))
         .route("/v1/system/export_config", axum::routing::get(api_settings::export_config_handler))
         .route("/v1/system/import_config", axum::routing::post(api_settings::import_config_handler))
         .route("/v1/system/available_models", axum::routing::get(api_settings::get_available_models_handler))
         .route("/v1/system/docs/user_guide", axum::routing::get(api_settings::get_user_guide_handler))
+        .route("/v1/system/stream-logs", axum::routing::get(system_logs_sse_handler))
+        .route("/v1/settings/model_capabilities", axum::routing::get(api_settings::get_matrix_capabilities_handler))
+        .route("/v1/settings/model_capabilities/toggles", axum::routing::post(api_settings::update_matrix_toggles_handler))
+        .route("/v1/settings/model_capabilities/:model_name", axum::routing::delete(api_settings::delete_matrix_entry_handler))
+        .route("/v1/settings/prompts", axum::routing::get(api_settings::get_prompts_handler)
+            .post(api_settings::upsert_prompt_handler))
+        .route("/v1/settings/prompts/:slug", axum::routing::delete(api_settings::delete_prompt_handler))
+        .route("/v1/settings/scrape_limits", axum::routing::get(api_settings::get_scrape_limits_handler)
+            .post(api_settings::set_scrape_limits_handler))
         // ------------------ RAG Engine Command Center ----------
         .route("/v1/engineer/rag/rules", axum::routing::get(api_rag::get_routing_rules_handler)
             .post(api_rag::create_routing_rule_handler))
@@ -354,6 +481,8 @@ async fn main() {
         .fallback(spa_static_handler)
         .layer(CorsLayer::permissive())
         .layer(axum::middleware::from_fn(network::lan_auth_guard))
+        // P3-05: Body limit global — previne DoS por upload sem limite (50 MB)
+        .layer(tower_http::limit::RequestBodyLimitLayer::new(50 * 1024 * 1024))
         .with_state(state);
 
     // Parsing CLI arguments to allow dynamic Host binding or Headless Installation

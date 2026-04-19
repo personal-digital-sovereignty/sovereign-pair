@@ -138,26 +138,232 @@ pub async fn discover_cognitive_model_by_tier(tier: &str) -> String {
     "llama3.2:latest".to_string()
 }
 
-use sqlx::Row;
 
-pub async fn query_most_honest_model(db_pool: Option<&sqlx::SqlitePool>, fallback: &str) -> String {
-    if let Some(pool) = db_pool {
-        // Ignoramos Deepseek ativamente baseado no feedback do comandante de que ele não serve como inquisitor factual
-        // Restringindo também modelos MENORES QUE 3B de atuarem como Honest Inquisitors (1b, 1.5b, 1.7b, 2b)
-        let row = sqlx::query(
-            "SELECT model_name FROM model_hallucinations WHERE model_name NOT LIKE '%deepseek%' AND model_name NOT LIKE '%1b%' AND model_name NOT LIKE '%1.5b%' AND model_name NOT LIKE '%1.7b%' AND model_name NOT LIKE '%2b%' ORDER BY lies_detected ASC, queries_processed DESC LIMIT 1"
-        )
-        .fetch_optional(pool)
-        .await;
+pub async fn sync_model_capabilities(pool: &sqlx::SqlitePool) {
+    let client = reqwest::Client::new();
+    let base_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string());
+    
+    if let Ok(res) = client.get(format!("{}/api/tags", base_url)).send().await
+        && let Ok(json) = res.json::<serde_json::Value>().await
+        && let Some(models) = json.get("models").and_then(|m| m.as_array()) {
+            
+            // Amnésia Cognitiva: Invalida toda a topologia física no banco (mas mantém configs e restrições)
+            let _ = sqlx::query("UPDATE model_capabilities SET is_installed = 0").execute(pool).await;
+            
+            for m in models {
+                if let Some(name) = m.get("name").and_then(|n| n.as_str()) {
+                    let mut size_val = 0.0;
+                    if let Some(size_str) = m.get("details").and_then(|d| d.get("parameter_size")).and_then(|s| s.as_str()) {
+                        let s_upper = size_str.to_uppercase();
+                        size_val = if s_upper.ends_with('B') {
+                            s_upper.trim_end_matches('B').parse().unwrap_or(0.0)
+                        } else if s_upper.ends_with('M') {
+                            s_upper.trim_end_matches('M').parse::<f32>().unwrap_or(0.0) / 1000.0
+                        } else {
+                            0.0
+                        };
+                    }
 
-        if let Ok(Some(db_row)) = row
-            && let Ok(name) = db_row.try_get::<String, _>("model_name") {
-                tracing::info!("⚖️ [Inquisidor Solitário] Modelo eleito pelo SQLite (Menos Alucinações): {}", name);
+                    let exists: Option<i64> = sqlx::query_scalar("SELECT 1 FROM model_capabilities WHERE model_name = ?")
+                        .bind(name)
+                        .fetch_optional(pool)
+                        .await
+                        .unwrap_or(None);
+
+                    // Resolução de Alias: se o Ollama retorna 'model:tag' (ex: mistral-nemo:12b),
+                    // também marcar 'model:latest' como installed caso exista no banco (mesmo digest).
+                    // Isso evita entradas fantasmas OFFLINE para aliases canônicos.
+                    if let Some(prefix) = name.split(':').next() {
+                        let alias_latest = format!("{}:latest", prefix);
+                        if alias_latest != name {
+                            let _ = sqlx::query("UPDATE model_capabilities SET is_installed = 1 WHERE model_name = ?")
+                                .bind(&alias_latest)
+                                .execute(pool)
+                                .await;
+                        }
+                    }
+                        
+                    if exists.is_none() {
+                        let mut supports_tools = false;
+                        let mut is_reasoner = false;
+                        let mut template_str = String::new();
+                        
+                        let payload = serde_json::json!({"name": name});
+                        if let Ok(show_res) = client.post(format!("{}/api/show", base_url)).json(&payload).send().await
+                            && let Ok(show_json) = show_res.json::<serde_json::Value>().await {
+                                if let Some(t) = show_json.get("template").and_then(|v| v.as_str()) {
+                                    template_str = t.to_string();
+                                    let t_lower = t.to_lowercase();
+                                    if t_lower.contains("tool") || t_lower.contains("function") {
+                                        supports_tools = true;
+                                    }
+                                    if t_lower.contains("think") {
+                                        is_reasoner = true;
+                                    }
+                                }
+                                if let Some(d) = show_json.get("details")
+                                    && let Some(fam) = d.get("family").and_then(|f| f.as_str())
+                                        && fam.to_lowercase().contains("deepseek") { is_reasoner = true; }
+                            }
+                            
+                        // Mapeamento heuristico caso templates não sigam o padrão exato
+                        let name_lower = name.to_lowercase();
+                        if !supports_tools && (name_lower.contains("qwen") || name_lower.contains("llama3.1") || name_lower.contains("llama3.2") || name_lower.contains("mistral") || name_lower.contains("command-r") || name_lower.contains("gemma4")) {
+                            supports_tools = true;
+                        }
+                        if !is_reasoner && (name_lower.contains("deepseek") || name_lower.contains("reasoner")) {
+                            is_reasoner = true;
+                        }
+
+                        let mut is_master = false;
+                        let mut is_scribe = false;
+                        let mut is_agent = false;
+                        let mut is_coder = false;
+                        let is_chat = true; // Todo modelo pode chat
+                        let mut is_project = false;
+
+                        // Definição inteligente para facilitar o setup inicial!
+                        if supports_tools && !is_reasoner && size_val >= 7.0 {
+                            is_master = true; 
+                        }
+                        if supports_tools {
+                            is_scribe = true;
+                            is_agent = true;
+                            is_project = true;
+                        }
+                        if !supports_tools {
+                            is_master = false;
+                        }
+                        if name.to_lowercase().contains("coder") || name.to_lowercase().contains("qwen") || name.to_lowercase().contains("deepseek") {
+                            is_coder = true;
+                        }
+
+                        let _ = sqlx::query("INSERT OR REPLACE INTO model_capabilities (model_name, parameter_size, supports_tools, is_reasoner, is_master, is_scribe, is_agent, is_coder, is_chat, is_project, template) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                            .bind(name)
+                            .bind(size_val)
+                            .bind(supports_tools)
+                            .bind(is_reasoner)
+                            .bind(is_master)
+                            .bind(is_scribe)
+                            .bind(is_agent)
+                            .bind(is_coder)
+                            .bind(is_chat)
+                            .bind(is_project)
+                            .bind(template_str)
+                            .execute(pool)
+                            .await;
+                            
+                        tracing::info!("🧠 [Model Capabilities] Profiling {}: Size={}B, Tools={}, Reasoner={}, Master={}, Scribe={}", name, size_val, supports_tools, is_reasoner, is_master, is_scribe);
+                    }
+                    
+                    // Independentemente de ser novo ou herdado, reascendemos sua Presença Física na Matrix
+                    let _ = sqlx::query("UPDATE model_capabilities SET is_installed = 1 WHERE model_name = ?")
+                        .bind(name)
+                        .execute(pool)
+                        .await;
+                }
+            }
+        }
+}
+
+pub async fn discover_capable_master_agent(pool: Option<&sqlx::SqlitePool>, min_size: f32, require_tools: bool, exclude_reasoner: bool, fallback: &str) -> String {
+    if let Some(p) = pool {
+        let mut query = "SELECT model_name FROM model_capabilities WHERE parameter_size >= ?".to_string();
+        
+        // Matrix Routing
+        if require_tools { 
+            query.push_str(" AND is_master = 1"); 
+        } else {
+            query.push_str(" AND is_scribe = 1");
+        }
+        
+        if exclude_reasoner { query.push_str(" AND is_reasoner = 0"); }
+        query.push_str(" ORDER BY parameter_size DESC LIMIT 1");
+        
+        if let Ok(Some(row)) = sqlx::query(&query).bind(min_size).fetch_optional(p).await
+            && let Ok(name) = sqlx::Row::try_get::<String, _>(&row, "model_name") {
+                tracing::info!("✨ [Dynamic Discovery] Matrix Elegida: {}", name);
                 return name;
             }
     }
-    
-    tracing::warn!("⚠️ [Inquisidor Solitário] Sem dados históricos suficientes na Tabela de Alucinações. Usando fallback de confiança: {}", fallback);
+    tracing::warn!("⚠️ [Dynamic Discovery] Banco de Capacidades falhou. Acionando Fallback: {}", fallback);
+    fallback.to_string()
+}
+
+
+pub async fn discover_orchestrator_fallback(pool: Option<&sqlx::SqlitePool>, failed_model: &str, fallback: &str, failed_models: &std::collections::HashSet<String>) -> String {
+    if let Some(p) = pool {
+        // GAP-10 FIX: Filtrar is_installed=1 para não eleger modelos fantasma.
+        // GAP-11 FIX: Excluir modelos que já falharam nesta sessão para evitar bounce infinito.
+        
+        // Tentativa primária: Resgatar com outro orchestrator Master engatilhado.
+        let rows_master = sqlx::query("SELECT model_name FROM model_capabilities WHERE is_master = 1 AND is_installed = 1 AND model_name != ? ORDER BY parameter_size DESC")
+            .bind(failed_model)
+            .fetch_all(p)
+            .await
+            .unwrap_or_default();
+        
+        for row in &rows_master {
+            if let Ok(name) = sqlx::Row::try_get::<String, _>(row, "model_name") {
+                if !failed_models.contains(&name) {
+                    tracing::info!("✨ [Orchestrator Fallback] Fallback Dinâmico de Peso-Pesado ativado! Substituindo '{}' pelo Master reserva: {}", failed_model, name);
+                    return name;
+                }
+            }
+        }
+
+        // Tentativa secundária: Se nenhum Master existir, acione um Agente/Scribe mais denso (entre 5B e 9B)
+        // CRITICAL FIX: Exigir supports_tools = 1 para que o modelo substituto consiga invocar
+        // fetch_financial_ticker/fetch_macroeconomy em vez de cair no dispatch_sub_researcher genérico.
+        let rows_mid = sqlx::query("SELECT model_name FROM model_capabilities WHERE parameter_size >= 5.0 AND parameter_size <= 9.5 AND supports_tools = 1 AND is_installed = 1 AND model_name != ? ORDER BY parameter_size DESC")
+            .bind(failed_model)
+            .fetch_all(p)
+            .await
+            .unwrap_or_default();
+        
+        for row in &rows_mid {
+            if let Ok(name) = sqlx::Row::try_get::<String, _>(row, "model_name") {
+                if !failed_models.contains(&name) {
+                    tracing::info!("✨ [Orchestrator Fallback] Nenhum Master extra não-falhado. Escalando para mid-weight (>5B): {}", name);
+                    return name;
+                }
+            }
+        }
+    }
+    tracing::warn!("⚠️ [Orchestrator Fallback] Todos os modelos instalados já falharam ou banco insuficiente. Hard-fallback: {}", fallback);
+    fallback.to_string()
+}
+
+pub async fn discover_adversarial_auditor(pool: Option<&sqlx::SqlitePool>, origin_model: &str, fallback: &str) -> String {
+    if let Some(p) = pool {
+        let origin_lower = origin_model.to_lowercase();
+        let family = if origin_lower.contains("qwen") { "qwen" }
+        else if origin_lower.contains("llama") { "llama" }
+        else if origin_lower.contains("phi") { "phi" }
+        else if origin_lower.contains("gemma") { "gemma" }
+        else if origin_lower.contains("deepseek") { "deepseek" }
+        else if origin_lower.contains("mistral") { "mistral" }
+        else { origin_model.split(':').next().unwrap_or(origin_model) };
+
+        let exclude_like = format!("%{}%", family);
+
+        // PRIORITY 1: Explicit is_auditor=1 flagged models (cross-family)
+        let auditor_query = "SELECT model_name FROM model_capabilities WHERE model_name NOT LIKE ? AND is_auditor = 1 AND is_installed = 1 ORDER BY parameter_size ASC LIMIT 1";
+        if let Ok(Some(row)) = sqlx::query(auditor_query).bind(&exclude_like).fetch_optional(p).await
+            && let Ok(name) = sqlx::Row::try_get::<String, _>(&row, "model_name") {
+                tracing::info!("⚖️ [Sycophancy Breaker] Auditor explícito escalado: '{}' (is_auditor=1, cross-family '{}')", name, family);
+                return name;
+        }
+
+        // PRIORITY 2: Fallback heuristic (largest non-family model 3-9B)
+        let heuristic_query = "SELECT model_name FROM model_capabilities WHERE model_name NOT LIKE ? AND parameter_size >= 3.0 AND parameter_size <= 9.0 ORDER BY parameter_size DESC LIMIT 1";
+        if let Ok(Some(row)) = sqlx::query(heuristic_query).bind(exclude_like).fetch_optional(p).await
+            && let Ok(name) = sqlx::Row::try_get::<String, _>(&row, "model_name") {
+                tracing::info!("⚖️ [Sycophancy Breaker] Auditor Adversarial dinâmico escalado: '{}' (Filtrando viés estatístico da família origem '{}')", name, family);
+                return name;
+        }
+    }
+    tracing::warn!("⚠️ [Sycophancy Breaker] Banco falhou em achar Auditor cruzado na malha O.S. Usando Fallback primário: {}", fallback);
     fallback.to_string()
 }
 
@@ -324,7 +530,7 @@ let mut resolved_model = requested_model.clone();
 // If OpenCode (or the IDE) injects commercial models blindly, we forcefully hijack 
 // them down to the Sovereign Private Mesh locally, ensuring NO 404 Ollama Panics on Factory Installs.
 if requested_model.to_lowercase().contains("gpt") || requested_model.to_lowercase().contains("claude") {
-    let hierarchy = vec!["qwen2.5:14b", "gemma2:9b", "gemma2", "llama3.1:8b", "llama3.1", "qwen2.5:7b", "qwen2.5", "llama3.2"];
+    let hierarchy = vec!["qwen3:8b", "gemma4:e4b", "qwen2.5:14b", "phi4:14b", "gemma2:9b", "llama3.1:8b", "qwen2.5:7b", "llama3.2"];
     resolved_model = discover_best_model(hierarchy, "llama3.2:latest").await;
     tracing::info!("🔄 Proxy OpenCode/IDE enviou modelo comercial [{}]. Hijacking dinâmico para Endpoint Soberano: [{}]", requested_model, resolved_model);
 }
@@ -359,6 +565,20 @@ if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE
             if !model_str.is_empty() { 
                 resolved_model = model_str.to_string(); 
                 tracing::info!("🔄 [Sovereign Router] Usando Motor Estático da Base de Dados: {}", resolved_model);
+            }
+        }
+
+        // FIX-MacOS: Se após todo o roteamento ainda temos um modelo comercial (gpt/claude),
+        // significa que nem doctor_model, nem llm_model existiam no DB. Último recurso:
+        // consultar a Model Capabilities Matrix por qualquer modelo instalado com is_chat=1.
+        if resolved_model.to_lowercase().contains("gpt") || resolved_model.to_lowercase().contains("claude") {
+            if let Ok(Some(row)) = sqlx::query("SELECT model_name FROM model_capabilities WHERE is_chat = 1 AND is_installed = 1 ORDER BY parameter_size DESC LIMIT 1")
+                .fetch_optional(&state.db).await
+            {
+                if let Ok(name) = sqlx::Row::try_get::<String, _>(&row, "model_name") {
+                    tracing::info!("🧠 [Matrix Fallback] Modelo comercial '{}' não pode ser resolvido via Settings. Usando Matrix (is_chat=1): '{}'", resolved_model, name);
+                    resolved_model = name;
+                }
             }
         }
         
@@ -619,7 +839,8 @@ if payload.deep_research.unwrap_or(false) {
         }
         all_links.sort();
         all_links.dedup();
-        all_links.truncate(6); // Poda agressiva p/ não atolar a KV Cache GPU!
+        let chat_cap = crate::api_settings::load_scrape_limits(&state.db).await.max_links_chat;
+        all_links.truncate(chat_cap);
 
         let _ = state.log_sender.send(crate::models::LogEntry {
             timestamp: chrono::Local::now().to_rfc3339(),
@@ -772,7 +993,8 @@ if payload.deep_research.unwrap_or(false) {
 }
 // =========================================================
 
-let active_session_id = crate::api_chat::get_or_create_session(&state.db, payload.session_id, &human_prompt).await;
+let workspace_id = payload.workspace_id.clone().unwrap_or_else(|| "default".to_string());
+let active_session_id = crate::api_chat::get_or_create_session(&state.db, payload.session_id, &human_prompt, &workspace_id).await;
 
 // Grava no Banco a pergunta Humana
 crate::api_chat::save_message(&state.db, active_session_id, "user", &human_prompt).await;
@@ -1536,11 +1758,19 @@ Sse::new(final_stream)
 /// Spawns the Sovereign Pair Desktop GUI (Tauri App) process natively from the OS.
 pub async fn launch_gui_handler() -> impl IntoResponse {
     tracing::info!("🚀 [Sovereign Core] Invocação de GUI Recebida! Spawning Sovereign Tauri Desktop...");
-    // Tenta spawnar o binário instalado globalmente no path do Linux (.deb / pacman)
+    // Tenta spawnar o binário instalado globalmente no path do O.S (Linux .deb / MacOS .app)
     if std::process::Command::new("sovereign-pair").spawn().is_err() {
-        // Fallback robusto para o ambiente de compilação de desenvolvimento local
-        let dev_bin_path = "/home/jefersonlopes/Developer/local-repositories/sovereign-pair/svelte-ui/src-tauri/target/release/sovereign-pair";
-        let _ = std::process::Command::new(dev_bin_path).spawn();
+        // Fallback dinâmico: resolve relativo ao executável atual (funciona em MacOS App Bundle e dev)
+        let current_exe_dir = std::env::current_exe()
+            .unwrap_or_default()
+            .parent()
+            .unwrap_or(std::path::Path::new("."))
+            .to_path_buf();
+        // MacOS App Bundle: .../Contents/MacOS/sovereign-core → procura sovereign-pair no mesmo dir
+        let bundle_bin = current_exe_dir.join("sovereign-pair");
+        // Dev Linux/MacOS: target/release/sovereign-core → target/release/sovereign-pair
+        let dev_bin = current_exe_dir.join("sovereign-pair");
+        let _ = std::process::Command::new(if bundle_bin.exists() { bundle_bin } else { dev_bin }).spawn();
     }
     axum::response::Json(serde_json::json!({ "status": "gui_dispatched" }))
 }
@@ -1556,6 +1786,7 @@ pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> i
             avg_tps: 0.0,
             avg_latency_ms: 0,
             estimated_cost: 0.0,
+            avg_cloud_cost_per_1k: 0.00625,
             models_usage: std::collections::HashMap::new(),
             hardware: crate::telemetry::HardwareSnapshot {
                 cpu_cores: vec![],

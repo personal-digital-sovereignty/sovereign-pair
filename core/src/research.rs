@@ -244,13 +244,23 @@ impl DeepResearchEngine {
             || markdown.to_lowercase().contains("please wait...");
             
         if is_suspect_spa {
-            tracing::warn!("⚠️ [The Nurse / Scraper] Vazio Epistêmico Detectado! SPA interceptado ({} bytes extraídos). Acionando The Ghost Fallback Protocol...", markdown.len());
-            if let Ok(ghost_markdown) = self.scrape_ghost_fallbacks(&url).await
-                && ghost_markdown.len() > markdown.len() {
-                    tracing::info!("✅ [Ghost Protocol] Sucesso! Payload histórico resgatado do Vácuo Multi-Plataforma.");
-                    self.update_domain_ledger(&url, false, true).await;
-                    return Ok(ghost_markdown);
-                }
+            // FIX-5: Rate-limit do Ghost Protocol — usar contador atômico global.
+            // Limita a 3 ativações por sessão de scraping para evitar 66+ requests
+            // paralelas a Wayback Machine, Arquivo.pt, UKWA, Vefsafn.is etc.
+            static GHOST_COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+            let ghost_count = GHOST_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+            if ghost_count < 3 {
+                tracing::warn!("⚠️ [The Nurse / Scraper] Vazio Epistêmico Detectado! SPA interceptado ({} bytes extraídos). Acionando The Ghost Fallback Protocol ({}/3)...", markdown.len(), ghost_count + 1);
+                if let Ok(ghost_markdown) = self.scrape_ghost_fallbacks(&url).await
+                    && ghost_markdown.len() > markdown.len() {
+                        tracing::info!("✅ [Ghost Protocol] Sucesso! Payload histórico resgatado do Vácuo Multi-Plataforma.");
+                        self.update_domain_ledger(&url, false, true).await;
+                        return Ok(ghost_markdown);
+                    }
+            } else {
+                tracing::warn!("🛑 [Ghost Protocol] Rate-limit atingido ({}/3). Ignorando fallback de arquivo para evitar sobrecarga de rede.", ghost_count + 1);
+            }
             self.update_domain_ledger(&url, false, false).await;
         } else {
             self.update_domain_ledger(&url, true, false).await;
@@ -279,6 +289,22 @@ impl DeepResearchEngine {
         }
         if !ld_blocks.is_empty() {
              let combined = ld_blocks.join("\n\n");
+             // FIX-4: Filtro de qualidade JSON-LD — rejeitar schema.org puramente estrutural
+             // que não contém conteúdo jornalístico (BreadcrumbList, SiteNavigationElement, AudioObject
+             // sem articleBody). Estes poluem o contexto do LLM com metadata inútil (~48KB cada).
+             let combined_lower = combined.to_lowercase();
+             let has_article_content = combined_lower.contains("articlebody")
+                 || combined_lower.contains("description")
+                 || combined_lower.contains("headline")
+                 || combined_lower.contains("text");
+             let is_structural_only = (combined_lower.contains("breadcrumblist") || combined_lower.contains("sitenavigationelement"))
+                 && !has_article_content;
+
+             if is_structural_only {
+                 tracing::debug!("🗑️ [SSR Filter] JSON-LD descartado: BreadcrumbList/NavElement sem conteúdo jornalístico ({} bytes)", combined.len());
+                 return None;
+             }
+
              // Se tiver mais de 200 caracteres de metadata rica, consideramos um sucesso sólido
              if combined.len() > 200 {
                  return Some(format!("```json\n{}\n```", combined));
@@ -468,6 +494,18 @@ impl DeepResearchEngine {
         
         // Vamos capturar apenas elementos atômicos contendo texto orgânico e dados tabulares
         let selector = Selector::parse("p, h1, h2, h3, h4, h5, h6, li, td, th").unwrap();
+        // Conta e reporta quantos rastreadores explícitos foram obliterados fisicamente da VRAM
+        let ad_count = document.select(&Selector::parse("script, iframe, aside, noscript, dialog").unwrap()).count();
+        if ad_count > 0 {
+            if let Some(pool) = self.db_pool.clone() {
+                tokio::spawn(async move {
+                    let _ = sqlx::query("UPDATE analytics SET val_int = val_int + ? WHERE id = 'total_trackers_blocked'")
+                        .bind(ad_count as i32)
+                        .execute(&pool)
+                        .await;
+                });
+            }
+        }
         
         for element in document.select(&selector) {
             // Filtro 1: Genética (Ancestors)
@@ -676,7 +714,14 @@ impl DeepResearchEngine {
              return Err("Dual-Engine Crash. WAF Block total e Snippets falharam.".to_string());
         }
         
-        final_links.dedup();
+        // FIX-3: Dedup global via HashSet — elimina URLs duplicadas entre queries paralelas.
+        // O dedup() antigo só removia adjacentes idênticos. Um HashSet garante unicidade absoluta.
+        let mut seen = std::collections::HashSet::new();
+        final_links.retain(|link| seen.insert(link.clone()));
+        let deduped_count = seen.len();
+        if deduped_count < final_links.len() + (final_links.len() / 3) {
+            tracing::info!("🧹 [WAG Dedup] {} links únicos após remoção de duplicatas cross-query.", deduped_count);
+        }
 
         Ok(SovereignSearchResult {
             links: final_links,
@@ -709,10 +754,30 @@ impl DeepResearchEngine {
     }
 
     /// Executa o algoritmo de Vetting Institucional.
-    /// (DESATIVADO): O usuário determinou a abolição das amarras de Tiers.
+    /// Pontua domínios institucionais/governamentais acima de blogs e ads.
     async fn assign_sovereign_trust_score(&self, links: Vec<String>) -> Vec<String> {
-        // Retorna a lista orgânica de pesquisa intocada sem pontuar `.gov.br` ou aplicar penalidades.
-        links
+        let mut scored: Vec<(i32, String)> = links.into_iter().map(|link| {
+            let lower = link.to_lowercase();
+            let score = if lower.contains(".gov.br") || lower.contains("ibge.gov.br") { 100 }
+            else if lower.contains("bcb.gov.br") || lower.contains("anp.gov.br") { 95 }
+            else if lower.contains("petrobras.com.br") || lower.contains("epe.gov.br") { 90 }
+            else if lower.contains("tradingeconomics.com") || lower.contains("investing.com") { 80 }
+            else if lower.contains("reuters.com") || lower.contains("bloomberg.com") { 80 }
+            else if lower.contains("infomoney.com.br") || lower.contains("valorinveste") { 75 }
+            else if lower.contains("dadosdemercado.com.br") || lower.contains("numerando.com.br") { 70 }
+            else if lower.contains("cnnbrasil.com.br") || lower.contains("g1.globo.com") { 65 }
+            else if lower.contains("folha.uol.com.br") || lower.contains("estadao.com.br") { 65 }
+            else if lower.contains("wikipedia.org") { 60 }
+            else if lower.contains("eia.gov") { 85 }
+            // Penalizações
+            else if lower.contains("blog") || lower.contains("medium.com") { 20 }
+            else if lower.contains("bing.com") || lower.contains("msn.com") { 5 }
+            else { 50 }; // Neutro
+            (score, link)
+        }).collect();
+
+        scored.sort_by(|a, b| b.0.cmp(&a.0));
+        scored.into_iter().map(|(_, link)| link).collect()
     }
 
     /// Rotacionador de Identidade (Sovereign Cloak)
@@ -759,6 +824,18 @@ impl DeepResearchEngine {
             return Err("Honeypot/Captcha nativo engatilhado na camada HTML do Engine Primário".to_string());
         }
 
+        // FIX-2: Blacklist de domínios epistêmicamente inúteis que poluem o contexto do LLM.
+        // Estes domínios são resultado de redirecionamentos Yahoo/Google que escapam do filtro primário.
+        const JUNK_DOMAINS: &[&str] = &[
+            "uservoice.com", "feedback.yahoo", "support.google", "accounts.google",
+            "login.", "signin.", "signup.", "ads.", "pixel.", "tracker.",
+            "play.google.com", "apps.apple.com", "itunes.apple.com",
+            "facebook.com/sharer", "twitter.com/intent", "linkedin.com/share",
+            // FIX-SCRAPE: Anúncios pagos do Bing, MSN redirects, e domínios de cartão corporativo
+            "bing.com/aclick", "msn.com", "edenredmobilidade.com",
+            "codigosdebarrasbrasil.com", "vexpenses.com",
+        ];
+
         let mut links = Vec::new();
         {
             let document = scraper::Html::parse_document(&html);
@@ -766,19 +843,26 @@ impl DeepResearchEngine {
             
             for element in document.select(&selector) {
                 if let Some(href_attr) = element.value().attr("href") {
+                    let mut candidate = String::new();
+
                     if href_attr.contains("RU=") {
                         let parts: Vec<&str> = href_attr.split("RU=").collect();
                         if parts.len() > 1 {
                             let inner = parts[1].split("/RK=").next().unwrap_or("");
                             if let Ok(decoded) = urlencoding::decode(inner) {
-                                let clean_link = decoded.into_owned();
-                                if clean_link.starts_with("http") && !clean_link.contains("yahoo.com") {
-                                    links.push(clean_link);
-                                }
+                                candidate = decoded.into_owned();
                             }
                         }
-                    } else if href_attr.starts_with("http") && !href_attr.contains("yahoo.com") && !href_attr.contains("r.search.yahoo.com") {
-                        links.push(href_attr.to_string());
+                    } else if href_attr.starts_with("http") && !href_attr.contains("r.search.yahoo.com") {
+                        candidate = href_attr.to_string();
+                    }
+
+                    if !candidate.is_empty()
+                        && candidate.starts_with("http")
+                        && !candidate.contains("yahoo.com")
+                        && !JUNK_DOMAINS.iter().any(|junk| candidate.contains(junk))
+                    {
+                        links.push(candidate);
                     }
                 }
             }
@@ -786,7 +870,10 @@ impl DeepResearchEngine {
 
         links.dedup();
         let mut prioritized_links = self.assign_sovereign_trust_score(links).await;
-        prioritized_links.truncate(20); // Retorna estritamente o Top 20 de Confiabilidade
+        let scrape_cap = if let Some(pool) = &self.db_pool {
+            crate::api_settings::load_scrape_limits(pool).await.max_links_per_search
+        } else { 7 };
+        prioritized_links.truncate(scrape_cap);
         Ok(prioritized_links)
     }
 
@@ -826,7 +913,10 @@ impl DeepResearchEngine {
                                 }
                             }
                             let mut prioritized_links = self.assign_sovereign_trust_score(links).await;
-                            prioritized_links.truncate(20);
+                            let scrape_cap = if let Some(pool) = &self.db_pool {
+                                crate::api_settings::load_scrape_limits(pool).await.max_links_per_search
+                            } else { 7 };
+                            prioritized_links.truncate(scrape_cap);
                             return Ok(prioritized_links);
                         }
                 }
@@ -877,7 +967,10 @@ impl DeepResearchEngine {
                                     }
                                 }
                                 let mut prioritized_links = self.assign_sovereign_trust_score(links).await;
-                                prioritized_links.truncate(20);
+                                let scrape_cap = if let Some(pool) = &self.db_pool {
+                                    crate::api_settings::load_scrape_limits(pool).await.max_links_per_search
+                                } else { 7 };
+                                prioritized_links.truncate(scrape_cap);
                                 return Ok(prioritized_links);
                             }
                     } else {

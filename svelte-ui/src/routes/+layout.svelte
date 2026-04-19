@@ -15,7 +15,9 @@ import { API_BASE_URL } from '$lib/env_config';
   import NotificationBell from '$lib/components/NotificationBell.svelte';
   import { settingsState, loadSettings } from '$lib/settings.svelte';
 
-  let appVersion = "1.1.0";
+  // Versão injetada pelo Vite em build-time via package.json (vite.config.ts → define)
+  // @ts-ignore — __APP_VERSION__ é definido em vite.config.ts via `define`
+  let appVersion: string = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : "0.0.0";
   let isChangelogOpen = $state(false);
   let { children } = $props();
 
@@ -148,110 +150,98 @@ import { API_BASE_URL } from '$lib/env_config';
         {#if globalState.isSidebarOpen}<span class="font-medium text-sm">Engineer</span>{/if}
       </a>
       
-      <!-- System Settings -->
-      <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} py-2.5 rounded-lg transition-colors {routeId.includes('/settings') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/settings">
-        <Settings class="w-4 h-4 {globalState.isSidebarOpen ? 'mr-3' : ''}" />
-        {#if globalState.isSidebarOpen}<span class="font-medium text-sm">System Settings</span>{/if}
+      <div class="mt-auto shrink-0 min-h-[1rem]"></div>
+
+      <!-- BEGIN: Hardware Telemetry Widget (Flow Positioned) -->
+      {#if globalState.isSidebarOpen}
+      <div class="w-full bg-white dark:bg-[#1d253b] rounded-xl shadow-lg p-4 border border-slate-100 dark:border-[#424859]/20 print:hidden transition-all duration-300 mb-2">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Hardware Telemetry</h3>
+          <Activity class="w-3 h-3 {telemetryState.connected ? 'text-indigo-500 dark:text-[#74b0ff] animate-pulse' : 'text-slate-400 dark:text-slate-600'}" />
+        </div>
+
+        <div class="space-y-4">
+          {#if Math.floor(telemetryState.ramTotalGB) === 0}
+            <!-- Loading Skeleton -->
+            <div class="animate-pulse space-y-5 pt-1 pb-2">
+                <div class="flex flex-col gap-2">
+                    <div class="h-2.5 bg-slate-200 rounded w-16"></div>
+                    <div class="h-5 bg-slate-200 rounded w-24"></div>
+                    <div class="h-1.5 bg-slate-100 rounded-full w-full"></div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex flex-col gap-2">
+                        <div class="h-2.5 bg-slate-200 rounded w-20"></div>
+                        <div class="h-5 bg-slate-200 rounded w-16"></div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex flex-col gap-2">
+                        <div class="h-2.5 bg-slate-200 rounded w-12"></div>
+                        <div class="h-4 bg-slate-200 rounded w-20"></div>
+                    </div>
+                </div>
+            </div>
+          {:else}
+          <!-- VRAM Component -->
+          <div>
+            <div class="flex justify-between items-end mb-1">
+              <div>
+                <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">SYS RAM:</div>
+                <div class="text-lg font-bold leading-none text-slate-800 dark:text-slate-200">{telemetryState.ramUsageMB.toFixed(0)} MB <span class="text-sm font-normal text-slate-500 dark:text-slate-400">/ {telemetryState.ramTotalGB} GB</span></div>
+              </div>
+            </div>
+            <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+              <div class="bg-indigo-400 dark:bg-[#5ea3f8] h-full rounded-full transition-all duration-300" style="width: {Math.min(100, (telemetryState.ramUsageMB / (telemetryState.ramTotalGB * 1024)) * 100)}%"></div>
+            </div>
+          </div>
+          
+          <!-- Tokens/Sec Simulated Bar -->
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">TOKENS/SEC:</div>
+              <div class="text-lg font-bold leading-none {telemetryState.tokensPerSecond > 20 ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'}">
+                {telemetryState.tokensPerSecond.toFixed(1)} <span class="text-sm font-normal text-slate-500 dark:text-slate-400">T/s</span>
+              </div>
+            </div>
+            <div class="flex items-end h-6 gap-[2px]">
+                <div class="w-1.5 bg-slate-200 h-[30%] rounded-t-sm" class:!bg-indigo-300={telemetryState.tokensPerSecond > 2}></div>
+                <div class="w-1.5 bg-slate-200 h-[50%] rounded-t-sm" class:!bg-indigo-400={telemetryState.tokensPerSecond > 8}></div>
+                <div class="w-1.5 bg-slate-200 h-[80%] rounded-t-sm" class:!bg-indigo-500={telemetryState.tokensPerSecond > 15}></div>
+                <div class="w-1.5 bg-slate-200 h-[100%] rounded-t-sm" class:!bg-indigo-600={telemetryState.tokensPerSecond > 30}></div>
+                <div class="w-1.5 bg-slate-200 h-[60%] rounded-t-sm" class:!bg-indigo-400={telemetryState.tokensPerSecond > 45}></div>
+            </div>
+          </div>
+
+          <!-- GPU / Temp Mock with active model name -->
+          <div class="flex items-center justify-between mt-2">
+            <div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis w-[120px]">MODEL:</div>
+              <div class="text-sm font-bold leading-none text-slate-800 dark:text-slate-300 truncate max-w-[120px]" title={telemetryState.activeModel}>{telemetryState.activeModel || 'Idle'}</div>
+            </div>
+            <div class="flex items-end h-6 gap-[2px]">
+              <div class="w-1.5 bg-emerald-400 h-[40%] rounded-t-sm"></div>
+              <div class="w-1.5 bg-emerald-400 h-[50%] rounded-t-sm"></div>
+              <div class="w-1.5 bg-emerald-400 h-[60%] rounded-t-sm"></div>
+              <div class="w-1.5 bg-emerald-400 h-[65%] rounded-t-sm"></div>
+              <div class="w-1.5 bg-emerald-400 h-[68%] rounded-t-sm"></div>
+            </div>
+          </div>
+          {/if}
+        </div>
+      </div>
+      {/if}
+      <!-- END: Hardware Telemetry Widget -->
+
+      <!-- System Settings (Move to very bottom under telemetry) -->
+      <a class="flex items-center {globalState.isSidebarOpen ? 'px-4 justify-start' : 'p-3 justify-center'} py-3 rounded-xl transition-colors {routeId.includes('/settings') ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'}" href="/settings">
+        <Settings class="w-5 h-5 {globalState.isSidebarOpen ? 'mr-3' : ''}" />
+        {#if globalState.isSidebarOpen}<span class="font-medium text-[15px]">System Settings</span>{/if}
       </a>
       
-      <!-- Spacer to prevent Telemetry Widget overlap -->
-      {#if globalState.isSidebarOpen}
-      <div class="h-[220px] shrink-0 pointer-events-none"></div>
-      {/if}
     </nav>
   </aside>
   <!-- END: Sidebar Master -->
-
-  <!-- BEGIN: Hardware Telemetry Widget Overlay -->
-  {#if globalState.isSidebarOpen}
-  <div class="absolute bottom-4 left-4 w-[264px] bg-white dark:bg-[#1d253b] rounded-xl shadow-lg dark:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)] p-4 z-30 border border-slate-100 dark:border-[#424859]/20 print:hidden transition-all duration-300">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Hardware Telemetry</h3>
-      <Activity class="w-3 h-3 {telemetryState.connected ? 'text-indigo-500 dark:text-[#74b0ff] animate-pulse' : 'text-slate-400 dark:text-slate-600'}" />
-    </div>
-
-    <div class="space-y-4">
-      {#if Math.floor(telemetryState.ramTotalGB) === 0}
-        <!-- Loading Skeleton / Bootstrapping State -->
-        <div class="animate-pulse space-y-5 pt-1 pb-2">
-            <div class="flex flex-col gap-2">
-                <div class="h-2.5 bg-slate-200 rounded w-16"></div>
-                <div class="h-5 bg-slate-200 rounded w-24"></div>
-                <div class="h-1.5 bg-slate-100 rounded-full w-full"></div>
-            </div>
-            <div class="flex items-center justify-between">
-                <div class="flex flex-col gap-2">
-                    <div class="h-2.5 bg-slate-200 rounded w-20"></div>
-                    <div class="h-5 bg-slate-200 rounded w-16"></div>
-                </div>
-                <div class="flex items-end gap-1 h-6">
-                    {#each [1,2,3,4,5] as _}
-                        <div class="w-1.5 h-full bg-slate-100 rounded-t-sm"></div>
-                    {/each}
-                </div>
-            </div>
-            <div class="flex items-center justify-between">
-                <div class="flex flex-col gap-2">
-                    <div class="h-2.5 bg-slate-200 rounded w-12"></div>
-                    <div class="h-4 bg-slate-200 rounded w-20"></div>
-                </div>
-                <div class="flex items-end gap-1 h-6">
-                    {#each [1,2,3,4,5] as _}
-                        <div class="w-1.5 h-full bg-slate-100 rounded-t-sm"></div>
-                    {/each}
-                </div>
-            </div>
-        </div>
-      {:else}
-      <!-- VRAM Component -->
-      <div>
-        <div class="flex justify-between items-end mb-1">
-          <div>
-            <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">SYS RAM:</div>
-            <div class="text-lg font-bold leading-none text-slate-800 dark:text-slate-200">{telemetryState.ramUsageMB.toFixed(0)} MB <span class="text-sm font-normal text-slate-500 dark:text-slate-400">/ {telemetryState.ramTotalGB} GB</span></div>
-          </div>
-        </div>
-        <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
-          <div class="bg-indigo-400 dark:bg-[#5ea3f8] h-full rounded-full transition-all duration-300" style="width: {Math.min(100, (telemetryState.ramUsageMB / (telemetryState.ramTotalGB * 1024)) * 100)}%"></div>
-        </div>
-      </div>
-      
-      <!-- Tokens/Sec Simulated Bar -->
-      <div class="flex items-center justify-between">
-        <div>
-          <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">TOKENS/SEC:</div>
-          <div class="text-lg font-bold leading-none {telemetryState.tokensPerSecond > 20 ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'}">
-            {telemetryState.tokensPerSecond.toFixed(1)} <span class="text-sm font-normal text-slate-500 dark:text-slate-400">T/s</span>
-          </div>
-        </div>
-        <div class="flex items-end h-6 gap-[2px]">
-            <div class="w-1.5 bg-slate-200 h-[30%] rounded-t-sm" class:!bg-indigo-300={telemetryState.tokensPerSecond > 2}></div>
-            <div class="w-1.5 bg-slate-200 h-[50%] rounded-t-sm" class:!bg-indigo-400={telemetryState.tokensPerSecond > 8}></div>
-            <div class="w-1.5 bg-slate-200 h-[80%] rounded-t-sm" class:!bg-indigo-500={telemetryState.tokensPerSecond > 15}></div>
-            <div class="w-1.5 bg-slate-200 h-[100%] rounded-t-sm" class:!bg-indigo-600={telemetryState.tokensPerSecond > 30}></div>
-            <div class="w-1.5 bg-slate-200 h-[60%] rounded-t-sm" class:!bg-indigo-400={telemetryState.tokensPerSecond > 45}></div>
-        </div>
-      </div>
-
-      <!-- GPU / Temp Mock with active model name -->
-      <div class="flex items-center justify-between mt-2">
-        <div>
-          <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis w-[120px]">MODEL:</div>
-          <div class="text-sm font-bold leading-none text-slate-800 dark:text-slate-300 truncate max-w-[120px]" title={telemetryState.activeModel}>{telemetryState.activeModel || 'Idle'}</div>
-        </div>
-        <div class="flex items-end h-6 gap-[2px]">
-          <div class="w-1.5 bg-emerald-400 h-[40%] rounded-t-sm"></div>
-          <div class="w-1.5 bg-emerald-400 h-[50%] rounded-t-sm"></div>
-          <div class="w-1.5 bg-emerald-400 h-[60%] rounded-t-sm"></div>
-          <div class="w-1.5 bg-emerald-400 h-[65%] rounded-t-sm"></div>
-          <div class="w-1.5 bg-emerald-400 h-[68%] rounded-t-sm"></div>
-        </div>
-      </div>
-      {/if}
-    </div>
-  </div>
-  {/if}
-  <!-- END: Hardware Telemetry Widget -->
 
   <!-- BEGIN: Main Viewport (Header + Route Children) -->
   <div class="flex-1 flex flex-col h-full print:h-auto print:overflow-visible overflow-hidden relative min-w-0 transition-all duration-300 ease-in-out" style="padding-right: {globalState?.layout?.isRightAuxPanelOpen ? '420px' : '0'}">
