@@ -209,3 +209,17 @@ core/.fastembed_cache/
 
 # Internal strategy docs (private — not for public repo)
 _strategy/
+
+# Runtime databases (generated at startup — never commit)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.jsonl
+
+# Dev data (local only)
+data/raw_docs/
+data/sovereign.conf
+
+# Build artifacts
+core/.api_hash
