@@ -47,6 +47,7 @@ pub mod sandbox;
 pub mod memory_manager;
 pub mod garbage_collector; // <-- Adicionado
 pub mod prompt_vault;
+pub mod health_gate;
 
 #[cfg(test)]
 pub mod tests;
@@ -201,6 +202,7 @@ pub struct AppState {
     pub sync_sender: broadcast::Sender<sync_engine::IngestionJob>,
     pub db: sqlx::SqlitePool,
     pub adblock_engine: adblocker::AdblockHandle,
+    pub health: health_gate::HealthState,
 }
 
 struct StringVisitor {
@@ -326,15 +328,25 @@ async fn main() {
     let adblock_handle = adblocker::start_adblock_daemon(active_vault.clone(), db_pool.clone());
 
     // Cria o Roteador Axum (A fundação dos Cíbridos) com Contexto Acoplado
+    let health_state = health_gate::new_health_state();
     let state = Arc::new(AppState {
         http_client: Client::new(),
         vault_path: active_vault,
         telemetry: Arc::new(RwLock::new(telemetry::TelemetryState::new())),
         log_sender: log_tx,
         sync_sender: sync_tx,
-        db: db_pool,
+        db: db_pool.clone(),
         adblock_engine: adblock_handle,
+        health: health_state.clone(),
     });
+
+    // 🛡️ Resilience Shield: Startup API Health Gate (non-blocking)
+    let db_health = db_pool.clone();
+    let hs = health_state.clone();
+    tokio::spawn(async move {
+        health_gate::startup_health_gate(db_health, hs).await;
+    });
+    health_gate::spawn_periodic_watchdog(db_pool.clone(), health_state).await;
 
     // Boot the Auto-Evaluator (LLM-as-a-Judge Mesh Loop)
     auto_evaluator::start_evaluator_loop(state.clone()).await;
@@ -370,6 +382,7 @@ async fn main() {
         // ------------------ LLMOps Telemetry & Logs ------------------
         .route("/v1/analytics/telemetry", axum::routing::get(api::telemetry_snapshot_handler))
         .route("/v1/analytics/hallucinations", axum::routing::get(api_trainer::get_hallucinations_ledger_handler))
+        .route("/v1/analytics/api_health", axum::routing::get(health_gate::api_health_handler))
         .route("/v1/logs", axum::routing::get(api::realtime_logs_handler))
         // ------------------ RAG & SOVEREIGN DRIVES (Workspaces O.S) --------------------------
         .route("/v1/workspaces", axum::routing::get(api_vault::list_workspaces_handler)
