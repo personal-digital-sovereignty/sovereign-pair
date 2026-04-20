@@ -101,7 +101,7 @@ def main():
             "type": "function",
             "function": {
                 "name": "execute_python_code",
-                "description": "Ferramenta para executar código Python seguro localmente. Ideal para matemática complexa, cruzamento de dados de inflação/preços, cálculos precisos, e extração manipulada de arrays. Você DEVE imprimir os resultados finais EXPLICITAMENTE (via print()) para conseguir ler a resposta e utiliza-la para redigir seu relatório.",
+                "description": "Ferramenta para executar código Python 3 seguro localmente. Use para matemática complexa, análise estatística (correlação, regressão, percentuais compostos) e cálculos que não podem ser feitos mentalmente. OBRIGATÓRIO: imprima resultados finais via print() — sem print() você não receberá resposta. PROIBIDO: copiar/colar arrays brutos de dados de 60+ meses como variáveis Python (usa toda a janela de contexto). REGRA DE SINTAXE CRÍTICA: NUNCA use aspas simples dentro de f-string delimitada por aspas simples. ERRADO: f'val: {open('/tmp/f')}'. CORRETO: p='/tmp/f'; f'val: {open(p)}'. Use sempre variáveis intermediárias para caminhos de arquivo.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -121,17 +121,17 @@ def main():
         "type": "function",
         "function": {
             "name": "fetch_financial_ticker",
-            "description": "Acessa a Sovereign Open-Data Matrix (yfinance) para baixar diretamente dados históricos fechados de Ações, Petróleo, Ouro ou Câmbio. USE SEMPRE ESTA FERRAMENTA PARA COMMODITIES, AÇÕES OU PREÇO DO DÓLAR EM VEZ DO SCRAPER WEB.",
+            "description": "Acessa a Sovereign Open-Data Matrix (yfinance) para baixar dados históricos de Ações, ETFs, Commodities, Câmbio e Futuros. USE ESTA FERRAMENTA para dados quantitativos de preço de qualquer ativo financeiro listado em bolsa. NÃO use para preços industriais/B2B (CEPEA, Platts, ICIS) — esses requerem dispatch_sub_researcher.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "symbol": {
                         "type": "string",
-                        "description": "O símbolo financeiro. Exemplo: 'BRENT' (Petróleo Brent), 'WTI' (Petróleo Texas), 'DOLAR' (Dólar/BRL), 'PETROBRAS' (Ações)."
+                        "description": "O ticker EXATO do ativo solicitado pelo usuário. DEDUZA o ticker do nome mencionado pelo usuário — NÃO substitua por outro ativo. Exemplos por categoria: B3 ações: 'MGLU3' (Magazine Luiza), 'VALE3' (Vale), 'ITUB4' (Itaú), 'WEGE3' (WEG), 'PETR4' (Petrobras), 'JBSS3' (JBS), 'SUZB3' (Suzano). NYSE/NASDAQ: 'NKE' (Nike), 'NVDA' (NVIDIA), 'AAPL' (Apple), 'NVO' (Novo Nordisk / Ozempic), 'LLY' (Eli Lilly / Mounjaro), 'TSLA' (Tesla). ETFs setoriais: 'SOXX' (semicondutores), 'XLV' (saúde), 'MOO' (agronegócio), 'XME' (mineração), 'KIE' (seguros), 'WOOD' (madeira), 'JETS' (aviação). Commodities futuros: 'BZ=F' (Brent), 'CL=F' (WTI), 'GC=F' (Ouro), 'ZS=F' (Soja CBOT), 'KC=F' (Café Arábica). Câmbio: 'BRL=X' (DOLAR/BRL), 'EURBRL=X' (EUR/BRL), 'CNY=X' (Yuan). CRÍTICO: use APENAS o ticker correspondente ao ativo que o usuário explicitamente solicitou."
                     },
                     "years": {
                         "type": "string",
-                        "description": "A quantidade de anos de histórico necessários. Exemplo: '5'."
+                        "description": "Quantidade de anos de histórico. Exemplos: '1' (1 ano), '2' (2 anos), '5' (5 anos). Default conservador: '1'. NÃO use '5' como padrão para evitar sobrecarga de contexto."
                     }
                 },
                 "required": ["symbol", "years"]
@@ -161,6 +161,106 @@ def main():
                     }
                 },
                 "required": ["indicator", "country", "years"]
+            }
+        }
+    })
+
+    # ── FERRAMENTAS DE CONHECIMENTO (Academic, Engineering, Cultural, Encyclopedia) ──
+    # Cada uma tem handler nativo no Rust (api_trainer.rs) e Python worker dedicado.
+    # NOTA: fetch_futures_market é intencionalmente OMITIDO — semanticamente redundante
+    # com fetch_financial_ticker que agora resolve futuros/commodities via Ticker Registry.
+
+    tools.append({
+        "type": "function",
+        "function": {
+            "name": "fetch_academic_papers",
+            "description": "Busca artigos científicos e papers acadêmicos em bases abertas (arXiv, PubMed). USE para perguntas sobre pesquisa científica, estudos publicados, trabalhos acadêmicos, artigos em periódicos, papers sobre IA, física, biologia, matemática, computação, medicina ou qualquer disciplina acadêmica.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "queries": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de consultas de pesquisa acadêmica. Cada string deve ser um tópico de pesquisa em INGLÊS (arXiv e PubMed indexam em inglês). Exemplo: ['transformer attention mechanism', 'CRISPR gene editing 2024']."
+                    },
+                    "disciplines": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de disciplinas correspondentes a cada query. Valores aceitos: 'arxiv' (IA, Física, Matemática, Computação), 'pubmed' (Medicina, Biologia, Saúde). Default: 'arxiv'."
+                    }
+                },
+                "required": ["queries"]
+            }
+        }
+    })
+
+    tools.append({
+        "type": "function",
+        "function": {
+            "name": "fetch_engineering_docs",
+            "description": "Busca documentação técnica, soluções de engenharia e código-fonte em bases de desenvolvedores (StackOverflow, GitHub). USE para perguntas sobre programação, DevOps, infraestrutura, debugging, arquitetura de sistemas, ou quando o usuário precisar de exemplos de código e soluções técnicas reais.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "topics": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de tópicos técnicos a buscar. Exemplo: ['kubernetes pod crash loop', 'rust lifetime borrow checker']."
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de fontes correspondentes. Valores: 'stackexchange' (StackOverflow), 'github' (busca em código). Default: 'stackexchange'."
+                    }
+                },
+                "required": ["topics"]
+            }
+        }
+    })
+
+    tools.append({
+        "type": "function",
+        "function": {
+            "name": "fetch_encyclopedia",
+            "description": "Consulta a Wikipedia para obter conhecimento enciclopédico geral. USE para perguntas sobre história, geografia, personalidades, conceitos teóricos, definições, eventos históricos ou qualquer consulta de conhecimento geral que necessite de uma base factual sólida.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "queries": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de termos a consultar na Wikipedia. Use o nome exato do artigo quando possível (ex: 'Teoria da Relatividade', 'Segunda Guerra Mundial')."
+                    },
+                    "language": {
+                        "type": "string",
+                        "description": "Código ISO 639-1 do idioma da Wikipedia a consultar. Exemplos: 'pt' (português), 'en' (inglês), 'es' (espanhol). Default: 'pt'."
+                    }
+                },
+                "required": ["queries"]
+            }
+        }
+    })
+
+    tools.append({
+        "type": "function",
+        "function": {
+            "name": "fetch_cultural_data",
+            "description": "Acessa bases de dados culturais para informações sobre música, cinema, artes visuais e videogames. USE para perguntas sobre artistas, bandas, discografias, filmes, bilheterias, jogos, obras de arte em museus ou qualquer consulta cultural/entretenimento. Fontes disponíveis: MusicBrainz (música), TMDB (filmes/cinema), RAWG (jogos), TheMet (museus/arte), Wikipedia (cultural geral).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "queries": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de consultas culturais. Exemplo: ['Radiohead', 'Breaking Bad', 'Monet']."
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de fontes correspondentes. Valores: 'MUSICBRAINZ' (música/discografia), 'TMDB' (cinema/filmes — requer chave no Vault), 'RAWG' (videogames — requer chave), 'THEMET' (Metropolitan Museum of Art), 'WIKIPEDIA' (cultural genérico). Default: 'TMDB'."
+                    }
+                },
+                "required": ["queries"]
             }
         }
     })
