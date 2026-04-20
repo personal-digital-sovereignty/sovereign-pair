@@ -1692,27 +1692,39 @@ pub async fn run_deep_research_handler(
                                             hasher.update(final_result.as_bytes());
                                             let hash_result = format!("{:x}", hasher.finalize());
                                             all_hashes.push(hash_result.clone());
+
+                                            // Nós guardamos o 'final_result' completo no 'all_sources' para The Scribe. Mas escondemos do Mestre guiando-o via disco.
+                                            let limited_result = format!(
+                                                "[SUCCESS DE EXTRAÇÃO] Dados massivos obtidos para '{}' e gravados com integridade verificada pelo Motor Rust.\n\
+                                                 O conteúdo foi transferido fisicamente para o arquivo de disco local: '{}'.\n\
+                                                 AVISO CRÍTICO: NÃO ADIVINHE OS DADOS NEM CRIE ARRAYS FALSOS (PLACEHOLDERS). \
+                                                 Você deve agora acionar a ferramenta de Python Sandbox desenvolvendo as linhas de código \
+                                                 (ex: `pd.read_json('{}')` ou `open('{}').read()`) para processar diretamente o arquivo de disco.",
+                                                sq, tmp_file_path, tmp_file_path, tmp_file_path
+                                            );
+
+                                            // Devolve a resposta do Tool Oculta para a memória do Mestre
+                                            messages.push(serde_json::json!({
+                                                "role": "tool",
+                                                "content": limited_result
+                                            }));
                                         } else {
                                             let _ = TRAINER_LOGS.send(format!(
                                                 "⚠️ [Proveniência] Extração vazia para '{}'. Arquivo/hash NÃO gravado (placeholder descartado).", sq
                                             ));
+
+                                            // FIX: Impedir Cognitive Gaslighting. Avisa explicitamente o LLM que a extração falhou.
+                                            let failure_msg = format!(
+                                                "[FALHA DE EXTRAÇÃO] O Crawler não encontrou dados estruturados para '{}' (possível bloqueio anti-bot ou indisponibilidade).\n\
+                                                 O QUE FAZER AGORA: NÃO tente extração orgânica novamente para este termo. Se era um ticker financeiro, use 'fetch_financial_ticker'. Caso contrário, mude de estratégia ou encerre a busca declarando que este dado está inacessível.",
+                                                sq
+                                            );
+
+                                            messages.push(serde_json::json!({
+                                                "role": "tool",
+                                                "content": failure_msg
+                                            }));
                                         }
-
-                                        // Nós guardamos o 'final_result' completo no 'all_sources' para The Scribe. Mas escondemos do Mestre guiando-o via disco.
-                                        let limited_result = format!(
-                                            "[SUCCESS DE EXTRAÇÃO] Dados massivos obtidos para '{}' e gravados com integridade verificada pelo Motor Rust.\n\
-                                             O conteúdo foi transferido fisicamente para o arquivo de disco local: '{}'.\n\
-                                             AVISO CRÍTICO: NÃO ADIVINHE OS DADOS NEM CRIE ARRAYS FALSOS (PLACEHOLDERS). \
-                                             Você deve agora acionar a ferramenta de Python Sandbox desenvolvendo as linhas de código \
-                                             (ex: `pd.read_json('{}')` ou `open('{}').read()`) para processar diretamente o arquivo de disco.",
-                                            sq, tmp_file_path, tmp_file_path, tmp_file_path
-                                        );
-
-                                        // Devolve a resposta do Tool Oculta para a memória do Mestre
-                                        messages.push(serde_json::json!({
-                                            "role": "tool",
-                                            "content": limited_result
-                                        }));
                                     }
                                 }
                             }
