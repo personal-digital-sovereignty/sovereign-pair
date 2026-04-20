@@ -11,6 +11,7 @@ pub struct HardwareSnapshot {
     pub io_tx_bytes: u64,
     pub gpu_name: String,
     pub gpu_vram_total_mb: u64,
+    pub gpu_vram_used_mb: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +38,7 @@ pub struct TelemetryState {
     pub networks: Networks,
     pub gpu_name: String,
     pub gpu_vram_total_mb: u64,
+    pub gpu_vram_used_mb: u64,
     pub avg_cloud_cost_per_1k: f64,
 }
 
@@ -50,6 +52,7 @@ impl TelemetryState {
         let hardware_data = crate::hardware::capture_hardware_telemetry();
         let gpu_name = hardware_data.gpu_name;
         let gpu_vram_total_mb = (hardware_data.total_vram_gb * 1024.0) as u64;
+        let gpu_vram_used_mb = (hardware_data.used_vram_gb * 1024.0) as u64;
 
         Self {
             total_tokens: 0,
@@ -61,6 +64,7 @@ impl TelemetryState {
             networks,
             gpu_name,
             gpu_vram_total_mb,
+            gpu_vram_used_mb,
             avg_cloud_cost_per_1k: 0.00625, // Default fallback
         }
     }
@@ -97,6 +101,10 @@ impl TelemetryState {
         self.sys.refresh_cpu_usage();
         self.sys.refresh_memory();
         self.networks.refresh(true); // Refreshes network usage stats
+
+        // GAP-01: Refresh dynamic VRAM usage from sysfs on each poll cycle
+        let hw = crate::hardware::capture_hardware_telemetry();
+        self.gpu_vram_used_mb = (hw.used_vram_gb * 1024.0) as u64;
     }
 
     pub fn get_snapshot(&self) -> TelemetrySnapshot {
@@ -157,6 +165,7 @@ impl TelemetryState {
                 io_tx_bytes,
                 gpu_name: self.gpu_name.clone(),
                 gpu_vram_total_mb: self.gpu_vram_total_mb,
+                gpu_vram_used_mb: self.gpu_vram_used_mb,
             }
         }
     }
