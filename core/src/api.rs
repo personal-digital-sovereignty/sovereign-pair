@@ -1784,21 +1784,25 @@ pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> i
             t.refresh_hardware();
             t.get_snapshot()
         },
-        Err(_) => crate::telemetry::TelemetrySnapshot {
-            total_tokens: 0,
-            avg_tps: 0.0,
-            avg_latency_ms: 0,
-            estimated_cost: 0.0,
-            avg_cloud_cost_per_1k: 0.00625,
-            models_usage: std::collections::HashMap::new(),
-            hardware: crate::telemetry::HardwareSnapshot {
-                cpu_cores: vec![],
-                ram_usage_mb: 0.0,
-                ram_total_gb: 24.0,
-                io_rx_bytes: 0,
-                io_tx_bytes: 0,
-                gpu_name: "GPU Compute".to_string(),
-                gpu_vram_total_mb: 0,
+        Err(_) => {
+            // Q-02 FIX: Use real hardware data even in the Mutex poison fallback path.
+            let hw = crate::hardware::capture_hardware_telemetry();
+            crate::telemetry::TelemetrySnapshot {
+                total_tokens: 0,
+                avg_tps: 0.0,
+                avg_latency_ms: 0,
+                estimated_cost: 0.0,
+                avg_cloud_cost_per_1k: 0.00625,
+                models_usage: std::collections::HashMap::new(),
+                hardware: crate::telemetry::HardwareSnapshot {
+                    cpu_cores: vec![],
+                    ram_usage_mb: hw.used_ram_gb * 1024.0,
+                    ram_total_gb: hw.total_ram_gb,
+                    io_rx_bytes: 0,
+                    io_tx_bytes: 0,
+                    gpu_name: hw.gpu_name,
+                    gpu_vram_total_mb: (hw.total_vram_gb * 1024.0) as u64,
+                }
             }
         },
     };
