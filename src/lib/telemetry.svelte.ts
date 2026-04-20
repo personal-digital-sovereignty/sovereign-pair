@@ -57,16 +57,15 @@ export function connectTelemetry() {
                 telemetryState.ramUsageMB = data.hardware?.ram || 0;
                 telemetryState.ramTotalGB = data.hardware?.ram_total_gb || 0;
                 telemetryState.vramTotalMB = data.hardware?.gpu_vram_total_mb || 0;
+                telemetryState.vramUsageMB = data.hardware?.gpu_vram_used_mb || 0;
                 telemetryState.gpuName = data.hardware?.gpu_name || 'GPU Compute';
                 telemetryState.ioRxBytes = data.hardware?.io_rx || 0;
                 telemetryState.ioTxBytes = data.hardware?.io_tx || 0;
                 
-                // If there are active models, VRAM is engaged.
+                // Set active model status based on loaded models
                 if (data.active_models && data.active_models > 0) {
-                    telemetryState.vramUsageMB = 0; // GAP-01 FIX: Removed Math.random() mock. Awaiting Vulkan VK_EXT_memory_budget for strict usage.
                     telemetryState.activeModel = 'Native Cibrid API Protocol';
                 } else {
-                    telemetryState.vramUsageMB = 0;
                     telemetryState.activeModel = 'Idle';
                 }
 
