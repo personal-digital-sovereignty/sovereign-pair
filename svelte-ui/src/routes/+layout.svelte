@@ -183,7 +183,7 @@ import { API_BASE_URL } from '$lib/env_config';
                 </div>
             </div>
           {:else}
-          <!-- VRAM Component -->
+          <!-- Sys RAM Component -->
           <div>
             <div class="flex justify-between items-end mb-1">
               <div>
@@ -193,6 +193,19 @@ import { API_BASE_URL } from '$lib/env_config';
             </div>
             <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
               <div class="bg-indigo-400 dark:bg-[#5ea3f8] h-full rounded-full transition-all duration-300" style="width: {Math.min(100, (telemetryState.ramUsageMB / (telemetryState.ramTotalGB * 1024)) * 100)}%"></div>
+            </div>
+          </div>
+
+          <!-- VRAM Component -->
+          <div>
+            <div class="flex justify-between items-end mb-1">
+              <div>
+                <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">GPU VRAM:</div>
+                <div class="text-lg font-bold leading-none text-emerald-600 dark:text-emerald-400">{(telemetryState.vramTotalMB / 1024).toFixed(1)} GB <span class="text-sm font-normal text-slate-500 dark:text-slate-400 truncate w-12" title={telemetryState.gpuName}>/ {telemetryState.gpuName.substring(0, 10)}</span></div>
+              </div>
+            </div>
+            <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+              <div class="bg-emerald-400 dark:bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: {telemetryState.vramTotalMB > 0 ? '100%' : '0%'}"></div>
             </div>
           </div>
           
