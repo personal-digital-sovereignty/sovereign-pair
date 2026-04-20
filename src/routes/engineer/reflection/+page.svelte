@@ -1,8 +1,13 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import { trainerState, exportReflectionLogs, getSelfCorrectRatio } from '$lib/trainer.svelte';
+    import { API_BASE_URL } from '$lib/env_config';
+    import { globalState } from '$lib/state.svelte';
 
     let isReflecting = $state(false);
+    let eventSource: EventSource | null = null;
+    let modelMatrix: any[] = $state([]);
+    let targetModel = $state("qwen2.5-coder:1.5b"); // Default fallback
     
     // Dataset JSON state
     let validationStatus = $state<{valid: boolean | null, msg: string}>({valid: null, msg: "UTF-8 • JSON"});
@@ -25,43 +30,104 @@
 
     let liveStreamLogs = $state<any[]>([]);
 
+    onMount(() => {
+        // Fetch model matrix to validate reasoner capability
+        fetch(`${API_BASE_URL}/v1/settings/model_capabilities`)
+            .then(res => {
+                if (res.ok) return res.json();
+                throw new Error("Bad response");
+            })
+            .then(data => { modelMatrix = data; })
+            .catch(e => console.error("Failed to fetch capabilities", e));
+    });
+
+    onDestroy(() => {
+        if (eventSource) eventSource.close();
+    });
+
     function validateDataset() {
         try {
             JSON.parse(reflectionDatasetJson);
             validationStatus = { valid: true, msg: "Syntax OK" };
             setTimeout(() => validationStatus.msg = "UTF-8 • JSON", 3000);
+            return true;
         } catch(e: any) {
             validationStatus = { valid: false, msg: e.message };
+            return false;
         }
     }
 
-    function applyToTraining() {
-        validateDataset();
-        if(validationStatus.valid) {
-            alert("Payload Injected to Rust Axiom via Local IPC!");
+    async function applyToTraining() {
+        if (!validateDataset()) {
+            globalState.notifications.unshift({ id: Date.now(), title: "JSON Inválido", text: "Verifique a sintaxe antes de aplicar.", time: new Date().toLocaleTimeString(), read: false });
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/engineer/reflection/apply`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ payload_json: reflectionDatasetJson })
+            });
+            if (res.ok) {
+                globalState.notifications.unshift({ id: Date.now(), title: "Dataset Injetado", text: "Raciocínio gravado no SQLite para Fine-Tuning.", time: new Date().toLocaleTimeString(), read: false });
+            } else {
+                globalState.notifications.unshift({ id: Date.now(), title: "Erro na Gravação", text: "Verifique logs da API Axum.", time: new Date().toLocaleTimeString(), read: false });
+            }
+        } catch(e: any) {
+            globalState.notifications.unshift({ id: Date.now(), title: "Network Error", text: e.message, time: new Date().toLocaleTimeString(), read: false });
         }
     }
 
     async function launchSimulation() {
         if (isReflecting) return;
-        isReflecting = true;
         
-        const simInterval = setInterval(() => {
-            const randomType = Math.random() > 0.5 ? 'correction' : 'completion';
-            liveStreamLogs = [{
-                type: randomType,
-                title: randomType === 'correction' ? "Successful Self-Correction" : "Complex Chain Completion",
-                icon: randomType === 'correction' ? "verified" : "psychology",
-                color: randomType === 'correction' ? "text-on-tertiary-container bg-tertiary-container/10" : "text-primary bg-primary-container/10",
-                desc: randomType === 'correction' ? "Model identified hallucinated figure and corrected to verified data source." : "Deep reasoning loop completed. 12 intermediate steps verified by AI Auditor.",
-                time: "Just now"
-            }, ...liveStreamLogs].slice(0, 5);
-        }, 1500);
+        // Blindspot Warning Check
+        let capability = modelMatrix.find(m => m.model_name === targetModel);
+        if (capability && !capability.is_reasoner) {
+            globalState.notifications.unshift({ id: Date.now(), title: "Acesso Negado (Trava Cognitiva)", text: `O modelo atuante '${targetModel}' não possui o flag 'reasoner' em suas capacidades. Inferências cegas corromperiam o log do laboratório.`, time: new Date().toLocaleTimeString(), read: false });
+            return;
+        }
 
-        setTimeout(() => { 
-            clearInterval(simInterval);
-            isReflecting = false; 
-        }, 10000);
+        isReflecting = true;
+        liveStreamLogs = [];
+        globalState.notifications.unshift({ id: Date.now(), title: "Reflection SSE", text: "Iniciando Server-Sent Events...", time: new Date().toLocaleTimeString(), read: false });
+
+        if (eventSource) eventSource.close();
+        eventSource = new EventSource(`${API_BASE_URL}/v1/engineer/reflection/stream`);
+        
+        eventSource.onmessage = (e) => {
+            if (e.data === "keep-alive") return;
+            try {
+                const log = JSON.parse(e.data);
+                liveStreamLogs = [log, ...liveStreamLogs].slice(0, 50); // Keep last 50
+            } catch(err) {
+                console.error("SSE parse erro:", err);
+            }
+        };
+
+        // Trigger Rust Backend worker
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/engineer/reflection/simulate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ model_name: targetModel })
+            });
+            
+            if (!res.ok) {
+                isReflecting = false;
+                globalState.notifications.unshift({ id: Date.now(), title: "Falha Externa", text: "Falha no worker Rust", time: new Date().toLocaleTimeString(), read: false });
+            }
+        } catch(err) {
+            isReflecting = false;
+            globalState.notifications.unshift({ id: Date.now(), title: "Erro de Rede", text: "Erro P2P / Rede", time: new Date().toLocaleTimeString(), read: false });
+        }
+
+        // Simula um timeout visual para destravar o botão após as etapas (no mundo real seria por "End Of Stream")
+        setTimeout(() => {
+            isReflecting = false;
+            if (eventSource) eventSource.close();
+        }, 12000);
     }
 </script>
 
@@ -83,7 +149,15 @@
                     Evaluate how the model audits its own reasoning steps before final synthesis.
                 </p>
             </div>
-            <div class="flex gap-3">
+            <div class="flex gap-3 items-center">
+                <select bind:value={targetModel} class="bg-surface-container-highest border border-outline-variant/30 text-on-surface text-xs font-bold rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 outline-none">
+                    {#each modelMatrix as m}
+                        <option value={m.model_name}>{m.model_name}</option>
+                    {/each}
+                    {#if modelMatrix.length === 0}
+                        <option value="qwen2.5-coder:1.5b">qwen2.5-coder:1.5b</option>
+                    {/if}
+                </select>
                 <button onclick={() => exportReflectionLogs(liveStreamLogs)} class="px-5 py-2.5 rounded-xl border border-outline-variant/30 text-on-surface font-bold text-xs hover:bg-surface-container-low transition-colors">
                     Export Logs
                 </button>
