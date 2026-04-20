@@ -298,7 +298,7 @@
   {"search_key":"FORMULA_1","yf_symbol":"FWONK","full_name":"Formula 1 (Liberty Media FWONK)","sector":"esportes","market":"NASDAQ","query_type_hint":"dual"},
   {"search_key":"F1","yf_symbol":"FWONK","full_name":"Fórmula 1","sector":"esportes","market":"NASDAQ","query_type_hint":"dual"},
   {"search_key":"UFC_WWE","yf_symbol":"TKO","full_name":"TKO Group (UFC + WWE)","sector":"esportes","market":"NYSE","query_type_hint":"price"},
-  {"search_key":"DRAFTkings","yf_symbol":"DKNG","full_name":"DraftKings (Apostas Esportivas)","sector":"esportes","market":"NASDAQ","query_type_hint":"price"},
+  {"search_key":"DRAFTKINGS","yf_symbol":"DKNG","full_name":"DraftKings (Apostas Esportivas)","sector":"esportes","market":"NASDAQ","query_type_hint":"price"},
   {"search_key":"FLUTTER","yf_symbol":"FLUT","full_name":"Flutter Entertainment (FanDuel)","sector":"esportes","market":"NYSE","query_type_hint":"price"},
   {"search_key":"APOSTAS_ESPORTIVAS","yf_symbol":"DKNG","full_name":"Apostas Esportivas (DraftKings proxy)","sector":"esportes","market":"NASDAQ","query_type_hint":"dual"},
   {"search_key":"EA_SPORTS","yf_symbol":"EA","full_name":"Electronic Arts (EA Sports FC)","sector":"esportes","market":"NASDAQ","query_type_hint":"dual"},

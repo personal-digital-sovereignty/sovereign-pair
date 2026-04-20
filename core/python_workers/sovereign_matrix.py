@@ -80,13 +80,47 @@ def fetch_finance(ticker, years):
         return ascii_.upper().replace(" ", "_").replace("-", "_").replace(".", "_")
 
     def _find_db() -> str | None:
-        """Localiza sovereign_sensus.db subindo a árvore de diretórios."""
+        """Localiza sovereign_memory.db: env var > XDG > macOS > Windows > Linux > busca ascendente."""
         import os as _os
-        cur = _os.path.dirname(_os.path.abspath(__file__))
-        for _ in range(6):
-            candidate = _os.path.join(cur, "sovereign_sensus.db")
+        # 1. DATABASE_URL env var (prod / containers)
+        db_url = _os.getenv("DATABASE_URL", "")
+        if db_url:
+            candidate = db_url.replace("sqlite:", "").split("?")[0]
             if _os.path.exists(candidate):
                 return candidate
+        # 2. XDG_DATA_HOME (Linux custom)
+        xdg = _os.getenv("XDG_DATA_HOME", "")
+        if xdg:
+            candidate = _os.path.join(xdg, "sovereign-pair", "data", "sovereign_memory.db")
+            if _os.path.exists(candidate):
+                return candidate
+        # 3. macOS ~/Library/Application Support
+        import sys as _sys
+        if _sys.platform == "darwin":
+            candidate = _os.path.join(_os.path.expanduser("~"), "Library", "Application Support",
+                                      "sovereign-pair", "data", "sovereign_memory.db")
+            if _os.path.exists(candidate):
+                return candidate
+        # 4. Windows %LOCALAPPDATA%
+        local_app_data = _os.getenv("LOCALAPPDATA", "")
+        if local_app_data:
+            candidate = _os.path.join(local_app_data, "sovereign-pair", "data", "sovereign_memory.db")
+            if _os.path.exists(candidate):
+                return candidate
+        # 5. Linux ~/.local/share (XDG default)
+        candidate = _os.path.join(_os.path.expanduser("~"), ".local", "share",
+                                  "sovereign-pair", "data", "sovereign_memory.db")
+        if _os.path.exists(candidate):
+            return candidate
+        # 6. Busca ascendente a partir do script (desenvolvimento local)
+        cur = _os.path.dirname(_os.path.abspath(__file__))
+        for _ in range(6):
+            candidate = _os.path.join(cur, "sovereign_memory.db")
+            if _os.path.exists(candidate):
+                return candidate
+            candidate2 = _os.path.join(cur, "data", "sovereign_memory.db")
+            if _os.path.exists(candidate2):
+                return candidate2
             parent = _os.path.dirname(cur)
             if parent == cur:
                 break
@@ -297,8 +331,23 @@ def fetch_finance(ticker, years):
         print(json.dumps({"error": f"No financial data found for {ticker} across all 4 Multi-Node layers! Last error: {last_error}"}))
         sys.exit(1)
         
+    # ── Commodities internacionais que recebem conversão BRL automática ─────────
+    CONVERT_TO_BRL = {
+        'BZ=F', 'CL=F',           # Petróleo Brent e WTI
+        'GC=F', 'SI=F',           # Ouro e Prata
+        'PL=F', 'PA=F',           # Platina e Paládio
+        'HG=F',                   # Cobre
+        'NG=F',                   # Gás Natural
+        'ZS=F', 'ZC=F', 'ZW=F',  # Soja, Milho, Trigo (CBOT)
+        'ZM=F', 'ZL=F',           # Farelo e Óleo de Soja
+        'KC=F', 'RC=F',           # Café Arábica e Robusta
+        'SB=F', 'CT=F',           # Açúcar e Algodão
+        'CC=F', 'OJ=F',           # Cacau e Suco de Laranja
+        'LE=F', 'HE=F',           # Boi Gordo e Suíno
+        'LB=F',                   # Madeira Serrada
+    }
     converted_to_brl = False
-    if ticker in ['BZ=F', 'CL=F']:
+    if ticker in CONVERT_TO_BRL:
         # Fetch BRL=X to do Currency Conversion
         df_usd = pd.DataFrame()
         try:
@@ -348,14 +397,32 @@ def fetch_finance(ticker, years):
         except Exception:
             pass
             
-    # === ANALYST B: CIRCUIT BREAKER (DATA QUALITY ASSERTION) ===
-    if ticker in ['BZ=F', 'CL=F'] and not df.empty and 'Close' in df.columns:
-        max_usd = float(df['Close'].max())
-        min_usd = float(df['Close'].min())
-        if max_usd > 200.0 or min_usd < 5.0:
-            print(json.dumps({"error": f"CRÍTICO (Circuit Breaker): Anomalia estrutural no Ticker {ticker}. Valor histórico em USD (Max: {round(max_usd, 2)}, Min: {round(min_usd, 2)}) rompeu barreira de viabilidade física do mercado de petróleo bruto. Abortando injeção para prevenir alucinação estatística (Dissonância Cognitiva) na Mente Mestra."}))
+    # ── Circuit Breaker generalizado por ativo ────────────────────────────────
+    SANITY_BOUNDS: dict = {
+        'BZ=F': (5.0, 250.0), 'CL=F': (5.0, 250.0),  # Petróleo (USD/barril)
+        'GC=F': (500.0, 5000.0), 'SI=F': (5.0, 200.0),  # Ouro/Prata
+        'PL=F': (200.0, 3000.0), 'PA=F': (100.0, 4000.0),
+        'HG=F': (1.0, 20.0),   # Cobre (USD/lb)
+        'NG=F': (0.5, 25.0),   # Gás Natural (USD/MMBtu)
+        'ZS=F': (4.0, 30.0),   # Soja (USD/bushel)
+        'ZC=F': (2.0, 10.0),   # Milho
+        'ZW=F': (2.0, 15.0),   # Trigo
+        'KC=F': (0.5, 6.0),    # Café Arábica (USD/lb)
+        'SB=F': (0.05, 1.0),   # Açúcar (USD/lb)
+        'CT=F': (0.3, 3.0),    # Algodão (USD/lb)
+    }
+    bounds = SANITY_BOUNDS.get(ticker)
+    if bounds and not df.empty and 'Close' in df.columns:
+        max_v = float(df['Close'].max())
+        min_v = float(df['Close'].min())
+        if not (bounds[0] <= min_v and max_v <= bounds[1]):
+            print(json.dumps({"error": f"CRÍTICO (Circuit Breaker): Anomalia em {ticker}. "
+                              f"Valores USD (Max: {round(max_v, 2)}, Min: {round(min_v, 2)}) "
+                              f"fora dos limites físicos {bounds}. Abortando para prevenir "
+                              f"alucinação estatística."}))
             sys.exit(1)
-            
+
+
     data_lines = []
     for index, row in df.iterrows():
         date_str = index if isinstance(index, str) else index.strftime('%Y-%m')
