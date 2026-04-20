@@ -13,6 +13,7 @@ mod models;
 mod realtime;
 mod rag;
 mod telemetry;
+pub mod hardware;
 mod sync_engine;
 mod db;
 mod api_chat;

@@ -47,42 +47,9 @@ impl TelemetryState {
         let mut networks = Networks::new_with_refreshed_list();
         networks.refresh(true);
 
-        let mut gpu_name = String::from("GPU Compute");
-        let mut gpu_vram_total_mb = 0;
-
-        #[cfg(target_os = "linux")]
-        if let Ok(output) = std::process::Command::new("glxinfo").arg("-B").output() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            for line in stdout.lines() {
-                let text = line.trim();
-                if text.starts_with("Device: ") {
-                    if let Some(name) = text.split(" (").next() {
-                        gpu_name = name.replace("Device: ", "").to_string();
-                    }
-                } else if text.starts_with("Dedicated video memory: ")
-                    && let Some(mb_str) = text.split(':').nth(1)
-                        && let Ok(val) = mb_str.replace("MB", "").trim().parse::<u64>() {
-                            gpu_vram_total_mb = val;
-                        }
-            }
-        }
-
-        #[cfg(target_os = "macos")]
-        if let Ok(output) = std::process::Command::new("system_profiler").arg("SPDisplaysDataType").output() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            for line in stdout.lines() {
-                let text = line.trim();
-                if text.starts_with("Chipset Model: ") {
-                    gpu_name = text.replace("Chipset Model: ", "").to_string();
-                } else if text.starts_with("VRAM (Total): ") || text.starts_with("VRAM (Dynamic, Max): ") {
-                    if let Some(gb_str) = text.split(':').nth(1) {
-                        if let Ok(val) = gb_str.replace("GB", "").trim().parse::<u64>() {
-                            gpu_vram_total_mb = val * 1024;
-                        }
-                    }
-                }
-            }
-        }
+        let hardware_data = crate::hardware::capture_hardware_telemetry();
+        let gpu_name = hardware_data.gpu_name;
+        let gpu_vram_total_mb = (hardware_data.total_vram_gb * 1024.0) as u64;
 
         Self {
             total_tokens: 0,

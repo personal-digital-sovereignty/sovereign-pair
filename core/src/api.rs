@@ -1226,9 +1226,12 @@ purified_messages.extend(active_messages.into_iter().map(|msg| {
 }));
 
 // 3. Empacotar para o Servidor Local com Controle Rigoroso de VRAM (Sovereign Enterprise - B2B)
+let hw_telemetry = crate::hardware::capture_hardware_telemetry();
+let safe_ctx = crate::hardware::calculate_safe_context_window(&hw_telemetry);
+
 let mut ollama_options = json!({
     "num_keep": 4, // Forçar Lock do System Prompt na VRAM
-    "num_ctx": 8192, // Desidratação do Nurse (16GB RAM overhead fix resolvido pra RPI/OracleA1)
+    "num_ctx": safe_ctx, // Calculado via Vulkan / Sysinfo RAM
     "repeat_penalty": 1.15
 });
 

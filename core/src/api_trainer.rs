@@ -916,21 +916,15 @@ pub async fn run_deep_research_handler(
 
 
 
-        // --- PHASE 23: Dynamic Context Sizer (Proteção OOM) ---
-        let mut sys = sysinfo::System::new_all();
-        sys.refresh_memory();
-        let total_ram_gb = sys.total_memory() / 1024 / 1024 / 1024; // Convert bytes to GB
+        // --- PHASE 23: Dynamic Context Sizer (Proteção OOM Universal Vulkan) ---
+        let hardware_metrics = crate::hardware::capture_hardware_telemetry();
+        let dynamic_num_ctx = crate::hardware::calculate_safe_context_window(&hardware_metrics);
 
-        let dynamic_num_ctx = if total_ram_gb < 16 {
-            4096 // Limitado draconianamente para setups de baixa RAM
-        } else if total_ram_gb < 35 {
-            12288 // Expandido (safe point para 27GB) para encaixar o array combinatório de extração (4x JSON tools)
-        } else {
-            16384
-        };
-
-        tracing::info!("[Host OS] Total RAM: {} GB -> Allocating {} tokens context to Ollama.", total_ram_gb, dynamic_num_ctx);
-        let _ = TRAINER_LOGS.send(format!("[Proteção OOM] Alocando Janela de {} tokens para a síntese (RAM Host: {} GB)...", dynamic_num_ctx, total_ram_gb));
+        tracing::info!("[Hardware Telemetry] GPU VRAM: {} GB | Sys RAM: {} GB -> Allocating {} tokens to Ollama.", 
+            hardware_metrics.total_vram_gb, hardware_metrics.total_ram_gb, dynamic_num_ctx);
+            
+        let _ = TRAINER_LOGS.send(format!("[Proteção OOM] Alocando Janela de {} tokens (VRAM: {} GB / RAM: {} GB)...", 
+            dynamic_num_ctx, hardware_metrics.total_vram_gb, hardware_metrics.total_ram_gb));
 
         // PING UI TASK IS DEPRECATED. Agentic loop handles its own presence.
         
