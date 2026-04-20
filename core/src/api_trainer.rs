@@ -1234,13 +1234,13 @@ pub async fn run_deep_research_handler(
                                                 if let Some(arr) = args.get("symbols").and_then(|s| s.as_array()) {
                                                     for item in arr { if let Some(s) = item.as_str() { symbols.push(s.to_string()); } }
                                                 } else if let Some(s) = args.get("symbol").and_then(|x| x.as_str()) { symbols.push(s.to_string()); } // Backwards compatibility
-                                                if let Some(y) = args.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
+                                                if let Some(y) = args.get("years") { years = y.as_str().map(|s| s.to_string()).or_else(|| y.as_i64().map(|n| n.to_string())).unwrap_or_else(|| "1".to_string()); } // DC2 FIX: string OR integer
                                             } else if let Some(args_str) = func.get("arguments").and_then(|a| a.as_str()) {
                                                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
                                                     if let Some(arr) = parsed.get("symbols").and_then(|s| s.as_array()) {
                                                         for item in arr { if let Some(s) = item.as_str() { symbols.push(s.to_string()); } }
                                                     } else if let Some(s) = parsed.get("symbol").and_then(|x| x.as_str()) { symbols.push(s.to_string()); } // Backwards compatibility
-                                                    if let Some(y) = parsed.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
+                                                    if let Some(y) = parsed.get("years") { years = y.as_str().map(|s| s.to_string()).or_else(|| y.as_i64().map(|n| n.to_string())).unwrap_or_else(|| "1".to_string()); } // DC2 FIX: string OR integer
                                                 }
                                             }
 
@@ -1281,13 +1281,13 @@ pub async fn run_deep_research_handler(
                                                 if let Some(arr) = args.get("commodities").and_then(|s| s.as_array()) {
                                                     for item in arr { if let Some(s) = item.as_str() { commodities.push(s.to_string()); } }
                                                 } else if let Some(s) = args.get("commodity").and_then(|x| x.as_str()) { commodities.push(s.to_string()); }
-                                                if let Some(y) = args.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
+                                                if let Some(y) = args.get("years") { years = y.as_str().map(|s| s.to_string()).or_else(|| y.as_i64().map(|n| n.to_string())).unwrap_or_else(|| "1".to_string()); } // DC2 FIX
                                             } else if let Some(args_str) = func.get("arguments").and_then(|a| a.as_str()) {
                                                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
                                                     if let Some(arr) = parsed.get("commodities").and_then(|s| s.as_array()) {
                                                         for item in arr { if let Some(s) = item.as_str() { commodities.push(s.to_string()); } }
                                                     } else if let Some(s) = parsed.get("commodity").and_then(|x| x.as_str()) { commodities.push(s.to_string()); }
-                                                    if let Some(y) = parsed.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
+                                                    if let Some(y) = parsed.get("years") { years = y.as_str().map(|s| s.to_string()).or_else(|| y.as_i64().map(|n| n.to_string())).unwrap_or_else(|| "1".to_string()); } // DC2 FIX
                                                 }
                                             }
 
@@ -1330,14 +1330,14 @@ pub async fn run_deep_research_handler(
                                                     for item in arr { if let Some(i) = item.as_str() { indicators.push(i.to_string()); } }
                                                 } else if let Some(i) = args.get("indicator").and_then(|x| x.as_str()) { indicators.push(i.to_string()); } // Backwards comp
                                                 if let Some(c) = args.get("country").and_then(|x| x.as_str()) { country = c.to_string(); }
-                                                if let Some(y) = args.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
+                                                if let Some(y) = args.get("years") { years = y.as_str().map(|s| s.to_string()).or_else(|| y.as_i64().map(|n| n.to_string())).unwrap_or_else(|| "1".to_string()); } // DC2 FIX
                                             } else if let Some(args_str) = func.get("arguments").and_then(|a| a.as_str()) {
                                                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(args_str) {
                                                     if let Some(arr) = parsed.get("indicators").and_then(|s| s.as_array()) {
                                                         for item in arr { if let Some(i) = item.as_str() { indicators.push(i.to_string()); } }
                                                     } else if let Some(i) = parsed.get("indicator").and_then(|x| x.as_str()) { indicators.push(i.to_string()); } // Backwards comp
                                                     if let Some(c) = parsed.get("country").and_then(|x| x.as_str()) { country = c.to_string(); }
-                                                    if let Some(y) = parsed.get("years").and_then(|x| x.as_str()) { years = y.to_string(); }
+                                                    if let Some(y) = parsed.get("years") { years = y.as_str().map(|s| s.to_string()).or_else(|| y.as_i64().map(|n| n.to_string())).unwrap_or_else(|| "1".to_string()); } // DC2 FIX
                                                 }
                                             }
                                             
@@ -1781,9 +1781,11 @@ pub async fn run_deep_research_handler(
                                             let venv_python = resolve_venv_python();
                                             let matrix_script = resolve_python_workers_dir().join("sovereign_matrix.py");
                                             // C3 FIX: respeitar years do pseudo_json (default 1 ano, não 5)
-                                            let years_nanny = pseudo_json.get("years").and_then(|v| v.as_str())
-                                                .or_else(|| pseudo_json.get("arguments").and_then(|a| a.get("years")).and_then(|v| v.as_str()))
-                                                .unwrap_or("1").to_string();
+                                            // DC2 FIX: aceitar years como string ("5") ou integer (5)
+                                            let years_nanny = pseudo_json.get("years")
+                                                .or_else(|| pseudo_json.get("arguments").and_then(|a| a.get("years")))
+                                                .map(|v| v.as_str().map(|s| s.to_string()).or_else(|| v.as_i64().map(|n| n.to_string())).unwrap_or_else(|| "1".to_string()))
+                                                .unwrap_or_else(|| "1".to_string());
                                             if let Ok(out) = tokio::process::Command::new(venv_python).arg(matrix_script).arg("finance").arg(&symbol).arg(&years_nanny).output().await {
                                                 final_result = String::from_utf8_lossy(&out.stdout).to_string();
                                             }
@@ -1801,9 +1803,11 @@ pub async fn run_deep_research_handler(
                                             let venv_python = resolve_venv_python();
                                             let matrix_script = resolve_python_workers_dir().join("sovereign_matrix.py");
                                             // C3 FIX: respeitar years do pseudo_json (default 2 anos, não 5)
-                                            let years_nanny = pseudo_json.get("years").and_then(|v| v.as_str())
-                                                .or_else(|| pseudo_json.get("arguments").and_then(|a| a.get("years")).and_then(|v| v.as_str()))
-                                                .unwrap_or("2").to_string();
+                                            // DC2 FIX: aceitar years como string ("5") ou integer (5)
+                                            let years_nanny = pseudo_json.get("years")
+                                                .or_else(|| pseudo_json.get("arguments").and_then(|a| a.get("years")))
+                                                .map(|v| v.as_str().map(|s| s.to_string()).or_else(|| v.as_i64().map(|n| n.to_string())).unwrap_or_else(|| "2".to_string()))
+                                                .unwrap_or_else(|| "2".to_string());
                                             if let Ok(out) = tokio::process::Command::new(venv_python).arg(matrix_script).arg("macro").arg(&ind).arg("BR").arg(&years_nanny).output().await {
                                                 final_result = String::from_utf8_lossy(&out.stdout).to_string();
                                             }

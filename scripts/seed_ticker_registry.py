@@ -46,7 +46,7 @@ def find_db(explicit_path: str | None) -> str:
         return explicit_path
     if os.path.exists(DEFAULT_DB):
         return DEFAULT_DB
-    # Busca recursiva por sovereign_sensus.db a partir do ROOT_DIR
+    # Busca recursiva por sovereign_memory.db a partir do ROOT_DIR
     for dirpath, _, files in os.walk(ROOT_DIR):
         for fname in files:
             if fname == "sovereign_memory.db":
