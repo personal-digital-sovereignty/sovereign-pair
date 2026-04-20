@@ -767,3 +767,146 @@ pub async fn delete_prompt_handler(
         }
     }
 }
+
+// ---------------------------------------------------------
+// P2P MESH & CLOUD TARGET SANDBOXING
+// ---------------------------------------------------------
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct P2PMeshConfig {
+    pub target_ip: String,
+    pub port: u16,
+    pub mesh_key: String,
+}
+
+/// GET /v1/settings/p2p_mesh
+pub async fn get_p2p_mesh_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let result = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'p2p_mesh'")
+        .fetch_optional(&state.db)
+        .await;
+
+    match result {
+        Ok(Some(row)) => {
+            let val: String = row.get("value_json");
+            let parsed: Value = serde_json::from_str(&val).unwrap_or(serde_json::json!({
+                "target_ip": "",
+                "port": 38001,
+                "mesh_key": ""
+            }));
+            Json(parsed).into_response()
+        },
+        _ => Json(serde_json::json!({
+            "target_ip": "",
+            "port": 38001,
+            "mesh_key": ""
+        })).into_response()
+    }
+}
+
+/// POST /v1/settings/p2p_mesh
+pub async fn set_p2p_mesh_handler(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<P2PMeshConfig>,
+) -> impl IntoResponse {
+    // Zero Trust Handshake Validador
+    if !payload.target_ip.is_empty() {
+        let proto = if payload.target_ip.starts_with("http") { "" } else { "http://" };
+        let url = format!("{}{}:{}/v1/mesh/handshake", proto, payload.target_ip, payload.port);
+        
+        let client = state.http_client.clone();
+        match client.get(&url).timeout(std::time::Duration::from_secs(5)).send().await {
+            Ok(res) if res.status().is_success() => {
+                tracing::info!("✅ [Sovereign Mesh] Handshake físico efetuado com nó pareado.");
+            },
+            Err(e) => {
+                tracing::warn!("⚠️ [Sovereign Mesh] Handshake falhou: {}", e);
+                return (axum::http::StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": true, "message": "Failed to connect to Sovereign Mesh Node."}))).into_response();
+            },
+            _ => {
+                return (axum::http::StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": true, "message": "Sovereign Mesh Node rejected the handshake."}))).into_response();
+            }
+        }
+    }
+
+    let json_str = serde_json::to_string(&payload).unwrap_or_else(|_| "{}".to_string());
+    
+    let res = sqlx::query("INSERT INTO global_settings (id, value_json) VALUES ('p2p_mesh', ?) ON CONFLICT(id) DO UPDATE SET value_json = excluded.value_json")
+        .bind(json_str)
+        .execute(&state.db)
+        .await;
+
+    if res.is_err() {
+        return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Database Error").into_response();
+    }
+
+    Json(serde_json::json!({"status": "ok"})).into_response()
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct CloudTargetConfig {
+    pub host_ip: String,
+    pub pem_key: String,
+}
+
+/// GET /v1/settings/cloud_target
+pub async fn get_cloud_target_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let result = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'cloud_target'")
+        .fetch_optional(&state.db)
+        .await;
+
+    match result {
+        Ok(Some(row)) => {
+            let val: String = row.get("value_json");
+            let mut parsed: Value = serde_json::from_str(&val).unwrap_or(serde_json::json!({
+                "host_ip": "",
+                "pem_key": ""
+            }));
+            
+            // Decrypt PEM at runtime to display/use
+            if let Some(obj) = parsed.as_object_mut() {
+                if let Some(pem) = obj.get("pem_key").and_then(|v| v.as_str()) {
+                    if !pem.is_empty() {
+                        if let Some(decrypted) = crate::kms::decrypt_vault_secret(pem) {
+                            obj.insert("pem_key".to_string(), serde_json::json!(decrypted));
+                        }
+                    }
+                }
+            }
+
+            Json(parsed).into_response()
+        },
+        _ => Json(serde_json::json!({
+            "host_ip": "",
+            "pem_key": ""
+        })).into_response()
+    }
+}
+
+/// POST /v1/settings/cloud_target
+pub async fn set_cloud_target_handler(
+    State(state): State<Arc<AppState>>,
+    Json(mut payload): Json<CloudTargetConfig>,
+) -> impl IntoResponse {
+    
+    // Encrypt PEM At Rest
+    if !payload.pem_key.is_empty() {
+        if let Some(encrypted) = crate::kms::encrypt_vault_secret(&payload.pem_key) {
+            payload.pem_key = encrypted;
+        } else {
+             return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true, "message": "Failed to encrypt PEM key with AES-GCM"}))).into_response();
+        }
+    }
+
+    let json_str = serde_json::to_string(&payload).unwrap_or_else(|_| "{}".to_string());
+    
+    let res = sqlx::query("INSERT INTO global_settings (id, value_json) VALUES ('cloud_target', ?) ON CONFLICT(id) DO UPDATE SET value_json = excluded.value_json")
+        .bind(json_str)
+        .execute(&state.db)
+        .await;
+
+    if res.is_err() {
+        return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Database Error").into_response();
+    }
+
+    Json(serde_json::json!({"status": "ok"})).into_response()
+}
