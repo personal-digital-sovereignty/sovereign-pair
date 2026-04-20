@@ -3,3 +3,4 @@
 
 pub mod security_tests;
 pub mod regression_tests;
+pub mod reflection_tests;
