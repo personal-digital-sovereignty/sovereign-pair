@@ -9,7 +9,7 @@ export const telemetryState = $state({
     activeModel: 'Not Loaded',
     cpuCores: [] as number[],
     ramUsageMB: 0,
-    ramTotalGB: 24,
+    ramTotalGB: 0,
     vramUsageMB: 0,
     vramTotalMB: 0,
     gpuName: 'GPU Compute',
@@ -63,7 +63,7 @@ export function connectTelemetry() {
                 
                 // If there are active models, VRAM is engaged.
                 if (data.active_models && data.active_models > 0) {
-                    telemetryState.vramUsageMB = 4096 + Math.floor(Math.random() * 64);
+                    telemetryState.vramUsageMB = 0; // GAP-01 FIX: Removed Math.random() mock. Awaiting Vulkan VK_EXT_memory_budget for strict usage.
                     telemetryState.activeModel = 'Native Cibrid API Protocol';
                 } else {
                     telemetryState.vramUsageMB = 0;
