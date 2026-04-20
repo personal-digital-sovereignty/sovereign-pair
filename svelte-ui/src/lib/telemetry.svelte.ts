@@ -32,10 +32,13 @@ export const telemetryState = $state({
     apiDegraded: 0,
     apiCriticalFailures: [] as string[],
     apiLastChecked: 'Never',
-    apiEntries: [] as any[]
+    apiEntries: [] as any[],
+    // Hardware — unified memory flag (Apple Silicon)
+    unifiedMemory: false
 });
 
 let pollInterval: any;
+let healthInterval: any; // GAP-RS-01 fix: track to allow cleanup
 
 async function fetchApiHealth() {
     try {
@@ -60,7 +63,7 @@ export function connectTelemetry() {
 
     // 🛡️ Resilience Shield: Fetch API health on connect + every 60s
     fetchApiHealth();
-    setInterval(fetchApiHealth, 60_000);
+    healthInterval = setInterval(fetchApiHealth, 60_000); // GAP-RS-01: stored for cleanup
 
     pollInterval = setInterval(async () => {
         try {
@@ -83,6 +86,7 @@ export function connectTelemetry() {
                 telemetryState.vramTotalMB = data.hardware?.gpu_vram_total_mb || 0;
                 telemetryState.vramUsageMB = data.hardware?.gpu_vram_used_mb || 0;
                 telemetryState.gpuName = data.hardware?.gpu_name || 'GPU Compute';
+                telemetryState.unifiedMemory = data.hardware?.unified_memory || false;
                 telemetryState.ioRxBytes = data.hardware?.io_rx || 0;
                 telemetryState.ioTxBytes = data.hardware?.io_tx || 0;
                 
@@ -110,7 +114,11 @@ export function disconnectTelemetry() {
     if (pollInterval) {
         clearInterval(pollInterval);
         pollInterval = null;
-        telemetryState.connected = false;
-        telemetryState.logs.push(`[${new Date().toLocaleTimeString()}] Sensus Telemetry Polling Terminated.`);
     }
+    if (healthInterval) { // GAP-RS-01 fix: clean up health interval
+        clearInterval(healthInterval);
+        healthInterval = null;
+    }
+    telemetryState.connected = false;
+    telemetryState.logs.push(`[${new Date().toLocaleTimeString()}] Sensus Telemetry Polling Terminated.`);
 }
