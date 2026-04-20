@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR     = os.path.dirname(SCRIPT_DIR)
 SEED_FILE    = os.path.join(SCRIPT_DIR, "commodities_seed.json")
-DEFAULT_DB   = os.path.join(ROOT_DIR, "core", "sovereign_sensus.db")
+DEFAULT_DB   = os.path.join(ROOT_DIR, "data", "sovereign_memory.db")
 BRAPI_URL    = "https://brapi.dev/api/available"
 BRAPI_TIMEOUT = 15  # segundos
 
@@ -49,10 +49,10 @@ def find_db(explicit_path: str | None) -> str:
     # Busca recursiva por sovereign_sensus.db a partir do ROOT_DIR
     for dirpath, _, files in os.walk(ROOT_DIR):
         for fname in files:
-            if fname == "sovereign_sensus.db":
+            if fname == "sovereign_memory.db":
                 return os.path.join(dirpath, fname)
     raise FileNotFoundError(
-        f"Banco sovereign_sensus.db não encontrado. "
+        f"Banco sovereign_memory.db não encontrado. "
         f"Passe o caminho com --db ou inicie o servidor ao menos uma vez."
     )
 
@@ -199,7 +199,7 @@ def seed_from_legacy_map(conn: sqlite3.Connection) -> int:
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(description="Sovereign Ticker Registry Seed")
-    parser.add_argument("--db", default=None, help="Caminho para sovereign_sensus.db")
+    parser.add_argument("--db", default=None, help="Caminho para sovereign_memory.db")
     parser.add_argument("--skip-brapi", action="store_true", help="Pular sync com brapi.dev")
     args = parser.parse_args()
 
