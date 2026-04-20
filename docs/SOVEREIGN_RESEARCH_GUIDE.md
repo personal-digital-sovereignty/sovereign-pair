@@ -431,4 +431,138 @@ Sempre use o **Deep Research (WAG)** para análises que envolvem:
 
 ---
 
-*Sovereign Pair — hotfix/1.2.x | Ticker Registry dinâmico com ~1.800+ mapeamentos*
+## Arquitetura Interna — Para Desenvolvedores
+
+> Esta seção documenta as decisões técnicas do `hotfix/1.2.x` para facilitar
+> manutenção futura e contribuições.
+
+### Fluxo do Ticker Resolver (sovereign_matrix.py)
+
+```
+fetch_finance(ticker, years)
+  │
+  ├─ [PRÉ] Macro interceptor: IPCA/SELIC/IGPM → fetch_macro()
+  │
+  ├─ [1] _find_db():  DATABASE_URL env → XDG_DATA_HOME → ~/Library (macOS)
+  │        → %LOCALAPPDATA% (Windows) → ~/.local/share → busca ascendente
+  │        → sovereign_memory.db
+  │
+  ├─ [2] _resolve_from_db(db, norm_key, raw_ticker)
+  │        Passe 1: WHERE search_key = ? EXACT                O(log n)
+  │        Passe 2: WHERE search_key LIKE 'KEY%' PREFIX       O(log n)
+  │        Passe 3: partes do nome LIKE '%PART%' FUZZY        O(n)
+  │        → retorna (yf_symbol, full_name) ou None
+  │
+  ├─ [3] TICKER_MAP_FALLBACK (offline emergency, ~32 entries)
+  │        acionado APENAS se _find_db() retorna None
+  │
+  ├─ [4] yfinance live probe: testa '.SA' + ticker puro
+  │        → HIT: _auto_learn() → INSERT OR IGNORE no banco
+  │        → MISS: sys.exit(1) com erro descritivo
+  │
+  ├─ [5] Coleta multi-layer (fallback chain):
+  │        Layer 1: yf.Ticker(ticker).history()
+  │        Layer 2: Yahoo Finance Raw API (browser spoofed)
+  │        Layer 3: brapi.dev (apenas .SA)
+  │        Layer 4: Stooq CSV
+  │
+  ├─ [6] CONVERT_TO_BRL: converte USD→BRL para futuros internacionais
+  │        (Brent, WTI, ouro, prata, soja, milho, café, açúcar, etc.)
+  │
+  └─ [7] SANITY_BOUNDS: Circuit Breaker por ativo — rejeita dados fora
+         de limites físicos de mercado antes de injetar no LLM
+```
+
+### Boot Chain de Migrations (db.rs)
+
+```rust
+init_pool()
+  → PRAGMA WAL + foreign_keys
+  → 001_sensus_init.sql          // tabelas core (model_capabilities, chat_sessions...)
+  → 002_ephemeral_knowledge.sql  // RAG efêmero (notícias)
+  → 003_sovereign_prompts.sql    // Prompt Vault
+  → 004_ticker_registry.sql      // Ticker Registry dinâmico  ← adicionado em hotfix/1.2.x
+  → seed_core_prompts()          // popula prompts do core_vault.toml
+  → PATCH AUTOMIGRATIONS         // colunas novas sem destruir DBs antigos
+```
+
+### Normalização de Keys
+
+```python
+def _normalize_key(name: str) -> str:
+    # "Magazine Luiza" → "MAGAZINE_LUIZA"
+    # "Novo Nordisk"   → "NOVO_NORDISK"
+    # "BZ=F"           → "BZ_F"
+    nfkd = unicodedata.normalize("NFKD", name)
+    ascii_ = "".join(c for c in nfkd if not unicodedata.combining(c))
+    return ascii_.upper().replace(" ", "_").replace("-", "_").replace(".", "_")
+```
+
+### Onde Está o Banco
+
+O `sovereign_memory.db` fica em:
+
+| SO | Caminho padrão |
+|---|---|
+| Linux | `~/.local/share/sovereign-pair/data/sovereign_memory.db` |
+| macOS | `~/Library/Application Support/sovereign-pair/data/sovereign_memory.db` |
+| Windows | `%LOCALAPPDATA%\sovereign-pair\data\sovereign_memory.db` |
+| Container | variável de ambiente `DATABASE_URL` |
+
+### Adicionando Novos Tickers
+
+```bash
+# 1. Adicione a entrada em scripts/commodities_seed.json
+{
+  "search_key": "MEU_ATIVO",         # UPPERCASE, sem acento
+  "yf_symbol": "TICKER.SA",          # símbolo Yahoo Finance
+  "full_name": "Nome Completo S.A.",
+  "sector": "energia",               # livre
+  "market": "B3",                    # B3|NYSE|NASDAQ|FUTURES|FX|ETF|INDEX|CRYPTO
+  "query_type_hint": "price"         # price|dual|news_first|sector_etf
+}
+
+# 2. Rode o seed (idempotente):
+python scripts/seed_ticker_registry.py --db data/sovereign_memory.db --skip-brapi
+```
+
+O sistema aprende automaticamente novos ativos via **auto-learning** se um ticker
+válido do yfinance for invocado diretamente e não estiver no registro.
+
+---
+
+## Changelog — hotfix/1.2.x
+
+| Commit | Tipo | Descrição resumida |
+|---|---|---|
+| `3727fdb` | feat | Ticker Registry dinâmico + prompts maximizados + guia do usuário |
+| `d6bdc11` | chore | Recompila registry.json com descrições decontaminadas |
+| `fc29466` | chore | Remove core/sovereign.db do tracking git |
+| `fa08237` | fix | Corrige 6 débitos técnicos críticos (ver abaixo) |
+
+### Débitos Técnicos Corrigidos em `fa08237`
+
+| Severidade | Arquivo | Problema | Fix |
+|---|---|---|---|
+| 🔴 C1 | `core/src/db.rs` | Migration 004 ausente no boot | +1 linha no chain |
+| 🔴 C2 | `sovereign_matrix.py` | `_find_db()` buscava nome errado (`sovereign_sensus.db`) | Reescrito com resolução cross-platform |
+| 🔴 C3 | `api_trainer.rs` L1783/1799 | Thought Nanny hardcodava `"5y"` | Extrai `years` do pseudo_json |
+| 🟡 M1 | `sovereign_matrix.py` | BRL conversion só Brent/WTI (2 tickers) | Expandido para 20 futuros internacionais |
+| 🟡 M2 | `sovereign_matrix.py` | Circuit Breaker só cobria petróleo | `SANITY_BOUNDS` generalizado por ativo |
+| 🟡 M3 | `seed_ticker_registry.py` | `DEFAULT_DB` apontava para nome inexistente | Corrigido para `data/sovereign_memory.db` |
+| 🟢 L4 | `commodities_seed.json` | `DRAFTkings` (casing errado) | Corrigido para `DRAFTKINGS` |
+
+### Débitos Pendentes (roadmap)
+
+| Severidade | Item |
+|---|---|
+| 🟡 M4 | Extrair `get_db_path()` para `sovereign_utils.py` compartilhado |
+| 🟡 M5 | Expandir aliases Brand-to-Ticker no `autobahn_rules.yml` [E] |
+| 🟢 L1 | Mover funções aninhadas de `fetch_finance()` para nível de módulo |
+| 🔵 R1 | Índice composto `(market, is_active)` para queries setoriais |
+| 🔵 R2 | Job de expiração para entradas `yfinance_dynamic` (30 dias) |
+| 🔵 R3 | Regra explícita `query_type_hint='news_first'` no `autobahn_rules.yml` |
+
+---
+
+*Sovereign Pair — hotfix/1.2.x | Ticker Registry dinâmico com 2.188+ mapeamentos (1.946 B3 + 242 internacionais)*
