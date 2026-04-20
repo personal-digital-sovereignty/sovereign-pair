@@ -136,7 +136,7 @@ mod hardware_telemetry {
     #[test]
     fn test_safe_ctx_8gb_machine() {
         let hw = HardwareTelemetry {
-            total_ram_gb: 7.5, total_vram_gb: 0.0, used_ram_gb: 4.0, used_vram_gb: 0.0, gpu_name: "Integrated".into()
+            total_ram_gb: 7.5, total_vram_gb: 0.0, used_ram_gb: 4.0, used_vram_gb: 0.0, gpu_name: "Integrated".into(), unified_memory: false
         };
         assert_eq!(calculate_safe_context_window(&hw), 4096, "8GB-class machine must be limited to 4096 ctx");
     }
@@ -145,7 +145,7 @@ mod hardware_telemetry {
     #[test]
     fn test_safe_ctx_16gb_gpu() {
         let hw = HardwareTelemetry {
-            total_ram_gb: 32.0, total_vram_gb: 16.5, used_ram_gb: 8.0, used_vram_gb: 6.0, gpu_name: "RTX 4060".into()
+            total_ram_gb: 32.0, total_vram_gb: 16.5, used_ram_gb: 8.0, used_vram_gb: 6.0, gpu_name: "RTX 4060".into(), unified_memory: false
         };
         assert_eq!(calculate_safe_context_window(&hw), 12288, "16GB+ GPU should allow 12288 ctx");
     }
@@ -154,7 +154,7 @@ mod hardware_telemetry {
     #[test]
     fn test_safe_ctx_24gb_gpu() {
         let hw = HardwareTelemetry {
-            total_ram_gb: 64.0, total_vram_gb: 24.0, used_ram_gb: 12.0, used_vram_gb: 10.0, gpu_name: "RTX 4090".into()
+            total_ram_gb: 64.0, total_vram_gb: 24.0, used_ram_gb: 12.0, used_vram_gb: 10.0, gpu_name: "RTX 4090".into(), unified_memory: false
         };
         assert_eq!(calculate_safe_context_window(&hw), 16384, "24GB+ GPU should allow maximum 16384 ctx");
     }
@@ -163,7 +163,7 @@ mod hardware_telemetry {
     #[test]
     fn test_vram_priority_over_ram() {
         let hw = HardwareTelemetry {
-            total_ram_gb: 64.0, total_vram_gb: 6.0, used_ram_gb: 8.0, used_vram_gb: 2.0, gpu_name: "GT 1030".into()
+            total_ram_gb: 64.0, total_vram_gb: 6.0, used_ram_gb: 8.0, used_vram_gb: 2.0, gpu_name: "GT 1030".into(), unified_memory: false
         };
         // Despite 64GB RAM, 6GB VRAM governs → 4096
         assert_eq!(calculate_safe_context_window(&hw), 4096, "Low VRAM should constrain even with high RAM");
