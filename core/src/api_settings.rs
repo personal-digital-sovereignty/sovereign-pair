@@ -1,6 +1,7 @@
 use axum::{extract::State, response::IntoResponse, Json};
 use serde_json::Value;
 use std::sync::Arc;
+use std::net::IpAddr;
 use crate::AppState;
 use sqlx::Row;
 use crate::kms;
@@ -772,6 +773,54 @@ pub async fn delete_prompt_handler(
 // P2P MESH & CLOUD TARGET SANDBOXING
 // ---------------------------------------------------------
 
+/// GAP-O01: SSRF Guard robusto.
+/// Normaliza o host (remove schema), parsea como IpAddr e rejeita:
+/// loopback (127.x, ::1), unspecified (0.x), link-local (169.254.x),
+/// e todo o espaço RFC1918 privado (10.x, 172.16-31.x, 192.168.x).
+fn is_ssrf_target(raw: &str) -> bool {
+    // Normaliza: remove schema http:// ou https://
+    let host = raw
+        .trim_start_matches("https://")
+        .trim_start_matches("http://")
+        .split('/')
+        .next()
+        .unwrap_or(raw)
+        .split(':')
+        .next()
+        .unwrap_or(raw)
+        .trim_matches('[') // remove colchetes de IPv6 [::1]
+        .trim_matches(']');
+
+    // Bloqueia hosts literais conhecidos
+    if host.eq_ignore_ascii_case("localhost") { return true; }
+
+    // Tenta parsear como IP
+    if let Ok(ip) = host.parse::<IpAddr>() {
+        if ip.is_loopback() || ip.is_unspecified() { return true; }
+        match ip {
+            IpAddr::V4(v4) => {
+                let octets = v4.octets();
+                // 169.254.x.x - link-local / AWS/GCP metadata
+                if octets[0] == 169 && octets[1] == 254 { return true; }
+                // 10.x.x.x - RFC1918 Class A
+                if octets[0] == 10 { return true; }
+                // 172.16.x.x – 172.31.x.x - RFC1918 Class B
+                if octets[0] == 172 && (16..=31).contains(&octets[1]) { return true; }
+                // 192.168.x.x - RFC1918 Class C
+                if octets[0] == 192 && octets[1] == 168 { return true; }
+            }
+            IpAddr::V6(_) => {
+                // IPv6 fc00::/7 (Unique Local, equivalente ao RFC1918)
+                if let IpAddr::V6(v6) = ip {
+                    let seg = v6.segments()[0];
+                    if (seg & 0xfe00) == 0xfc00 { return true; }
+                }
+            }
+        }
+    }
+    false
+}
+
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct P2PMeshConfig {
     pub target_ip: String,
@@ -818,19 +867,24 @@ pub async fn set_p2p_mesh_handler(
     State(state): State<Arc<AppState>>,
     Json(mut payload): Json<P2PMeshConfig>,
 ) -> impl IntoResponse {
-    // GAP-C02: SSRF Block
-    if payload.target_ip.starts_with("127.") || payload.target_ip.starts_with("0.") || payload.target_ip.starts_with("169.254.") || payload.target_ip == "localhost" {
-        return (axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({"error": true, "message": "SSRF Guard: Cannot use local loopback or metadata IP."}))).into_response();
+    // GAP-O01: SSRF Guard robusto (Opus audit)
+    if is_ssrf_target(&payload.target_ip) {
+        return (axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({"error": true, "message": "SSRF Guard: Target IP is a protected internal/loopback/private address."}))).into_response();
     }
 
     // Zero Trust Handshake Validador
     if !payload.target_ip.is_empty() {
-        let proto = if payload.target_ip.starts_with("http") { "" } else { "http://" };
-        let url = format!("{}{}:{}/v1/mesh/handshake", proto, payload.target_ip, payload.port);
-        
-        // P2P requests must use a real mesh_key if possible, let's just attempt connection config mapping
-        let client = state.http_client.clone();
-        match client.get(&url).timeout(std::time::Duration::from_secs(5)).send().await {
+        let host = payload.target_ip.trim_start_matches("https://").trim_start_matches("http://");
+        let url = format!("http://{}:{}/v1/mesh/handshake", host, payload.port);
+
+        // GAP-O01: redirect-none client prevents HTTP redirect SSRF bypass
+        let no_redirect_client = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .timeout(std::time::Duration::from_secs(5))
+            .build()
+            .unwrap_or_default();
+
+        match no_redirect_client.get(&url).send().await {
             Ok(res) if res.status().is_success() => {
                 tracing::info!("✅ [Sovereign Mesh] Handshake físico efetuado com nó pareado.");
             },
@@ -872,6 +926,12 @@ pub async fn set_p2p_mesh_handler(
     if res.is_err() {
         return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Database Error").into_response();
     }
+
+    // GAP-O03: Broadcast topology change to all active mesh peers
+    let s_clone = state.clone();
+    tokio::spawn(async move {
+        broadcast_profile_to_mesh(s_clone).await;
+    });
 
     Json(serde_json::json!({"status": "ok"})).into_response()
 }
@@ -920,9 +980,9 @@ pub async fn set_cloud_target_handler(
     Json(mut payload): Json<CloudTargetConfig>,
 ) -> impl IntoResponse {
     
-    // GAP-C02: SSRF Block
-    if payload.host_ip.starts_with("127.") || payload.host_ip.starts_with("0.") || payload.host_ip.starts_with("169.254.") || payload.host_ip == "localhost" {
-        return (axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({"error": true, "message": "SSRF Guard: Cannot use internal Oracle IP."}))).into_response();
+    // GAP-O01: SSRF Guard robusto (Opus audit)
+    if is_ssrf_target(&payload.host_ip) {
+        return (axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({"error": true, "message": "SSRF Guard: OCI Host IP is a protected internal/loopback/private address."}))).into_response();
     }
 
     // GAP-C03: Maintain old PEM if received placeholder, otherwise encrypt
@@ -953,6 +1013,12 @@ pub async fn set_cloud_target_handler(
     if res.is_err() {
         return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Database Error").into_response();
     }
+
+    // GAP-O03: Broadcast topology change to all active mesh peers
+    let s_clone = state.clone();
+    tokio::spawn(async move {
+        broadcast_profile_to_mesh(s_clone).await;
+    });
 
     Json(serde_json::json!({"status": "ok"})).into_response()
 }
