@@ -1780,7 +1780,11 @@ pub async fn run_deep_research_handler(
                                             let _ = TRAINER_LOGS.send(format!("⚠️ [Thought Nanny] Resgatando JSON de Finanças ({}) vazado no plain-text...", symbol));
                                             let venv_python = resolve_venv_python();
                                             let matrix_script = resolve_python_workers_dir().join("sovereign_matrix.py");
-                                            if let Ok(out) = tokio::process::Command::new(venv_python).arg(matrix_script).arg("finance").arg(&symbol).arg("5y").output().await {
+                                            // C3 FIX: respeitar years do pseudo_json (default 1 ano, não 5)
+                                            let years_nanny = pseudo_json.get("years").and_then(|v| v.as_str())
+                                                .or_else(|| pseudo_json.get("arguments").and_then(|a| a.get("years")).and_then(|v| v.as_str()))
+                                                .unwrap_or("1").to_string();
+                                            if let Ok(out) = tokio::process::Command::new(venv_python).arg(matrix_script).arg("finance").arg(&symbol).arg(&years_nanny).output().await {
                                                 final_result = String::from_utf8_lossy(&out.stdout).to_string();
                                             }
                                         }
@@ -1796,7 +1800,11 @@ pub async fn run_deep_research_handler(
                                             let _ = TRAINER_LOGS.send(format!("⚠️ [Thought Nanny] Resgatando JSON Macroeconômico ({}) vazado no plain-text...", ind));
                                             let venv_python = resolve_venv_python();
                                             let matrix_script = resolve_python_workers_dir().join("sovereign_matrix.py");
-                                            if let Ok(out) = tokio::process::Command::new(venv_python).arg(matrix_script).arg("macro").arg(&ind).arg("BR").arg("5").output().await {
+                                            // C3 FIX: respeitar years do pseudo_json (default 2 anos, não 5)
+                                            let years_nanny = pseudo_json.get("years").and_then(|v| v.as_str())
+                                                .or_else(|| pseudo_json.get("arguments").and_then(|a| a.get("years")).and_then(|v| v.as_str()))
+                                                .unwrap_or("2").to_string();
+                                            if let Ok(out) = tokio::process::Command::new(venv_python).arg(matrix_script).arg("macro").arg(&ind).arg("BR").arg(&years_nanny).output().await {
                                                 final_result = String::from_utf8_lossy(&out.stdout).to_string();
                                             }
                                         }
