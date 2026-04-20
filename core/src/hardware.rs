@@ -1,19 +1,29 @@
 use ash::{vk, Entry};
 use sysinfo::System;
 use std::ffi::CStr;
-use tracing::{info, warn};
+use std::sync::OnceLock;
+use tracing::warn;
 
+#[derive(Clone, Debug)]
 pub struct HardwareTelemetry {
-    pub total_ram_gb: f32,
-    pub used_ram_gb: f32,
-    pub total_vram_gb: f32,
-    pub used_vram_gb: f32, // Note: Vulkan ash cannot natively read realtime generic heap *usage* easily without specific extensions like VK_EXT_memory_budget, we'll return 0.0 for usage if extension isn't loaded, but total is accurate.
+    pub total_ram_gb: f64,
+    pub used_ram_gb: f64,
+    pub total_vram_gb: f64,
+    pub used_vram_gb: f64, 
     pub gpu_name: String,
+}
+
+static HARDWARE_TELEMETRY_CACHE: OnceLock<HardwareTelemetry> = OnceLock::new();
+
+struct VkInstanceGuard(ash::Instance);
+impl Drop for VkInstanceGuard {
+    fn drop(&mut self) {
+        unsafe { self.0.destroy_instance(None); }
+    }
 }
 
 /// Dynamically calculates safe Context Windows based on GPU VRAM availability, with fallback to System RAM.
 pub fn calculate_safe_context_window(telemetry: &HardwareTelemetry) -> u64 {
-    // Priority 1: VRAM drives context windows primarily for ML (unless CPU bound)
     let governing_memory = if telemetry.total_vram_gb > 0.0 {
         telemetry.total_vram_gb
     } else {
@@ -21,71 +31,72 @@ pub fn calculate_safe_context_window(telemetry: &HardwareTelemetry) -> u64 {
     };
 
     if governing_memory < 8.0 {
-        4096 // Tight lock for low-end devices
+        4096 
     } else if governing_memory < 16.0 {
-        8192 // Standard fallback for 8-15GB VRAM/RAM
+        8192 
     } else if governing_memory < 24.0 {
-        12288 // Comfort zone for 16-24GB (typical developer setups)
+        12288 
     } else {
-        16384 // Raw absolute power for 24GB+ (e.g. RTX 3090, 4090, or heavy Macs)
+        16384 
     }
 }
 
 pub fn capture_hardware_telemetry() -> HardwareTelemetry {
-    let mut sys = System::new_all();
-    sys.refresh_memory();
-    let total_ram_gb = sys.total_memory() as f32 / 1024.0 / 1024.0 / 1024.0;
-    let used_ram_gb = sys.used_memory() as f32 / 1024.0 / 1024.0 / 1024.0;
+    HARDWARE_TELEMETRY_CACHE.get_or_init(|| {
+        let mut sys = System::new_all();
+        sys.refresh_memory();
+        let total_ram_gb = sys.total_memory() as f64 / 1024.0 / 1024.0 / 1024.0;
+        let used_ram_gb = sys.used_memory() as f64 / 1024.0 / 1024.0 / 1024.0;
 
-    let mut total_vram_gb = 0.0;
-    let mut used_vram_gb = 0.0;
-    let mut gpu_name = "N/A".to_string();
+        let mut total_vram_gb = 0.0;
+        let used_vram_gb = 0.0;
+        let mut gpu_name = "N/A".to_string();
 
-    // Try extracting via Vulkan
-    unsafe {
-        if let Ok(entry) = Entry::load() {
-            let app_info = vk::ApplicationInfo::default().api_version(vk::make_api_version(0, 1, 0, 0));
-            let create_info = vk::InstanceCreateInfo::default().application_info(&app_info);
-            
-            if let Ok(instance) = entry.create_instance(&create_info, None) {
-                if let Ok(pdevices) = instance.enumerate_physical_devices() {
-                    let mut max_vram = 0;
-                    for &pdevice in pdevices.iter() {
-                        let props = instance.get_physical_device_properties(pdevice);
-                        let name_cstr = CStr::from_ptr(props.device_name.as_ptr());
-                        let current_gpu_name = name_cstr.to_string_lossy().into_owned();
-                        
-                        let mem_props = instance.get_physical_device_memory_properties(pdevice);
-                        let mut current_vram = 0;
-                        for i in 0..mem_props.memory_heap_count {
-                            let heap = mem_props.memory_heaps[i as usize];
-                            if heap.flags.contains(vk::MemoryHeapFlags::DEVICE_LOCAL) {
-                                current_vram += heap.size;
+        unsafe {
+            if let Ok(entry) = Entry::load() {
+                let app_info = vk::ApplicationInfo::default().api_version(vk::make_api_version(0, 1, 0, 0));
+                let create_info = vk::InstanceCreateInfo::default().application_info(&app_info);
+                
+                if let Ok(instance) = entry.create_instance(&create_info, None) {
+                    let _guard = VkInstanceGuard(instance.clone()); // GAP-04 RAII Guard!
+                    
+                    if let Ok(pdevices) = instance.enumerate_physical_devices() {
+                        let mut max_vram = 0;
+                        for &pdevice in pdevices.iter() {
+                            let props = instance.get_physical_device_properties(pdevice);
+                            let name_cstr = CStr::from_ptr(props.device_name.as_ptr());
+                            let current_gpu_name = name_cstr.to_string_lossy().into_owned();
+                            
+                            let mem_props = instance.get_physical_device_memory_properties(pdevice);
+                            let mut current_vram = 0;
+                            for i in 0..mem_props.memory_heap_count {
+                                let heap = mem_props.memory_heaps[i as usize];
+                                if heap.flags.contains(vk::MemoryHeapFlags::DEVICE_LOCAL) {
+                                    current_vram += heap.size;
+                                }
+                            }
+                            
+                            if current_vram > max_vram {
+                                max_vram = current_vram;
+                                gpu_name = current_gpu_name;
                             }
                         }
-                        
-                        // O Sovereign sempre assume a Placa de Vídeo mais robusta como Primary Target (Single-GPU bias)
-                        if current_vram > max_vram {
-                            max_vram = current_vram;
-                            gpu_name = current_gpu_name;
-                        }
+                        total_vram_gb = max_vram as f64 / 1024.0 / 1024.0 / 1024.0; // GAP-06 f64 Precision
                     }
-                    total_vram_gb = max_vram as f32 / 1024.0 / 1024.0 / 1024.0;
+                } else {
+                    warn!("⚠️ [Hardware] Failed to initialize Vulkan Instance.");
                 }
-                instance.destroy_instance(None);
             } else {
-                warn!("⚠️ [Hardware Configurator] Failed to initialize Vulkan Instance. VRAM will report 0.");
+                warn!("⚠️ [Hardware] Vulkan Loader NOT FOUND on Host.");
             }
-        } else {
-            warn!("⚠️ [Hardware Configurator] Vulkan Loader NOT FOUND on Host. Running deep fallback (CPU Bound).");
         }
-    }
 
-    HardwareTelemetry {
-        total_ram_gb,
-        used_ram_gb,
-        total_vram_gb,
-        used_vram_gb,
-        gpu_name
-    }
+        HardwareTelemetry {
+            total_ram_gb,
+            used_ram_gb,
+            total_vram_gb,
+            used_vram_gb,
+            gpu_name
+        }
+    }).clone()
 }
