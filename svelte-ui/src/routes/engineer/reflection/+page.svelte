@@ -2,7 +2,7 @@
     import { onMount, onDestroy } from 'svelte';
     import { trainerState, exportReflectionLogs, getSelfCorrectRatio } from '$lib/trainer.svelte';
     import { API_BASE_URL } from '$lib/env_config';
-    import { globalState } from '$lib/state.svelte';
+    import { addNotification } from '$lib/state.svelte';
 
     let isReflecting = $state(false);
     let eventSource: EventSource | null = null;
@@ -39,6 +39,19 @@
             })
             .then(data => { modelMatrix = data; })
             .catch(e => console.error("Failed to fetch capabilities", e));
+
+        // S3: Load persisted reflection settings from SQLite
+        fetch(`${API_BASE_URL}/v1/engineer/reflection/settings`)
+            .then(res => {
+                if (res.ok) return res.json();
+                throw new Error("Bad response");
+            })
+            .then(data => {
+                if (typeof data.reasoning_depth === 'number') trainerState.reasoningDepth = data.reasoning_depth;
+                if (typeof data.audit_intensity === 'number') trainerState.auditIntensity = data.audit_intensity;
+                if (typeof data.internal_monologue === 'boolean') trainerState.internalMonologue = data.internal_monologue;
+            })
+            .catch(e => console.error("Failed to load reflection settings", e));
     });
 
     onDestroy(() => {
@@ -57,9 +70,27 @@
         }
     }
 
+    // S3: Persist settings to backend when sliders change
+    async function persistSettings() {
+        try {
+            await fetch(`${API_BASE_URL}/v1/engineer/reflection/settings`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    reasoning_depth: trainerState.reasoningDepth,
+                    audit_intensity: trainerState.auditIntensity,
+                    internal_monologue: trainerState.internalMonologue
+                })
+            });
+        } catch(e) {
+            console.error("Failed to persist reflection settings", e);
+        }
+    }
+
     async function applyToTraining() {
         if (!validateDataset()) {
-            globalState.notifications.unshift({ id: Date.now(), title: "JSON Inválido", text: "Verifique a sintaxe antes de aplicar.", time: new Date().toLocaleTimeString(), read: false });
+            // O2: Use helper addNotification() instead of inline unshift
+            addNotification("JSON Inválido", "Verifique a sintaxe antes de aplicar.");
             return;
         }
 
@@ -67,31 +98,40 @@
             const res = await fetch(`${API_BASE_URL}/v1/engineer/reflection/apply`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ payload_json: reflectionDatasetJson })
+                // G3: Send model_tag alongside payload_json
+                body: JSON.stringify({ model_tag: targetModel, payload_json: reflectionDatasetJson })
             });
             if (res.ok) {
-                globalState.notifications.unshift({ id: Date.now(), title: "Dataset Injetado", text: "Raciocínio gravado no SQLite para Fine-Tuning.", time: new Date().toLocaleTimeString(), read: false });
+                addNotification("Dataset Injetado", "Raciocínio gravado no SQLite para Fine-Tuning.");
             } else {
-                globalState.notifications.unshift({ id: Date.now(), title: "Erro na Gravação", text: "Verifique logs da API Axum.", time: new Date().toLocaleTimeString(), read: false });
+                addNotification("Erro na Gravação", "Verifique logs da API Axum.");
             }
         } catch(e: any) {
-            globalState.notifications.unshift({ id: Date.now(), title: "Network Error", text: e.message, time: new Date().toLocaleTimeString(), read: false });
+            addNotification("Network Error", e.message);
+        }
+    }
+
+    function cleanupSimulation() {
+        isReflecting = false;
+        if (eventSource) {
+            eventSource.close();
+            eventSource = null;
         }
     }
 
     async function launchSimulation() {
         if (isReflecting) return;
         
-        // Blindspot Warning Check
+        // Blindspot Warning Check (client-side pre-filter, server also validates)
         let capability = modelMatrix.find(m => m.model_name === targetModel);
         if (capability && !capability.is_reasoner) {
-            globalState.notifications.unshift({ id: Date.now(), title: "Acesso Negado (Trava Cognitiva)", text: `O modelo atuante '${targetModel}' não possui o flag 'reasoner' em suas capacidades. Inferências cegas corromperiam o log do laboratório.`, time: new Date().toLocaleTimeString(), read: false });
+            addNotification("Acesso Negado (Trava Cognitiva)", `O modelo '${targetModel}' não possui o flag 'reasoner'. Inferências cegas corromperiam o log do laboratório.`);
             return;
         }
 
         isReflecting = true;
         liveStreamLogs = [];
-        globalState.notifications.unshift({ id: Date.now(), title: "Reflection SSE", text: "Iniciando Server-Sent Events...", time: new Date().toLocaleTimeString(), read: false });
+        addNotification("Reflection SSE", "Iniciando Server-Sent Events...");
 
         if (eventSource) eventSource.close();
         eventSource = new EventSource(`${API_BASE_URL}/v1/engineer/reflection/stream`);
@@ -100,10 +140,22 @@
             if (e.data === "keep-alive") return;
             try {
                 const log = JSON.parse(e.data);
+                // G4/S2: EOF signal from Rust worker — simulation complete
+                if (log.type === 'EOF') {
+                    cleanupSimulation();
+                    addNotification("Reflection Completa", "Pipeline de raciocínio finalizado com sucesso.");
+                    return;
+                }
                 liveStreamLogs = [log, ...liveStreamLogs].slice(0, 50); // Keep last 50
             } catch(err) {
                 console.error("SSE parse erro:", err);
             }
+        };
+
+        // S2: Handle SSE errors (network drop, server restart)
+        eventSource.onerror = () => {
+            cleanupSimulation();
+            addNotification("SSE Desconectado", "Conexão com o servidor perdida. Simulação encerrada.");
         };
 
         // Trigger Rust Backend worker
@@ -115,19 +167,14 @@
             });
             
             if (!res.ok) {
-                isReflecting = false;
-                globalState.notifications.unshift({ id: Date.now(), title: "Falha Externa", text: "Falha no worker Rust", time: new Date().toLocaleTimeString(), read: false });
+                cleanupSimulation();
+                const data = await res.json().catch(() => null);
+                addNotification("Falha Externa", data?.message || "Falha no worker Rust");
             }
         } catch(err) {
-            isReflecting = false;
-            globalState.notifications.unshift({ id: Date.now(), title: "Erro de Rede", text: "Erro P2P / Rede", time: new Date().toLocaleTimeString(), read: false });
+            cleanupSimulation();
+            addNotification("Erro de Rede", "Erro P2P / Rede");
         }
-
-        // Simula um timeout visual para destravar o botão após as etapas (no mundo real seria por "End Of Stream")
-        setTimeout(() => {
-            isReflecting = false;
-            if (eventSource) eventSource.close();
-        }, 12000);
     }
 </script>
 
@@ -150,9 +197,10 @@
                 </p>
             </div>
             <div class="flex gap-3 items-center">
+                <!-- S8: Visual indicator of is_reasoner capability -->
                 <select bind:value={targetModel} class="bg-surface-container-highest border border-outline-variant/30 text-on-surface text-xs font-bold rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 outline-none">
                     {#each modelMatrix as m}
-                        <option value={m.model_name}>{m.model_name}</option>
+                        <option value={m.model_name}>{m.model_name}{m.is_reasoner ? ' 🧠' : ' ⚠️'}</option>
                     {/each}
                     {#if modelMatrix.length === 0}
                         <option value="qwen2.5-coder:1.5b">qwen2.5-coder:1.5b</option>
@@ -189,17 +237,18 @@
                                 <p class="text-xs font-bold text-on-surface">Think-Before-Response</p>
                                 <p class="text-[10px] text-on-surface-variant mt-0.5">Force 500ms latent reasoning loop</p>
                             </div>
-                            <button aria-label="Toggle Think Before Response" onclick={() => trainerState.internalMonologue = !trainerState.internalMonologue} class="w-12 h-6 {trainerState.internalMonologue ? 'bg-primary ring-4 ring-primary-fixed/50' : 'bg-surface-variant'} rounded-full relative transition-colors cursor-pointer outline-none">
+                            <button aria-label="Toggle Think Before Response" onclick={() => { trainerState.internalMonologue = !trainerState.internalMonologue; persistSettings(); }} class="w-12 h-6 {trainerState.internalMonologue ? 'bg-primary ring-4 ring-primary-fixed/50' : 'bg-surface-variant'} rounded-full relative transition-colors cursor-pointer outline-none">
                                 <span class="absolute {trainerState.internalMonologue ? 'right-1' : 'left-1'} top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all"></span>
                             </button>
                         </div>
                         
+                        <!-- O4: Added min/max/step constraints -->
                         <div class="space-y-4 px-1">
                             <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                                 <span>Reasoning Depth</span>
                                 <span class="text-primary font-mono bg-primary-fixed/30 px-2 py-0.5 rounded">Level {Math.floor(trainerState.reasoningDepth / 10)}</span>
                             </div>
-                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" bind:value={trainerState.reasoningDepth} />
+                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" min="0" max="100" step="1" bind:value={trainerState.reasoningDepth} onchange={persistSettings} />
                         </div>
                         
                         <div class="space-y-4 px-1">
@@ -207,7 +256,7 @@
                                 <span>Audit Intensity</span>
                                 <span class="text-primary font-mono bg-primary-fixed/30 px-2 py-0.5 rounded">High ({(trainerState.auditIntensity / 100).toFixed(2)})</span>
                             </div>
-                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" bind:value={trainerState.auditIntensity} />
+                            <input class="w-full h-1.5 bg-surface-variant rounded-full appearance-none accent-primary cursor-pointer hover:accent-primary-container transition-colors" type="range" min="0" max="100" step="1" bind:value={trainerState.auditIntensity} onchange={persistSettings} />
                         </div>
                     </div>
                 </div>
