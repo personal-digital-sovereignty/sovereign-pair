@@ -466,11 +466,16 @@ fetch_finance(ticker, years)
   │        Layer 3: brapi.dev (apenas .SA)
   │        Layer 4: Stooq CSV
   │
-  ├─ [6] CONVERT_TO_BRL: converte USD→BRL para futuros internacionais
+  ├─ [6] SANITY_BOUNDS: Circuit Breaker por ativo — rejeita dados com
+  │        preços fora de limites físicos ANTES de qualquer agregação
+  │        (roda sobre dados brutos diários, não médias mensais)
+  │
+  ├─ [7] CONVERT_TO_BRL: converte USD→BRL para todos os períodos
+  │        (left join preserva meses sem câmbio → exibidos só em USD)
   │        (Brent, WTI, ouro, prata, soja, milho, café, açúcar, etc.)
   │
-  └─ [7] SANITY_BOUNDS: Circuit Breaker por ativo — rejeita dados fora
-         de limites físicos de mercado antes de injetar no LLM
+  └─ [8] YearMonth groupby: agrega por mês para períodos > 1 ano
+         (ou sempre para commodities com conversão BRL)
 ```
 
 ### Boot Chain de Migrations (db.rs)
@@ -478,10 +483,10 @@ fetch_finance(ticker, years)
 ```rust
 init_pool()
   → PRAGMA WAL + foreign_keys
-  → 001_sensus_init.sql          // tabelas core (model_capabilities, chat_sessions...)
-  → 002_ephemeral_knowledge.sql  // RAG efêmero (notícias)
-  → 003_sovereign_prompts.sql    // Prompt Vault
-  → 004_ticker_registry.sql      // Ticker Registry dinâmico  ← adicionado em hotfix/1.2.x
+  → raw_sql(001_sensus_init.sql)          // tabelas core (multi-statement safe)
+  → raw_sql(002_ephemeral_knowledge.sql)  // RAG efêmero (notícias)
+  → raw_sql(003_sovereign_prompts.sql)    // Prompt Vault
+  → raw_sql(004_ticker_registry.sql)      // Ticker Registry + 4 índices
   → seed_core_prompts()          // popula prompts do core_vault.toml
   → PATCH AUTOMIGRATIONS         // colunas novas sem destruir DBs antigos
 ```
@@ -538,31 +543,63 @@ válido do yfinance for invocado diretamente e não estiver no registro.
 | `3727fdb` | feat | Ticker Registry dinâmico + prompts maximizados + guia do usuário |
 | `d6bdc11` | chore | Recompila registry.json com descrições decontaminadas |
 | `fc29466` | chore | Remove core/sovereign.db do tracking git |
-| `fa08237` | fix | Corrige 6 débitos técnicos críticos (ver abaixo) |
+| `fa08237` | fix | Corrige 6 débitos técnicos (auditoria v1) |
+| `276189d` | docs | Seção de arquitetura interna + changelog |
+| `a66ecc1` | fix | **Corrige 10 gaps da auditoria profunda v2** (ver abaixo) |
 
-### Débitos Técnicos Corrigidos em `fa08237`
+### Auditoria v1 — Corrigidos em `fa08237`
 
-| Severidade | Arquivo | Problema | Fix |
+| Sev. | Arquivo | Problema | Fix |
 |---|---|---|---|
-| 🔴 C1 | `core/src/db.rs` | Migration 004 ausente no boot | +1 linha no chain |
-| 🔴 C2 | `sovereign_matrix.py` | `_find_db()` buscava nome errado (`sovereign_sensus.db`) | Reescrito com resolução cross-platform |
-| 🔴 C3 | `api_trainer.rs` L1783/1799 | Thought Nanny hardcodava `"5y"` | Extrai `years` do pseudo_json |
-| 🟡 M1 | `sovereign_matrix.py` | BRL conversion só Brent/WTI (2 tickers) | Expandido para 20 futuros internacionais |
-| 🟡 M2 | `sovereign_matrix.py` | Circuit Breaker só cobria petróleo | `SANITY_BOUNDS` generalizado por ativo |
-| 🟡 M3 | `seed_ticker_registry.py` | `DEFAULT_DB` apontava para nome inexistente | Corrigido para `data/sovereign_memory.db` |
-| 🟢 L4 | `commodities_seed.json` | `DRAFTkings` (casing errado) | Corrigido para `DRAFTKINGS` |
+| 🔴 C1 | `db.rs` | Migration 004 ausente no boot | +1 linha no chain |
+| 🔴 C2 | `sovereign_matrix.py` | `_find_db()` buscava `sovereign_sensus.db` | Resolução cross-platform |
+| 🔴 C3 | `api_trainer.rs` | Thought Nanny hardcodava `"5y"` | Extrai `years` do pseudo_json |
+| 🟡 M1 | `sovereign_matrix.py` | BRL conversion só 2 tickers | Expandido para 20 futuros |
+| 🟡 M2 | `sovereign_matrix.py` | Circuit Breaker só petróleo | `SANITY_BOUNDS` por ativo |
+| 🟡 M3 | `seed_ticker_registry.py` | `DEFAULT_DB` errado | Corrigido |
+| 🟢 L4 | `commodities_seed.json` | `DRAFTkings` casing | `DRAFTKINGS` |
+
+### Auditoria Profunda v2 — Corrigidos em `a66ecc1`
+
+| Sev. | ID | Arquivo | Problema | Fix |
+|---|---|---|---|---|
+| 🔴 DC1 | `db.rs` | `sqlx::query` pode pular INDEX multi-statement | `sqlx::raw_sql()` |
+| 🔴 DC2 | `api_trainer.rs` (×7) | `years` integer silenciosamente descartado | Chain `as_str → as_i64` |
+| 🔴 DC3 | `sovereign_matrix.py` | Circuit Breaker pós-groupby (suavizado) | Reordenado ANTES do agrupamento |
+| 🔴 DC4 | `sovereign_matrix.py` | BRL conversion só `years > 1` + `inner join` | Todos os períodos + `left join` |
+| 🟡 DM1 | `compile_tool_registry.py` | 4 tools fantasma (sem schema no registry) | Adicionadas → 12 tools total |
+| 🟡 DM2 | `sovereign_matrix.py` | `_auto_learn` sem `last_verified_at` | Popula `datetime('now')` |
+| 🟡 DM3 | `seed_ticker_registry.py` | Comentário residual `sovereign_sensus` | Corrigido |
+| 🟡 DM5 | `sovereign_matrix.py` | SQLite connection leak em exceção | `try/finally` |
+| 🟢 DL2 | `sovereign_matrix.py` | BRL falha silenciosa | Warning explícito no source |
+
+### Ferramentas Ativas no Registry (12)
+
+| Ferramenta | Tipo | Backend |
+|---|---|---|
+| `dispatch_sub_researcher` | Web Search | Rust nativo |
+| `dispatch_visual_artist` | Text-to-Image | Rust → Stable Diffusion |
+| `search_api_directory` | API Discovery | Rust nativo |
+| `fetch_json_endpoint` | HTTP GET | Rust nativo |
+| `execute_python_code` | Sandbox | Rust → Python |
+| `fetch_financial_ticker` | Preços/Ações | Rust → sovereign_matrix.py |
+| `fetch_macroeconomy` | Macro BR | Rust → sovereign_matrix.py |
+| `fetch_academic_papers` | Ciência | Rust → academic_matrix.py |
+| `fetch_engineering_docs` | DevOps/Code | Rust → engineering_matrix.py |
+| `fetch_encyclopedia` | Wikipedia | Rust → wiki_matrix.py |
+| `fetch_cultural_data` | Música/Cinema/Arte | Rust → culture_matrix.py |
+| `empirical_verifier` | Anti-Sycophancy | Universal Dispatcher → empirical_verifier.py |
 
 ### Débitos Pendentes (roadmap)
 
 | Severidade | Item |
 |---|---|
 | 🟡 M4 | Extrair `get_db_path()` para `sovereign_utils.py` compartilhado |
-| 🟡 M5 | Expandir aliases Brand-to-Ticker no `autobahn_rules.yml` [E] |
+| 🟡 M5 | Expandir aliases Brand-to-Ticker no `autobahn_rules.yml` |
 | 🟢 L1 | Mover funções aninhadas de `fetch_finance()` para nível de módulo |
 | 🔵 R1 | Índice composto `(market, is_active)` para queries setoriais |
 | 🔵 R2 | Job de expiração para entradas `yfinance_dynamic` (30 dias) |
-| 🔵 R3 | Regra explícita `query_type_hint='news_first'` no `autobahn_rules.yml` |
 
 ---
 
-*Sovereign Pair — hotfix/1.2.x | Ticker Registry dinâmico com 2.188+ mapeamentos (1.946 B3 + 242 internacionais)*
+*Sovereign Pair — hotfix/1.2.x | 12 ferramentas ativas · 2.188+ tickers (1.946 B3 + 242 internacionais) · 2 auditorias (17 gaps corrigidos)*
