@@ -12,6 +12,7 @@ pub struct HardwareSnapshot {
     pub gpu_name: String,
     pub gpu_vram_total_mb: u64,
     pub gpu_vram_used_mb: u64,
+    pub unified_memory: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,6 +40,7 @@ pub struct TelemetryState {
     pub gpu_name: String,
     pub gpu_vram_total_mb: u64,
     pub gpu_vram_used_mb: u64,
+    pub unified_memory: bool,
     pub avg_cloud_cost_per_1k: f64,
 }
 
@@ -53,6 +55,7 @@ impl TelemetryState {
         let gpu_name = hardware_data.gpu_name;
         let gpu_vram_total_mb = (hardware_data.total_vram_gb * 1024.0) as u64;
         let gpu_vram_used_mb = (hardware_data.used_vram_gb * 1024.0) as u64;
+        let unified_memory = hardware_data.unified_memory;
 
         Self {
             total_tokens: 0,
@@ -65,6 +68,7 @@ impl TelemetryState {
             gpu_name,
             gpu_vram_total_mb,
             gpu_vram_used_mb,
+            unified_memory,
             avg_cloud_cost_per_1k: 0.00625, // Default fallback
         }
     }
@@ -166,6 +170,7 @@ impl TelemetryState {
                 gpu_name: self.gpu_name.clone(),
                 gpu_vram_total_mb: self.gpu_vram_total_mb,
                 gpu_vram_used_mb: self.gpu_vram_used_mb,
+                unified_memory: self.unified_memory,
             }
         }
     }

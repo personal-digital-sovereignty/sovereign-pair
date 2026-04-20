@@ -1803,6 +1803,7 @@ pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> i
                     gpu_name: hw.gpu_name,
                     gpu_vram_total_mb: (hw.total_vram_gb * 1024.0) as u64,
                     gpu_vram_used_mb: (hw.used_vram_gb * 1024.0) as u64,
+                    unified_memory: hw.unified_memory,
                 }
             }
         },
