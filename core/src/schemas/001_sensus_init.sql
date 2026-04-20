@@ -169,6 +169,10 @@ CREATE TABLE IF NOT EXISTS reflection_datasets (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- S7: Indexes for efficient Fine-Tuning dataset retrieval
+CREATE INDEX IF NOT EXISTS idx_reflection_model ON reflection_datasets(model_tag);
+CREATE INDEX IF NOT EXISTS idx_reflection_created ON reflection_datasets(created_at DESC);
+
 -- ---------------------------------------------------------
 -- 6. SEGURANÇA E AUTO-BLINDAGEM
 -- ---------------------------------------------------------

@@ -3075,6 +3075,7 @@ pub async fn get_hallucinations_ledger_handler(
 
 #[derive(serde::Deserialize)]
 pub struct ReflectionDatasetPayload {
+    pub model_tag: Option<String>,
     pub payload_json: String,
 }
 
@@ -3082,17 +3083,32 @@ pub async fn save_reflection_dataset_handler(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ReflectionDatasetPayload>,
 ) -> impl IntoResponse {
-    let _ = sqlx::query("INSERT INTO reflection_datasets (id, model_tag, payload_json) VALUES (?, ?, ?)")
+    // G3/O1: Use real model_tag from request, fallback to "ui_injected"
+    let model_tag = req.model_tag.unwrap_or_else(|| "ui_injected".to_string());
+    tracing::info!("🧪 [Reflection Lab] Persisting dataset (model_tag='{}')", model_tag);
+
+    // S4: Propagate DB errors instead of silencing with `let _ =`
+    match sqlx::query("INSERT INTO reflection_datasets (id, model_tag, payload_json) VALUES (?, ?, ?)")
         .bind(uuid::Uuid::new_v4().to_string())
-        .bind("ui_injected")
+        .bind(&model_tag)
         .bind(&req.payload_json)
         .execute(&state.db)
-        .await;
-
-    Json(serde_json::json!({
-        "status": "success",
-        "message": "Dataset salvo na tabela reflection_datasets para fine-tuning posterior."
-    }))
+        .await
+    {
+        Ok(_) => {
+            (axum::http::StatusCode::OK, Json(serde_json::json!({
+                "status": "success",
+                "message": "Dataset salvo na tabela reflection_datasets para fine-tuning posterior."
+            }))).into_response()
+        }
+        Err(e) => {
+            tracing::error!("🧪 [Reflection Lab] DB write failed: {}", e);
+            (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                "status": "error",
+                "message": format!("Falha ao gravar dataset: {}", e)
+            }))).into_response()
+        }
+    }
 }
 
 #[derive(serde::Deserialize)]
@@ -3106,54 +3122,120 @@ pub async fn save_reflection_settings_handler(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ReflectionSettingsPayload>,
 ) -> impl IntoResponse {
+    // O4: Clamp values to valid range 0-100
+    let depth = req.reasoning_depth.clamp(0, 100);
+    let intensity = req.audit_intensity.clamp(0, 100);
+
     let json_val = serde_json::json!({
-        "reasoning_depth": req.reasoning_depth,
-        "audit_intensity": req.audit_intensity,
+        "reasoning_depth": depth,
+        "audit_intensity": intensity,
         "internal_monologue": req.internal_monologue
     });
 
-    let _ = sqlx::query("INSERT INTO global_settings (id, value_json) VALUES ('reflection_settings', ?) ON CONFLICT(id) DO UPDATE SET value_json=excluded.value_json")
+    match sqlx::query("INSERT INTO global_settings (id, value_json) VALUES ('reflection_settings', ?) ON CONFLICT(id) DO UPDATE SET value_json=excluded.value_json")
         .bind(json_val.to_string())
         .execute(&state.db)
-        .await;
-
-    Json(serde_json::json!({"status": "success"}))
+        .await
+    {
+        Ok(_) => Json(serde_json::json!({"status": "success"})).into_response(),
+        Err(e) => {
+            tracing::error!("🧪 [Reflection Lab] Settings write failed: {}", e);
+            (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                "status": "error",
+                "message": format!("Falha ao gravar settings: {}", e)
+            }))).into_response()
+        }
+    }
 }
 
-pub async fn reflection_sse_handler(
-    State(_state): State<Arc<AppState>>,
+// S3: GET endpoint to load persisted reflection settings
+pub async fn get_reflection_settings_handler(
+    State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
-    let mut rx = REFLECTION_LOGS.subscribe();
-    
-    let stream = stream::unfold(rx, |mut rx| async {
-        match rx.recv().await {
-            Ok(msg) => {
-                let event = Event::default().data(msg);
-                Some((Result::<_, Infallible>::Ok(event), rx))
-            }
-            Err(_) => {
-                // Return a keep-alive comment or just None?
-                // Returning a whitespace comment allows reconnects without crashing.
-                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-                Some((Result::<_, Infallible>::Ok(Event::default().comment("keep-alive")), rx))
+    let row = sqlx::query_scalar::<_, String>("SELECT value_json FROM global_settings WHERE id = 'reflection_settings'")
+        .fetch_optional(&state.db)
+        .await;
+
+    match row {
+        Ok(Some(json_str)) => {
+            if let Ok(val) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                Json(val).into_response()
+            } else {
+                Json(serde_json::json!({"reasoning_depth": 80, "audit_intensity": 65, "internal_monologue": false})).into_response()
             }
         }
-    });
+        _ => {
+            Json(serde_json::json!({"reasoning_depth": 80, "audit_intensity": 65, "internal_monologue": false})).into_response()
+        }
+    }
+}
 
-    Sse::new(stream).keep_alive(axum::response::sse::KeepAlive::new().text("keep-alive"))
+// G1/S1: Refactored to use async_stream::stream! + tokio::select! pattern
+// Matches the proven pattern from unsloth_monitor_sse_handler (lines 2834-2861)
+pub async fn reflection_sse_handler(
+    State(_state): State<Arc<AppState>>,
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    let mut rx = REFLECTION_LOGS.subscribe();
+
+    let broadcast_stream = async_stream::stream! {
+        loop {
+            tokio::select! {
+                result = rx.recv() => {
+                    match result {
+                        Ok(msg) => {
+                            yield Ok(Event::default().data(msg));
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                            tracing::warn!("🧪 [Reflection SSE] Buffer overflow: {} messages lost", n);
+                            yield Ok(Event::default().data(
+                                serde_json::json!({"type":"warning","title":"Buffer Overflow","icon":"warning","color":"text-error bg-error-container/10","desc":format!("{} log entries lost due to buffer overflow.",n),"time":"Just now"}).to_string()
+                            ));
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                            tracing::info!("🧪 [Reflection SSE] Channel closed, terminating stream.");
+                            break;
+                        }
+                    }
+                }
+                _ = tokio::time::sleep(Duration::from_secs(10)) => {
+                    yield Ok(Event::default().comment("keep-alive"));
+                }
+            }
+        }
+    };
+
+    Sse::new(broadcast_stream).keep_alive(axum::response::sse::KeepAlive::new())
 }
 
 #[derive(serde::Deserialize)]
 pub struct ReflectionSimReq {
-    model_name: String,
+    pub model_name: String,
 }
 
+// O1: Server-side is_reasoner validation before spawning worker
 pub async fn run_reflection_simulation_handler(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Json(req): Json<ReflectionSimReq>,
 ) -> impl IntoResponse {
     let model = req.model_name.clone();
-    
+    tracing::info!("🧪 [Reflection Lab] Simulation requested for model '{}'", model);
+
+    // O1: Server-side Cognitive Lock — verify is_reasoner flag in DB
+    let is_reasoner_check = sqlx::query_scalar::<_, bool>(
+        "SELECT is_reasoner FROM model_capabilities WHERE model_name = ?"
+    )
+    .bind(&model)
+    .fetch_optional(&state.db)
+    .await;
+
+    if let Ok(Some(false)) = is_reasoner_check {
+        tracing::warn!("🧪 [Reflection Lab] BLOCKED: Model '{}' lacks is_reasoner capability.", model);
+        return (axum::http::StatusCode::BAD_REQUEST, Json(serde_json::json!({
+            "status": "rejected",
+            "message": format!("Modelo '{}' não possui a capability 'is_reasoner'. Inferências cegas não são permitidas no Reflection Lab.", model)
+        }))).into_response();
+    }
+
     // Spawn Background Worker (The Sentinel)
     tokio::spawn(async move {
         // Step 1: Start Chain
@@ -3201,7 +3283,18 @@ pub async fn run_reflection_simulation_handler(
             "desc": "Deep reasoning loop completed. Output synthesized natively without data leakage.",
             "time": "Just now"
         }).to_string());
+
+        // G4/S2: Emit EOF signal so frontend knows simulation is complete
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        let _ = REFLECTION_LOGS.send(serde_json::json!({
+            "type": "EOF",
+            "title": "Simulation Complete",
+            "icon": "task_alt",
+            "color": "text-primary bg-primary-container/10",
+            "desc": "Reflection pipeline finished. All reasoning steps audited.",
+            "time": "Just now"
+        }).to_string());
     });
 
-    Json(serde_json::json!({"status": "accepted"}))
+    (axum::http::StatusCode::ACCEPTED, Json(serde_json::json!({"status": "accepted"}))).into_response()
 }
