@@ -2938,31 +2938,19 @@ pub async fn trainer_stats_handler(
     
     let (real_used, real_total) = get_system_vram_gb();
 
-    // Fabricate live telemetry logic based on state
+    // Removed fake live telemetry simulation
     let (vram_used, speed, loss, grad_norm, learning_rate, step_time, mem_bw, temp) = if is_training {
-        let ep = epoch_current as f64;
-        let p_loss = (1.241 - (ep * 0.15)).max(0.35); // simulated loss curve
-        // Overlap synthetic training pressure on top of baseline real VRAM usage
-        let simulate_training_load = real_used + 2.0 + (ep * 0.1); 
-        (
-            simulate_training_load.min(real_total), // Clamp to hardware limits safely
-            42.1 + (ep * 0.5), 
-            p_loss, 
-            0.45 + (ep * 0.01), 
-            "2e-4", 
-            "0.82s", 
-            "1,024 GB/s", 
-            64 + (epoch_current * 2)
-        )
+        // If we actually implement Unsloth in the future, wire real metrics here.
+        // For now, training is disabled, so we fallback to hardware.
+        (real_used, 0.0, 0.0, 0.0, "Idle", "Idle", "0 GB/s", 42)
     } else {
-        // Pass bare hardware metrics across cleanly when idle
         (real_used, 0.0, 0.0, 0.0, "Idle", "Idle", "0 GB/s", 42) // Idle overhead
     };
 
     let ts_metrics = TrainerStatsResponse {
         knowledge_gap_percentage: gap_percentage.clamp(0.0, 100.0),
-        sources_scanned: sources_scanned * 12, // Arbitrary amplification for scanned pages vs Vault indexed files
-        sources_scanned_delta: if sources_scanned > 0 { 12 } else { 0 },
+        sources_scanned: sources_scanned, 
+        sources_scanned_delta: if sources_scanned > 0 { 1 } else { 0 },
         recently_acquired,
         unsloth: serde_json::json!({
             "is_training": is_training,
@@ -2997,24 +2985,30 @@ pub async fn trainer_control_handler(
 
     match req.action.as_str() {
         "play" => {
+            // Hardware-Aware Optimization: Disable Unsloth if no native GPU detected
+            let hw = crate::hardware::capture_hardware_telemetry();
+            if hw.total_vram_gb < 16.0 {
+                tracing::warn!("Unsloth Fine-Tuning disabled: Host lacks sufficient VRAM (Detected {:.1} GB). Minimum 16GB required.", hw.total_vram_gb);
+                let mut cp = UNSLOTH_LAST_CHECKPOINT.write().unwrap();
+                *cp = "Training Disabled: Insufficient VRAM".to_string();
+                return Json(serde_json::json!({
+                    "status": "error",
+                    "message": "Unsloth fine-tuning is disabled on this device. Sovereign Pair requires a native NVIDIA GPU with at least 16GB VRAM for tensor operations."
+                }));
+            }
+
             UNSLOTH_IS_TRAINING.store(true, Ordering::Relaxed);
             let mut cp = UNSLOTH_LAST_CHECKPOINT.write().unwrap();
-            *cp = "Warmup: Injecting Tensors into VRAM".to_string();
+            *cp = "Warmup: Gathering Datasets...".to_string();
             
-            // Background thread to simulate Epoch advancement
+            // Replaced fake simulation with a placeholder hook. 
+            // In a real pipeline, an RPC call to an external Python Unsloth worker would be triggered here.
             tokio::spawn(async move {
-                for i in 1..=5 {
-                    if !UNSLOTH_IS_TRAINING.load(Ordering::Relaxed) { break; }
-                    tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
-                    UNSLOTH_EPOCH_CURRENT.store(i, Ordering::Relaxed);
-                    let mut cp = UNSLOTH_LAST_CHECKPOINT.write().unwrap();
-                    *cp = format!("Weights saved at step {}", i * 1400);
-                }
-                if UNSLOTH_IS_TRAINING.load(Ordering::Relaxed) {
-                    UNSLOTH_IS_TRAINING.store(false, Ordering::Relaxed);
-                    let mut cp = UNSLOTH_LAST_CHECKPOINT.write().unwrap();
-                    *cp = "Training Complete. Final Checkpoint Flushed.".to_string();
-                }
+                tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+                // Since this codebase currently lacks the actual Unsloth backend binder, we revert cleanly.
+                UNSLOTH_IS_TRAINING.store(false, Ordering::Relaxed);
+                let mut cp = UNSLOTH_LAST_CHECKPOINT.write().unwrap();
+                *cp = "Error: Unsloth Cibrid worker not found on host.".to_string();
             });
         },
         "pause" => {
