@@ -47,6 +47,9 @@ pub async fn init_pool() -> SqlitePool {
     // CARREGAMENTO DO SOVEREIGN PROMPT VAULT SCHEMA
     let _ = sqlx::query(include_str!("schemas/003_sovereign_prompts.sql")).execute(&pool).await;
 
+    // CARREGAMENTO DO SOVEREIGN TICKER REGISTRY (MIGRATION 004)
+    let _ = sqlx::query(include_str!("schemas/004_ticker_registry.sql")).execute(&pool).await;
+
     // Seed core prompts do TOML (com verificação SHA-256)
     crate::prompt_vault::seed_core_prompts(&pool).await;
 
