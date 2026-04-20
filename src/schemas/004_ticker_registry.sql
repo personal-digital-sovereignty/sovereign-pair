@@ -27,5 +27,5 @@ CREATE TABLE IF NOT EXISTS ticker_registry (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ticker_search  ON ticker_registry(search_key);
 CREATE        INDEX IF NOT EXISTS idx_ticker_symbol  ON ticker_registry(yf_symbol);
-CREATE        INDEX IF NOT EXISTS idx_ticker_market  ON ticker_registry(market);
-CREATE        INDEX IF NOT EXISTS idx_ticker_active  ON ticker_registry(is_active);
+CREATE        INDEX IF NOT EXISTS idx_ticker_market_active ON ticker_registry(market, is_active);
+

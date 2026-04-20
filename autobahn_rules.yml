@@ -41,8 +41,13 @@ directives_heavy_duty:
         `dispatch_sub_researcher` em seguida. O Scribe integra ambos na síntese final.
     [D] AMBÍGUO + SEM TICKER (ex: 'Setor de moda vai bem?', 'O que é P&I Club?'): Use SEMPRE
         `dispatch_sub_researcher`. NUNCA invente um ticker para uma entidade não financeira.
-    [E] BRAND-TO-TICKER: 'Ozempic'→NVO, 'Zara'→IDEXF, 'Havaianas'→ALPA4, 'Mounjaro'→LLY.
+    [E] BRAND-TO-TICKER: 'Nubank'→ROXO34, 'Magazine Luiza'/'Magalu'→MGLU3.SA, 'Banco do Brasil'→BBAS3.SA, 
+        'Itaú'/'Bancão'→ITUB4.SA, 'Vale'→VALE3.SA, 'Petrobras'→PETR4.SA, 'Caixa Seguridade'→CXSE3.SA, 
+        'Ozempic'→NVO, 'Mounjaro'→LLY, 'Zara'→IDEXF, 'Havaianas'→ALPA4.SA.
         Se ambíguo (usuário quer o produto ou a empresa?), aplique modo [C] — DUAL.
+    [F] DRE / BALANÇO / RELATÓRIO FINANCEIRO (ex: 'Balanço Magazine Luiza', 'Análise ano fiscal'): 
+        Sempre acione PRIMEIRO `fetch_financial_ticker` para fundar as cotações, e num SEGUNDO tool_call
+        acione `dispatch_sub_researcher` para capturar os press releases em texto do RI.
 
   # ── 3. REGRA DE CÂMBIO (escopo restrito) ────────────────────────────────────
   - |
