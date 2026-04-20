@@ -5,6 +5,55 @@ import datetime
 import urllib.request
 import urllib.error
 
+import sqlite3 as _sqlite3
+from sovereign_utils import get_db_path, normalize_key
+
+
+def resolve_from_db(db_path: str, norm_key: str, raw_ticker: str):
+    try:
+        conn = _sqlite3.connect(db_path, timeout=3)
+        try:
+            conn.row_factory = _sqlite3.Row
+            c = conn.cursor()
+            c.execute("SELECT yf_symbol, full_name FROM ticker_registry WHERE search_key = ? AND is_active = 1 LIMIT 1", (norm_key,))
+            row = c.fetchone()
+            if row: return row["yf_symbol"], row["full_name"]
+            
+            c.execute("SELECT yf_symbol, full_name FROM ticker_registry WHERE search_key LIKE ? AND is_active = 1 ORDER BY length(search_key) LIMIT 1", (f"{norm_key}%",))
+            row = c.fetchone()
+            if row: return row["yf_symbol"], row["full_name"]
+            
+            parts = norm_key.split("_")
+            for part in parts:
+                if len(part) < 3: continue
+                c.execute("SELECT yf_symbol, full_name FROM ticker_registry WHERE search_key LIKE ? AND is_active = 1 ORDER BY length(search_key) LIMIT 1", (f"%{part}%",))
+                row = c.fetchone()
+                if row: return row["yf_symbol"], row["full_name"]
+            return None
+        finally:
+            conn.close()
+    except Exception:
+        return None
+
+def auto_learn(db_path: str, norm_key: str, yf_sym: str, full_name: str) -> None:
+    try:
+        conn = _sqlite3.connect(db_path, timeout=3)
+        try:
+            # R2: Expiration Job Oportunístico -> Limpa lixo dinâmico gerado por alucinação ou tickers mortos
+            conn.execute("DELETE FROM ticker_registry WHERE source = 'yfinance_dynamic' AND last_verified_at < datetime('now', '-30 days')")
+            
+            conn.execute(
+                "INSERT OR IGNORE INTO ticker_registry (search_key, yf_symbol, full_name, market, query_type_hint, is_active, source, last_verified_at) "
+                "VALUES (?, ?, ?, 'OTHER', 'price', 1, 'yfinance_dynamic', datetime('now'))",
+                (norm_key, yf_sym, full_name)
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:
+        pass
+
+
 def normalize_date(raw):
     s = str(raw).strip()
     if not s: return raw
@@ -71,123 +120,7 @@ def fetch_finance(ticker, years):
     # (ex: primeiro boot antes da migration). Mantido como emergência offline.
     # ═══════════════════════════════════════════════════════════════════════════
 
-    import sqlite3 as _sqlite3
-    import unicodedata as _uni
-
-    def _normalize_key(name: str) -> str:
-        nfkd = _uni.normalize("NFKD", name)
-        ascii_ = "".join(c for c in nfkd if not _uni.combining(c))
-        return ascii_.upper().replace(" ", "_").replace("-", "_").replace(".", "_")
-
-    def _find_db() -> str | None:
-        """Localiza sovereign_memory.db: env var > XDG > macOS > Windows > Linux > busca ascendente."""
-        import os as _os
-        # 1. DATABASE_URL env var (prod / containers)
-        db_url = _os.getenv("DATABASE_URL", "")
-        if db_url:
-            candidate = db_url.replace("sqlite:", "").split("?")[0]
-            if _os.path.exists(candidate):
-                return candidate
-        # 2. XDG_DATA_HOME (Linux custom)
-        xdg = _os.getenv("XDG_DATA_HOME", "")
-        if xdg:
-            candidate = _os.path.join(xdg, "sovereign-pair", "data", "sovereign_memory.db")
-            if _os.path.exists(candidate):
-                return candidate
-        # 3. macOS ~/Library/Application Support
-        import sys as _sys
-        if _sys.platform == "darwin":
-            candidate = _os.path.join(_os.path.expanduser("~"), "Library", "Application Support",
-                                      "sovereign-pair", "data", "sovereign_memory.db")
-            if _os.path.exists(candidate):
-                return candidate
-        # 4. Windows %LOCALAPPDATA%
-        local_app_data = _os.getenv("LOCALAPPDATA", "")
-        if local_app_data:
-            candidate = _os.path.join(local_app_data, "sovereign-pair", "data", "sovereign_memory.db")
-            if _os.path.exists(candidate):
-                return candidate
-        # 5. Linux ~/.local/share (XDG default)
-        candidate = _os.path.join(_os.path.expanduser("~"), ".local", "share",
-                                  "sovereign-pair", "data", "sovereign_memory.db")
-        if _os.path.exists(candidate):
-            return candidate
-        # 6. Busca ascendente a partir do script (desenvolvimento local)
-        cur = _os.path.dirname(_os.path.abspath(__file__))
-        for _ in range(6):
-            candidate = _os.path.join(cur, "sovereign_memory.db")
-            if _os.path.exists(candidate):
-                return candidate
-            candidate2 = _os.path.join(cur, "data", "sovereign_memory.db")
-            if _os.path.exists(candidate2):
-                return candidate2
-            parent = _os.path.dirname(cur)
-            if parent == cur:
-                break
-            cur = parent
-        return None
-
-    def _resolve_from_db(db_path: str, norm_key: str, raw_ticker: str):
-        """Retorna (yf_symbol, full_name) ou None. DM5 FIX: try/finally garante conn.close()."""
-        try:
-            conn = _sqlite3.connect(db_path, timeout=3)
-            try:
-                conn.row_factory = _sqlite3.Row
-                c = conn.cursor()
-                # Passe 1 — Exact match
-                c.execute(
-                    "SELECT yf_symbol, full_name FROM ticker_registry "
-                    "WHERE search_key = ? AND is_active = 1 LIMIT 1",
-                    (norm_key,),
-                )
-                row = c.fetchone()
-                if row:
-                    return row["yf_symbol"], row["full_name"]
-                # Passe 2 — Prefix match
-                c.execute(
-                    "SELECT yf_symbol, full_name FROM ticker_registry "
-                    "WHERE search_key LIKE ? AND is_active = 1 ORDER BY length(search_key) LIMIT 1",
-                    (f"{norm_key}%",),
-                )
-                row = c.fetchone()
-                if row:
-                    return row["yf_symbol"], row["full_name"]
-                # Passe 3 — Fuzzy match (parte do nome)
-                parts = norm_key.split("_")
-                for part in parts:
-                    if len(part) < 3:
-                        continue
-                    c.execute(
-                        "SELECT yf_symbol, full_name FROM ticker_registry "
-                        "WHERE search_key LIKE ? AND is_active = 1 "
-                        "ORDER BY length(search_key) LIMIT 1",
-                        (f"%{part}%",),
-                    )
-                    row = c.fetchone()
-                    if row:
-                        return row["yf_symbol"], row["full_name"]
-                return None
-            finally:
-                conn.close()
-        except Exception:
-            return None
-
-    def _auto_learn(db_path: str, norm_key: str, yf_sym: str, full_name: str) -> None:
-        """Persiste ticker descoberto dinamicamente (auto-aprendizado). DM2 FIX: popula last_verified_at."""
-        try:
-            conn = _sqlite3.connect(db_path, timeout=3)
-            try:
-                conn.execute(
-                    """INSERT OR IGNORE INTO ticker_registry
-                       (search_key, yf_symbol, full_name, market, query_type_hint, is_active, source, last_verified_at)
-                       VALUES (?, ?, ?, 'OTHER', 'price', 1, 'yfinance_dynamic', datetime('now'))""",
-                    (norm_key, yf_sym, full_name),
-                )
-                conn.commit()
-            finally:
-                conn.close()
-        except Exception:
-            pass
+    from sovereign_utils import get_db_path, normalize_key
 
     # ── TICKER_MAP_FALLBACK (emergência offline — banco não encontrado) ───────
     TICKER_MAP_FALLBACK = {
@@ -217,12 +150,12 @@ def fetch_finance(ticker, years):
 
     # ── Resolução principal ──────────────────────────────────────────────────
     semantic_name = ticker
-    norm_key = _normalize_key(ticker)
+    norm_key = normalize_key(ticker)
     resolved = False
 
-    db_path = _find_db()
+    db_path = get_db_path()
     if db_path:
-        result = _resolve_from_db(db_path, norm_key, ticker)
+        result = resolve_from_db(db_path, norm_key, ticker)
         if result:
             ticker, semantic_name = result
             resolved = True
@@ -250,7 +183,7 @@ def fetch_finance(ticker, years):
                     ticker = _cand
                     resolved = True
                     if db_path:
-                        _auto_learn(db_path, norm_key, _cand, _full)
+                        auto_learn(db_path, norm_key, _cand, _full)
                     break
             except Exception:
                 continue
