@@ -174,6 +174,23 @@ CREATE INDEX IF NOT EXISTS idx_reflection_model ON reflection_datasets(model_tag
 CREATE INDEX IF NOT EXISTS idx_reflection_created ON reflection_datasets(created_at DESC);
 
 -- ---------------------------------------------------------
+-- 5b. RESILIENCE SHIELD — API Health Monitoring
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS api_health_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    api_name TEXT NOT NULL,
+    api_type TEXT NOT NULL,
+    status TEXT NOT NULL,
+    is_critical BOOLEAN NOT NULL DEFAULT 0,
+    latency_ms INTEGER DEFAULT 0,
+    error_message TEXT,
+    checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_api_health_name ON api_health_log(api_name);
+CREATE INDEX IF NOT EXISTS idx_api_health_checked ON api_health_log(checked_at DESC);
+
+-- ---------------------------------------------------------
 -- 6. SEGURANÇA E AUTO-BLINDAGEM
 -- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS security_logs (
