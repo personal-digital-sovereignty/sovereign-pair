@@ -3,12 +3,28 @@
     import { onMount } from 'svelte';
     import { Loader2, X } from 'lucide-svelte';
 
+    // SecOps Vault
     let tenantApiKeys = $state<{id: string, provider_name: string, created_at: string}[]>([]);
     let newProviderName = $state('');
     let newApiKeyValue = $state('');
     let isLoadingKeys = $state(false);
 
-    onMount(async () => { await loadTenantKeys(); });
+    // P2P Mesh
+    let p2pTargetIp = $state('');
+    let p2pPort = $state(38001);
+    let p2pMeshKey = $state('');
+    let isSavingMesh = $state(false);
+
+    // OCI Cloud Sandboxing
+    let cloudHostIp = $state('');
+    let cloudPemKey = $state('');
+    let isSavingCloud = $state(false);
+
+    onMount(async () => {
+        await loadTenantKeys();
+        await loadMeshSettings();
+        await loadCloudSettings();
+    });
 
     async function loadTenantKeys() {
         isLoadingKeys = true;
@@ -37,6 +53,72 @@
             const res = await fetch(`${API_BASE_URL}/v1/settings/tenant_keys/${id}`, { method: 'DELETE' });
             if (res.ok) loadTenantKeys();
         } catch(e) {}
+    }
+
+    // --- P2P Mesh Features ---
+    async function loadMeshSettings() {
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/settings/p2p_mesh`);
+            if (res.ok) {
+                const data = await res.json();
+                p2pTargetIp = data.target_ip || '';
+                p2pPort = data.port || 38001;
+                p2pMeshKey = data.mesh_key || '';
+            }
+        } catch(e) {}
+    }
+
+    async function connectMesh() {
+        if (!p2pTargetIp) { alert("Target IP cannot be empty."); return; }
+        isSavingMesh = true;
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/settings/p2p_mesh`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ target_ip: p2pTargetIp, port: Number(p2pPort), mesh_key: p2pMeshKey })
+            });
+            if (res.ok) {
+                alert("Sovereign Mesh P2P Handshake Successful! Connection secured.");
+            } else {
+                const data = await res.json();
+                alert(data.message || "Failed to secure Mesh Handshake.");
+            }
+        } catch(e) {
+            alert("Network Error during handshake.");
+        } finally {
+            isSavingMesh = false;
+        }
+    }
+
+    // --- OCI Cloud Targeting ---
+    async function loadCloudSettings() {
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/settings/cloud_target`);
+            if (res.ok) {
+                const data = await res.json();
+                cloudHostIp = data.host_ip || '';
+                cloudPemKey = data.pem_key || '';
+            }
+        } catch(e) {}
+    }
+
+    async function sealCloudCredentials() {
+        if (!cloudHostIp || !cloudPemKey) { alert("OCI Host IP and PEM key are required."); return; }
+        isSavingCloud = true;
+        try {
+            const res = await fetch(`${API_BASE_URL}/v1/settings/cloud_target`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ host_ip: cloudHostIp, pem_key: cloudPemKey })
+            });
+            if (res.ok) {
+                alert("OCI Sandboxing Credentials sealed with AES-GCM.");
+            } else {
+                alert("Failed to seal OCI credentials.");
+            }
+        } catch(e) {
+             alert("Error connecting to Vault.");
+        } finally {
+            isSavingCloud = false;
+        }
     }
 </script>
 
@@ -141,6 +223,102 @@
                                 {/if}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2: Sandboxing and P2P Mesh -->
+        <div class="grid grid-cols-12 gap-6 pb-12">
+            <!-- Left: Dynamic Tunneling (P2P Mesh) -->
+            <div class="col-span-12 xl:col-span-6 space-y-6">
+                <div class="bg-surface-container-lowest p-8 rounded-3xl shadow-sm border border-outline-variant/10 relative overflow-hidden group hover:border-primary/20 transition-colors">
+                    <div class="absolute -right-16 -top-16 w-48 h-48 rounded-full bg-primary/10 blur-[40px] opacity-70 group-hover:bg-primary/20 transition-all"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-8 pb-6 border-b border-outline-variant/10">
+                            <div class="flex items-center gap-4">
+                                <div class="p-3 bg-primary-container/30 text-on-primary-container rounded-2xl shadow-inner border border-primary/10">
+                                    <span class="material-symbols-outlined text-[24px]">cast_connected</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-on-surface">Dynamic Tunneling</h3>
+                                    <p class="text-[11px] font-medium text-on-surface-variant mt-1 tracking-wider uppercase">Sovereign Mesh P2P</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="text-xs text-on-surface-variant/80 mb-6 font-medium leading-relaxed">Establish a secure WebSocket/HTTP bridge with a remote Cibrid pair. Requires 2-way handshake.</p>
+                        
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-3 gap-4">
+                                <div class="col-span-2 flex flex-col gap-1.5">
+                                    <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/70">WSS IP Target</label>
+                                    <input type="text" bind:value={p2pTargetIp} placeholder="192.168.1.100 or ngrok.io"
+                                        class="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/30 outline-none focus:ring-2 focus:ring-primary font-mono" />
+                                </div>
+                                <div class="col-span-1 flex flex-col gap-1.5">
+                                    <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/70">Port</label>
+                                    <input type="number" bind:value={p2pPort} placeholder="38001"
+                                        class="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/30 outline-none focus:ring-2 focus:ring-primary font-mono text-center" />
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/70">Security Mesh Key</label>
+                                <input type="password" bind:value={p2pMeshKey} placeholder="msh-..."
+                                    class="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/30 outline-none focus:ring-2 focus:ring-primary font-mono" />
+                            </div>
+                            
+                            <button onclick={connectMesh} disabled={isSavingMesh}
+                                class="mt-4 w-full py-3 bg-primary text-on-primary font-bold text-xs uppercase tracking-widest rounded-xl shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2">
+                                {#if isSavingMesh}
+                                    <Loader2 class="w-4 h-4 animate-spin" /> Handshaking...
+                                {:else}
+                                    <span class="material-symbols-outlined text-[18px]">satellite_alt</span> Secure Handshake
+                                {/if}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: OCI Sandboxing (Cloud Container Isolation) -->
+            <div class="col-span-12 xl:col-span-6 space-y-6">
+                <div class="bg-gradient-to-br from-[#1a140a] to-[#2b1b05] text-white p-8 rounded-3xl relative overflow-hidden shadow-lg border border-warning/20 group">
+                    <div class="absolute -left-16 -bottom-16 w-56 h-56 rounded-full bg-warning/20 blur-[50px] opacity-40 group-hover:opacity-60 transition-opacity"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-8 pb-6 border-b border-warning/10">
+                            <div class="flex items-center gap-4">
+                                <div class="p-3 bg-warning/20 text-[#f59e0b] rounded-2xl shadow-inner border border-warning/10">
+                                    <span class="material-symbols-outlined text-[24px]">cloud_lock</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-white">OCI Sandboxing</h3>
+                                    <p class="text-[11px] font-medium text-warning mt-1 tracking-wider uppercase">Cloud Container Isolation</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-[10px] font-bold uppercase tracking-widest text-warning/50">Oracle Cloud Instance IP</label>
+                                <input type="text" bind:value={cloudHostIp} placeholder="129.150.xxx.xxx"
+                                    class="w-full bg-black/30 border border-warning/20 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:ring-2 focus:ring-warning font-mono" />
+                            </div>
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-[10px] font-bold uppercase tracking-widest text-warning/50">Secret PEM Key (RSA)</label>
+                                <textarea bind:value={cloudPemKey} placeholder="-----BEGIN RSA PRIVATE KEY-----..." rows="4"
+                                    class="w-full bg-black/30 border border-warning/20 rounded-xl px-4 py-3 text-xs text-warning/80 placeholder:text-white/10 outline-none focus:ring-2 focus:ring-warning font-mono resize-y custom-scrollbar"></textarea>
+                            </div>
+                            
+                            <button onclick={sealCloudCredentials} disabled={isSavingCloud}
+                                class="mt-4 w-full py-3 bg-warning text-yellow-950 font-bold text-xs uppercase tracking-widest rounded-xl shadow-md hover:shadow-lg shadow-warning/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2">
+                                {#if isSavingCloud}
+                                    <Loader2 class="w-4 h-4 animate-spin text-yellow-950" /> Sealing...
+                                {:else}
+                                    <span class="material-symbols-outlined text-[18px]">enhanced_encryption</span> Seal OCI Sandbox
+                                {/if}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
