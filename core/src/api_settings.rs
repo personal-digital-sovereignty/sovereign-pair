@@ -788,11 +788,21 @@ pub async fn get_p2p_mesh_handler(State(state): State<Arc<AppState>>) -> impl In
     match result {
         Ok(Some(row)) => {
             let val: String = row.get("value_json");
-            let parsed: Value = serde_json::from_str(&val).unwrap_or(serde_json::json!({
+            let mut parsed: Value = serde_json::from_str(&val).unwrap_or(serde_json::json!({
                 "target_ip": "",
                 "port": 38001,
                 "mesh_key": ""
             }));
+            
+            // MASK mesh_key (GAP-C03)
+            if let Some(obj) = parsed.as_object_mut() {
+                if let Some(mk) = obj.get("mesh_key").and_then(|v| v.as_str()) {
+                    if !mk.is_empty() {
+                        obj.insert("mesh_key".to_string(), serde_json::json!("••••••••••••••••"));
+                    }
+                }
+            }
+
             Json(parsed).into_response()
         },
         _ => Json(serde_json::json!({
@@ -806,13 +816,19 @@ pub async fn get_p2p_mesh_handler(State(state): State<Arc<AppState>>) -> impl In
 /// POST /v1/settings/p2p_mesh
 pub async fn set_p2p_mesh_handler(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<P2PMeshConfig>,
+    Json(mut payload): Json<P2PMeshConfig>,
 ) -> impl IntoResponse {
+    // GAP-C02: SSRF Block
+    if payload.target_ip.starts_with("127.") || payload.target_ip.starts_with("0.") || payload.target_ip.starts_with("169.254.") || payload.target_ip == "localhost" {
+        return (axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({"error": true, "message": "SSRF Guard: Cannot use local loopback or metadata IP."}))).into_response();
+    }
+
     // Zero Trust Handshake Validador
     if !payload.target_ip.is_empty() {
         let proto = if payload.target_ip.starts_with("http") { "" } else { "http://" };
         let url = format!("{}{}:{}/v1/mesh/handshake", proto, payload.target_ip, payload.port);
         
+        // P2P requests must use a real mesh_key if possible, let's just attempt connection config mapping
         let client = state.http_client.clone();
         match client.get(&url).timeout(std::time::Duration::from_secs(5)).send().await {
             Ok(res) if res.status().is_success() => {
@@ -825,6 +841,24 @@ pub async fn set_p2p_mesh_handler(
             _ => {
                 return (axum::http::StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": true, "message": "Sovereign Mesh Node rejected the handshake."}))).into_response();
             }
+        }
+    }
+
+    // GAP-C01 & C03: Encrypt or Preserve mesh_key
+    if payload.mesh_key == "••••••••••••••••" {
+        if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'p2p_mesh'").fetch_optional(&state.db).await {
+            let val: String = row.get("value_json");
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&val) {
+                if let Some(old_key) = v.get("mesh_key").and_then(|k| k.as_str()) {
+                    payload.mesh_key = old_key.to_string();
+                }
+            }
+        }
+    } else if !payload.mesh_key.is_empty() {
+        if let Some(enc) = crate::kms::encrypt_vault_secret(&payload.mesh_key) {
+            payload.mesh_key = enc;
+        } else {
+            return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true, "message": "Mesh Key KMS Encryption Failed"}))).into_response();
         }
     }
 
@@ -862,13 +896,11 @@ pub async fn get_cloud_target_handler(State(state): State<Arc<AppState>>) -> imp
                 "pem_key": ""
             }));
             
-            // Decrypt PEM at runtime to display/use
+            // GAP-C03: MASK PEM at runtime to display/use
             if let Some(obj) = parsed.as_object_mut() {
                 if let Some(pem) = obj.get("pem_key").and_then(|v| v.as_str()) {
                     if !pem.is_empty() {
-                        if let Some(decrypted) = crate::kms::decrypt_vault_secret(pem) {
-                            obj.insert("pem_key".to_string(), serde_json::json!(decrypted));
-                        }
+                        obj.insert("pem_key".to_string(), serde_json::json!("••••••••••••••••"));
                     }
                 }
             }
@@ -888,8 +920,22 @@ pub async fn set_cloud_target_handler(
     Json(mut payload): Json<CloudTargetConfig>,
 ) -> impl IntoResponse {
     
-    // Encrypt PEM At Rest
-    if !payload.pem_key.is_empty() {
+    // GAP-C02: SSRF Block
+    if payload.host_ip.starts_with("127.") || payload.host_ip.starts_with("0.") || payload.host_ip.starts_with("169.254.") || payload.host_ip == "localhost" {
+        return (axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({"error": true, "message": "SSRF Guard: Cannot use internal Oracle IP."}))).into_response();
+    }
+
+    // GAP-C03: Maintain old PEM if received placeholder, otherwise encrypt
+    if payload.pem_key == "••••••••••••••••" {
+        if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'cloud_target'").fetch_optional(&state.db).await {
+            let val: String = row.get("value_json");
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&val) {
+                if let Some(old_key) = v.get("pem_key").and_then(|k| k.as_str()) {
+                    payload.pem_key = old_key.to_string();
+                }
+            }
+        }
+    } else if !payload.pem_key.is_empty() {
         if let Some(encrypted) = crate::kms::encrypt_vault_secret(&payload.pem_key) {
             payload.pem_key = encrypted;
         } else {
