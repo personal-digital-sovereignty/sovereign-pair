@@ -165,6 +165,106 @@ def main():
         }
     })
 
+    # ── FERRAMENTAS DE CONHECIMENTO (Academic, Engineering, Cultural, Encyclopedia) ──
+    # Cada uma tem handler nativo no Rust (api_trainer.rs) e Python worker dedicado.
+    # NOTA: fetch_futures_market é intencionalmente OMITIDO — semanticamente redundante
+    # com fetch_financial_ticker que agora resolve futuros/commodities via Ticker Registry.
+
+    tools.append({
+        "type": "function",
+        "function": {
+            "name": "fetch_academic_papers",
+            "description": "Busca artigos científicos e papers acadêmicos em bases abertas (arXiv, PubMed). USE para perguntas sobre pesquisa científica, estudos publicados, trabalhos acadêmicos, artigos em periódicos, papers sobre IA, física, biologia, matemática, computação, medicina ou qualquer disciplina acadêmica.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "queries": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de consultas de pesquisa acadêmica. Cada string deve ser um tópico de pesquisa em INGLÊS (arXiv e PubMed indexam em inglês). Exemplo: ['transformer attention mechanism', 'CRISPR gene editing 2024']."
+                    },
+                    "disciplines": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de disciplinas correspondentes a cada query. Valores aceitos: 'arxiv' (IA, Física, Matemática, Computação), 'pubmed' (Medicina, Biologia, Saúde). Default: 'arxiv'."
+                    }
+                },
+                "required": ["queries"]
+            }
+        }
+    })
+
+    tools.append({
+        "type": "function",
+        "function": {
+            "name": "fetch_engineering_docs",
+            "description": "Busca documentação técnica, soluções de engenharia e código-fonte em bases de desenvolvedores (StackOverflow, GitHub). USE para perguntas sobre programação, DevOps, infraestrutura, debugging, arquitetura de sistemas, ou quando o usuário precisar de exemplos de código e soluções técnicas reais.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "topics": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de tópicos técnicos a buscar. Exemplo: ['kubernetes pod crash loop', 'rust lifetime borrow checker']."
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de fontes correspondentes. Valores: 'stackexchange' (StackOverflow), 'github' (busca em código). Default: 'stackexchange'."
+                    }
+                },
+                "required": ["topics"]
+            }
+        }
+    })
+
+    tools.append({
+        "type": "function",
+        "function": {
+            "name": "fetch_encyclopedia",
+            "description": "Consulta a Wikipedia para obter conhecimento enciclopédico geral. USE para perguntas sobre história, geografia, personalidades, conceitos teóricos, definições, eventos históricos ou qualquer consulta de conhecimento geral que necessite de uma base factual sólida.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "queries": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de termos a consultar na Wikipedia. Use o nome exato do artigo quando possível (ex: 'Teoria da Relatividade', 'Segunda Guerra Mundial')."
+                    },
+                    "language": {
+                        "type": "string",
+                        "description": "Código ISO 639-1 do idioma da Wikipedia a consultar. Exemplos: 'pt' (português), 'en' (inglês), 'es' (espanhol). Default: 'pt'."
+                    }
+                },
+                "required": ["queries"]
+            }
+        }
+    })
+
+    tools.append({
+        "type": "function",
+        "function": {
+            "name": "fetch_cultural_data",
+            "description": "Acessa bases de dados culturais para informações sobre música, cinema, artes visuais e videogames. USE para perguntas sobre artistas, bandas, discografias, filmes, bilheterias, jogos, obras de arte em museus ou qualquer consulta cultural/entretenimento. Fontes disponíveis: MusicBrainz (música), TMDB (filmes/cinema), RAWG (jogos), TheMet (museus/arte), Wikipedia (cultural geral).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "queries": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de consultas culturais. Exemplo: ['Radiohead', 'Breaking Bad', 'Monet']."
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Array de fontes correspondentes. Valores: 'MUSICBRAINZ' (música/discografia), 'TMDB' (cinema/filmes — requer chave no Vault), 'RAWG' (videogames — requer chave), 'THEMET' (Metropolitan Museum of Art), 'WIKIPEDIA' (cultural genérico). Default: 'TMDB'."
+                    }
+                },
+                "required": ["queries"]
+            }
+        }
+    })
+
     # Scan python files for reflexive nodes
     if os.path.exists(workers_dir):
         for fname in os.listdir(workers_dir):

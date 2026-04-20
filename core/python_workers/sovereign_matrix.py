@@ -128,63 +128,64 @@ def fetch_finance(ticker, years):
         return None
 
     def _resolve_from_db(db_path: str, norm_key: str, raw_ticker: str):
-        """Retorna (yf_symbol, full_name) ou None."""
+        """Retorna (yf_symbol, full_name) ou None. DM5 FIX: try/finally garante conn.close()."""
         try:
             conn = _sqlite3.connect(db_path, timeout=3)
-            conn.row_factory = _sqlite3.Row
-            c = conn.cursor()
-            # Passe 1 — Exact match
-            c.execute(
-                "SELECT yf_symbol, full_name FROM ticker_registry "
-                "WHERE search_key = ? AND is_active = 1 LIMIT 1",
-                (norm_key,),
-            )
-            row = c.fetchone()
-            if row:
-                conn.close()
-                return row["yf_symbol"], row["full_name"]
-            # Passe 2 — Prefix match
-            c.execute(
-                "SELECT yf_symbol, full_name FROM ticker_registry "
-                "WHERE search_key LIKE ? AND is_active = 1 ORDER BY length(search_key) LIMIT 1",
-                (f"{norm_key}%",),
-            )
-            row = c.fetchone()
-            if row:
-                conn.close()
-                return row["yf_symbol"], row["full_name"]
-            # Passe 3 — Fuzzy match (parte do nome)
-            parts = norm_key.split("_")
-            for part in parts:
-                if len(part) < 3:
-                    continue
+            try:
+                conn.row_factory = _sqlite3.Row
+                c = conn.cursor()
+                # Passe 1 — Exact match
                 c.execute(
                     "SELECT yf_symbol, full_name FROM ticker_registry "
-                    "WHERE search_key LIKE ? AND is_active = 1 "
-                    "ORDER BY length(search_key) LIMIT 1",
-                    (f"%{part}%",),
+                    "WHERE search_key = ? AND is_active = 1 LIMIT 1",
+                    (norm_key,),
                 )
                 row = c.fetchone()
                 if row:
-                    conn.close()
                     return row["yf_symbol"], row["full_name"]
-            conn.close()
-            return None
+                # Passe 2 — Prefix match
+                c.execute(
+                    "SELECT yf_symbol, full_name FROM ticker_registry "
+                    "WHERE search_key LIKE ? AND is_active = 1 ORDER BY length(search_key) LIMIT 1",
+                    (f"{norm_key}%",),
+                )
+                row = c.fetchone()
+                if row:
+                    return row["yf_symbol"], row["full_name"]
+                # Passe 3 — Fuzzy match (parte do nome)
+                parts = norm_key.split("_")
+                for part in parts:
+                    if len(part) < 3:
+                        continue
+                    c.execute(
+                        "SELECT yf_symbol, full_name FROM ticker_registry "
+                        "WHERE search_key LIKE ? AND is_active = 1 "
+                        "ORDER BY length(search_key) LIMIT 1",
+                        (f"%{part}%",),
+                    )
+                    row = c.fetchone()
+                    if row:
+                        return row["yf_symbol"], row["full_name"]
+                return None
+            finally:
+                conn.close()
         except Exception:
             return None
 
     def _auto_learn(db_path: str, norm_key: str, yf_sym: str, full_name: str) -> None:
-        """Persiste ticker descoberto dinamicamente (auto-aprendizado)."""
+        """Persiste ticker descoberto dinamicamente (auto-aprendizado). DM2 FIX: popula last_verified_at."""
         try:
             conn = _sqlite3.connect(db_path, timeout=3)
-            conn.execute(
-                """INSERT OR IGNORE INTO ticker_registry
-                   (search_key, yf_symbol, full_name, market, query_type_hint, is_active, source)
-                   VALUES (?, ?, ?, 'OTHER', 'price', 1, 'yfinance_dynamic')""",
-                (norm_key, yf_sym, full_name),
-            )
-            conn.commit()
-            conn.close()
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO ticker_registry
+                       (search_key, yf_symbol, full_name, market, query_type_hint, is_active, source, last_verified_at)
+                       VALUES (?, ?, ?, 'OTHER', 'price', 1, 'yfinance_dynamic', datetime('now'))""",
+                    (norm_key, yf_sym, full_name),
+                )
+                conn.commit()
+            finally:
+                conn.close()
         except Exception:
             pass
 
@@ -331,7 +332,40 @@ def fetch_finance(ticker, years):
         print(json.dumps({"error": f"No financial data found for {ticker} across all 4 Multi-Node layers! Last error: {last_error}"}))
         sys.exit(1)
         
-    # ── Commodities internacionais que recebem conversão BRL automática ─────────
+    # ══════════════════════════════════════════════════════════════════════════
+    # DC3 FIX: Circuit Breaker roda ANTES de qualquer agrupamento/conversão,
+    # sobre dados brutos diários — detecta spikes corrompidos sem suavização.
+    # ══════════════════════════════════════════════════════════════════════════
+    SANITY_BOUNDS: dict = {
+        'BZ=F': (5.0, 250.0), 'CL=F': (5.0, 250.0),  # Petróleo (USD/barril)
+        'GC=F': (500.0, 5000.0), 'SI=F': (5.0, 200.0),  # Ouro/Prata
+        'PL=F': (200.0, 3000.0), 'PA=F': (100.0, 4000.0),
+        'HG=F': (1.0, 20.0),   # Cobre (USD/lb)
+        'NG=F': (0.5, 25.0),   # Gás Natural (USD/MMBtu)
+        'ZS=F': (4.0, 30.0),   # Soja (USD/bushel)
+        'ZC=F': (2.0, 10.0),   # Milho
+        'ZW=F': (2.0, 15.0),   # Trigo
+        'KC=F': (0.5, 6.0),    # Café Arábica (USD/lb)
+        'SB=F': (0.05, 1.0),   # Açúcar (USD/lb)
+        'CT=F': (0.3, 3.0),    # Algodão (USD/lb)
+    }
+    bounds = SANITY_BOUNDS.get(ticker)
+    if bounds and not df.empty and 'Close' in df.columns:
+        max_v = float(df['Close'].max())
+        min_v = float(df['Close'].min())
+        if not (bounds[0] <= min_v and max_v <= bounds[1]):
+            print(json.dumps({"error": f"CRÍTICO (Circuit Breaker): Anomalia em {ticker}. "
+                              f"Valores USD (Max: {round(max_v, 2)}, Min: {round(min_v, 2)}) "
+                              f"fora dos limites físicos {bounds}. Abortando para prevenir "
+                              f"alucinação estatística."}))
+            sys.exit(1)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # DC4 FIX: Conversão BRL para TODOS os períodos (não apenas years>1).
+    # Agrupa sempre por mês para alinhamento do join USD→BRL.
+    # DC4b FIX: left join preserva meses sem câmbio (exibidos só em USD).
+    # DL2 FIX: log explícito quando conversão BRL falha.
+    # ══════════════════════════════════════════════════════════════════════════
     CONVERT_TO_BRL = {
         'BZ=F', 'CL=F',           # Petróleo Brent e WTI
         'GC=F', 'SI=F',           # Ouro e Prata
@@ -374,53 +408,33 @@ def fetch_finance(ticker, years):
                 
         if not df_usd.empty:
             try:
-                if int(clean_years) > 1:
-                    df['YearMonth'] = df.index.strftime('%Y-%m')
-                    df = df.groupby('YearMonth').mean()
-                    
-                    df_usd['YearMonth'] = df_usd.index.strftime('%Y-%m')
-                    df_usd = df_usd.groupby('YearMonth').mean()
-                    
-                    df = df.join(df_usd['Close'], rsuffix='_usd', how='inner')
-                    df['Close_brl'] = df['Close'] * df['Close_usd']
-                    converted_to_brl = True
-                    source_used += " | (+ Converted to BRL)"
+                # Agrupa por mês para alinhamento (necessário para todos os períodos)
+                df['YearMonth'] = df.index.strftime('%Y-%m')
+                df = df.groupby('YearMonth').mean()
+                
+                df_usd['YearMonth'] = df_usd.index.strftime('%Y-%m')
+                df_usd = df_usd.groupby('YearMonth').mean()
+                
+                # DC4b FIX: left join preserva meses do ativo sem câmbio disponível
+                df = df.join(df_usd['Close'], rsuffix='_usd', how='left')
+                df['Close_brl'] = df['Close'] * df['Close_usd']
+                converted_to_brl = True
+                source_used += " | (+ Converted to BRL)"
             except Exception:
-                pass
+                # DL2 FIX: log explícito de falha na conversão
+                source_used += " | (⚠️ BRL conversion JOIN FAILED — showing USD only)"
+        else:
+            # DL2 FIX: BRL=X indisponível (rate limit ou API down)
+            source_used += " | (⚠️ BRL=X unavailable — showing USD only)"
                 
     if not converted_to_brl:
-        # Normal grouping if not already grouped by currency conversion
+        # Agrupamento mensal para períodos longos (sem conversão BRL)
         try:
             if int(clean_years) > 1:
                 df['YearMonth'] = df.index.strftime('%Y-%m')
                 df = df.groupby('YearMonth').mean()
         except Exception:
             pass
-            
-    # ── Circuit Breaker generalizado por ativo ────────────────────────────────
-    SANITY_BOUNDS: dict = {
-        'BZ=F': (5.0, 250.0), 'CL=F': (5.0, 250.0),  # Petróleo (USD/barril)
-        'GC=F': (500.0, 5000.0), 'SI=F': (5.0, 200.0),  # Ouro/Prata
-        'PL=F': (200.0, 3000.0), 'PA=F': (100.0, 4000.0),
-        'HG=F': (1.0, 20.0),   # Cobre (USD/lb)
-        'NG=F': (0.5, 25.0),   # Gás Natural (USD/MMBtu)
-        'ZS=F': (4.0, 30.0),   # Soja (USD/bushel)
-        'ZC=F': (2.0, 10.0),   # Milho
-        'ZW=F': (2.0, 15.0),   # Trigo
-        'KC=F': (0.5, 6.0),    # Café Arábica (USD/lb)
-        'SB=F': (0.05, 1.0),   # Açúcar (USD/lb)
-        'CT=F': (0.3, 3.0),    # Algodão (USD/lb)
-    }
-    bounds = SANITY_BOUNDS.get(ticker)
-    if bounds and not df.empty and 'Close' in df.columns:
-        max_v = float(df['Close'].max())
-        min_v = float(df['Close'].min())
-        if not (bounds[0] <= min_v and max_v <= bounds[1]):
-            print(json.dumps({"error": f"CRÍTICO (Circuit Breaker): Anomalia em {ticker}. "
-                              f"Valores USD (Max: {round(max_v, 2)}, Min: {round(min_v, 2)}) "
-                              f"fora dos limites físicos {bounds}. Abortando para prevenir "
-                              f"alucinação estatística."}))
-            sys.exit(1)
 
 
     data_lines = []
