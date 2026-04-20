@@ -55,7 +55,7 @@ export function connectTelemetry() {
                 telemetryState.topTopics = data.top_topics || [];
                 telemetryState.cpuCores = data.hardware?.cpu_cores || [];
                 telemetryState.ramUsageMB = data.hardware?.ram || 0;
-                telemetryState.ramTotalGB = data.hardware?.ram_total_gb || 24;
+                telemetryState.ramTotalGB = data.hardware?.ram_total_gb || 0;
                 telemetryState.vramTotalMB = data.hardware?.gpu_vram_total_mb || 0;
                 telemetryState.gpuName = data.hardware?.gpu_name || 'GPU Compute';
                 telemetryState.ioRxBytes = data.hardware?.io_rx || 0;
