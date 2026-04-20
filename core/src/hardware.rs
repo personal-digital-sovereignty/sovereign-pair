@@ -11,13 +11,31 @@ pub struct HardwareTelemetry {
     pub total_vram_gb: f64,
     pub used_vram_gb: f64, 
     pub gpu_name: String,
+    /// True when GPU uses unified memory (Apple Silicon, iGPUs) —
+    /// in this case, VRAM metrics mirror system RAM.
+    pub unified_memory: bool,
 }
 
-/// Static hardware info that never changes (GPU name, total VRAM)
+/// Static hardware info that never changes (GPU name, total VRAM, driver type)
 #[derive(Clone, Debug)]
 struct StaticHardwareInfo {
     pub total_vram_bytes: u64,
     pub gpu_name: String,
+    pub vram_source: VramSource,
+}
+
+/// Determines which mechanism to use for live VRAM readings
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+enum VramSource {
+    /// Linux: /sys/class/drm/cardN/device/mem_info_vram_used (AMD, Intel)
+    LinuxSysfs(String), // Stores the discovered path
+    /// NVIDIA on any OS: nvidia-smi CLI
+    NvidiaSmi,
+    /// Apple Silicon / iGPUs: use system RAM as proxy (unified memory)
+    UnifiedMemory,
+    /// No supported method — report 0
+    Unavailable,
 }
 
 static STATIC_HARDWARE_CACHE: OnceLock<StaticHardwareInfo> = OnceLock::new();
@@ -48,6 +66,72 @@ pub fn calculate_safe_context_window(telemetry: &HardwareTelemetry) -> u64 {
     }
 }
 
+/// Detect which sysfs path exists for VRAM usage on Linux
+#[cfg(target_os = "linux")]
+fn detect_sysfs_vram_path() -> Option<String> {
+    if let Ok(entries) = std::fs::read_dir("/sys/class/drm") {
+        for entry in entries.flatten() {
+            let path = entry.path().join("device/mem_info_vram_used");
+            if path.exists() {
+                return Some(path.to_string_lossy().into_owned());
+            }
+        }
+    }
+    None
+}
+
+/// Detect if nvidia-smi is available (Linux, Windows)
+fn detect_nvidia_smi() -> bool {
+    std::process::Command::new("nvidia-smi")
+        .arg("--query-gpu=memory.used")
+        .arg("--format=csv,noheader,nounits")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
+/// Determine the best VRAM source for this hardware/OS combination
+fn detect_vram_source(gpu_name: &str) -> VramSource {
+    // macOS: Apple Silicon uses unified memory
+    #[cfg(target_os = "macos")]
+    {
+        // Apple GPUs and M-series chips use unified memory
+        if gpu_name.contains("Apple") || gpu_name == "N/A" {
+            return VramSource::UnifiedMemory;
+        }
+    }
+
+    // Linux: Try sysfs first (AMD/Intel), then nvidia-smi
+    #[cfg(target_os = "linux")]
+    {
+        if let Some(path) = detect_sysfs_vram_path() {
+            info!("🖥️ [Hardware] VRAM source: Linux sysfs ({})", path);
+            return VramSource::LinuxSysfs(path);
+        }
+    }
+
+    // All OS: Try nvidia-smi as universal NVIDIA fallback
+    if detect_nvidia_smi() {
+        info!("🖥️ [Hardware] VRAM source: nvidia-smi CLI");
+        return VramSource::NvidiaSmi;
+    }
+
+    // macOS without Apple GPU and without NVIDIA — likely Intel iGPU
+    #[cfg(target_os = "macos")]
+    {
+        return VramSource::UnifiedMemory;
+    }
+
+    // Windows without NVIDIA — AMD/Intel iGPU, no reliable source
+    #[cfg(not(target_os = "macos"))]
+    {
+        warn!("⚠️ [Hardware] No VRAM monitoring available for GPU: {}", gpu_name);
+        VramSource::Unavailable
+    }
+}
+
 /// Query static GPU info via Vulkan (called once, cached forever)
 fn get_static_gpu_info() -> StaticHardwareInfo {
     STATIC_HARDWARE_CACHE.get_or_init(|| {
@@ -56,7 +140,6 @@ fn get_static_gpu_info() -> StaticHardwareInfo {
 
         unsafe {
             if let Ok(entry) = Entry::load() {
-                // Use Vulkan 1.1 to access memory_properties2 (required for VK_EXT_memory_budget)
                 let app_info = vk::ApplicationInfo::default()
                     .api_version(vk::make_api_version(0, 1, 1, 0));
                 let create_info = vk::InstanceCreateInfo::default().application_info(&app_info);
@@ -95,28 +178,42 @@ fn get_static_gpu_info() -> StaticHardwareInfo {
             }
         }
 
-        info!("🖥️ [Hardware] GPU: {}, VRAM: {:.1} GB", gpu_name, total_vram_bytes as f64 / 1024.0 / 1024.0 / 1024.0);
-        StaticHardwareInfo { total_vram_bytes, gpu_name }
+        let vram_source = detect_vram_source(&gpu_name);
+
+        info!("🖥️ [Hardware] GPU: {}, VRAM: {:.1} GB, Source: {:?}", 
+            gpu_name, total_vram_bytes as f64 / 1024.0 / 1024.0 / 1024.0, vram_source);
+
+        StaticHardwareInfo { total_vram_bytes, gpu_name, vram_source }
     }).clone()
 }
 
-/// GAP-01 FIX: Read real-time VRAM usage from Linux sysfs (amdgpu/nvidia/i915)
-/// Falls back to 0 on non-Linux or unsupported drivers.
-fn read_sysfs_vram_used() -> u64 {
-    // Scan /sys/class/drm/cardN/device/mem_info_vram_used for any GPU
-    for entry in std::fs::read_dir("/sys/class/drm").into_iter().flatten() {
-        if let Ok(entry) = entry {
-            let path = entry.path().join("device/mem_info_vram_used");
-            if path.exists() {
-                if let Ok(content) = std::fs::read_to_string(&path) {
-                    if let Ok(bytes) = content.trim().parse::<u64>() {
-                        return bytes;
-                    }
-                }
-            }
+/// Read VRAM usage from Linux sysfs (amdgpu / i915)
+fn read_sysfs_vram(path: &str) -> u64 {
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|s| s.trim().parse::<u64>().ok())
+        .unwrap_or(0)
+}
+
+/// Read VRAM usage from nvidia-smi CLI (Linux, Windows, macOS with NVIDIA eGPU)
+/// Output format: memory used in MiB (one line per GPU, we take the max)
+fn read_nvidia_smi_vram() -> u64 {
+    let output = std::process::Command::new("nvidia-smi")
+        .arg("--query-gpu=memory.used")
+        .arg("--format=csv,noheader,nounits")
+        .output();
+
+    match output {
+        Ok(out) if out.status.success() => {
+            String::from_utf8_lossy(&out.stdout)
+                .lines()
+                .filter_map(|line| line.trim().parse::<u64>().ok())
+                .max()
+                .map(|mib| mib * 1024 * 1024) // MiB → bytes
+                .unwrap_or(0)
         }
+        _ => 0,
     }
-    0
 }
 
 /// Captures live hardware telemetry. Static GPU data is cached; RAM and VRAM usage are refreshed on each call.
@@ -129,16 +226,31 @@ pub fn capture_hardware_telemetry() -> HardwareTelemetry {
     let total_ram_gb = sys.total_memory() as f64 / 1024.0 / 1024.0 / 1024.0;
     let used_ram_gb = sys.used_memory() as f64 / 1024.0 / 1024.0 / 1024.0;
 
-    // Dynamic: VRAM usage from sysfs (real hardware reading)
-    let used_vram_bytes = read_sysfs_vram_used();
+    // Dynamic: VRAM usage from platform-specific source
+    let (used_vram_bytes, unified_memory) = match &static_info.vram_source {
+        VramSource::LinuxSysfs(path) => (read_sysfs_vram(path), false),
+        VramSource::NvidiaSmi => (read_nvidia_smi_vram(), false),
+        VramSource::UnifiedMemory => {
+            // Apple Silicon / iGPU: report system memory usage as "VRAM"
+            let used_bytes = sys.used_memory();
+            (used_bytes, true)
+        }
+        VramSource::Unavailable => (0, false),
+    };
+
     let used_vram_gb = used_vram_bytes as f64 / 1024.0 / 1024.0 / 1024.0;
-    let total_vram_gb = static_info.total_vram_bytes as f64 / 1024.0 / 1024.0 / 1024.0;
+    let total_vram_gb = if unified_memory {
+        total_ram_gb // Apple Silicon: VRAM total = RAM total
+    } else {
+        static_info.total_vram_bytes as f64 / 1024.0 / 1024.0 / 1024.0
+    };
 
     HardwareTelemetry {
         total_ram_gb,
         used_ram_gb,
         total_vram_gb,
         used_vram_gb,
-        gpu_name: static_info.gpu_name
+        gpu_name: static_info.gpu_name,
+        unified_memory,
     }
 }
