@@ -26,10 +26,30 @@ export const telemetryState = $state({
     contentGaps: [] as any[],
     topTopics: [] as any[],
     securityLogs: [] as any[],
-    logs: [] as string[]
+    logs: [] as string[],
+    // Resilience Shield — API Health
+    apiHealthy: 0,
+    apiDegraded: 0,
+    apiCriticalFailures: [] as string[],
+    apiLastChecked: 'Never',
+    apiEntries: [] as any[]
 });
 
 let pollInterval: any;
+
+async function fetchApiHealth() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/v1/analytics/api_health`);
+        if (res.ok) {
+            const data = await res.json();
+            telemetryState.apiHealthy = data.healthy || 0;
+            telemetryState.apiDegraded = data.degraded || 0;
+            telemetryState.apiCriticalFailures = data.critical_failures || [];
+            telemetryState.apiLastChecked = data.last_checked || 'Unknown';
+            telemetryState.apiEntries = data.entries || [];
+        }
+    } catch { /* Silently ignore — health data is non-critical for UI startup */ }
+}
 
 
 export function connectTelemetry() {
@@ -37,6 +57,10 @@ export function connectTelemetry() {
 
     telemetryState.connected = true;
     telemetryState.logs.push(`[${new Date().toLocaleTimeString()}] Sensus Telemetry Polling Linked.`);
+
+    // 🛡️ Resilience Shield: Fetch API health on connect + every 60s
+    fetchApiHealth();
+    setInterval(fetchApiHealth, 60_000);
 
     pollInterval = setInterval(async () => {
         try {
