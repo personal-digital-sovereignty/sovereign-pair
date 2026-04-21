@@ -1,5 +1,4 @@
 use ndarray::{Array1, Array2};
-use ndarray_linalg::QR;
 use rand::SeedableRng;
 use rand_distr::{Distribution, StandardNormal};
 use statrs::distribution::{Beta, Continuous};
@@ -32,11 +31,34 @@ impl TurboState {
     }
 }
 
-/// 1. Distribui a energia/variância dos embeddings através das dimensões via Matriz Ortogonal
+/// QR decomposition via Modified Gram-Schmidt (pure Rust, zero BLAS/Fortran deps).
+/// Returns the orthogonal Q matrix from the decomposition of `a`.
+fn gram_schmidt_qr(a: &Array2<f64>) -> Array2<f64> {
+    let (m, n) = a.dim();
+    let mut q = Array2::<f64>::zeros((m, n));
+    for j in 0..n {
+        let mut v = a.column(j).to_owned();
+        // Project out already-orthogonalised columns
+        for i in 0..j {
+            let qi = q.column(i).to_owned();
+            let dot = v.dot(&qi);
+            v = v - dot * &qi;
+        }
+        let norm = v.dot(&v).sqrt();
+        if norm > 1e-10 {
+            q.column_mut(j).assign(&(v / norm));
+        }
+    }
+    q
+}
+
+/// Distribui a energia/variância dos embeddings através das dimensões via Matriz Ortogonal.
+/// Gera uma matriz ortogonal aleatória com distribuição de Haar usando decomposição QR
+/// implementada em Rust puro — sem dependências de BLAS/LAPACK/Fortran.
 pub fn fit_rotation(dim: usize, seed: u64) -> Array2<f32> {
     let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
     let g: Array2<f64> = Array2::from_shape_fn((dim, dim), |_| StandardNormal.sample(&mut rng));
-    let (q, _) = g.qr().expect("Falha ao gerar decomposição QR para Matriz de Rotação");
+    let q = gram_schmidt_qr(&g);
     q.mapv(|x: f64| x as f32)
 }
 
