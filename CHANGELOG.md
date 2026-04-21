@@ -5,7 +5,7 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
-## [1.3.0] - 2026-04-20
+## [1.3.0] - 2026-04-21
 *Epic: Resilience Shield, Hardware Telemetry & Oracle Cloud Integration*
 
 ### Security (Hardening Crítico)
@@ -20,7 +20,16 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 
 ### Changed
 - **P2P Mesh Connector Hot-Reloading**: O Node principal refatorou a arquitetura em linha OCI para um Loop Mutável. Túneis Mesh ativam, reconfiguram portas P2P entre Local e Subrede Virtual na Oracle ao som de Configurações Svelte no SQLite sem Restart de sistema operante.
+### Fixed
 
+#### 🏗️ CI/CD — Cross-Platform Build Stability
+- **BUILD-01 — ndarray-linalg/openblas-static removido (Windows/aarch64 blocker)**: A dependência `ndarray-linalg` exigia compilação do OpenBLAS do zero via Fortran (`gfortran`) e `make` — toolchain ausente nos runners GitHub Actions para Windows e aarch64. Isso bloqueava 100% dos builds cross-platform na release branch. **Fix**: Substituída a decomposição QR por implementação pura em Rust (**Gram-Schmidt Modificado**) em `core/src/turboquant.rs`. Zero dependências de C/Fortran para geração de matrizes de rotação Haar. O binário agora compila nativamente em todas as plataformas sem toolchain nativa adicional (`core/Cargo.toml`, `core/src/turboquant.rs`).
+- **BUILD-02 — libsqlite3-sys bundled para Windows**: Feature `bundled` ativada no `core/Cargo.toml` para garantir compilação nativa do SQLite em runners Windows sem biblioteca pré-instalada no sistema.
+- **LINT-01 — Clippy 1.94 strict mode**: Corrigidos erros de `doc_lazy_continuation` e borrows desnecessários introduzidos pelo upgrade automático da toolchain Rust 1.94+ nos runners de CI. Pipeline retomada com `cargo clippy -- -D warnings` zerado em todas as plataformas (`core/src/turboquant.rs`).
+
+#### 🍎 macOS — Python Worker Pipeline (RAG & Deep Research)
+- **FIX-42 — resolve_python_workers_dir() retornava `/core/python_workers` no macOS produção**: Em produção (Tauri sidecar, binary standalone), `std::env::current_dir()` retorna `/` (root do filesystem). A lógica anterior priorizava CWD, gerando o path inexistente `/core/python_workers` — causando falha silenciosa do RAG Pipeline e Deep Research com `[Errno 2] No such file or directory` nos arquivos de saída `/tmp/sovereign/`. **Fix**: Detecção exe-relative agora é tentada **primeiro** (antes do CWD), garantindo resolução correta como sidecar Tauri (`Contents/MacOS/ → Contents/Resources/python_workers`) ou binary standalone (`exe_dir/python_workers`). Adicionada variável de ambiente `SOVEREIGN_WORKERS_DIR` como escape hatch para setups não-convencionais (`core/src/api_trainer.rs`).
+- **FIX-43 — resolve_venv_python() selecionava wrapper .app do Homebrew**: O symlink genérico `/opt/homebrew/bin/python3` aponta para o wrapper bundled do Homebrew (`Python@3.14/.../Python.app/Contents/MacOS/Python`), com comportamento de sandbox diferente do binário direto — causando falhas de path interno no script. **Fix**: Binários **versionados explícitos** agora são priorizados na ordem `python3.13 → python3.12 → python3.11`, apontando diretamente ao binário sem o wrapper `.app`. Auto-provisioning de Python standalone removido (comportamento não-confiável nos runners). **Requisito de Sistema**: Python 3.11+ deve estar pré-instalado — `brew install python@3.12` (macOS) · `apt install python3.12` (Linux) · installer python.org (Windows) (`core/src/api_trainer.rs`).
 
 
 ## [1.2.10] - 2026-04-18
