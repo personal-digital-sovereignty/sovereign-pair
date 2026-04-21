@@ -6,7 +6,6 @@ import urllib.request
 import urllib.error
 
 import sqlite3 as _sqlite3
-from sovereign_utils import get_db_path, normalize_key
 
 
 def resolve_from_db(db_path: str, norm_key: str, raw_ticker: str):
