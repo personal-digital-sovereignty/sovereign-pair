@@ -147,6 +147,14 @@ pub async fn auto_connect_oracle_node(db: sqlx::SqlitePool) {
                         current_child = Some(child);
                         active_port = Some(tunnel_port);
                         ACTIVE_MESH_TUNNELS.lock().await.insert(tunnel_port, (ssh_target.clone(), key_path.clone()));
+
+                        // GAP-OR-02: Dispara o Provisioner Auto-Sync (Master -> Replica SHA-256) em background
+                        let sync_config = config.clone();
+                        tokio::spawn(async move {
+                            if let Err(e) = crate::oracle_worker::provision_oracle_workers(&sync_config).await {
+                                warn!("❌ [Oracle Mesh] Provisioner Auto-Sync falhou: {}", e);
+                            }
+                        });
                     }
                     Err(e) => {
                         warn!("❌ [Oracle Mesh] Falha drástica no OS SSH spawn: {}. Retry em 30s.", e);
