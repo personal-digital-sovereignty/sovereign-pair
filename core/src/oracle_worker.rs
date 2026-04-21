@@ -294,6 +294,34 @@ pub async fn set_oracle_node_handler(
     axum::extract::State(state): axum::extract::State<std::sync::Arc<crate::AppState>>,
     axum::Json(payload): axum::Json<serde_json::Value>,
 ) -> axum::response::Json<serde_json::Value> {
+    // 🛡️ SECURITY AUDIT & GAP PREVENTION
+    // 1. Prevent raw SSH keys from ever being stored in the database.
+    // The user must provide a *path*, not the *content* of the key.
+    if let Some(key_path) = payload.get("key_path").and_then(|v| v.as_str()) {
+        let key_lower = key_path.to_lowercase();
+        if key_lower.contains("begin openssh private key") || 
+           key_lower.contains("begin rsa private key") ||
+           key_lower.contains("ssh-rsa aaa") ||
+           key_lower.contains("ssh-ed25519 aaa") ||
+           key_lower.contains("\n") ||
+           key_path.len() > 255 {
+            error!("🚨 [SECURITY GAP PREVENTED] Attempted to save a raw SSH Private Key instead of a file path in oracle_node config.");
+            return axum::response::Json(serde_json::json!({
+                "status": "error", 
+                "message": "SECURITY ALERT: You must provide a FILE PATH to the SSH key (e.g. ~/.ssh/id_ed25519), NOT the raw key payload. The system prevented saving your private key to the database."
+            }));
+        }
+    }
+
+    // 2. Validate Schema (Technical Debt Prevention)
+    // Avoid saving malformed JSON that will fail silently on load
+    if serde_json::from_value::<OracleNodeConfig>(payload.clone()).is_err() {
+        return axum::response::Json(serde_json::json!({
+            "status": "error", 
+            "message": "Invalid configuration schema. Must match OracleNodeConfig structure."
+        }));
+    }
+
     let json_str = payload.to_string();
     let result = sqlx::query(
         "INSERT INTO global_settings (id, value_json) VALUES ('oracle_node', ?)
@@ -305,7 +333,7 @@ pub async fn set_oracle_node_handler(
 
     match result {
         Ok(_) => {
-            info!("☁️ [Oracle Node] Configuration updated");
+            info!("☁️ [Oracle Node] Configuration updated cleanly and securely");
             axum::response::Json(serde_json::json!({"status": "ok"}))
         }
         Err(e) => axum::response::Json(serde_json::json!({"status": "error", "message": e.to_string()}))
