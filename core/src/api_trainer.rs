@@ -25,12 +25,16 @@ lazy_static! {
     };
 }
 
-/// FIX-MacOS/Windows: Resolve o caminho do Python para executar workers.
-/// Prioridade: Venv Hermético > Caminhos Absolutos do Sistema > PATH do Shell
-/// No MacOS App Bundle o PATH é restrito (~3 dirs), impedindo a resolução de `python3`
-/// via nome relativo. Precisamos provar caminhos absolutos conhecidos.
+/// Resolve o binário Python 3.11+ pré-instalado no sistema para executar os workers.
+///
+/// **Requisito de Sistema:** Python 3.11 ou superior deve estar instalado.
+/// - macOS: `brew install python@3.12` ou instalar via python.org
+/// - Linux: `sudo apt install python3.12` ou equivalente
+/// - Windows: Instalar via python.org (adicionar ao PATH)
+///
+/// Ordem de prioridade: Venv Hermético > Binários versionados (3.13/3.12/3.11) > `python3` genérico
 fn resolve_venv_python() -> std::path::PathBuf {
-    // 1. Venv Hermético (prioridade máxima)
+    // 1. Venv Hermético (prioridade máxima — se o usuário criou um venv dedicado)
     let venv_bin = if cfg!(target_os = "windows") {
         dirs::data_local_dir()
             .unwrap_or_default()
@@ -43,123 +47,164 @@ fn resolve_venv_python() -> std::path::PathBuf {
             .join("bin").join("python3")
     };
     if venv_bin.exists() {
-        tracing::info!("🐍 [Sandbox] Python Hermético encontrado: {:?}", venv_bin);
+        tracing::info!("🐍 [Sandbox] Python Hermético (venv) encontrado: {:?}", venv_bin);
         return venv_bin;
     }
-    tracing::warn!("⚠️ [Sandbox] Venv não encontrado em {:?}. Varrendo fallbacks do sistema...", venv_bin);
 
-    // 2. Caminhos absolutos conhecidos (MacOS Homebrew, Xcode CLT, Linux, Windows)
+    // 2. Binários versionados conhecidos — preferência por versões estáveis (3.13, 3.12, 3.11)
+    //    Usamos binários versionados explícitos para evitar o wrapper .app do Homebrew
+    //    que o symlink genérico `python3` pode apontar no macOS.
     let system_candidates: Vec<&str> = if cfg!(target_os = "windows") {
         vec![
+            "C:\\Python313\\python.exe",
             "C:\\Python312\\python.exe",
             "C:\\Python311\\python.exe",
-            "C:\\Python310\\python.exe",
         ]
     } else if cfg!(target_os = "macos") {
         vec![
-            "/opt/homebrew/bin/python3",           // MacOS ARM (Homebrew Apple Silicon)
-            "/usr/local/bin/python3",               // MacOS Intel (Homebrew x86)
-            "/Library/Frameworks/Python.framework/Versions/Current/bin/python3", // python.org installer
-            "/usr/bin/python3",                     // Xcode Command Line Tools
+            "/opt/homebrew/bin/python3.13",         // Homebrew ARM — versão explícita (sem wrapper .app)
+            "/opt/homebrew/bin/python3.12",         // Homebrew ARM — versão explícita
+            "/opt/homebrew/bin/python3.11",         // Homebrew ARM — versão explícita
+            "/usr/local/bin/python3.13",            // Homebrew Intel
+            "/usr/local/bin/python3.12",            // Homebrew Intel
+            "/usr/local/bin/python3.11",            // Homebrew Intel
+            "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3.13", // python.org
+            "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12", // python.org
+            "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3.11", // python.org
+            "/opt/homebrew/bin/python3",            // Fallback genérico Homebrew ARM
+            "/usr/local/bin/python3",               // Fallback genérico Homebrew Intel
+            "/usr/bin/python3",                     // Xcode CLT (pode estar desatualizado)
         ]
     } else {
-        // Linux
         vec![
+            "/usr/bin/python3.13",
+            "/usr/bin/python3.12",
+            "/usr/bin/python3.11",
+            "/usr/local/bin/python3.13",
+            "/usr/local/bin/python3.12",
+            "/usr/local/bin/python3.11",
             "/usr/bin/python3",
             "/usr/local/bin/python3",
-            "/usr/bin/python",
         ]
     };
 
     for candidate in &system_candidates {
         let path = std::path::PathBuf::from(candidate);
         if path.exists() {
-            tracing::info!("🐍 [Sandbox] Python do sistema encontrado via fallback absoluto: {:?}", path);
+            tracing::info!("🐍 [Sandbox] Python do sistema encontrado: {:?}", path);
             return path;
         }
     }
 
-    // 3. Último recurso: `which python3` / `where python` (resolve via PATH do shell pai)
+    // 3. Fallback: `which python3` via PATH do processo pai
     let which_cmd = if cfg!(target_os = "windows") { "where" } else { "which" };
     let probe_name = if cfg!(target_os = "windows") { "python" } else { "python3" };
     if let Ok(output) = std::process::Command::new(which_cmd).arg(probe_name).output() {
         if output.status.success() {
-            let resolved = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            let resolved = String::from_utf8_lossy(&output.stdout)
+                .lines().next().unwrap_or("").trim().to_string();
             if !resolved.is_empty() {
                 let path = std::path::PathBuf::from(&resolved);
                 if path.exists() {
-                    tracing::info!("🐍 [Sandbox] Python encontrado via '{}': {:?}", which_cmd, path);
+                    tracing::info!("🐍 [Sandbox] Python encontrado via PATH ('{}' {}): {:?}", which_cmd, probe_name, path);
                     return path;
                 }
             }
         }
     }
 
-    // 3.5 Sovereign Standalone Python (auto-provisionado pelo sandbox.rs)
-    let standalone_bin = crate::sandbox::get_hermetic_python_bin();
-    if standalone_bin.exists() {
-        tracing::info!("🐍 [Sandbox] Python Hermético (standalone/venv) encontrado: {:?}", standalone_bin);
-        return standalone_bin;
-    }
-
-    // Tenta o Python standalone root (sem venv, direto do download)
-    let standalone_root = if cfg!(target_os = "windows") {
-        dirs::data_local_dir().unwrap_or_default()
-            .join("sovereign-pair").join("sandbox").join("python").join("python.exe")
-    } else {
-        dirs::data_local_dir().unwrap_or_default()
-            .join("sovereign-pair").join("sandbox").join("python").join("bin").join("python3")
-    };
-    if standalone_root.exists() {
-        tracing::info!("🐍 [Sandbox] Python standalone root encontrado: {:?}", standalone_root);
-        return standalone_root;
-    }
-
-    // 4. Falha catastrófica — retorna nome relativo e loga erro acionável
+    // 4. Falha — Python 3.11+ não encontrado. Emite erro acionável.
     let fallback = if cfg!(target_os = "windows") { "python" } else { "python3" };
     tracing::error!(
-        "❌ [Sandbox] NENHUM Python encontrado no sistema! Caminhos testados: {:?}. \
-         Instale Python 3.10+ para habilitar o Deep Research Pipeline. \
-         MacOS: `brew install python3` ou `xcode-select --install`. \
-         Linux: `sudo apt install python3 python3-venv`.",
+        "❌ [Sandbox] Python 3.11+ não encontrado no sistema! \
+         O Deep Research Pipeline e o RAG exigem Python 3.11 ou superior pré-instalado. \
+         → macOS:   brew install python@3.12 \
+         → Linux:   sudo apt install python3.12 python3.12-venv \
+         → Windows: https://www.python.org/downloads/ (marcar 'Add to PATH'). \
+         Caminhos testados: {:?}",
         system_candidates
     );
     std::path::PathBuf::from(fallback)
 }
 
-/// Helper para varrer os diretórios e achar 'python_workers' no MacOS / Linux
+/// Resolve o diretório dos Python workers de forma robusta em todos os ambientes.
+///
+/// Ordem de prioridade (da mais confiável para a menos):
+/// 1. `SOVEREIGN_WORKERS_DIR` env var (override manual absoluto)
+/// 2. Relativo ao executável (produção: .app bundle, sidecar Tauri, release binary)
+/// 3. Relativo ao CWD (desenvolvimento: `cargo run` dentro do workspace)
+///
+/// **Bug macOS corrigido:** no macOS em produção, `current_dir()` retorna `/`.
+/// Tentar `/ + core/python_workers` gerava `/core/python_workers` (inexistente).
+/// A detecção exe-relative agora é feita PRIMEIRO para evitar esse caminho falso.
 pub fn resolve_python_workers_dir() -> std::path::PathBuf {
-    let cur_dir = std::env::current_dir().unwrap_or_default();
-    
-    // Tentativa 1: Dev environment (Cargo workspace root)
-    if cur_dir.join("core").join("python_workers").exists() {
-        return cur_dir.join("core").join("python_workers");
+    // 0. Override explícito via variável de ambiente (escape hatch para casos edge)
+    if let Ok(env_path) = std::env::var("SOVEREIGN_WORKERS_DIR") {
+        let path = std::path::PathBuf::from(&env_path);
+        if path.exists() {
+            tracing::info!("🐍 [Workers] Diretório de workers via SOVEREIGN_WORKERS_DIR: {:?}", path);
+            return path;
+        }
+        tracing::warn!("⚠️ [Workers] SOVEREIGN_WORKERS_DIR={} definido mas não existe.", env_path);
     }
-    // Tentativa 2: Single crate cargo run
-    if cur_dir.join("python_workers").exists() {
-        return cur_dir.join("python_workers");
-    }
-    
-    // Tentativa 3: Ambiente produtivo (App Bundle do MacOS / Release Executable)
+
+    // 1. Relativo ao executável — DEVE ser a primeira tentativa em produção.
+    //    No macOS current_dir() pode retornar "/" (root), tornando as tentativas
+    //    baseadas em CWD inúteis. O path do executável é sempre absoluto e confiável.
     if let Ok(exe) = std::env::current_exe() {
         if let Some(parent) = exe.parent() {
-            // Em MacOS App Bundle, Contents/MacOS/exe -> Contents/Resources/python_workers
-            if parent.join("../Resources/python_workers").exists() {
-                return parent.join("../Resources/python_workers").canonicalize()
-                    .unwrap_or_else(|_| parent.join("../Resources/python_workers"));
+            // macOS .app bundle: Contents/MacOS/sovereign-core -> Contents/Resources/python_workers
+            let app_bundle_path = parent.join("../Resources/python_workers");
+            if app_bundle_path.exists() {
+                let canonical = app_bundle_path.canonicalize()
+                    .unwrap_or_else(|_| app_bundle_path.clone());
+                tracing::info!("🐍 [Workers] Workers encontrados no App Bundle: {:?}", canonical);
+                return canonical;
             }
+            // Release binary standalone: sovereign-core + python_workers/ no mesmo dir
             if parent.join("python_workers").exists() {
+                tracing::info!("🐍 [Workers] Workers encontrados ao lado do executável: {:?}", parent.join("python_workers"));
                 return parent.join("python_workers");
+            }
+            // Tauri sidecar: binaries/ -> ../../python_workers (estrutura Tauri)
+            if let Some(grandparent) = parent.parent() {
+                if grandparent.join("python_workers").exists() {
+                    tracing::info!("🐍 [Workers] Workers encontrados via Tauri sidecar path: {:?}", grandparent.join("python_workers"));
+                    return grandparent.join("python_workers");
+                }
             }
         }
     }
-    
-    // Tentativa 4: Fallback original que sempre quebrava no Mac
-    if cur_dir.ends_with("core") {
+
+    // 2. Relativo ao CWD — funciona em desenvolvimento (cargo run no workspace root)
+    let cur_dir = std::env::current_dir().unwrap_or_default();
+
+    // Dev: cargo run na raiz do workspace (sovereign-pair/)
+    if cur_dir.join("core").join("python_workers").exists() {
+        tracing::info!("🐍 [Workers] Workers encontrados via workspace dev (CWD): {:?}", cur_dir.join("core/python_workers"));
+        return cur_dir.join("core").join("python_workers");
+    }
+    // Dev: cargo run dentro de sovereign-pair/core/
+    if cur_dir.join("python_workers").exists() {
+        tracing::info!("🐍 [Workers] Workers encontrados via crate dev (CWD): {:?}", cur_dir.join("python_workers"));
+        return cur_dir.join("python_workers");
+    }
+
+    // 3. Fallback — nenhum caminho encontrado. Loga erro detalhado para diagnóstico.
+    let fallback = if cur_dir.ends_with("core") {
         cur_dir.join("python_workers")
     } else {
         cur_dir.join("core").join("python_workers")
-    }
+    };
+    tracing::error!(
+        "❌ [Workers] Diretório python_workers não encontrado! \
+         CWD: {:?} | EXE: {:?} | Fallback: {:?}. \
+         Defina SOVEREIGN_WORKERS_DIR=/caminho/absoluto/para/python_workers para corrigir.",
+        cur_dir,
+        std::env::current_exe().ok(),
+        fallback
+    );
+    fallback
 }
 
 /// Extrai blocos raw de dados temporais de `all_sources`.
