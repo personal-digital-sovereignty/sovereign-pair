@@ -5,6 +5,23 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
+## [1.3.0] - 2026-04-20
+*Epic: Resilience Shield, Hardware Telemetry & Oracle Cloud Integration*
+
+### Security (Hardening Crítico)
+- **CWE-78 Command Injection (Remote RCE)**: Identificada e aniquilada uma vulnerabilidade severa de injeção direta ao protocolo `ssh`. Caracteres maliciosos (`; rm -rf /`) injetados via Payload Axum nas configurações de P2P da OCI Cloud executariam evasão de Shell Bash. Desenvolvida blindagem `shell_escape()` e rejeição por Regex pura no Guard Axum protegendo a Nuvem Oracle remota 100%.
+- **Chaves SSH Blindadas Exfiltradas**: O Vault de segredos `/v1/settings/oracle_node` ativamente rejeita a gravação de arquivos que denotem conteudos crus de PEM/RSA Keys.
+- **SHA-256 Worker Auto-Provisioning (Fase 3)**: Garantida absoluta Assimetria Criptográfica. A Engine Base (Rust local) não injetará códigos subversivos Python. Antes da malha OCI invocar inferência, é tirado checksum digital dos scripts (Master Node). O Oracle Replique avalia: Se diferente, clona assincronamente a verdade local via `.rsync` e Delta sync antes de executar o loop.
+
+### Added
+- **Resilience Shield (Watchdog Auto-Heal)**: O monitorador local das CPUs (`health_gate.rs`) adotou postura *Fail-Secure supervisor*. Erros sistêmicos engoliam o background (Deadlocks) em OOM/Panics. A thread agora vigia filhos órfãos reerguendo ativamente o escudo 60s após falha mortífera.
+- **Dynamic Context Engines (TD-HW-02)**: Estrangulamento superado. LLMs eficientes suportam densidada brutal. Modificado teto base do *Context Window* das Telemetrias: Escala agora puramente com litografia VRAM, cravando limite recorde de **128.000 tokens** em Arrays de HW > 48GB nativo local.
+- **Hardware Hot-Swap Cache (TTL RwLock)**: Abandonada a matriz engessada em `OnceLock`. Hardware Mac M-Max ou Placas RTX externas (Thunderbolt) atreladas pós-boot são injetadas estaticamente via um cache *time-to-live* de 60s sem reinicialização da Engine Base Rust.
+
+### Changed
+- **P2P Mesh Connector Hot-Reloading**: O Node principal refatorou a arquitetura em linha OCI para um Loop Mutável. Túneis Mesh ativam, reconfiguram portas P2P entre Local e Subrede Virtual na Oracle ao som de Configurações Svelte no SQLite sem Restart de sistema operante.
+
+
 
 ## [1.2.10] - 2026-04-18
 *CI/CD Stability — Semgrep SAST False Positive Fix*
