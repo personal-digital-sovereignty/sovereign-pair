@@ -38,7 +38,14 @@ enum VramSource {
     Unavailable,
 }
 
-static STATIC_HARDWARE_CACHE: OnceLock<StaticHardwareInfo> = OnceLock::new();
+use std::sync::RwLock;
+use std::time::{Instant, Duration};
+
+lazy_static::lazy_static! {
+    static ref STATIC_HARDWARE_CACHE: RwLock<(Option<StaticHardwareInfo>, Instant)> = 
+        RwLock::new((None, Instant::now() - Duration::from_secs(1000)));
+}
+
 
 struct VkInstanceGuard(ash::Instance);
 impl Drop for VkInstanceGuard {
@@ -132,9 +139,14 @@ fn detect_vram_source(gpu_name: &str) -> VramSource {
     }
 }
 
-/// Query static GPU info via Vulkan (called once, cached forever)
+/// Query static GPU info via Vulkan (Recached every 60s via dyn-TTL)
 fn get_static_gpu_info() -> StaticHardwareInfo {
-    STATIC_HARDWARE_CACHE.get_or_init(|| {
+    let needs_reload = {
+        let guard = STATIC_HARDWARE_CACHE.read().unwrap();
+        guard.0.is_none() || guard.1.elapsed() > Duration::from_secs(60)
+    };
+
+    if needs_reload {
         let mut total_vram_bytes: u64 = 0;
         let mut gpu_name = "N/A".to_string();
 
@@ -180,11 +192,16 @@ fn get_static_gpu_info() -> StaticHardwareInfo {
 
         let vram_source = detect_vram_source(&gpu_name);
 
-        info!("🖥️ [Hardware] GPU: {}, VRAM: {:.1} GB, Source: {:?}", 
+        info!("🖥️ [Hardware] GPU Telemetry Recached: {}, VRAM: {:.1} GB, Source: {:?}", 
             gpu_name, total_vram_bytes as f64 / 1024.0 / 1024.0 / 1024.0, vram_source);
 
-        StaticHardwareInfo { total_vram_bytes, gpu_name, vram_source }
-    }).clone()
+        let new_info = StaticHardwareInfo { total_vram_bytes, gpu_name, vram_source };
+        let mut write_guard = STATIC_HARDWARE_CACHE.write().unwrap();
+        *write_guard = (Some(new_info.clone()), Instant::now());
+        return new_info;
+    }
+
+    STATIC_HARDWARE_CACHE.read().unwrap().0.clone().unwrap()
 }
 
 /// Read VRAM usage from Linux sysfs (amdgpu / i915)

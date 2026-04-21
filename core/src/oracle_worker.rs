@@ -279,6 +279,104 @@ pub struct OracleStatus {
     pub error: Option<String>,
 }
 
+// ─── Oracle Auto-Provisioner (Master -> Replica SHA-256) ──────────────────
+
+/// Sincroniza workers locais para o Oracle validando hash SHA-256. (GAP-OR-02)
+/// Mestre: "./python_workers" locais (Sovereign Core)
+/// Réplica: "workers_dir" no nó OCI remoto.
+pub async fn provision_oracle_workers(config: &OracleNodeConfig) -> Result<(), String> {
+    if !config.is_ready() {
+        return Ok(());
+    }
+    
+    let local_dir = std::path::Path::new("../python_workers");
+    let fallback_dir = std::path::Path::new("python_workers");
+    let target_dir = if local_dir.exists() {
+        local_dir
+    } else if fallback_dir.exists() {
+        fallback_dir
+    } else {
+        warn!("☁️ [Oracle Provisioner] Local directory 'python_workers' not found.");
+        return Ok(());
+    };
+
+    use sha2::{Sha256, Digest};
+    let mut hasher = Sha256::new();
+    let mut entries: Vec<_> = std::fs::read_dir(target_dir)
+        .map_err(|e| e.to_string())?
+        .filter_map(|res| res.ok())
+        .collect();
+    
+    // Sort logic to guarantee deterministic hash
+    entries.sort_by_key(|e| e.file_name());
+
+    for entry in entries {
+        let path = entry.path();
+        if path.is_file() && path.extension().is_some_and(|ext| ext == "py") {
+            if let Ok(content) = std::fs::read(&path) {
+                hasher.update(&content);
+            }
+        }
+    }
+    let full_hash = format!("{:x}", hasher.finalize());
+    let local_hash = if full_hash.is_empty() { String::new() } else { full_hash };
+
+    let remote_cmd = format!("ls -1 {}/*.py 2>/dev/null | sort | xargs cat 2>/dev/null | sha256sum | awk '{{print $1}}'", config.workers_dir);
+    let key_path = config.resolve_key_path();
+    
+    let probe = tokio::process::Command::new("ssh")
+        .arg("-i").arg(&key_path)
+        .arg("-o").arg("StrictHostKeyChecking=accept-new")
+        .arg("-o").arg("BatchMode=yes")
+        .arg(config.ssh_target())
+        .arg(&remote_cmd)
+        .output()
+        .await
+        .map_err(|e| format!("SSH Hash Probe error: {}", e))?;
+
+    let remote_hash = String::from_utf8_lossy(&probe.stdout).trim().to_string();
+
+    if remote_hash == local_hash && !local_hash.is_empty() {
+        let print_hash = if local_hash.len() > 8 { &local_hash[..8] } else { &local_hash };
+        info!("☁️ [Oracle Provisioner] SHA-256 Validado ({}). Replica em sync nativo.", print_hash);
+        return Ok(());
+    }
+
+    info!("☁️ [Oracle Provisioner] Diferença SHA-256 detectada. Acionando Mestre -> Réplica via Rsync...");
+
+    // Cria o dir remoto de formatação pra previnir failure
+    let _ = tokio::process::Command::new("ssh")
+        .arg("-i").arg(&key_path)
+        .arg("-o").arg("StrictHostKeyChecking=accept-new")
+        .arg("-o").arg("BatchMode=yes")
+        .arg(config.ssh_target())
+        .arg(format!("mkdir -p {}", config.workers_dir))
+        .output()
+        .await;
+
+    let rsync_ssh_arg = format!("ssh -i {} -o StrictHostKeyChecking=accept-new -o BatchMode=yes", key_path);
+    let rsync_target = format!("{}:{}/", config.ssh_target(), config.workers_dir);
+    let src_dir = format!("{}/", target_dir.to_string_lossy());
+
+    let rsync_cmd = tokio::process::Command::new("rsync")
+        .arg("-avz")
+        .arg("--exclude").arg("__pycache__")
+        .arg("-e").arg(&rsync_ssh_arg)
+        .arg(&src_dir)
+        .arg(&rsync_target)
+        .output()
+        .await
+        .map_err(|e| format!("Rsync command failed: {}", e))?;
+
+    if rsync_cmd.status.success() {
+        let print_hash = if local_hash.len() > 8 { &local_hash[..8] } else { &local_hash };
+        info!("✅ [Oracle Provisioner] Sync concluído com mestre. Hash unificado em {}", print_hash);
+        Ok(())
+    } else {
+        Err(format!("Rsync falhou: {}", String::from_utf8_lossy(&rsync_cmd.stderr)))
+    }
+}
+
 // ─── Axum Handler: GET /v1/settings/oracle_node ───────────────────────────
 
 pub async fn get_oracle_node_handler(
