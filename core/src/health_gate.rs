@@ -168,28 +168,48 @@ pub async fn startup_health_gate(db: SqlitePool, health_state: HealthState) {
     }
 }
 
-/// Periodic watchdog: re-checks every 4 hours
+/// Periodic watchdog: re-checks every 4 hours with Auto-Heal Anti-Panic architecture (TD-RS-01)
 pub async fn spawn_periodic_watchdog(db: SqlitePool, health_state: HealthState) {
+    // 🛡️ Supervisor Thread: Imune aos pânicos internos
     tokio::spawn(async move {
-        // Wait 4 hours between checks
-        let interval = std::time::Duration::from_secs(4 * 60 * 60);
         loop {
-            tokio::time::sleep(interval).await;
-            info!("🛡️ [Resilience Shield] Periodic health check triggered (4h interval)");
-            match run_health_check().await {
-                Ok(entries) => {
-                    persist_health_results(&db, &entries).await;
-                    let summary = build_summary(entries);
-                    *health_state.write().await = summary;
+            let db_clone = db.clone();
+            let health_clone = health_state.clone();
+            
+            // Sub-thread Isolada (se crashar por unwrap ou parser quebrado, só ela cai)
+            let handle = tokio::spawn(async move {
+                let interval = std::time::Duration::from_secs(4 * 60 * 60);
+                loop {
+                    tokio::time::sleep(interval).await;
+                    info!("🛡️ [Resilience Shield] Periodic health check triggered (4h interval)");
+                    match run_health_check().await {
+                        Ok(entries) => {
+                            persist_health_results(&db_clone, &entries).await;
+                            let summary = build_summary(entries);
+                            *health_clone.write().await = summary;
+                        }
+                        Err(e) => {
+                            error!("🛡️ [Resilience Shield] Periodic health check failed: {}", e);
+                            // GAP-RS-03: Update timestamp even on failure so frontend never shows stale data
+                            let mut state = health_clone.write().await;
+                            state.last_checked = format!("{} (check failed: {})",
+                                chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+                                &e[..e.len().min(60)]
+                            );
+                        }
+                    }
+                }
+            });
+
+            // Se o join falhar, a thread filha entrou em Panic/Abort. Acionamos o Rescue!
+            match handle.await {
+                Ok(_) => {
+                    // Loop infinito saiu limpo — quebramos a main thread gracefully
+                    break;
                 }
                 Err(e) => {
-                    error!("🛡️ [Resilience Shield] Periodic health check failed: {}", e);
-                    // GAP-RS-03: Update timestamp even on failure so frontend never shows stale data
-                    let mut state = health_state.write().await;
-                    state.last_checked = format!("{} (check failed: {})",
-                        chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
-                        &e[..e.len().min(60)]
-                    );
+                    error!("🚨 [CRITICAL GAP EVADED] Watchdog Health Thread sofreu PANIC Interno: {}. Respawning em 60s...", e);
+                    tokio::time::sleep(std::time::Duration::from_secs(60)).await;
                 }
             }
         }
