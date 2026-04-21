@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import sqlite3
 import urllib.request
 import logging
@@ -14,8 +15,6 @@ TARGET_MODELS = [
     "claude-3-5-sonnet-20240620",
     "gemini-1.5-pro"
 ]
-
-import time
 
 def fetch_pricing_data() -> Dict[str, Any]:
     req = urllib.request.Request(LITELLM_PRICES_URL, headers={'User-Agent': 'Sovereign-Cibrid'})
