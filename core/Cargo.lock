@@ -4564,6 +4564,7 @@ dependencies = [
  "image",
  "jsonwebtoken",
  "lazy_static",
+ "libsqlite3-sys",
  "mdns-sd",
  "mime_guess",
  "ndarray 0.15.6",
