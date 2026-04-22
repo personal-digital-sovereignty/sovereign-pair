@@ -53,8 +53,9 @@
     "externalBin": [
       "binaries/sovereign-core"
     ],
-    "resources": [
-      "../../infra/plasma-widget/**/*"
-    ]
+    "resources": {
+      "../../infra/plasma-widget": "infra/plasma-widget",
+      "../../core/python_workers": "python_workers"
+    }
   }
 }

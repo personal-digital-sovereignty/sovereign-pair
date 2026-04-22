@@ -166,11 +166,17 @@ pub fn resolve_python_workers_dir() -> std::path::PathBuf {
                 tracing::info!("🐍 [Workers] Workers encontrados ao lado do executável: {:?}", parent.join("python_workers"));
                 return parent.join("python_workers");
             }
-            // Tauri sidecar: binaries/ -> ../../python_workers (estrutura Tauri)
+            // Tauri sidecar DEV mode: binaries/ -> ../../../core/python_workers
             if let Some(grandparent) = parent.parent() {
                 if grandparent.join("python_workers").exists() {
                     tracing::info!("🐍 [Workers] Workers encontrados via Tauri sidecar path: {:?}", grandparent.join("python_workers"));
                     return grandparent.join("python_workers");
+                }
+                let tauri_dev_path = grandparent.join("../../core/python_workers");
+                if tauri_dev_path.exists() {
+                    let canonical = tauri_dev_path.canonicalize().unwrap_or(tauri_dev_path.clone());
+                    tracing::info!("🐍 [Workers] Workers encontrados via Tauri DEV path: {:?}", canonical);
+                    return canonical;
                 }
             }
         }
