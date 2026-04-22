@@ -109,6 +109,9 @@ impl TelemetryState {
         // GAP-01: Refresh dynamic VRAM usage from sysfs on each poll cycle
         let hw = crate::hardware::capture_hardware_telemetry();
         self.gpu_vram_used_mb = (hw.used_vram_gb * 1024.0) as u64;
+        self.gpu_vram_total_mb = (hw.total_vram_gb * 1024.0) as u64;
+        self.gpu_name = hw.gpu_name;
+        self.unified_memory = hw.unified_memory;
     }
 
     pub fn get_snapshot(&self) -> TelemetrySnapshot {

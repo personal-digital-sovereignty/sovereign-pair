@@ -26,6 +26,7 @@ export const telemetryState = $state({
     contentGaps: [] as any[],
     topTopics: [] as any[],
     securityLogs: [] as any[],
+    systemLogs: [] as any[],
     logs: [] as string[],
     // Resilience Shield — API Health
     apiHealthy: 0,
