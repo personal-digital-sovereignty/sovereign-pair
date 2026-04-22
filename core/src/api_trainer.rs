@@ -33,7 +33,7 @@ lazy_static! {
 /// - Windows: Instalar via python.org (adicionar ao PATH)
 ///
 /// Ordem de prioridade: Venv Hermético > Binários versionados (3.13/3.12/3.11) > `python3` genérico
-fn resolve_venv_python() -> std::path::PathBuf {
+pub fn resolve_venv_python() -> std::path::PathBuf {
     // 1. Venv Hermético (prioridade máxima — se o usuário criou um venv dedicado)
     let venv_bin = if cfg!(target_os = "windows") {
         dirs::data_local_dir()
@@ -1050,11 +1050,8 @@ pub async fn run_deep_research_handler(
                 "options": options_obj
             });
 
-            // FIX-23b: "think" deve estar no TOP-LEVEL do payload, não dentro de "options".
-            // O Ollama ignora silenciosamente campos desconhecidos em "options".
-            if cycle < 15 {
-                synthesis_payload["think"] = serde_json::json!(false);
-            }
+            // [HARDENING FIX]: Remoção da imposição "think": false que causava Resposta VAZIA nos modelos
+            // Permitimos que os modelos usem o próprio chain-of-thought para formular a tool call.
 
             if cycle < 25 {
                 synthesis_payload["tools"] = tools_schema.clone();
@@ -1071,7 +1068,7 @@ pub async fn run_deep_research_handler(
                 if let Ok(json) = res.json::<serde_json::Value>().await {
                     if let Some(msg_obj) = json.get("message") {
                         // 1. O Modelo usou uma Ferramenta (Tool Call)?
-                        if let Some(tool_calls) = msg_obj.get("tool_calls").and_then(|t| t.as_array()) {
+                        if let Some(tool_calls) = msg_obj.get("tool_calls").and_then(|t| t.as_array()).filter(|a| !a.is_empty()) {
                             let _ = TRAINER_LOGS.send(format!("O Mestre ativou Tool Calling! ({}) funções detectadas.", tool_calls.len()));
                             
                             messages.push(msg_obj.clone()); // Adiciona o request do assistant no histórico
