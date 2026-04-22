@@ -197,6 +197,7 @@ import { API_BASE_URL } from '$lib/env_config';
           </div>
 
           <!-- VRAM Component -->
+          {#if telemetryState.vramTotalMB > 0 || telemetryState.unifiedMemory}
           <div>
             <div class="flex justify-between items-end mb-1">
               <div>
@@ -208,6 +209,7 @@ import { API_BASE_URL } from '$lib/env_config';
               <div class="bg-emerald-400 dark:bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: {telemetryState.vramTotalMB > 0 ? '100%' : '0%'}"></div>
             </div>
           </div>
+          {/if}
           
           <!-- Tokens/Sec Simulated Bar -->
           <div class="flex items-center justify-between">

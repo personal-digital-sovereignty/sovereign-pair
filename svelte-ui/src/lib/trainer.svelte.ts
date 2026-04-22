@@ -56,8 +56,14 @@ export const trainerState = $state({
     deepResearchQueryExpansion: false,
     deepResearchFirewallEnabled: true,
     deepResearchScrapedSources: 0,
-    deepResearchModel: "llama3.2:latest"
+    deepResearchModel: "llama3.2:latest",
+    deepResearchLogs: [] as string[],
+    deepResearchFlowStep: 0
 });
+
+export const globals = {
+    deepResearchSseClient: null as EventSource | null
+};
 
 export const AI_MODELS = $state<{ id: string; name: string; type: string; provider: string; sizeB: number; badge: string }[]>([]);
 
