@@ -1247,8 +1247,26 @@ let mut ollama_payload = json!({
 
 // Injeção de Tools Requisitadas pelo Frontend (Vercel AI SDK JSON Schema)
 let mut injected_tools = Vec::new();
-if let Some(tools) = payload.tools {
+if let Some(tools) = payload.tools.clone() {
     injected_tools.extend(tools);
+}
+
+// [HARDENING FIX]: Injeta Tools Nativas do Sovereign Trainer para Chat (Thought Nanny Chat Dispatcher)
+let registry_path = crate::api_trainer::resolve_python_workers_dir().join("registry.json");
+if let Ok(file_content) = std::fs::read_to_string(&registry_path) {
+    if let Ok(registry) = serde_json::from_str::<Vec<serde_json::Value>>(&file_content) {
+        for t in registry {
+            if let Some(func) = t.get("function") {
+                if let Some(name) = func.get("name").and_then(|n| n.as_str()) {
+                    if name != "dispatch_sub_researcher" || true { // Inclui TODAS as ferramentas
+                        if let Ok(model) = serde_json::from_value(t.clone()) {
+                            injected_tools.push(model);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // ================= THE SOVEREIGN VISUAL ARTIST (NATIVE TOOL) =================
@@ -1523,15 +1541,20 @@ let mut map_stream = res.bytes_stream().map(move |result| {
                                     if let Some(func) = tc.get("function") {
                                         let name = func.get("name").and_then(|n| n.as_str()).map(|n| n.to_string());
                                         
-                                        // Intercept Sovereign Native Visual Artist
-                                        if name.as_deref() == Some("dispatch_visual_artist") {
-                                            is_visual_artist = true;
-                                            if let Some(args_val) = func.get("arguments") {
-                                                if args_val.is_object() {
-                                                    visual_prompt = args_val.get("prompt").and_then(|p| p.as_str()).unwrap_or("").to_string();
-                                                } else if let Some(parsed) = args_val.as_str().and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok()) {
-                                                    visual_prompt = parsed.get("prompt").and_then(|p| p.as_str()).unwrap_or("").to_string();
+                                        // Intercept Sovereign Native Tools (Visual Artist & Python Workers)
+                                        if let Some(n) = name.as_deref() {
+                                            if n == "dispatch_visual_artist" || n == "fetch_macroeconomy" || n == "fetch_financial_ticker" || n == "search_api_directory" || n == "fetch_json_endpoint" || n == "execute_python_code" || n == "dispatch_sub_researcher" {
+                                                is_visual_artist = true; // Reusing this flag to bypass UI returning and trigger execution
+                                                if let Some(args_val) = func.get("arguments") {
+                                                    if args_val.is_object() {
+                                                        visual_prompt = serde_json::to_string(args_val).unwrap_or_default();
+                                                    } else if let Some(s) = args_val.as_str() {
+                                                        visual_prompt = s.to_string();
+                                                    }
                                                 }
+                                                // Store the tool name in a hacky way if it's not visual artist (since we only have visual_prompt string)
+                                                // We can prefix the visual_prompt to know which tool it is!
+                                                visual_prompt = format!("{}|||{}", n, visual_prompt);
                                             }
                                         }
                                         
@@ -1556,53 +1579,135 @@ let mut map_stream = res.bytes_stream().map(move |result| {
                                     let req_model = requested_model.clone();
                                     
                                     tokio::spawn(async move {
-                                        let loading_msg = format!("\n\n🎨 **Sovereign Vision Engine**: Acionando SD.cpp no Bare-Metal para forjar imagem fotorealista Baseada em: *{}*. Aguarde...\n\n", p_clone);
-                                        let chunk = crate::models::OpenAIChatChunkResponse {
-                                            id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
-                                            object: "chat.completion.chunk".to_string(),
-                                            created: chrono::Local::now().timestamp(),
-                                            model: req_model.clone(),
-                                            choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(loading_msg), tool_calls: None }, finish_reason: None }],
-                                            usage: None,
-                                        };
-                                        let _ = tx_visual.send(Event::default().data(serde_json::to_string(&chunk).unwrap()));
+                                        let mut tool_name = "dispatch_visual_artist".to_string();
+                                        let mut args_str = p_clone.clone();
+                                        if let Some(idx) = p_clone.find("|||") {
+                                            tool_name = p_clone[..idx].to_string();
+                                            args_str = p_clone[idx+3..].to_string();
+                                        }
+                                        
+                                        let pseudo_json = serde_json::from_str::<serde_json::Value>(&args_str).unwrap_or(serde_json::Value::Null);
 
-                                        let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(120)).build().unwrap_or_default();
-                                        if let Ok(r) = client.post(format!("{}{}", std::env::var("SOVEREIGN_API_URL").unwrap_or_else(|_| "http://127.0.0.1:38001".to_string()), "/v1/images/generations")).json(&serde_json::json!({ "prompt": p_clone })).send().await {
-                                            if let Ok(j) = r.json::<serde_json::Value>().await {
-                                                if let Some(url) = j.get("data").and_then(|arr| arr.as_array()).and_then(|a| a.first()).and_then(|f| f.get("url")).and_then(|u| u.as_str()) {
-                                                    let ok_msg = format!("![Sovereign Vault Artefact]({})\n\n", url);
-                                                    let ok_chunk = crate::models::OpenAIChatChunkResponse {
-                                                        id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
-                                                        object: "chat.completion.chunk".to_string(),
-                                                        created: chrono::Local::now().timestamp(),
-                                                        model: req_model.clone(),
-                                                        choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(ok_msg), tool_calls: None }, finish_reason: None }],
-                                                        usage: None,
-                                                    };
-                                                    let _ = tx_visual.send(Event::default().data(serde_json::to_string(&ok_chunk).unwrap()));
-                                                } else {
-                                                    let err_chunk = crate::models::OpenAIChatChunkResponse {
-                                                        id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
-                                                        object: "chat.completion.chunk".to_string(),
-                                                        created: chrono::Local::now().timestamp(),
-                                                        model: req_model.clone(),
-                                                        choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some("\n\n❌ Falha estrutural no motor de Visão. A imagem não foi renderizada.\n".to_string()), tool_calls: None }, finish_reason: None }],
-                                                        usage: None,
-                                                    };
-                                                    let _ = tx_visual.send(Event::default().data(serde_json::to_string(&err_chunk).unwrap()));
-                                                }
-                                            }
-                                        } else {
-                                            let offline_chunk = crate::models::OpenAIChatChunkResponse {
+                                        if tool_name == "dispatch_visual_artist" {
+                                            let prompt_only = if pseudo_json.is_object() { pseudo_json.get("prompt").and_then(|p| p.as_str()).unwrap_or("").to_string() } else { args_str.clone() };
+                                            let loading_msg = format!("\n\n🎨 **Sovereign Vision Engine**: Acionando SD.cpp no Bare-Metal para forjar imagem fotorealista Baseada em: *{}*. Aguarde...\n\n", prompt_only);
+                                            let chunk = crate::models::OpenAIChatChunkResponse {
                                                 id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
                                                 object: "chat.completion.chunk".to_string(),
                                                 created: chrono::Local::now().timestamp(),
                                                 model: req_model.clone(),
-                                                choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some("\n\n❌ Motor Visual OFFLINE: O processo SD.cpp na Porta 7860 não pôde ser alcançado.\n".to_string()), tool_calls: None }, finish_reason: None }],
+                                                choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(loading_msg), tool_calls: None }, finish_reason: None }],
                                                 usage: None,
                                             };
-                                            let _ = tx_visual.send(Event::default().data(serde_json::to_string(&offline_chunk).unwrap()));
+                                            let _ = tx_visual.send(Event::default().data(serde_json::to_string(&chunk).unwrap()));
+
+                                            let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(120)).build().unwrap_or_default();
+                                            if let Ok(r) = client.post(format!("{}{}", std::env::var("SOVEREIGN_API_URL").unwrap_or_else(|_| "http://127.0.0.1:38001".to_string()), "/v1/images/generations")).json(&serde_json::json!({ "prompt": prompt_only })).send().await {
+                                                if let Ok(j) = r.json::<serde_json::Value>().await {
+                                                    if let Some(url) = j.get("data").and_then(|arr| arr.as_array()).and_then(|a| a.first()).and_then(|f| f.get("url")).and_then(|u| u.as_str()) {
+                                                        let ok_msg = format!("![Sovereign Vault Artefact]({})\n\n", url);
+                                                        let ok_chunk = crate::models::OpenAIChatChunkResponse {
+                                                            id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
+                                                            object: "chat.completion.chunk".to_string(),
+                                                            created: chrono::Local::now().timestamp(),
+                                                            model: req_model.clone(),
+                                                            choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(ok_msg), tool_calls: None }, finish_reason: None }],
+                                                            usage: None,
+                                                        };
+                                                        let _ = tx_visual.send(Event::default().data(serde_json::to_string(&ok_chunk).unwrap()));
+                                                    } else {
+                                                        let err_chunk = crate::models::OpenAIChatChunkResponse {
+                                                            id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
+                                                            object: "chat.completion.chunk".to_string(),
+                                                            created: chrono::Local::now().timestamp(),
+                                                            model: req_model.clone(),
+                                                            choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some("\n\n❌ Falha estrutural no motor de Visão. A imagem não foi renderizada.\n".to_string()), tool_calls: None }, finish_reason: None }],
+                                                            usage: None,
+                                                        };
+                                                        let _ = tx_visual.send(Event::default().data(serde_json::to_string(&err_chunk).unwrap()));
+                                                    }
+                                                }
+                                            } else {
+                                                let offline_chunk = crate::models::OpenAIChatChunkResponse {
+                                                    id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
+                                                    object: "chat.completion.chunk".to_string(),
+                                                    created: chrono::Local::now().timestamp(),
+                                                    model: req_model.clone(),
+                                                    choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some("\n\n❌ Motor Visual OFFLINE: O processo SD.cpp na Porta 7860 não pôde ser alcançado.\n".to_string()), tool_calls: None }, finish_reason: None }],
+                                                    usage: None,
+                                                };
+                                                let _ = tx_visual.send(Event::default().data(serde_json::to_string(&offline_chunk).unwrap()));
+                                            }
+                                        } else {
+                                            // Execução Nativa de Ferramentas via Python Workers (Dispatcher)
+                                            let loading_msg = format!("\n\n⚙️ **Sovereign Tool Dispatcher**: Acionando Worker Nativo para `{}`...\n\n", tool_name);
+                                            let chunk = crate::models::OpenAIChatChunkResponse {
+                                                id: format!("chatcmpl-tool-{}", uuid::Uuid::new_v4()),
+                                                object: "chat.completion.chunk".to_string(),
+                                                created: chrono::Local::now().timestamp(),
+                                                model: req_model.clone(),
+                                                choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(loading_msg), tool_calls: None }, finish_reason: None }],
+                                                usage: None,
+                                            };
+                                            let _ = tx_visual.send(Event::default().data(serde_json::to_string(&chunk).unwrap()));
+
+                                            let mut final_result = String::new();
+                                            let venv_python = crate::api_trainer::resolve_venv_python();
+                                            let matrix_script = crate::api_trainer::resolve_python_workers_dir().join("sovereign_matrix.py");
+                                            
+                                            if tool_name == "fetch_financial_ticker" {
+                                                let symbol = pseudo_json.get("symbol").and_then(|v| v.as_str()).unwrap_or("");
+                                                let years = pseudo_json.get("years").map(|v| v.as_str().map(|s| s.to_string()).or_else(|| v.as_i64().map(|n| n.to_string())).unwrap_or_else(|| "1".to_string())).unwrap_or_else(|| "1".to_string());
+                                                if let Ok(out) = tokio::process::Command::new(&venv_python).arg(&matrix_script).arg("finance").arg(symbol).arg(years).output().await {
+                                                    final_result = String::from_utf8_lossy(&out.stdout).to_string();
+                                                }
+                                            } else if tool_name == "fetch_macroeconomy" {
+                                                let indicator = pseudo_json.get("indicator").and_then(|v| v.as_str()).unwrap_or("");
+                                                if let Ok(out) = tokio::process::Command::new(&venv_python).arg(&matrix_script).arg("macro").arg(indicator).output().await {
+                                                    final_result = String::from_utf8_lossy(&out.stdout).to_string();
+                                                }
+                                            } else if tool_name == "search_api_directory" {
+                                                let topic = pseudo_json.get("topic").and_then(|v| v.as_str()).unwrap_or("");
+                                                if let Ok(out) = tokio::process::Command::new(&venv_python).arg(crate::api_trainer::resolve_python_workers_dir().join("api_gateway.py")).arg("search").arg(topic).output().await {
+                                                    final_result = String::from_utf8_lossy(&out.stdout).to_string();
+                                                }
+                                            } else if tool_name == "fetch_json_endpoint" {
+                                                let url = pseudo_json.get("url").and_then(|v| v.as_str()).unwrap_or("");
+                                                if let Ok(out) = tokio::process::Command::new(&venv_python).arg(crate::api_trainer::resolve_python_workers_dir().join("api_gateway.py")).arg("fetch").arg(url).output().await {
+                                                    final_result = String::from_utf8_lossy(&out.stdout).to_string();
+                                                }
+                                            } else if tool_name == "execute_python_code" {
+                                                let code = pseudo_json.get("code").and_then(|v| v.as_str()).unwrap_or("");
+                                                final_result = crate::sandbox::execute_python_code(code).await.unwrap_or_else(|e| format!("Error: {}", e));
+                                            } else if tool_name == "dispatch_sub_researcher" {
+                                                let query = pseudo_json.get("search_queries").and_then(|v| v.as_array()).and_then(|a| a.first()).and_then(|f| f.as_str()).unwrap_or("");
+                                                let client = reqwest::Client::builder().build().unwrap_or_default();
+                                                let url_g = format!("https://html.duckduckgo.com/html/?q={}", urlencoding::encode(query));
+                                                final_result = crate::api::scrape_engine(&client, "DuckDuckGo", &url_g, 0).await;
+                                            }
+                                            
+                                            if !final_result.trim().is_empty() {
+                                                let ok_msg = format!("```json\n{}\n```\n", final_result.trim());
+                                                let ok_chunk = crate::models::OpenAIChatChunkResponse {
+                                                    id: format!("chatcmpl-tool-{}", uuid::Uuid::new_v4()),
+                                                    object: "chat.completion.chunk".to_string(),
+                                                    created: chrono::Local::now().timestamp(),
+                                                    model: req_model.clone(),
+                                                    choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(ok_msg), tool_calls: None }, finish_reason: None }],
+                                                    usage: None,
+                                                };
+                                                let _ = tx_visual.send(Event::default().data(serde_json::to_string(&ok_chunk).unwrap()));
+                                            } else {
+                                                let err_chunk = crate::models::OpenAIChatChunkResponse {
+                                                    id: format!("chatcmpl-tool-{}", uuid::Uuid::new_v4()),
+                                                    object: "chat.completion.chunk".to_string(),
+                                                    created: chrono::Local::now().timestamp(),
+                                                    model: req_model.clone(),
+                                                    choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(format!("\n\n❌ O Worker retornou nulo ou falhou ao extrair os dados da ferramenta `{}`.\n", tool_name)), tool_calls: None }, finish_reason: None }],
+                                                    usage: None,
+                                                };
+                                                let _ = tx_visual.send(Event::default().data(serde_json::to_string(&err_chunk).unwrap()));
+                                            }
                                         }
                                     });
                                     
