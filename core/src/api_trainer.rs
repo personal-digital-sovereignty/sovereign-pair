@@ -1725,53 +1725,83 @@ pub async fn run_deep_research_handler(
                                         let rand_id: String = uuid::Uuid::new_v4().to_string().chars().take(8).collect();
                                         // WIN-04: Cross-platform temp dir (Windows: %TEMP%\sovereign, Unix: /tmp/sovereign)
                                         let sovereign_tmp = std::env::temp_dir().join("sovereign");
-                                        let tmp_file_path = sovereign_tmp.join(format!("sovereign_data_{}_{}.json", safe_sq.to_lowercase(), rand_id));
-                                        let tmp_file_path = tmp_file_path.to_string_lossy().to_string();
                                         let _ = std::fs::create_dir_all(&sovereign_tmp);
 
-                                        // FIX-2: Não gravar arquivo nem gerar hash para resultados de scraping vazio.
-                                        // Quando o dispatch_sub_researcher falha (WAF block, 0 bytes úteis), ele retorna
-                                        // um texto placeholder que polui o sistema de proveniência com hashes falso-positivos.
-                                        let is_empty_extraction = final_result.starts_with("NÃO EXISTEM DADOS")
-                                            || final_result.starts_with("DADO NÃO ENCONTRADO")
-                                            || final_result.starts_with("FALHA")
-                                            || final_result.len() < 200;
+                                        // Clean content for file storage (strip UI headers like ### ...)
+                                        let mut clean_content = final_result.as_str();
+                                        if let Some(pos) = clean_content.find('{') {
+                                            if let Some(header_pos) = clean_content.find("###") {
+                                                if header_pos < pos {
+                                                    clean_content = &clean_content[pos..];
+                                                }
+                                            }
+                                        } else if let Some(pos) = clean_content.find("[- Chunk") {
+                                            if let Some(header_pos) = clean_content.find("## Source") {
+                                                 if header_pos < pos {
+                                                     clean_content = &clean_content[pos..];
+                                                 }
+                                            }
+                                        }
+
+                                        let final_result_up = final_result.to_uppercase();
+                                        let is_failure = final_result_up.contains("ERROR:") 
+                                            || final_result_up.contains("FALHA") 
+                                            || final_result_up.contains("\"ERROR\":")
+                                            || final_result_up.contains("SYSTEM EXECUTION ERROR")
+                                            || final_result_up.contains("CURL: (7)");
+
+                                        // Um resultado só é válido se não for falha E tiver substância (JSON ou Chunks de pesquisa)
+                                        let is_empty_extraction = is_failure
+                                            || (clean_content.len() < 100 && !clean_content.contains('{'))
+                                            || clean_content.starts_with("NÃO EXISTEM DADOS")
+                                            || clean_content.starts_with("DADO NÃO ENCONTRADO");
 
                                         if !is_empty_extraction {
-                                            let _ = std::fs::write(&tmp_file_path, &final_result);
+                                            let is_json = clean_content.trim().starts_with('{');
+                                            let extension = if is_json { "json" } else { "txt" };
+                                            let tmp_file_path = sovereign_tmp.join(format!("sovereign_data_{}_{}.{}", safe_sq.to_lowercase(), rand_id, extension));
+                                            let tmp_file_path_str = tmp_file_path.to_string_lossy().to_string();
+
+                                            let _ = std::fs::write(&tmp_file_path, clean_content);
 
                                             use sha2::{Sha256, Digest};
                                             let mut hasher = Sha256::new();
-                                            hasher.update(final_result.as_bytes());
+                                            hasher.update(clean_content.as_bytes());
                                             let hash_result = format!("{:x}", hasher.finalize());
                                             all_hashes.push(hash_result.clone());
 
-                                            // Nós guardamos o 'final_result' completo no 'all_sources' para The Scribe. Mas escondemos do Mestre guiando-o via disco.
+                                            let read_method = if is_json { 
+                                                format!("pd.read_json('{}')", tmp_file_path_str) 
+                                            } else { 
+                                                format!("open('{}').read()", tmp_file_path_str) 
+                                            };
+
                                             let limited_result = format!(
-                                                "[SUCCESS DE EXTRAÇÃO] Dados massivos obtidos para '{}' e gravados com integridade verificada pelo Motor Rust.\n\
-                                                 O conteúdo foi transferido fisicamente para o arquivo de disco local: '{}'.\n\
-                                                 AVISO CRÍTICO: NÃO ADIVINHE OS DADOS NEM CRIE ARRAYS FALSOS (PLACEHOLDERS). \
-                                                 Você deve agora acionar a ferramenta de Python Sandbox desenvolvendo as linhas de código \
-                                                 (ex: `pd.read_json('{}')` ou `open('{}').read()`) para processar diretamente o arquivo de disco.",
-                                                sq, tmp_file_path, tmp_file_path, tmp_file_path
+                                                "[SUCCESS DE EXTRAÇÃO] Dados obtidos para '{}' e gravados em disco.\n\
+                                                 Caminho: '{}'\n\
+                                                 AVISO: O conteúdo foi ocultado da sua janela de contexto para economizar VRAM. \
+                                                 Você DEVE processar este arquivo usando `{}` no Python Sandbox para realizar análises quantitativas ou sínteses detalhadas.",
+                                                sq, tmp_file_path_str, read_method
                                             );
 
-                                            // Devolve a resposta do Tool Oculta para a memória do Mestre
                                             messages.push(serde_json::json!({
                                                 "role": "tool",
                                                 "content": limited_result
                                             }));
                                         } else {
                                             let _ = TRAINER_LOGS.send(format!(
-                                                "⚠️ [Proveniência] Extração vazia para '{}'. Arquivo/hash NÃO gravado (placeholder descartado).", sq
+                                                "⚠️ [Proveniência] Extração vazia ou erro para '{}'. Arquivo/hash NÃO gravado.", sq
                                             ));
 
-                                            // FIX: Impedir Cognitive Gaslighting. Avisa explicitamente o LLM que a extração falhou.
-                                            let failure_msg = format!(
-                                                "[FALHA DE EXTRAÇÃO] O Crawler não encontrou dados estruturados para '{}' (possível bloqueio anti-bot ou indisponibilidade).\n\
-                                                 O QUE FAZER AGORA: NÃO tente extração orgânica novamente para este termo. Se era um ticker financeiro, use 'fetch_financial_ticker'. Caso contrário, mude de estratégia ou encerre a busca declarando que este dado está inacessível.",
-                                                sq
-                                            );
+                                            let failure_msg = if is_failure {
+                                                format!("[ERRO CRÍTICO NA FERRAMENTA] A execução para '{}' falhou.\n\
+                                                         MOTIVO: {}\n\
+                                                         [VACINA EPISTÊMICA]: O ARQUIVO DE DISCO NÃO FOI CRIADO. NÃO tente ler caminhos em /tmp/ pois eles não existem. \
+                                                         Mude de estratégia, use outro ticker ou declare a indisponibilidade dos dados.", sq, final_result)
+                                            } else {
+                                                format!("[DADOS INSUFICIENTES] O Crawler não encontrou dados estruturados para '{}'.\n\
+                                                         Tente ser mais específico ou use outra fonte (ex: web research geral).", sq)
+                                            };
 
                                             messages.push(serde_json::json!({
                                                 "role": "tool",
