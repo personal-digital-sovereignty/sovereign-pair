@@ -1060,19 +1060,7 @@ if let Some(pid) = payload.project_id
             }
     }
 
-if project_context.is_empty()
-    && let Ok(active_projs) = sqlx::query("SELECT name, purpose FROM projects WHERE is_archived = 0 OR is_archived IS NULL")
-        .fetch_all(&state.db)
-        .await
-            && !active_projs.is_empty() {
-                project_context.push_str("INSTRUÇÃO SISTÊMICA (CONSCIÊNCIA DE PROJETOS): O usuário possui os seguintes Projetos ativos no Kanban local neste exato momento:\n");
-                for p in active_projs {
-                    let n: String = sqlx::Row::get(&p, "name");
-                    let purp: Option<String> = sqlx::Row::get(&p, "purpose");
-                    project_context.push_str(&format!("- KANBAN '{}': {}\n", n, purp.unwrap_or_default()));
-                }
-                project_context.push_str("Use esta consciência periférica se o usuário pedir ajuda para gerenciar o seu dia, idéias ou se for relevante durante a conversa.\n");
-            }
+// GAP FIX: Removida a injeção incondicional de 'Consciência de Projetos' para evitar poluição de prompt no Chat regular.
 
 if !project_context.is_empty() {
     purified_messages.push(json!({
