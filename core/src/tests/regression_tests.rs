@@ -147,7 +147,7 @@ mod hardware_telemetry {
         let hw = HardwareTelemetry {
             total_ram_gb: 32.0, total_vram_gb: 16.5, used_ram_gb: 8.0, used_vram_gb: 6.0, gpu_name: "RTX 4060".into(), unified_memory: false
         };
-        assert_eq!(calculate_safe_context_window(&hw), 65536, "16GB+ GPU should allow 65536 ctx");
+        assert_eq!(calculate_safe_context_window(&hw), 32768, "16GB+ GPU should be capped to 32768 ctx for stability");
     }
 
     /// GAP-02 Regression: 24GB+ GPU should get maximum 16384
