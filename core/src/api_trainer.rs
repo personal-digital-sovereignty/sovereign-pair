@@ -2096,7 +2096,7 @@ pub async fn run_deep_research_handler(
             
             // [SYMBIOTIC PIPELINE INTERCEPTOR]
             // Se houver múltiplas fontes espaciais, acionamos a marreta matemática do Pandas.
-            if all_sources.len() >= 1 {
+            if !all_sources.is_empty() {
                 let _ = TRAINER_LOGS.send("[Sovereign Symbiose] Múltiplos Fatos Brutos Detectados! Acionando Data Engineering (Pandas) sob os panos...".to_string());
                 // BUGFIX: Extrair `data_compressed` dos JSONs wrapados antes de passar ao joiner.
                 let clean_blocks = extract_raw_data_blocks(&all_sources);
