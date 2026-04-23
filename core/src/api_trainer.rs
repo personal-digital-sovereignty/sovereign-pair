@@ -2150,11 +2150,13 @@ pub async fn run_deep_research_handler(
                                             h.update(mkd.as_bytes());
                                             all_hashes.push(format!("{:x}", h.finalize()));
                                         }
+                                    } else if let Some(err) = parsed.get("error").and_then(|e| e.as_str()) {
+                                        let _ = TRAINER_LOGS.send(format!("[Data Engineering] Falha no Motor Pandas: {}. Fallback para texto bruto.", err));
                                     }
                                 }
                             } else {
                                 let err_str = String::from_utf8_lossy(&output.stderr);
-                                let _ = TRAINER_LOGS.send(format!("[Data Engineering] Falha no Join Temporal silenciada. Fallback para Texto Bruto. ({})", err_str.trim()));
+                                let _ = TRAINER_LOGS.send(format!("[Data Engineering] Falha crítica (exit code != 0). Fallback para Texto Bruto. ({})", err_str.trim()));
                             }
                         }
                     }
@@ -2621,11 +2623,16 @@ Evite saudações. Reporte com excelência corporativa C-Level, focado estritame
             let l_trimmed: &str = line.trim();
             if l_trimmed.starts_with("## Source: ") {
                 source_links.push(format!("- {}", l_trimmed.replace("## Source: ", "").trim()));
-            } else if l_trimmed.starts_with('{') && l_trimmed.contains("\"source\"") {
-                if let Ok(val) = serde_json::from_str::<serde_json::Value>(l_trimmed) {
-                    if let Some(src) = val.get("source").and_then(|s| s.as_str()) {
-                        source_links.push(format!("- Sovereign Open-Data Matrix: {} (Trusted Pipeline)", src));
+            } else if l_trimmed.contains("Sovereign Open-Data Output") || l_trimmed.contains("data_compressed") {
+                // Tenta extrair a fonte do cabeçalho ou do bloco Sovereign
+                if l_trimmed.contains("source") {
+                    if let Ok(val) = serde_json::from_str::<serde_json::Value>(l_trimmed) {
+                        if let Some(src) = val.get("source").and_then(|s| s.as_str()) {
+                            source_links.push(format!("- Sovereign Open-Data Matrix: {} (Trusted Pipeline)", src));
+                        }
                     }
+                } else if l_trimmed.contains("REFERENTES AO") {
+                     source_links.push("- Sovereign Matrix Archive (Local/Dataset Proxy)".to_string());
                 }
             }
         }
