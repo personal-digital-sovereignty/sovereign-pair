@@ -1257,8 +1257,8 @@ if let Ok(file_content) = std::fs::read_to_string(&registry_path) {
     if let Ok(registry) = serde_json::from_str::<Vec<serde_json::Value>>(&file_content) {
         for t in registry {
             if let Some(func) = t.get("function") {
-                if let Some(name) = func.get("name").and_then(|n| n.as_str()) {
-                    if name != "dispatch_sub_researcher" || true { // Inclui TODAS as ferramentas
+                if let Some(_name) = func.get("name").and_then(|n| n.as_str()) {
+                    if true { // Inclui TODAS as ferramentas
                         if let Ok(model) = serde_json::from_value(t.clone()) {
                             injected_tools.push(model);
                         }
