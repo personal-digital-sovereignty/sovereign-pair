@@ -1,8 +1,8 @@
-/// ============================================================
-/// Sovereign Pair — Reflection Lab Test Suite
-/// Covers: Payload validation, Settings clamp, Struct deserialization,
-///         Model tag propagation, SSE broadcast channel
-/// ============================================================
+//! ============================================================
+//! Sovereign Pair — Reflection Lab Test Suite
+//! Covers: Payload validation, Settings clamp, Struct deserialization,
+//!         Model tag propagation, SSE broadcast channel
+//! ============================================================
 
 #[cfg(test)]
 mod reflection_payload {
@@ -150,6 +150,6 @@ mod reflection_settings_persistence {
         let val: serde_json::Value = serde_json::from_str(&serialized).unwrap();
         assert_eq!(val["reasoning_depth"].as_i64().unwrap(), 42);
         assert_eq!(val["audit_intensity"].as_i64().unwrap(), 88);
-        assert_eq!(val["internal_monologue"].as_bool().unwrap(), true);
+        assert!(val["internal_monologue"].as_bool().unwrap());
     }
 }

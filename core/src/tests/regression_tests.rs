@@ -1,8 +1,8 @@
-/// ============================================================
-/// Sovereign Pair — Cross-Platform Regression Test Suite
-/// Covers: XDG paths, temp_dir, venv resolution, DB path logic
-/// Regress: LIN-01..09, WIN-01..06, P2-01..P2-06
-/// ============================================================
+//! ============================================================
+//! Sovereign Pair — Cross-Platform Regression Test Suite
+//! Covers: XDG paths, temp_dir, venv resolution, DB path logic
+//! Regress: LIN-01..09, WIN-01..06, P2-01..P2-06
+//! ============================================================
 
 #[cfg(test)]
 mod cross_platform_paths {
