@@ -8,6 +8,13 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 ## [1.3.0] - 2026-04-23
 *Epic: Resilience Shield, Hardware Telemetry, Oracle Cloud Integration & Selective Agentic Modes*
 
+### Stability & Data Pipeline (Fixes)
+- **FIX-53 (Math Error / Pipeline)**: Resolved critical "Expected object or value" in Deep Research pipeline by stripping visual headers (###) before writing tool results to disk. This ensures valid JSON/Text files for Python processing.
+- **FIX-54 (JSON Sanity)**: Added dynamic file extension handling (.json vs .txt) and correct LLM tool instructions based on content type, preventing parser failures in the Sandbox.
+- **FIX-55 (Nestle Registry)**: Manually resolved Nestle ticker mapping (NEST34.SA / NESN.SW / NESN3) and added to emergency fallback map in `sovereign_matrix.py` to ensure data acquisition resilience.
+- **FIX-56 (Error Propagation)**: Prevented error messages from being saved to disk as "successful" data files, improving Agentic Loop awareness of tool failures.
+- **FIX-57 (Epistemic Vaccine)**: Implemented explicit failure alerts that prevent the LLM from entering a 'ghost-file' read loop when tool acquisition fails.
+
 ### Security (Hardening Crítico)
 - **CWE-78 Command Injection (Remote RCE)**: Identificada e aniquilada uma vulnerabilidade severa de injeção direta ao protocolo `ssh`. Caracteres maliciosos (`; rm -rf /`) injetados via Payload Axum nas configurações de P2P da OCI Cloud executariam evasão de Shell Bash. Desenvolvida blindagem `shell_escape()` e rejeição por Regex pura no Guard Axum protegendo a Nuvem Oracle remota 100%.
 - **Chaves SSH Blindadas Exfiltradas**: O Vault de segredos `/v1/settings/oracle_node` ativamente rejeita a gravação de arquivos que denotem conteudos crus de PEM/RSA Keys.
