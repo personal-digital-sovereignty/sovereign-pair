@@ -36,6 +36,7 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 - **FIX-46 — Memory Unified Swapping (Apple Silicon)**: Elevado consumo de memória em 16GB causava crash no Ollama. **Fix**: Reduzida a janela de contexto dinâmica para 32.768 tokens para o tier de 16GB (`core/src/hardware.rs`).
 - **FIX-47 — Sandbox Quarantine macOS Paths**: A lógica de detecção de reprocessamento falhava no macOS por não reconhecer caminhos temporários `/var/folders/`. **Fix**: Regex de quarentena agora detecta o subdiretório `sovereign/` de forma genérica (`core/src/api_trainer.rs`).
 - **FIX-48 — Symbiotic Ubiquity**: O Joiner Pandas não rodava para ativos únicos. **Fix**: Pipeline matemática forçada sempre que `len >= 1`, garantindo tabelas e médias válidas para o Scribe (`core/src/api_trainer.rs`).
+- **FIX-49 — Strict Tool & ReWOO Gating**: Ferramentas (Front, Registry e Visual Artist) agora são 100% bloqueadas se o ícone de Internet (Deep Research) estiver desativado. ReWOO segue rigorosamente o toggle da UI, eliminando disparos acidentais (`core/src/api.rs`).
 
 #### ⚙️ System UI & Telemetry Hardening
 - **Telemetria GPU/VRAM Síncrona**: O `telemetry.rs` agora envia nome da GPU, memória unificada e limite dinâmico de VRAM a cada ciclo de polling (em vez de estático). Isso garante que métricas dinâmicas (como eGPUs ou memória unificada em Apple Silicon) sejam instantaneamente refletidas na UI sem exigir refresh.
