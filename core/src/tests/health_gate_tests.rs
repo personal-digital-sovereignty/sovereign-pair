@@ -1,7 +1,7 @@
-/// ============================================================
-/// Sovereign Pair — Resilience Shield: Health Gate Tests
-/// Covers: JSON parsing, summary building, entry validation
-/// ============================================================
+//! ============================================================
+//! Sovereign Pair — Resilience Shield: Health Gate Tests
+//! Covers: JSON parsing, summary building, entry validation
+//! ============================================================
 
 #[cfg(test)]
 mod health_gate_parsing {
