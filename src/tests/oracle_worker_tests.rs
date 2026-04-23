@@ -1,7 +1,7 @@
-/// ============================================================
-/// Sovereign Pair — Oracle Worker Tests
-/// Covers: config parsing, key resolution, routing logic
-/// ============================================================
+//! ============================================================
+//! Sovereign Pair — Oracle Worker Tests
+//! Covers: config parsing, key resolution, routing logic
+//! ============================================================
 
 #[cfg(test)]
 mod oracle_worker_config {
