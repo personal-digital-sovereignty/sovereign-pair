@@ -38,6 +38,8 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 - **FIX-48 — Symbiotic Ubiquity**: O Joiner Pandas não rodava para ativos únicos. **Fix**: Pipeline matemática forçada sempre que `len >= 1`, garantindo tabelas e médias válidas para o Scribe (`core/src/api_trainer.rs`).
 - **FIX-49 — Strict Tool & ReWOO Gating**: Ferramentas (Front, Registry e Visual Artist) agora são 100% bloqueadas se o ícone de Internet (Deep Research) estiver desativado. ReWOO segue rigorosamente o toggle da UI, eliminando disparos acidentais (`core/src/api.rs`).
 - **FIX-50 — Selective Project Context**: Removida a injeção automática de "Consciência de Projetos" global. Agora, dados de tarefas e documentos só entram no prompt se o usuário selecionar um Projeto específico, limpando o Chat regular (`core/src/api.rs`).
+- **FIX-51 — RAG Regex Resilience**: Atualizada a regex do Joiner Pandas para suportar ativos com nomes em maiúsculas/minúsculas (ex: 'Banco do Brasil'). Isso restaura a geração automática de tabelas Markdown e matrizes de correlação (`core/python_workers/analyze_and_join_time_series.py`).
+- **FIX-52 — Native Source Tracking**: Corrigida a lógica de proveniência para listar ferramentas de Open-Data (Yahoo, BCB) na seção de fontes pesquisadas, eliminando o falso-positivo de 'Nenhuma fonte encontrada' (`core/src/api_trainer.rs`).
 
 #### ⚙️ System UI & Telemetry Hardening
 - **Telemetria GPU/VRAM Síncrona**: O `telemetry.rs` agora envia nome da GPU, memória unificada e limite dinâmico de VRAM a cada ciclo de polling (em vez de estático). Isso garante que métricas dinâmicas (como eGPUs ou memória unificada em Apple Silicon) sejam instantaneamente refletidas na UI sem exigir refresh.
