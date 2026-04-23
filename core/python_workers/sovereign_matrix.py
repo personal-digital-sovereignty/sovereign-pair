@@ -132,6 +132,8 @@ def fetch_finance(ticker, years):
         'VALE': ('VALE3.SA', 'Vale'), 'VALE3': ('VALE3.SA', 'Vale'),
         'ITAU': ('ITUB4.SA', 'Itaú'), 'BRADESCO': ('BBDC4.SA', 'Bradesco'),
         'BANCO_DO_BRASIL': ('BBAS3.SA', 'Banco do Brasil'), 'BB': ('BBAS3.SA', 'BB'),
+        'NESTLE': ('NEST34.SA', 'Nestlé S.A. (BDR)'), 'NEST34': ('NEST34.SA', 'Nestlé S.A. (BDR)'),
+        'NESN3': ('NEST34.SA', 'Nestlé S.A. (BDR)'),
         'AMBEV': ('ABEV3.SA', 'Ambev'),
         'MAGAZINE': ('MGLU3.SA', 'Magazine Luiza'), 'MAGALU': ('MGLU3.SA', 'Magazine Luiza'),
         'MGLU3': ('MGLU3.SA', 'Magazine Luiza'), 'MGLU': ('MGLU3.SA', 'Magazine Luiza'),
@@ -145,6 +147,7 @@ def fetch_finance(ticker, years):
         'TESLA': ('TSLA', 'Tesla'), 'NIKE': ('NKE', 'Nike'),
         'NOVO_NORDISK': ('NVO', 'Novo Nordisk'), 'OZEMPIC': ('NVO', 'Ozempic→NVO'),
         'ELI_LILLY': ('LLY', 'Eli Lilly'), 'MOUNJARO': ('LLY', 'Mounjaro→LLY'),
+        'NESTLE_SWISS': ('NESN.SW', 'Nestlé S.A. (Global)'),
     }
 
     # ── Resolução principal ──────────────────────────────────────────────────
