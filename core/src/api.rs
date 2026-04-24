@@ -1331,7 +1331,17 @@ if !is_custom_cluster && ollama_base_url == "http://host.docker.internal:11434" 
 let endpoint = format!("{}/api/chat", ollama_base_url);
 
 let mut retry_count = 0;
-let res = loop {
+    let mut current_history = purified_messages.clone();
+    let mut final_response_sent = false;
+    let mut loop_cycle = 0;
+
+    while !final_response_sent && loop_cycle < 10 {
+        loop_cycle += 1;
+        if let Some(obj) = ollama_payload.as_object_mut() {
+            obj.insert("messages".to_string(), serde_json::json!(current_history));
+        }
+
+    let res = loop {
     let response_result = state
         .http_client
         .post(&endpoint)
@@ -1478,6 +1488,8 @@ let mut session_tokens = 0;
 let mut accumulator = String::new(); // Memory Builder da Resposta do Agente
 let tracking_log_sender = state.log_sender.clone();
 let tx_map_capture = tx_sse_clone.clone();
+let tool_collector = Arc::new(Mutex::new(Vec::<Value>::new()));
+let tc_inner = tool_collector.clone();
 
 // Extraímos os Bytes Chunk a Chunk e mapeamos pro formato OpenAI SSE:
 let mut map_stream = res.bytes_stream().map(move |result| {
@@ -1521,6 +1533,11 @@ let mut map_stream = res.bytes_stream().map(move |result| {
                                 }
 
                             if let Some(tool_calls_arr) = msg_obj.get("tool_calls").and_then(|tc| tc.as_array()) {
+                                if let Ok(mut tc_lock) = tc_inner.lock() {
+                                    for tc in tool_calls_arr {
+                                        tc_lock.push(tc.clone());
+                                    }
+                                }
                                 let mut tcs = Vec::new();
                                 let mut is_visual_artist = false;
                                 let mut visual_prompt = String::new();
@@ -1841,10 +1858,56 @@ let mut map_stream = res.bytes_stream().map(move |result| {
     }
 });
 
-while let Some(Ok(event)) = futures_util::StreamExt::next(&mut map_stream).await {
-    let _ = tx_sse_clone.send(event);
-}
-}); // Fim do tokio::spawn
+        while let Some(Ok(event)) = futures_util::StreamExt::next(&mut map_stream).await {
+            let _ = tx_sse_clone.send(event);
+        }
+
+        // --- FEEDBACK LOOP NATIVO ---
+        let mut tools_found = Vec::new();
+        if let Ok(mut tc_lock) = tool_collector.lock() {
+            tools_found.extend(tc_lock.drain(..));
+        }
+
+        if tools_found.is_empty() {
+            final_response_sent = true;
+        } else {
+            // Incorpora o Assistant Call no Histórico
+            current_history.push(json!({
+                "role": "assistant",
+                "tool_calls": tools_found
+            }));
+
+            // Executa as Ferramentas e Incorpora Resultados
+            for tc in tools_found {
+                let name = tc.get("function").and_then(|f| f.get("name")).and_then(|n| n.as_str()).unwrap_or("");
+                let args = tc.get("function").and_then(|f| f.get("arguments")).cloned().unwrap_or(json!({}));
+                
+                // [NATIVE DISPATCHER]: Execução síncrona para retroalimentação
+                let result = match name {
+                    "fetch_financial_ticker" => {
+                        let symbol = args.get("symbol").and_then(|v| v.as_str()).unwrap_or("");
+                        let years = args.get("years").map(|v| v.as_str().map(|s| s.to_string()).or_else(|| v.as_i64().map(|n| n.to_string())).unwrap_or("1".to_string())).unwrap_or("1".to_string());
+                        let out = tokio::process::Command::new(crate::api_trainer::resolve_venv_python()).arg(crate::api_trainer::resolve_python_workers_dir().join("sovereign_matrix.py")).arg("finance").arg(symbol).arg(years).output().await;
+                        match out { Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(), Err(_) => "Erro na execução".to_string() }
+                    },
+                    "execute_python_code" => {
+                        let code = args.get("code").and_then(|v| v.as_str()).unwrap_or("");
+                        crate::sandbox::execute_python_code(code).await.unwrap_or_else(|e| format!("Error: {}", e))
+                    },
+                    _ => "A ferramenta foi executada via dispatcher paralelo, mas o resultado não pôde ser reinjetado no loop de síntese textual.".to_string(),
+                };
+
+                current_history.push(json!({
+                    "role": "tool",
+                    "name": name,
+                    "content": result
+                }));
+            }
+        }
+    } // while loop
+
+    let _ = tx_sse_clone.send(Event::default().data("[DONE]"));
+});
 
 let final_stream = async_stream::stream! {
     while let Some(event) = rx_sse.recv().await {
