@@ -1,4 +1,4 @@
-use axum::{ extract::{Json, State}, response::{ sse::{Event, Sse}, IntoResponse, Response, }, }; use futures_util::StreamExt;  use serde_json::{json, Value}; use std::convert::Infallible; use std::sync::Arc; use tracing::{error, info};
+use axum::{ extract::{Json, State}, response::{ sse::{Event, Sse}, IntoResponse, Response, }, }; use futures_util::StreamExt;  use serde_json::{json, Value}; use std::convert::Infallible; use std::sync::{Arc, Mutex}; use tracing::{error, info};
 
 use crate::models::{ OpenAIChatChunkChoice, OpenAIChatChunkDelta, OpenAIChatChunkResponse, OpenAIChatRequest, }; use crate::AppState;
 // removed unused explicit scraper import
@@ -1491,8 +1491,11 @@ let tx_map_capture = tx_sse_clone.clone();
 let tool_collector = Arc::new(Mutex::new(Vec::<Value>::new()));
 let tc_inner = tool_collector.clone();
 
+let loop_model = requested_model.clone();
+
 // Extraímos os Bytes Chunk a Chunk e mapeamos pro formato OpenAI SSE:
 let mut map_stream = res.bytes_stream().map(move |result| {
+    let requested_model = loop_model.clone();
     match result {
         Ok(bytes) => {
             // Tenta transformar os bytes em string (pode vir linha cortada)
