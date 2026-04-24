@@ -13,7 +13,10 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 - **FIX-54 (JSON Sanity)**: Added dynamic file extension handling (.json vs .txt) and correct LLM tool instructions based on content type, preventing parser failures in the Sandbox.
 - **FIX-55 (Nestle Registry)**: Manually resolved Nestle ticker mapping (NEST34.SA / NESN.SW / NESN3) and added to emergency fallback map in `sovereign_matrix.py` to ensure data acquisition resilience.
 - **FIX-56 (Error Propagation)**: Prevented error messages from being saved to disk as "successful" data files, improving Agentic Loop awareness of tool failures.
-- **FIX-57 (Epistemic Vaccine)**: Implemented explicit failure alerts that prevent the LLM from entering a 'ghost-file' read loop when tool acquisition fails.
+- **FIX-57 (Epistemic Vaccine)**: Implemented explicit failure alerts that prevent the LLM from entering a 'ghost-file' read loop.
+- **FIX-58 (UnboundLocalError)**: Resolved a critical shadowing bug in `sovereign_matrix.py` that caused crashes during error reporting.
+- **FIX-59 (Thought Cleanup)**: Refactored internal thinking tags to Markdown italics to prevent unrendered XML-like tags from leaking into the user chat interface.
+- **DOC-01 (External Dependencies)**: Identificado e resolvido bloqueio de rede via NextDNS que impedia a conexão com `fc.yahoo.com` (CURL 7). Recomendado whitelist de domínios Yahoo para plena operação do pipeline financeiro.
 
 ### Security (Hardening Crítico)
 - **CWE-78 Command Injection (Remote RCE)**: Identificada e aniquilada uma vulnerabilidade severa de injeção direta ao protocolo `ssh`. Caracteres maliciosos (`; rm -rf /`) injetados via Payload Axum nas configurações de P2P da OCI Cloud executariam evasão de Shell Bash. Desenvolvida blindagem `shell_escape()` e rejeição por Regex pura no Guard Axum protegendo a Nuvem Oracle remota 100%.
