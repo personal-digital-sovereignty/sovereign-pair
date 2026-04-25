@@ -1,5 +1,11 @@
 import { API_BASE_URL } from '$lib/env_config';
-// Svelte 5 Native SSE Store for Real-time Rust Telemetry
+/**
+ * 📊 **Telemetry State | Hardware & Model Monitoring**
+ * 
+ * Centraliza as métricas de performance vital do sistema. 
+ * Conecta-se ao backend via polling de alta frequência (1.5s) para fornecer 
+ * telemetria em tempo real sobre uso de VRAM, TTFT, e saúde das APIs.
+ */
 export const telemetryState = $state({
     connected: false,
     tokensPerSecond: 0.0,
@@ -41,6 +47,12 @@ export const telemetryState = $state({
 let pollInterval: any;
 let healthInterval: any; // GAP-RS-01 fix: track to allow cleanup
 
+/**
+ * 🛡️ **Resilience Shield | API Health Watcher**
+ * 
+ * Consulta o endpoint de saúde do backend para verificar se as chaves de API 
+ * externas (OpenRouter, NVIDIA, Qwen) estão válidas e operacionais.
+ */
 async function fetchApiHealth() {
     try {
         const res = await fetch(`${API_BASE_URL}/v1/analytics/api_health`);
@@ -56,6 +68,13 @@ async function fetchApiHealth() {
 }
 
 
+
+/**
+ * 📡 **Connect Telemetry | Sensus Polling Engine**
+ * 
+ * Inicia os loops de monitoramento. Utiliza `setInterval` para garantir 
+ * atualizações constantes da interface sem bloquear o event loop do navegador.
+ */
 export function connectTelemetry() {
     if (pollInterval) return;
 

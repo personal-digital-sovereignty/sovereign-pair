@@ -127,16 +127,11 @@ pub fn resolve_venv_python() -> std::path::PathBuf {
     std::path::PathBuf::from(fallback)
 }
 
-/// Resolve o diretório dos Python workers de forma robusta em todos os ambientes.
-///
-/// Ordem de prioridade (da mais confiável para a menos):
-/// 1. `SOVEREIGN_WORKERS_DIR` env var (override manual absoluto)
-/// 2. Relativo ao executável (produção: .app bundle, sidecar Tauri, release binary)
-/// 3. Relativo ao CWD (desenvolvimento: `cargo run` dentro do workspace)
-///
-/// **Bug macOS corrigido:** no macOS em produção, `current_dir()` retorna `/`.
-/// Tentar `/ + core/python_workers` gerava `/core/python_workers` (inexistente).
-/// A detecção exe-relative agora é feita PRIMEIRO para evitar esse caminho falso.
+/// 🐍 **Worker Discovery | Resiliência Multi-Plataforma**
+/// 
+/// Resolve o diretório dos Python workers de forma robusta. Prioriza o executável 
+/// (para produção/Tauri) sobre o CWD (para desenvolvimento), corrigindo falhas 
+/// históricas de pathing no macOS onde o CWD retorna a raiz `/`.
 pub fn resolve_python_workers_dir() -> std::path::PathBuf {
     // 0. Override explícito via variável de ambiente (escape hatch para casos edge)
     if let Ok(env_path) = std::env::var("SOVEREIGN_WORKERS_DIR") {
@@ -643,20 +638,25 @@ async fn execute_sub_analyst(
         reranked_md = raw_student_md.clone();
     }
 
-    // --- PHASE 1.1: COGNITIVE SQUAD DISPATCHING (MATH-BASED ROUTING) ---
-    // User Request: Allocate the Right Agent based on Context Payload Size!
-    let payload_size = reranked_md.len();
-    
-    let routed_sub_agent = if payload_size < 15_000 { // Estagiário
+    // --- 📊 PHASE 1.1: COGNITIVE SQUAD DISPATCHING (Math-Based Routing) ---
+    // 
+    // Implementa o escalonamento dinâmico de inteligência. O sistema avalia o volume 
+    // de contexto recuperado (Payload Size) e aloca o 'Tier' de agente correspondente:
+    // - < 15KB: Intern (Estagiário - Modelos 3B-8B)
+    // - 15KB - 50KB: Junior/Pleno (Modelos 14B-32B)
+    // - 50KB - 120KB: Senior (Modelos 70B)
+    // - > 120KB: Specialist (Especialistas / DeepThinkers)
+    // Isso otimiza o uso de VRAM e TTFT, usando 'canhões para matar moscas' apenas quando necessário.
+    let routed_sub_agent = if payload_size < 15_000 {
         let _ = TRAINER_LOGS.send(format!("📊 [Cognitive Routing] {} bytes: Escalonando Estagiário Dinâmico", payload_size));
         crate::api::discover_cognitive_model_by_tier("intern").await
-    } else if payload_size < 50_000 { // Júnior/Pleno
+    } else if payload_size < 50_000 {
         let _ = TRAINER_LOGS.send(format!("📊 [Cognitive Routing] {} bytes: Escalonando Analista Júnior Dinâmico", payload_size));
         crate::api::discover_cognitive_model_by_tier("junior").await
-    } else if payload_size < 120_000 { // Sênior
+    } else if payload_size < 120_000 {
         let _ = TRAINER_LOGS.send(format!("📊 [Cognitive Routing] {} bytes: Escalonando Desenvolvedor Sênior Dinâmico", payload_size));
         crate::api::discover_cognitive_model_by_tier("senior").await
-    } else { // Especialista
+    } else {
         let _ = TRAINER_LOGS.send(format!("📊 [Cognitive Routing] {} bytes (MASSIVO!): Escalonando Especialista Dinâmico", payload_size));
         crate::api::discover_cognitive_model_by_tier("specialist").await
     };
@@ -687,6 +687,12 @@ async fn execute_sub_analyst(
         "options": { "temperature": 0.0, "num_ctx": dynamic_num_ctx, "repeat_penalty": 1.03 }
     });
 
+    // --- 🧠 SUFFICIENCY GATE | O Firewall Contra Alucinação ---
+    // 
+    // Antes de processar a resposta, um agente de controle julga se o contexto 
+    // recuperado contém fatos e números suficientes para responder à pergunta. 
+    // Se for insuficiente, o firewall bloqueia a resposta para evitar que o LLM 
+    // invente dados baseados em sua 'memória morta' (treinamento estático).
     let mut is_sufficient = false;
     let mut missing_reason = String::new();
 
@@ -721,7 +727,11 @@ async fn execute_sub_analyst(
         return "DADO NÃO ENCONTRADO".to_string();
     }
 
-    // --- PHASE 1.2: LITERAL EXTRACTOR (DYNAMIC SQUAD RUTING) ---
+    // --- 📝 PHASE 1.2: LITERAL EXTRACTOR (Verbatim Harvest) ---
+    // 
+    // O Extrator Literal é proibido de gerar prosa ou conclusões. Seu único trabalho 
+    // é coletar fatos numéricos e textuais exatamente como aparecem no contexto, 
+    // forçando a citação do chunk de origem ([- Chunk X]).
     let system_prompt = if let Some(pool) = engine_arc.db_pool.as_ref() {
         crate::prompt_vault::load_prompt_by_slug(pool, "literal_extractor").await
     } else { None }
@@ -792,7 +802,11 @@ async fn execute_sub_analyst(
         }
     }
     
-    // --- PHASE 2: ADVERSARIAL VERIFIER (MASTER MODEL CO-PILOT) ---
+    // --- ⚖️ PHASE 2: ADVERSARIAL VERIFIER (Master-Sub Auditor) ---
+    // 
+    // O Verificador Adversário coloca o Analista Mestre (modelo de maior parâmetro) 
+    // para auditar o trabalho do Analista Júnior. Ele procura por erros lógicos, 
+    // arredondamentos indevidos e alucinações sutis que passaram pelos gates anteriores.
     if firewall_enabled && distilled_text != "DADO NÃO ENCONTRADO" {
         // Following User Feedback: Evaluator must be Neural Equivalent or Larger (The Master Model)
         let verifier_model = master_model.clone();

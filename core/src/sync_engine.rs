@@ -17,8 +17,15 @@ pub struct IngestionJob {
     pub progress_ms: u64,
 }
 
+/// 🏗️ **SyncEngine | O Motor de Persistência Cíbrida**
+/// 
+/// Gerencia a malha de sincronização entre o sistema de arquivos (Markdown)
+/// e a memória relacional (SQLite). Orquestra o File Watcher, o Garbage Collector
+/// e o Pipeline de Ingestão Semântica.
 pub struct SyncEngine {
+    /// Canal de broadcast para telemetria em tempo real da ingestão na UI.
     pub tx: broadcast::Sender<IngestionJob>,
+    /// Pool de conexão com o SQLite (Sovereign Memory).
     db: sqlx::SqlitePool,
 }
 
@@ -48,12 +55,10 @@ impl SyncEngine {
             );
             let mut watcher = match watcher_result {
                 Ok(w) => w,
-                Err(e) => {
-                    warn!("⚠️ [Sensus Sync] Não foi possível iniciar o File Watcher (inotify/kqueue insuficiente?): {}. Sync reativo desativado — indexação inicial prosseguirá.", e);
-                    return; // Graceful: o servidor não crasha, apenas sem sync reativo
-                }
-            };
-            // 0. Sovereign Garbage Collector (Remove Orphaned Files)
+            // --- 🧹 0. Sovereign Garbage Collector (Orphan Purge) ---
+            // Antes de iniciar a vigilância, o sistema varre a base de dados em busca de
+            // referências a arquivos que não existem mais fisicamente no disco.
+            // Isso evita "alucinações de path" onde o RAG tentaria ler um arquivo deletado.
             #[derive(sqlx::FromRow)]
             struct DocRow { id: String, file_path: String }
             
@@ -153,7 +158,10 @@ impl SyncEngine {
                             let filename = path.file_name().unwrap_or_default().to_string_lossy().to_string();
                             let path_str = path.to_string_lossy().to_string();
                             
-                            // 2.5 Debounce (Evita disparo duplo do FSEvent Modify -> Create em milissegundos)
+                            // --- ⏱️ 2.5 Debounce & Anti-Race Condition ---
+                            // Sistemas de arquivos (especialmente no Linux/Wayland) podem disparar 
+                            // múltiplos eventos para uma única escrita de arquivo. O debounce de 2s
+                            // garante que processemos apenas a versão final estável do documento.
                             if let Some(last_time) = last_processed.get(&path_str)
                                 && last_time.elapsed() < std::time::Duration::from_secs(2) {
                                     continue;
@@ -229,6 +237,15 @@ impl SyncEngine {
         });
     }
 
+
+    /// 🧬 **Ingestion Pipeline | O Ciclo de Vida do Conhecimento**
+    /// 
+    /// Transforma um arquivo bruto em vetores de conhecimento (Chunks) e metadados.
+    /// 1. **Parse**: Extração de texto via `office_parser` com retry resiliente.
+    /// 2. **Chunking**: Fragmentação paralela via **Rayon** (Ciber-Paralelismo).
+    /// 3. **Summarization**: Geração de resumo semântico via SLM local (The Dad).
+    /// 4. **Persistence**: Escrita atômica no SQLite.
+    /// 5. **Broadcasting**: Sincronização P2P com outros Nós da Malha Mesh.
     async fn process_ingestion_pipeline(mut job: IngestionJob, file_path: String, tx: broadcast::Sender<IngestionJob>, db: sqlx::SqlitePool) {
         // Step 1: O OCR/Parse (File I/O Nativo com Retry Loop anti-race-condition)
         job.status = "processing".to_string();
@@ -358,9 +375,10 @@ impl SyncEngine {
         let _ = tx.send(job.clone());
         info!("🧬 [The Dad/Mom Rust] Conhecimento Engolido Atomicamente via Rayon: {}", job.filename);
 
-        // ==========================================
-        // MESH P2P: DISTRIBUIÇÃO DE CONHECIMENTO CÍBRIDO
-        // ==========================================
+        // --- 📡 Sovereign Mesh P2P (Conhecimento Roaming) ---
+        // Após a ingestão local, o sistema transmite proativamente o conhecimento
+        // para todos os outros nós conectados via túnel SSH Mesh. Isso cria uma
+        // rede de conhecimento redundante e distribuída (P2P Knowledge Sync).
         let workspace_name: String = sqlx::query_scalar("SELECT name FROM workspaces WHERE id = ?")
             .bind(&workspace_id)
             .fetch_optional(&db).await.unwrap_or_default().unwrap_or_else(|| "Sovereign Mesh Roaming".to_string());

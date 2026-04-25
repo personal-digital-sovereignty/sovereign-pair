@@ -1,4 +1,10 @@
 import { API_BASE_URL } from '$lib/env_config';
+/**
+ * 🌐 **Global State | Svelte 5 Reactive Engine**
+ * 
+ * Gerencia o estado atômico de toda a aplicação usando as novas Runes do Svelte 5.
+ * O uso de `$state` garante reatividade de alta performance sem a necessidade de stores legadas.
+ */
 export const globalState = $state({
     authPhase: 'loading',
     isSidebarOpen: true,
@@ -71,9 +77,15 @@ export const markNotificationsRead = () => {
     globalState.notifications.forEach(n => n.read = true);
 };
 
+
 // ==========================================
-// BACKGROUND CHAT PROCESSOR (Sensus Engine)
+// 🧠 **BACKGROUND CHAT PROCESSOR (Sensus SSE Engine)**
 // ==========================================
+/**
+ * Orquestra a comunicação bidirecional via SSE (Server-Sent Events) com o backend Rust.
+ * Implementa lógica de streaming, injeção de contexto dinâmico (Vault) e 
+ * tratamento de erros resiliente para ambientes instáveis.
+ */
 
 let currentAbortController: AbortController | null = null;
 
@@ -127,11 +139,16 @@ export const sendGlobalChatMessage = async (userText: string) => {
         let finalUserMsg = userText;
         const currentPath = window.location.pathname;
 
+
+        // --- 🧬 Context Injection (Smart RAG) ---
+        // Se o usuário estiver visualizando um documento no Vault, o frontend 
+        // captura automaticamente os primeiros 1500 caracteres e os injeta como 
+        // contexto privilegiado, permitindo perguntas sobre o arquivo aberto.
         if (globalState.chat.inputContext) {
             finalUserMsg = `[Contexto Destacado]: "${globalState.chat.inputContext}"\n\n[Pergunta]: ${userText}`;
             globalState.chat.inputContext = ''; // Limpa pra n explodir os próximos
         } else if (currentPath.includes('/vault') && globalState.vault.activeDocumentId && globalState.vault.activeDocumentContent) {
-            // Context-Lock (Sub-Tenant Vault): Só anexa context se a render tree estiver no Editor de Texto
+            // Context-Lock (Sub-Tenant Vault)
             finalUserMsg = `[Documento Atual: ${globalState.vault.activeDocumentId.split('/').pop()}]\n${globalState.vault.activeDocumentContent.substring(0, 1500)}\n\n[Instrução]: ${userText}`;
         }
 

@@ -14,10 +14,15 @@ const KEK_ENV_VAR: &str = "SOVEREIGN_MASTER_KEK";
 
 use std::sync::OnceLock;
 
-static MASTER_KEY: OnceLock<[u8; 32]> = OnceLock::new();
-
-/// Obtém a chave mestra de criptografia (KEK).
-/// Thread-safe via OnceLock para evitar chamadas de r/w concorrentes que explodiriam o OS Env.
+/// 🔐 **KMS | Key Management System (Sovereign Vault)**
+/// 
+/// Provê a infraestrutura de criptografia autenticada (AES-256-GCM) para
+/// proteger chaves de API e outros segredos. Implementa práticas de 
+/// endurecimento de memória (Zeroize) para evitar exfiltração de dados 
+/// via 'memory dumps'.
+///
+/// Obtém a chave mestra de criptografia (KEK) do ambiente ou a gera dinamicamente.
+/// Thread-safe via `OnceLock` para evitar condições de corrida em sistemas multithreaded.
 fn get_or_generate_master_key() -> [u8; 32] {
     *MASTER_KEY.get_or_init(|| {
         let key_b64 = env::var(KEK_ENV_VAR).unwrap_or_else(|_| {
@@ -51,7 +56,11 @@ fn get_or_generate_master_key() -> [u8; 32] {
     })
 }
 
-/// Encripta uma string em AES-GCM 256
+/// 🔒 **Vault Encryption | AES-256-GCM 256-bit**
+/// 
+/// Encripta um segredo usando a chave mestra (KEK). Utiliza um nonce de 12 bytes
+/// único para cada operação, garantindo que o mesmo segredo resulte em 
+/// ciphertexts diferentes (Indistinguibilidade).
 pub fn encrypt_vault_secret(plaintext: &str) -> Option<String> {
     if plaintext.is_empty() { return None; }
 
@@ -77,7 +86,11 @@ pub fn encrypt_vault_secret(plaintext: &str) -> Option<String> {
     }
 }
 
-/// Decifra uma string codificada AES-GCM 256. Zeroiza o plano após conversão.
+/// 🔓 **Vault Decryption | Security-First Logic**
+/// 
+/// Decifra um segredo codificado. Implementa o padrão de "Memory Wipe" 
+/// chamando `.zeroize()` em buffers temporários imediatamente após o uso, 
+/// garantindo que segredos decifrados não permaneçam na memória heap ou stack.
 pub fn decrypt_vault_secret(encrypted_b64: &str) -> Option<String> {
     if encrypted_b64.is_empty() { return None; }
 
