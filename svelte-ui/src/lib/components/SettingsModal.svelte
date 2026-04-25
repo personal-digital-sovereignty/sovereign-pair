@@ -1,8 +1,8 @@
 <script lang="ts">
 import { API_BASE_URL } from '$lib/env_config';
 
-  import { settingsState, saveSettings } from '$lib/settings.svelte';
-  import { Settings, ChevronDown, ChevronsUpDown, X, Plus, Trash2, Database } from 'lucide-svelte';
+  import { settingsState, saveSettings, openRouterState, loadOpenRouterSettings, saveOpenRouterSettings } from '$lib/settings.svelte';
+  import { Settings, ChevronDown, ChevronsUpDown, X, Plus, Trash2, Database, Globe, ShieldCheck } from 'lucide-svelte';
   import { onMount } from 'svelte';
   
   let activeTab = $state('Workspaces'); // Engine, Workspaces, Persona, Guardrails, Profile
@@ -31,6 +31,7 @@ import { API_BASE_URL } from '$lib/env_config';
       
       loadWorkspaces();
       loadSearxng();
+      loadOpenRouterSettings();
   });
   
   async function loadWorkspaces() {
@@ -152,7 +153,7 @@ import { API_BASE_URL } from '$lib/env_config';
 
         <!-- Tabs -->
         <div class="flex px-8 border-b border-slate-200 dark:border-[#424859]/20 bg-slate-50/50 dark:bg-[#0c1324] transition-colors">
-            {#each ['Workspaces', 'Engine', 'Persona', 'Profile', 'Guardrails'] as tab}
+            {#each ['Workspaces', 'Engine', 'Cloud Mesh', 'Persona', 'Profile', 'Guardrails'] as tab}
                 <button 
                     class="px-6 py-3 text-sm font-bold border-b-2 transition-colors cursor-pointer {activeTab === tab ? 'border-indigo-700 dark:border-[#74b0ff] text-indigo-800 dark:text-[#74b0ff]' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}"
                     onclick={() => activeTab = tab}
@@ -313,6 +314,52 @@ import { API_BASE_URL } from '$lib/env_config';
                 </section>
             {/if}
 
+            {#if activeTab === 'Cloud Mesh'}
+                <section class="space-y-8">
+                    <div class="flex items-center justify-between p-6 bg-indigo-50 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <Globe class="w-5 h-5 text-indigo-600 dark:text-[#74b0ff]" />
+                                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">OpenRouter Private Mesh</h3>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm">Enable this to route commercial models (GPT, Claude) through OpenRouter when local fallback is not desired.</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" bind:checked={openRouterState.enabled} class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                        </label>
+                    </div>
+
+                    <div class="space-y-6 {openRouterState.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none transition-opacity'}">
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                <ShieldCheck class="w-4 h-4" /> OpenRouter API Key
+                            </label>
+                            <div class="relative">
+                                <input 
+                                    type="password" 
+                                    bind:value={openRouterState.api_key} 
+                                    class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono" 
+                                    placeholder="sk-or-v1-..." 
+                                />
+                                <div class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">KMS Encrypted</div>
+                            </div>
+                            <p class="text-[10px] text-slate-400 dark:text-slate-500">Sua chave será criptografada via AES-256-GCM pelo Sovereign KMS antes de tocar o disco.</p>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Default Cloud Model</label>
+                            <input 
+                                bind:value={openRouterState.default_model} 
+                                class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono" 
+                                placeholder="openai/gpt-4o-mini" 
+                            />
+                            <p class="text-[10px] text-slate-400 dark:text-slate-500">Ex: `anthropic/claude-3.5-sonnet`, `google/gemini-pro-1.5`, etc.</p>
+                        </div>
+                    </div>
+                </section>
+            {/if}
+
             {#if activeTab === 'Persona'}
                 <!-- AI Personality -->
                 <section class="space-y-4">
@@ -442,7 +489,7 @@ import { API_BASE_URL } from '$lib/env_config';
             <button onclick={closeModal} class="px-6 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer">
                 Discard Changes
             </button>
-            <button onclick={saveSettings} class="px-8 py-2.5 text-sm font-bold text-white bg-gradient-to-br from-indigo-700 to-indigo-800 dark:from-indigo-600 dark:to-indigo-500 rounded-lg shadow-lg hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer">
+            <button onclick={async () => { await saveSettings(); await saveOpenRouterSettings(); }} class="px-8 py-2.5 text-sm font-bold text-white bg-gradient-to-br from-indigo-700 to-indigo-800 dark:from-indigo-600 dark:to-indigo-500 rounded-lg shadow-lg hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer">
                 Save Engine Config
             </button>
         </div>

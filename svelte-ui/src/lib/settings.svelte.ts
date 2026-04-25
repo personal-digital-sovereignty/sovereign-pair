@@ -89,3 +89,47 @@ export async function saveSettings() {
     }
 }
 
+// OpenRouter Integration State
+export const openRouterState = $state({
+    enabled: false,
+    api_key: '',
+    default_model: 'openai/gpt-4o-mini',
+});
+
+export async function loadOpenRouterSettings() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/v1/settings/openrouter`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            openRouterState.enabled = data.enabled || false;
+            openRouterState.api_key = data.api_key || '';
+            openRouterState.default_model = data.default_model || 'openai/gpt-4o-mini';
+        }
+    } catch (e) {
+        console.error("Failed to load OpenRouter settings:", e);
+    }
+}
+
+export async function saveOpenRouterSettings() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/v1/settings/openrouter`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}`
+            },
+            body: JSON.stringify({
+                enabled: openRouterState.enabled,
+                api_key: openRouterState.api_key,
+                default_model: openRouterState.default_model
+            })
+        });
+        return res.ok;
+    } catch (e) {
+        console.error("Failed to save OpenRouter settings:", e);
+        return false;
+    }
+}
+
