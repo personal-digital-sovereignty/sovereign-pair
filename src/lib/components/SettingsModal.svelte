@@ -180,12 +180,12 @@ import { API_BASE_URL } from '$lib/env_config';
                     <!-- Form to add new workspace -->
                     <div class="flex items-end gap-4 p-4 bg-slate-50 dark:bg-[#0c1324] border border-slate-100 dark:border-[#424859]/20 rounded-xl">
                         <div class="flex-1 space-y-1">
-                            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Nickname</label>
-                            <input bind:value={newWsName} class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:focus:border-[#74b0ff] dark:text-slate-200" placeholder="e.g. Legal Docs" />
+                            <label for="nicknameInput" class="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Nickname</label>
+                            <input id="nicknameInput" bind:value={newWsName} class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:focus:border-[#74b0ff] dark:text-slate-200" placeholder="e.g. Legal Docs" />
                         </div>
                         <div class="flex-[2] space-y-1">
-                            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Absolute OS Path</label>
-                            <input bind:value={newWsPath} class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:focus:border-[#74b0ff] dark:text-slate-200 font-mono" placeholder="/home/user/Documents/Legal" />
+                            <label for="osPathInput" class="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Absolute OS Path</label>
+                            <input id="osPathInput" bind:value={newWsPath} class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:focus:border-[#74b0ff] dark:text-slate-200 font-mono" placeholder="/home/user/Documents/Legal" />
                         </div>
                         <button onclick={addWorkspace} disabled={!newWsName || !newWsPath || isAddingWs} class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500/20 dark:hover:bg-indigo-500/30 text-white dark:text-[#74b0ff] font-bold text-sm rounded-lg transition-colors flex items-center shadow-sm disabled:opacity-50 cursor-pointer">
                             {#if isAddingWs} <span class="animate-pulse">Adding...</span> {:else} <Plus class="w-4 h-4 mr-1"/> Add {/if}
@@ -226,11 +226,11 @@ import { API_BASE_URL } from '$lib/env_config';
                 <!-- Provider & Model Selection -->
                 <section class="grid grid-cols-2 gap-6">
                     <div class="space-y-2">
-                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                        <label for="providerBtn" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
                             Provider
                         </label>
                         <div class="relative">
-                            <button class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-[#424859]/50 text-slate-800 dark:text-slate-200 text-sm font-medium">
+                            <button id="providerBtn" class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-[#424859]/50 text-slate-800 dark:text-slate-200 text-sm font-medium">
                                 <span class="flex items-center gap-2">
                                     <span class="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400"></span>
                                     {settingsState.provider}
@@ -240,11 +240,11 @@ import { API_BASE_URL } from '$lib/env_config';
                         </div>
                     </div>
                     <div class="space-y-2">
-                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                        <label for="modelSelect" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
                             Model Name
                         </label>
                         <div class="relative">
-                            <select bind:value={settingsState.modelName} class="w-full px-4 py-3 pr-10 bg-white dark:bg-slate-800 rounded-xl border border-indigo-200 dark:border-[#424859]/50 text-slate-800 dark:text-slate-200 text-sm font-medium shadow-sm appearance-none outline-none focus:ring-2 focus:ring-indigo-500/20 dark:focus:border-[#74b0ff] cursor-pointer">
+                            <select id="modelSelect" bind:value={settingsState.modelName} class="w-full px-4 py-3 pr-10 bg-white dark:bg-slate-800 rounded-xl border border-indigo-200 dark:border-[#424859]/50 text-slate-800 dark:text-slate-200 text-sm font-medium shadow-sm appearance-none outline-none focus:ring-2 focus:ring-indigo-500/20 dark:focus:border-[#74b0ff] cursor-pointer">
                                 {#if availableModels.length === 0}
                                     <option value={settingsState.modelName}>{settingsState.modelName}</option>
                                 {/if}
@@ -260,13 +260,13 @@ import { API_BASE_URL } from '$lib/env_config';
                 <section class="space-y-4">
                     <div class="flex justify-between items-end">
                         <div class="space-y-1">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Temperature (Creativity)</label>
+                            <label for="tempInput" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Temperature (Creativity)</label>
                             <p class="text-xs text-slate-500 dark:text-slate-500">Controls randomness: Lower is more focused and deterministic.</p>
                         </div>
                         <span class="text-sm font-mono font-bold text-indigo-800 dark:text-[#74b0ff] bg-indigo-100 dark:bg-indigo-500/10 border border-transparent dark:border-indigo-500/30 px-2 py-0.5 rounded">{settingsState.temperature.toFixed(1)}</span>
                     </div>
                     <div class="relative h-6 flex items-center px-1 pt-2">
-                        <input type="range" bind:value={settingsState.temperature} min="0" max="2" step="0.1" class="w-full h-1.5 bg-slate-200 dark:bg-[#424859]/50 rounded-lg appearance-none cursor-pointer accent-indigo-700 dark:accent-[#74b0ff]" />
+                        <input id="tempInput" type="range" bind:value={settingsState.temperature} min="0" max="2" step="0.1" class="w-full h-1.5 bg-slate-200 dark:bg-[#424859]/50 rounded-lg appearance-none cursor-pointer accent-indigo-700 dark:accent-[#74b0ff]" />
                     </div>
                     <div class="flex justify-between text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-tighter">
                         <span>Precise</span>
@@ -284,8 +284,8 @@ import { API_BASE_URL } from '$lib/env_config';
                     
                     <div class="flex items-end gap-3 bg-slate-50 dark:bg-[#0c1324] border border-slate-100 dark:border-[#424859]/20 p-4 rounded-xl">
                         <div class="flex-1 space-y-1">
-                            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Instance Domain / IP</label>
-                            <input bind:value={newSearxngNode} 
+                            <label for="searxngInput" class="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Instance Domain / IP</label>
+                            <input id="searxngInput" bind:value={newSearxngNode} 
                                 onkeypress={(e) => e.key === 'Enter' && addSearxngNode()}
                                 class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:focus:border-[#74b0ff] focus:ring-2 focus:ring-indigo-500/20 font-mono transition-shadow placeholder:text-slate-300 dark:placeholder:text-slate-600 dark:text-slate-200" 
                                 placeholder="https://paulgo.io" />
@@ -334,11 +334,12 @@ import { API_BASE_URL } from '$lib/env_config';
 
                     <div class="space-y-6 {openRouterState.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none transition-opacity'}">
                         <div class="space-y-2">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                            <label for="orApiKeyInput" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
                                 <ShieldCheck class="w-4 h-4" /> OpenRouter API Key
                             </label>
                             <div class="relative">
                                 <input 
+                                    id="orApiKeyInput"
                                     type="password" 
                                     bind:value={openRouterState.api_key} 
                                     class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono" 
@@ -350,8 +351,9 @@ import { API_BASE_URL } from '$lib/env_config';
                         </div>
 
                         <div class="space-y-2">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Default Cloud Model</label>
+                            <label for="orModelInput" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Default Cloud Model</label>
                             <input 
+                                id="orModelInput"
                                 bind:value={openRouterState.default_model} 
                                 class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono" 
                                 placeholder="openai/gpt-4o-mini" 
@@ -380,11 +382,12 @@ import { API_BASE_URL } from '$lib/env_config';
 
                     <div class="space-y-6 {qwenState.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none transition-opacity'}">
                         <div class="space-y-2">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                            <label for="qwenApiKeyInput" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
                                 <ShieldCheck class="w-4 h-4" /> DashScope API Key
                             </label>
                             <div class="relative">
                                 <input 
+                                    id="qwenApiKeyInput"
                                     type="password" 
                                     bind:value={qwenState.api_key} 
                                     class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500/20 outline-none font-mono" 
@@ -396,8 +399,9 @@ import { API_BASE_URL } from '$lib/env_config';
                         </div>
 
                         <div class="space-y-2">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Default Qwen Model</label>
+                            <label for="qwenModelInput" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Default Qwen Model</label>
                             <input 
+                                id="qwenModelInput"
                                 bind:value={qwenState.default_model} 
                                 class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500/20 outline-none font-mono" 
                                 placeholder="qwen-plus" 
@@ -432,11 +436,12 @@ import { API_BASE_URL } from '$lib/env_config';
 
                     <div class="space-y-6 {nvidiaState.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none transition-opacity'}">
                         <div class="space-y-2">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                            <label for="nvidiaApiKeyInput" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
                                 <ShieldCheck class="w-4 h-4" /> NVIDIA API Key
                             </label>
                             <div class="relative">
                                 <input 
+                                    id="nvidiaApiKeyInput"
                                     type="password" 
                                     bind:value={nvidiaState.api_key} 
                                     class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 outline-none font-mono" 
@@ -448,8 +453,9 @@ import { API_BASE_URL } from '$lib/env_config';
                         </div>
 
                         <div class="space-y-2">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Default NIM Model</label>
+                            <label for="nvidiaModelInput" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Default NIM Model</label>
                             <input 
+                                id="nvidiaModelInput"
                                 bind:value={nvidiaState.default_model} 
                                 class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 outline-none font-mono" 
                                 placeholder="meta/llama-3.1-405b-instruct" 
@@ -470,7 +476,7 @@ import { API_BASE_URL } from '$lib/env_config';
                 <!-- AI Personality -->
                 <section class="space-y-4">
                     <div class="space-y-2">
-                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                        <label for="personalityInput" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between">
                             <span>Personality Name</span>
                             <select 
                                 onchange={(e) => applyPreset((e.target as HTMLSelectElement).value)}
@@ -482,11 +488,11 @@ import { API_BASE_URL } from '$lib/env_config';
                                 {/each}
                             </select>
                         </label>
-                        <input bind:value={settingsState.personalityName} class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" type="text" />
+                        <input id="personalityInput" bind:value={settingsState.personalityName} class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" type="text" />
                     </div>
                     <div class="space-y-2">
-                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">System Instructions</label>
-                        <textarea bind:value={settingsState.systemInstructions} class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm leading-relaxed focus:ring-2 focus:ring-indigo-500/20 resize-y outline-none" rows="4"></textarea>
+                        <label for="instructionsInput" class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">System Instructions</label>
+                        <textarea id="instructionsInput" bind:value={settingsState.systemInstructions} class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm leading-relaxed focus:ring-2 focus:ring-indigo-500/20 resize-y outline-none" rows="4"></textarea>
                     </div>
                     <!-- Additional Prompts -->
                     <div class="space-y-3 pt-2">
