@@ -5,16 +5,24 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use std::collections::HashMap;
 
+/// 🕸️ **Sovereign Mesh | Malha P2P Criptografada**
+/// 
+/// Gerencia túneis SSH persistentes que conectam múltiplos Nós Sovereign.
+/// Permite que o tráfego de inferência e sincronização de conhecimento flua 
+/// de forma segura por redes públicas sem exposição de portas no firewall.
 lazy_static::lazy_static! {
-    // Map with Local Port as key and Node Info as value ((IP, KeyPath))
+    /// Mapa de Túneis Ativos: Porta Local -> (URI Remota, Caminho da Chave).
     pub static ref ACTIVE_MESH_TUNNELS: Arc<Mutex<HashMap<u16, (String, String)>>> = Arc::new(Mutex::new(HashMap::<u16, (String, String)>::new()));
 }
 
 pub struct MeshConnector;
 
 impl MeshConnector {
-    /// Inicia um túnel reverso/direto persistente em background operado pelo próprio motor Rust.
-    /// Funciona convertendo tráfego local invisível em requisições seguras da malha.
+    /// 🛠️ **Establish Mesh Tunnel | Port Forwarding Seguro**
+    /// 
+    /// Inicia um processo SSH nativo em background para criar um túnel de porta.
+    /// - **local_port**: Porta no host local que será mapeada.
+    /// - **remote_port**: Porta no host remoto onde o serviço (ex: Ollama) escuta.
     pub async fn establish_mesh_tunnel(
         remote_ip: String, 
         remote_user: String, 
@@ -72,9 +80,12 @@ impl MeshConnector {
     }
 }
 
-/// Auto-connect Oracle Node: lê config do DB no boot e entra num loop de hot-reload.
-/// Monitora mudanças de configuração dinamicamente. Se desabilitado ou IP alterado em runtime,
-/// ele derruba o túnel OCI ativo e sobe novamente sem requerer restart do Sovereing Core.
+/// ☁️ **Oracle Node Watchdog | Gestão de Offload Cloud**
+/// 
+/// Monitora continuamente a configuração do Nó Oracle no SQLite.
+/// Implementa **Hot-Reload Connectivity**: se o usuário alterar o IP ou 
+/// desabilitar o nó na UI, o Watchdog derruba o túnel atual e sincroniza 
+/// o estado imediatamente sem interrupção do serviço principal.
 pub async fn auto_connect_oracle_node(db: sqlx::SqlitePool) {
     tokio::spawn(async move {
         let mut current_child: Option<tokio::process::Child> = None;

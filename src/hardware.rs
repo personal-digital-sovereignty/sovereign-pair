@@ -3,15 +3,24 @@ use sysinfo::System;
 use std::ffi::CStr;
 use tracing::{warn, info};
 
+/// 🖥️ **HardwareTelemetry | O Sistema Nervoso do Hardware**
+/// 
+/// Captura e centraliza métricas críticas de performance para garantir a 
+/// estabilidade do sistema sob carga de inferência.
 #[derive(Clone, Debug)]
 pub struct HardwareTelemetry {
+    /// RAM total disponível no host (GB).
     pub total_ram_gb: f64,
+    /// RAM atualmente em uso pelo sistema operacional e processos (GB).
     pub used_ram_gb: f64,
+    /// VRAM dedicada detectada via Vulkan ou drivers específicos (GB).
     pub total_vram_gb: f64,
+    /// VRAM atualmente alocada para o motor de inferência (GB).
     pub used_vram_gb: f64, 
+    /// Nome identificador da GPU (ex: "NVIDIA GeForce RTX 4090").
     pub gpu_name: String,
-    /// True when GPU uses unified memory (Apple Silicon, iGPUs) —
-    /// in this case, VRAM metrics mirror system RAM.
+    /// Identifica se o sistema usa memória unificada (Apple Silicon / iGPUs).
+    /// Nestes casos, métricas de VRAM espelham a RAM do sistema.
     pub unified_memory: bool,
 }
 
@@ -53,7 +62,16 @@ impl Drop for VkInstanceGuard {
     }
 }
 
-/// Dynamically calculates safe Context Windows based on GPU VRAM availability, with fallback to System RAM.
+/// 🛡️ **OOM Guard | Cálculo de Janela de Contexto Segura**
+/// 
+/// Algoritmo preventivo que calcula o limite máximo de tokens (Context Window)
+/// que o sistema pode processar sem causar um estouro de memória (Out-Of-Memory).
+/// 
+/// **Lógica de Escalonamento**:
+/// - < 8GB VRAM: 8k tokens (Segurança absoluta para SLMs).
+/// - 8GB-12GB: 16k tokens.
+/// - 12GB-24GB: 32k tokens.
+/// - > 48GB: 128k tokens (Modo Deep Research Ativo).
 pub fn calculate_safe_context_window(telemetry: &HardwareTelemetry) -> u64 {
     let governing_memory = if telemetry.total_vram_gb > 0.0 {
         telemetry.total_vram_gb
@@ -142,7 +160,11 @@ fn detect_vram_source(gpu_name: &str) -> VramSource {
     }
 }
 
-/// Query static GPU info via Vulkan (Recached every 60s via dyn-TTL)
+/// 🔍 **Vulkan Recon | Identificação de Hardware Estático**
+/// 
+/// Utiliza o Vulkan Loader para interrogar as propriedades físicas do hardware.
+/// Implementa um cache dinâmico de 60 segundos para evitar sobrecarga de chamadas
+/// ao driver de vídeo durante o polling de telemetria.
 fn get_static_gpu_info() -> StaticHardwareInfo {
     let needs_reload = {
         let guard = STATIC_HARDWARE_CACHE.read().unwrap();
