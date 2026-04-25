@@ -7,7 +7,7 @@ use sqlx::Row;
 use crate::kms;
 
 use serde::{Serialize, Deserialize};
-use crate::models::{OpenRouterSettings, QwenSettings, NvidiaSettings};
+use crate::models::{QwenSettings, NvidiaSettings};
 
 /// Limites configuráveis de scraping por contexto
 #[derive(Debug, Clone, Serialize, Deserialize)]
