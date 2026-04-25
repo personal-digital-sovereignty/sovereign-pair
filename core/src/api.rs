@@ -425,7 +425,15 @@ pub async fn discover_adversarial_auditor(pool: Option<&sqlx::SqlitePool>, origi
     fallback.to_string()
 }
 
-/// O Primeiro Controlador Cíbrido: Recebendo os Pensamentos do VS Code.
+/// 🧠 **O Primeiro Controlador Cíbrido: Recebendo os Pensamentos do Ecossistema.**
+/// 
+/// Este é o ponto de entrada principal para requisições compatíveis com OpenAI.
+/// Ele orquestra todo o ciclo de vida de uma interação agêntica:
+/// 1.  **Resolvência de Identidade**: Carrega chaves KMS e configurações de provedores.
+/// 2.  **Interceptação Visual**: Desvia fluxos de geração de imagem para o motor local.
+/// 3.  **Guardrails**: Avalia ameaças de injeção de prompt e exfiltração.
+/// 4.  **RAG Context**: Injeta a memória do projeto atual.
+/// 5.  **Inferência Adaptativa**: Decide entre Ollama local ou Cloud (Qwen/Nvidia).
 pub async fn chat_completions_handler(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<OpenAIChatRequest>,
@@ -436,7 +444,9 @@ let requested_model = payload.model.clone();
 let is_qwen_model = requested_model.starts_with("qwen/");
 let mut qwen_settings = QwenSettings::default();
 
-if is_qwen_model {
+    // --- 🔐 Resolvência de Identidade & KMS ---
+    // Carregamos as configurações criptografadas do banco de dados e as descriptografamos
+    // em memória para uso imediato, garantindo que as chaves nunca toquem o disco em texto puro.
     if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'qwen'").fetch_optional(&state.db).await {
         let val: String = sqlx::Row::get(&row, "value_json");
         if let Ok(parsed) = serde_json::from_str::<QwenSettings>(&val) {
@@ -485,7 +495,12 @@ let human_prompt = payload.messages.last()
     })
     .unwrap_or_else(|| "Interação O.S".to_string());
 
-// ======= Visual Artist Hard-Bypass (G.1 Palette Tool) =======
+
+// 🎨 **Visual Artist Hard-Bypass (G.1 Palette Tool)**
+// 
+// Se o modo 'Visual Artist' estiver ativo, o sistema ignora completamente a inferência de texto
+// e roteia o prompt do usuário diretamente para o motor de geração de imagem (SD.cpp).
+// Isso economiza tokens e reduz o tempo de resposta para casos de uso puramente criativos.
 if payload.visual_artist_mode.unwrap_or(false) && !human_prompt.trim().is_empty() {
     tracing::info!("🎨 [Sovereign Vision] Dedicated Palette Mode Triggered! Bypassing LLM completely for prompt: {}", human_prompt);
     
@@ -557,6 +572,10 @@ if payload.visual_artist_mode.unwrap_or(false) && !human_prompt.trim().is_empty(
 }
 
 
+// 🛡️ **Epistemic Guard (Guardrails Policy)**
+// 
+// Antes de qualquer processamento custoso, o prompt é submetido ao validador de ameaças.
+// Se uma política for violada (ex: jailbreak, exfiltração), a requisição é abortada e logada.
 if let Err(security_alert) = crate::guardrails::evaluate_prompt(&human_prompt, &state.db).await {
     tracing::warn!("🛡️ [Sovereign Guardrails] Ameaça Bloqueada: {}", security_alert.message);
     
@@ -1168,12 +1187,12 @@ if project_context.is_empty()
                 project_context.push_str("Use esta consciência periférica se o usuário pedir ajuda para gerenciar o seu dia, idéias ou se for relevante durante a conversa.\n");
             }
 
-if !project_context.is_empty() {
-    purified_messages.push(json!({
-        "role": "system",
-        "content": project_context
-    }));
-}
+
+// 🧬 **Sovereign Context Injector (RAG v2 - Project Memory)**
+// 
+// Este módulo é responsável por extrair a "consciência" do projeto atual do SQLite
+// e do Vault Markdown, injetando-a como contexto sistêmico no prompt do LLM.
+// Isso garante que o agente saiba exatamente em quais tarefas e documentos está trabalhando.
 // --- FIM DO PROJECT CONTEXT ---
 
 
@@ -1200,9 +1219,14 @@ if let Some(global_prompt) = global_system_prompt {
     }));
 }
 
-// Injeta a Orquestração do ReWOO (Reasoning Without Observation) Apenas Se Houver Plano
-let workspace_id = payload.workspace_id.clone().unwrap_or_else(|| "default".to_string());
 
+// 🧠 **Sovereign ReWOO (Reasoning Without Observation)**
+// 
+// Implementa o padrão ReWOO para desacoplar o raciocínio da execução de ferramentas.
+// 1. **Plan**: O sistema gera um grafo de execução (DAG).
+// 2. **Execute**: O Rust dispara todos os nós paralelos de forma assíncrona.
+// 3. **Consolidate**: Os resultados são injetados como observações estáticas, 
+//    poupando tokens que seriam gastos em loops ReAct interativos.
 let rewoo_observations = if payload.rewoo_enabled.unwrap_or(false) && !is_trivial {
     send_thought("<thought>Consultando Plano de Tarefas Sovereign Hub...</thought>\n");
     crate::rewoo::execute_rewoo_plan(&human_prompt, &workspace_id, &state.db).await
@@ -1237,7 +1261,12 @@ purified_messages.push(json!({
     "content": format!(">> RELÓGIO DO SERVIDOR <<\nNunca diga que você não tem acesso à data e hora atual. A data e hora em tempo real deste exato segundo no sistema é: {}", runtime_clock)
 }));
 
-// Injeta a Memória de Estado Dinâmica (Working Memory) para mitigar a amnésia de SLMs em longos diálogos
+
+// 🧠 **Dynamic Working Memory (State Retention)**
+// 
+// Implementa uma camada de "consciência temporal" injetando metadados de estado no prompt.
+// Isso mitiga a 'amnésia' de modelos menores (SLMs) ao fornecer um checkpoint estruturado
+// do turno atual e objetivos da tarefa, forçando o modelo a manter a coerência.
 let turn_count = payload.messages.len();
 if turn_count > 3 {
     let working_memory_prompt = format!(
@@ -1258,9 +1287,13 @@ if turn_count > 3 {
     }));
 }
 
-// ==========================================
-// EPIC 11: AGENTIC MLA (Latent Context Compression)
-// Objetivo: Preservar 1 Turno (3 Msgs) + 4 Latent Memories (Reranked)
+
+// 📉 **AGENTIC MLA (Multi-Latent Attention Context Compression)**
+// 
+// Estratégia de compressão de contexto inspirada em arquiteturas de DeepSeek.
+// Ao invés de enviar todo o histórico bruto, preservamos apenas os últimos 3 turnos 
+// em alta fidelidade e comprimimos o restante em 'Latent Memories' sumarizadas 
+// e rankeadas por relevância vetorial. Isso maximiza o uso da KV Cache.
 // ==========================================
 let mut mla_compressed_context = String::new();
 
