@@ -3,13 +3,14 @@
     import { API_BASE_URL } from '$lib/env_config';
     import { Terminal, Download, Play, Pause, Trash2, Clock, Bug, Zap } from 'lucide-svelte';
 
+    import { telemetryState } from '$lib/telemetry.svelte';
+
     interface LogEntry {
         timestamp: string;
         level: string;
         message: string;
     }
 
-    let logs = $state<LogEntry[]>([]);
     let eventSource: EventSource | null = null;
     let isPaused = $state(false);
     let logsContainer: HTMLElement;
@@ -27,10 +28,10 @@
             if (isPaused) return;
             try {
                 const log = JSON.parse(event.data);
-                logs = [...logs, log];
+                telemetryState.systemLogs = [...telemetryState.systemLogs, log];
                 
                 // Keep only last 1000 logs in memory to avoid DOM bloating
-                if (logs.length > 1000) logs = logs.slice(logs.length - 1000);
+                if (telemetryState.systemLogs.length > 1000) telemetryState.systemLogs = telemetryState.systemLogs.slice(telemetryState.systemLogs.length - 1000);
                 
                 if (autoScroll && logsContainer) {
                     setTimeout(() => {
@@ -68,17 +69,17 @@
     }
 
     function clearLogs() {
-        logs = [];
+        telemetryState.systemLogs = [];
     }
 
     function downloadLogs() {
-        if (logs.length === 0) return;
+        if (telemetryState.systemLogs.length === 0) return;
         
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const fileName = `sovereign_core_${timestamp}.log`;
         
         // Formata os logs exatamente como no terminal
-        const rawText = logs.map(l => `[${l.timestamp}] ${l.level.toUpperCase()} - ${l.message}`).join('\n');
+        const rawText = telemetryState.systemLogs.map((l: LogEntry) => `[${l.timestamp}] ${l.level.toUpperCase()} - ${l.message}`).join('\n');
         
         const blob = new Blob([rawText], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
@@ -155,13 +156,13 @@
         onscroll={handleScroll}
         class="flex-1 p-4 overflow-y-auto space-y-1 font-mono text-[13px] bg-black/40 scroll-smooth leading-relaxed"
     >
-        {#if logs.length === 0}
+        {#if telemetryState.systemLogs.length === 0}
             <div class="h-full flex flex-col items-center justify-center text-surface-500 gap-4 opacity-50">
                 <Bug class="w-16 h-16 stroke-[1.5]" />
                 <p>Waiting for Native Rust Backend interactions...</p>
             </div>
         {:else}
-            {#each logs as log}
+            {#each telemetryState.systemLogs as log}
                 <div class="flex items-start gap-3 hover:bg-surface-800/30 px-2 py-1 rounded transition-colors group break-words w-full">
                     <div class="flex-shrink-0 text-surface-500 mt-0.5 w-[75px] truncate text-xs flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
                         <Clock class="w-3 h-3" />

@@ -1,8 +1,8 @@
-/// ============================================================
-/// Sovereign Pair — Security Test Suite (Pass 3 Regression)
-/// Covers: JWT Algorithm Confusion, SSRF Guard, Path Traversal,
-///         KMS Encryption, Body Limit, Token Exposure
-/// ============================================================
+//! ============================================================
+//! Sovereign Pair — Security Test Suite (Pass 3 Regression)
+//! Covers: JWT Algorithm Confusion, SSRF Guard, Path Traversal,
+//!         KMS Encryption, Body Limit, Token Exposure
+//! ============================================================
 
 #[cfg(test)]
 mod jwt_security {

@@ -1,6 +1,7 @@
 use axum::{extract::State, response::IntoResponse, Json};
 use serde_json::Value;
 use std::sync::Arc;
+use std::net::IpAddr;
 use crate::AppState;
 use sqlx::Row;
 use crate::kms;
@@ -766,4 +767,265 @@ pub async fn delete_prompt_handler(
             (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true}))).into_response()
         }
     }
+}
+
+// ---------------------------------------------------------
+// P2P MESH & CLOUD TARGET SANDBOXING
+// ---------------------------------------------------------
+
+/// GAP-O01: SSRF Guard robusto.
+/// Normaliza o host (remove schema), parsea como IpAddr e rejeita:
+/// loopback (127.x, ::1), unspecified (0.x), link-local (169.254.x),
+/// e todo o espaço RFC1918 privado (10.x, 172.16-31.x, 192.168.x).
+fn is_ssrf_target(raw: &str) -> bool {
+    // Normaliza: remove schema http:// ou https://
+    let host = raw
+        .trim_start_matches("https://")
+        .trim_start_matches("http://")
+        .split('/')
+        .next()
+        .unwrap_or(raw);
+
+    // Extrai o host isolado (lida corretamente com portas e IPv6)
+    // [::1]:8080 -> ::1 | 127.0.0.1:8080 -> 127.0.0.1
+    let extracted = if host.starts_with('[') {
+        if let Some(end) = host.find(']') {
+            &host[1..end]
+        } else {
+            host
+        }
+    } else {
+        host.split(':').next().unwrap_or(host)
+    };
+
+    // Bloqueia hosts literais conhecidos
+    if extracted.eq_ignore_ascii_case("localhost") { return true; }
+
+    // Tenta parsear como IP
+    if let Ok(ip) = extracted.parse::<IpAddr>() {
+        if ip.is_loopback() || ip.is_unspecified() { return true; }
+        match ip {
+            IpAddr::V4(v4) => {
+                let octets = v4.octets();
+                // 169.254.x.x - link-local / AWS/GCP metadata
+                if octets[0] == 169 && octets[1] == 254 { return true; }
+                // 10.x.x.x - RFC1918 Class A
+                if octets[0] == 10 { return true; }
+                // 172.16.x.x – 172.31.x.x - RFC1918 Class B
+                if octets[0] == 172 && (16..=31).contains(&octets[1]) { return true; }
+                // 192.168.x.x - RFC1918 Class C
+                if octets[0] == 192 && octets[1] == 168 { return true; }
+            }
+            IpAddr::V6(_) => {
+                // IPv6 fc00::/7 (Unique Local, equivalente ao RFC1918)
+                if let IpAddr::V6(v6) = ip {
+                    let seg = v6.segments()[0];
+                    if (seg & 0xfe00) == 0xfc00 { return true; }
+                }
+            }
+        }
+    }
+    false
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct P2PMeshConfig {
+    pub target_ip: String,
+    pub port: u16,
+    pub mesh_key: String,
+}
+
+/// GET /v1/settings/p2p_mesh
+pub async fn get_p2p_mesh_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let result = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'p2p_mesh'")
+        .fetch_optional(&state.db)
+        .await;
+
+    match result {
+        Ok(Some(row)) => {
+            let val: String = row.get("value_json");
+            let mut parsed: Value = serde_json::from_str(&val).unwrap_or(serde_json::json!({
+                "target_ip": "",
+                "port": 38001,
+                "mesh_key": ""
+            }));
+            
+            // MASK mesh_key (GAP-C03)
+            if let Some(obj) = parsed.as_object_mut() {
+                if let Some(mk) = obj.get("mesh_key").and_then(|v| v.as_str()) {
+                    if !mk.is_empty() {
+                        obj.insert("mesh_key".to_string(), serde_json::json!("••••••••••••••••"));
+                    }
+                }
+            }
+
+            Json(parsed).into_response()
+        },
+        _ => Json(serde_json::json!({
+            "target_ip": "",
+            "port": 38001,
+            "mesh_key": ""
+        })).into_response()
+    }
+}
+
+/// POST /v1/settings/p2p_mesh
+pub async fn set_p2p_mesh_handler(
+    State(state): State<Arc<AppState>>,
+    Json(mut payload): Json<P2PMeshConfig>,
+) -> impl IntoResponse {
+    // GAP-O01: SSRF Guard robusto (Opus audit)
+    if is_ssrf_target(&payload.target_ip) {
+        return (axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({"error": true, "message": "SSRF Guard: Target IP is a protected internal/loopback/private address."}))).into_response();
+    }
+
+    // Zero Trust Handshake Validador
+    if !payload.target_ip.is_empty() {
+        let host = payload.target_ip.trim_start_matches("https://").trim_start_matches("http://");
+        let url = format!("http://{}:{}/v1/mesh/handshake", host, payload.port);
+
+        // GAP-O01: redirect-none client prevents HTTP redirect SSRF bypass
+        let no_redirect_client = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .timeout(std::time::Duration::from_secs(5))
+            .build()
+            .unwrap_or_default();
+
+        match no_redirect_client.get(&url).send().await {
+            Ok(res) if res.status().is_success() => {
+                tracing::info!("✅ [Sovereign Mesh] Handshake físico efetuado com nó pareado.");
+            },
+            Err(e) => {
+                tracing::warn!("⚠️ [Sovereign Mesh] Handshake falhou: {}", e);
+                return (axum::http::StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": true, "message": "Failed to connect to Sovereign Mesh Node."}))).into_response();
+            },
+            _ => {
+                return (axum::http::StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": true, "message": "Sovereign Mesh Node rejected the handshake."}))).into_response();
+            }
+        }
+    }
+
+    // GAP-C01 & C03: Encrypt or Preserve mesh_key
+    if payload.mesh_key == "••••••••••••••••" {
+        if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'p2p_mesh'").fetch_optional(&state.db).await {
+            let val: String = row.get("value_json");
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&val) {
+                if let Some(old_key) = v.get("mesh_key").and_then(|k| k.as_str()) {
+                    payload.mesh_key = old_key.to_string();
+                }
+            }
+        }
+    } else if !payload.mesh_key.is_empty() {
+        if let Some(enc) = crate::kms::encrypt_vault_secret(&payload.mesh_key) {
+            payload.mesh_key = enc;
+        } else {
+            return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true, "message": "Mesh Key KMS Encryption Failed"}))).into_response();
+        }
+    }
+
+    let json_str = serde_json::to_string(&payload).unwrap_or_else(|_| "{}".to_string());
+    
+    let res = sqlx::query("INSERT INTO global_settings (id, value_json) VALUES ('p2p_mesh', ?) ON CONFLICT(id) DO UPDATE SET value_json = excluded.value_json")
+        .bind(json_str)
+        .execute(&state.db)
+        .await;
+
+    if res.is_err() {
+        return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Database Error").into_response();
+    }
+
+    // GAP-O03: Broadcast topology change to all active mesh peers
+    let s_clone = state.clone();
+    tokio::spawn(async move {
+        broadcast_profile_to_mesh(s_clone).await;
+    });
+
+    Json(serde_json::json!({"status": "ok"})).into_response()
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct CloudTargetConfig {
+    pub host_ip: String,
+    pub pem_key: String,
+}
+
+/// GET /v1/settings/cloud_target
+pub async fn get_cloud_target_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let result = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'cloud_target'")
+        .fetch_optional(&state.db)
+        .await;
+
+    match result {
+        Ok(Some(row)) => {
+            let val: String = row.get("value_json");
+            let mut parsed: Value = serde_json::from_str(&val).unwrap_or(serde_json::json!({
+                "host_ip": "",
+                "pem_key": ""
+            }));
+            
+            // GAP-C03: MASK PEM at runtime to display/use
+            if let Some(obj) = parsed.as_object_mut() {
+                if let Some(pem) = obj.get("pem_key").and_then(|v| v.as_str()) {
+                    if !pem.is_empty() {
+                        obj.insert("pem_key".to_string(), serde_json::json!("••••••••••••••••"));
+                    }
+                }
+            }
+
+            Json(parsed).into_response()
+        },
+        _ => Json(serde_json::json!({
+            "host_ip": "",
+            "pem_key": ""
+        })).into_response()
+    }
+}
+
+/// POST /v1/settings/cloud_target
+pub async fn set_cloud_target_handler(
+    State(state): State<Arc<AppState>>,
+    Json(mut payload): Json<CloudTargetConfig>,
+) -> impl IntoResponse {
+    
+    // GAP-O01: SSRF Guard robusto (Opus audit)
+    if is_ssrf_target(&payload.host_ip) {
+        return (axum::http::StatusCode::FORBIDDEN, Json(serde_json::json!({"error": true, "message": "SSRF Guard: OCI Host IP is a protected internal/loopback/private address."}))).into_response();
+    }
+
+    // GAP-C03: Maintain old PEM if received placeholder, otherwise encrypt
+    if payload.pem_key == "••••••••••••••••" {
+        if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'cloud_target'").fetch_optional(&state.db).await {
+            let val: String = row.get("value_json");
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&val) {
+                if let Some(old_key) = v.get("pem_key").and_then(|k| k.as_str()) {
+                    payload.pem_key = old_key.to_string();
+                }
+            }
+        }
+    } else if !payload.pem_key.is_empty() {
+        if let Some(encrypted) = crate::kms::encrypt_vault_secret(&payload.pem_key) {
+            payload.pem_key = encrypted;
+        } else {
+             return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true, "message": "Failed to encrypt PEM key with AES-GCM"}))).into_response();
+        }
+    }
+
+    let json_str = serde_json::to_string(&payload).unwrap_or_else(|_| "{}".to_string());
+    
+    let res = sqlx::query("INSERT INTO global_settings (id, value_json) VALUES ('cloud_target', ?) ON CONFLICT(id) DO UPDATE SET value_json = excluded.value_json")
+        .bind(json_str)
+        .execute(&state.db)
+        .await;
+
+    if res.is_err() {
+        return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Database Error").into_response();
+    }
+
+    // GAP-O03: Broadcast topology change to all active mesh peers
+    let s_clone = state.clone();
+    tokio::spawn(async move {
+        broadcast_profile_to_mesh(s_clone).await;
+    });
+
+    Json(serde_json::json!({"status": "ok"})).into_response()
 }

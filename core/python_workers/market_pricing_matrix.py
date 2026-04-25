@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import sqlite3
 import urllib.request
 import logging
@@ -16,13 +17,21 @@ TARGET_MODELS = [
 ]
 
 def fetch_pricing_data() -> Dict[str, Any]:
-    try:
-        req = urllib.request.Request(LITELLM_PRICES_URL, headers={'User-Agent': 'Sovereign-Cibrid'})
-        with urllib.request.urlopen(req, timeout=10) as response:
-            return json.loads(response.read().decode('utf-8'))
-    except Exception as e:
-        logging.error(f"Failed to fetch market pricing from LiteLLM: {e}")
-        return {}
+    req = urllib.request.Request(LITELLM_PRICES_URL, headers={'User-Agent': 'Sovereign-Cibrid'})
+    max_retries = 3
+    base_delay = 2
+    for attempt in range(max_retries):
+        try:
+            with urllib.request.urlopen(req, timeout=10) as response:
+                return json.loads(response.read().decode('utf-8'))
+        except Exception as e:
+            if attempt < max_retries - 1:
+                logging.warning(f"Failed to fetch market pricing from LiteLLM: {e}. Retrying in {base_delay}s...")
+                time.sleep(base_delay)
+                base_delay *= 2
+            else:
+                logging.error(f"Failed to fetch market pricing from LiteLLM after {max_retries} attempts: {e}")
+                return {}
 
 def calculate_average_1k_cost(pricing_data: Dict[str, Any]) -> float:
     total_cost = 0.0

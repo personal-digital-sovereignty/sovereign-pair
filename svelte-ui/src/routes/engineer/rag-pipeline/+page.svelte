@@ -2,7 +2,7 @@
 import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
 
     import { onMount, tick } from 'svelte';
-    import { trainerState } from '$lib/trainer.svelte';
+    import { trainerState, globals } from '$lib/trainer.svelte';
     import { marked } from 'marked';
     import DOMPurify from 'dompurify';
 
@@ -16,9 +16,6 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
         });
     }
     
-    let flowStep = $state(0);
-    let sseClient: EventSource | null = null;
-    let agenticLogs: string[] = $state([]);
     let availableModels = $state<{name: string, isCapable: boolean}[]>([]);
     let hasCapableModel = $state(true);
 
@@ -58,7 +55,7 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
     });
     
     $effect(() => {
-        if (agenticLogs.length > 0) {
+        if (trainerState.deepResearchLogs.length > 0) {
             const el = document.getElementById('xray-terminal');
             if (el) el.scrollTop = el.scrollHeight;
         }
@@ -72,31 +69,31 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
         
         trainerState.isDeepResearchActive = true;
         trainerState.deepResearchScrapedSources = 0;
-        flowStep = 0;
-        agenticLogs = [];
+        trainerState.deepResearchFlowStep = 0;
+        trainerState.deepResearchLogs = [];
         
         // Spawn Real SSE Connection to Sovereign Engine
-        if (sseClient) {
-            sseClient.close();
+        if (globals.deepResearchSseClient) {
+            globals.deepResearchSseClient.close();
         }
-        sseClient = new EventSource(`${API_BASE_URL}/v1/engineer/trainer/unsloth-monitor`);
+        globals.deepResearchSseClient = new EventSource(`${API_BASE_URL}/v1/engineer/trainer/unsloth-monitor`);
         
-        sseClient.onmessage = (event) => {
+        globals.deepResearchSseClient.onmessage = (event) => {
             const data = event.data;
-            agenticLogs.push(data);
+            trainerState.deepResearchLogs.push(data);
             
             if (data.includes('[STEP 0]')) {
-                flowStep = 0;
+                trainerState.deepResearchFlowStep = 0;
             } else if (data.includes('[STEP 1.0]')) {
-                flowStep = 1;
+                trainerState.deepResearchFlowStep = 1;
             } else if (data.includes('[STEP 2]')) {
-                flowStep = 2;
+                trainerState.deepResearchFlowStep = 2;
             } else if (data.includes('[STEP 3]')) {
-                flowStep = 3;
+                trainerState.deepResearchFlowStep = 3;
             } else if (data.includes('[STEP 4]')) {
-                flowStep = 4;
+                trainerState.deepResearchFlowStep = 4;
                 trainerState.isDeepResearchActive = false;
-                if (sseClient) sseClient.close();
+                if (globals.deepResearchSseClient) globals.deepResearchSseClient.close();
                 fetchStagedResearch();
             } else if (data.includes('[SCRAPED: ')) {
                 // Parse amount e.g. [SCRAPED: 3]
@@ -106,7 +103,7 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
                 }
             } else if (data.includes('DEEP_RESEARCH') && data.includes('ABORTED')) {
                 trainerState.isDeepResearchActive = false;
-                if (sseClient) sseClient.close();
+                if (globals.deepResearchSseClient) globals.deepResearchSseClient.close();
             }
         };
 
@@ -126,7 +123,7 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
         } catch (e) {
             console.error("🚀 Fatal: Sensus Deep Research Invocation Failed", e);
             trainerState.isDeepResearchActive = false;
-            if (sseClient) sseClient.close();
+            if (globals.deepResearchSseClient) globals.deepResearchSseClient.close();
         }
     }
 
@@ -134,9 +131,9 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
         if (!trainerState.isDeepResearchActive) return;
         
         trainerState.isDeepResearchActive = false;
-        if (sseClient) {
-            sseClient.close();
-            sseClient = null;
+        if (globals.deepResearchSseClient) {
+            globals.deepResearchSseClient.close();
+            globals.deepResearchSseClient = null;
         }
 
         try {
@@ -332,8 +329,8 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
                                 {/if}
                             </div>
                         </div>
-                        <h4 class=" text-5xl font-extrabold mb-2 leading-none font-mono">{trainerState.isDeepResearchActive ? trainerState.deepResearchScrapedSources : (flowStep === 4 && trainerState.deepResearchScrapedSources > 0) ? trainerState.deepResearchScrapedSources : 'Idle'}</h4>
-                        <p class="text-xs font-bold text-white/70 mb-8 uppercase tracking-widest">{trainerState.isDeepResearchActive || flowStep === 4 ? 'Sources Scraped' : 'Awaiting Protocol'}</p>
+                        <h4 class=" text-5xl font-extrabold mb-2 leading-none font-mono">{trainerState.isDeepResearchActive ? trainerState.deepResearchScrapedSources : (trainerState.deepResearchFlowStep === 4 && trainerState.deepResearchScrapedSources > 0) ? trainerState.deepResearchScrapedSources : 'Idle'}</h4>
+                        <p class="text-xs font-bold text-white/70 mb-8 uppercase tracking-widest">{trainerState.isDeepResearchActive || trainerState.deepResearchFlowStep === 4 ? 'Sources Scraped' : 'Awaiting Protocol'}</p>
                         
                         <div class="space-y-4">
                             <div class="flex justify-between text-[11px] border-b border-white/10 pb-3 font-mono">
@@ -360,60 +357,60 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
                     
                     <div class="space-y-5 px-2">
                         <!-- Step 1 -->
-                        <div class="flex items-center gap-4 transition-all duration-300 {trainerState.isDeepResearchActive && flowStep >= 0 || flowStep === 4 ? 'opacity-100 scale-100' : 'opacity-40 grayscale scale-95'}">
-                            <div class="w-4 h-4 rounded-full bg-primary shadow-[0_0_10px_rgba(0,19,96,0.5)] ring-4 ring-primary/20 shrink-0 {trainerState.isDeepResearchActive && flowStep === 0 ? 'animate-pulse' : ''} flex items-center justify-center {flowStep > 0 || flowStep === 4 ? 'bg-secondary' : ''}">
-                                {#if flowStep > 0 || flowStep === 4}
+                        <div class="flex items-center gap-4 transition-all duration-300 {trainerState.isDeepResearchActive && trainerState.deepResearchFlowStep >= 0 || trainerState.deepResearchFlowStep === 4 ? 'opacity-100 scale-100' : 'opacity-40 grayscale scale-95'}">
+                            <div class="w-4 h-4 rounded-full bg-primary shadow-[0_0_10px_rgba(0,19,96,0.5)] ring-4 ring-primary/20 shrink-0 {trainerState.isDeepResearchActive && trainerState.deepResearchFlowStep === 0 ? 'animate-pulse' : ''} flex items-center justify-center {trainerState.deepResearchFlowStep > 0 || trainerState.deepResearchFlowStep === 4 ? 'bg-secondary' : ''}">
+                                {#if trainerState.deepResearchFlowStep > 0 || trainerState.deepResearchFlowStep === 4}
                                 <span class="material-symbols-outlined text-white text-[10px] font-bold">check</span>
                                 {/if}
                             </div>
-                            <div class="w-10 border-t-2 border-dashed border-outline-variant/40 shrink-0 {flowStep > 0 || flowStep === 4 ? 'border-secondary' : ''}"></div>
+                            <div class="w-10 border-t-2 border-dashed border-outline-variant/40 shrink-0 {trainerState.deepResearchFlowStep > 0 || trainerState.deepResearchFlowStep === 4 ? 'border-secondary' : ''}"></div>
                             <div class="px-4 py-2 bg-surface text-[11px] font-extrabold rounded-xl shadow-sm uppercase tracking-widest text-[#444653] border border-outline-variant/10 w-full flex items-center justify-between">
                                 Query Vectorization
-                                {#if trainerState.isDeepResearchActive && flowStep === 0} <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span> {/if}
+                                {#if trainerState.isDeepResearchActive && trainerState.deepResearchFlowStep === 0} <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span> {/if}
                             </div>
                         </div>
                         
                         <!-- Step 2 -->
-                        <div class="flex items-center gap-4 transition-all duration-300 {trainerState.isDeepResearchActive && flowStep >= 1 || flowStep === 4 ? 'opacity-100 scale-100' : 'opacity-40 grayscale scale-95'}">
-                            <div class="w-4 h-4 rounded-full bg-primary ring-4 ring-primary/20 shrink-0 {trainerState.isDeepResearchActive && flowStep === 1 ? 'animate-pulse' : ''} flex items-center justify-center {flowStep > 1 || flowStep === 4 ? 'bg-secondary' : ''}">
-                                {#if flowStep > 1 || flowStep === 4}
+                        <div class="flex items-center gap-4 transition-all duration-300 {trainerState.isDeepResearchActive && trainerState.deepResearchFlowStep >= 1 || trainerState.deepResearchFlowStep === 4 ? 'opacity-100 scale-100' : 'opacity-40 grayscale scale-95'}">
+                            <div class="w-4 h-4 rounded-full bg-primary ring-4 ring-primary/20 shrink-0 {trainerState.isDeepResearchActive && trainerState.deepResearchFlowStep === 1 ? 'animate-pulse' : ''} flex items-center justify-center {trainerState.deepResearchFlowStep > 1 || trainerState.deepResearchFlowStep === 4 ? 'bg-secondary' : ''}">
+                                {#if trainerState.deepResearchFlowStep > 1 || trainerState.deepResearchFlowStep === 4}
                                 <span class="material-symbols-outlined text-white text-[10px] font-bold">check</span>
                                 {/if}
                             </div>
-                            <div class="w-10 border-t-2 border-dashed border-outline-variant/40 shrink-0 {flowStep > 1 || flowStep === 4 ? 'border-secondary' : ''}"></div>
+                            <div class="w-10 border-t-2 border-dashed border-outline-variant/40 shrink-0 {trainerState.deepResearchFlowStep > 1 || trainerState.deepResearchFlowStep === 4 ? 'border-secondary' : ''}"></div>
                             <div class="px-4 py-2 bg-surface text-[11px] font-extrabold rounded-xl shadow-sm uppercase tracking-widest text-[#444653] border border-outline-variant/10 w-full flex justify-between items-center">
                                 <span>Web Matrix Scraper</span>
-                                {#if trainerState.isDeepResearchActive && flowStep === 1}
+                                {#if trainerState.isDeepResearchActive && trainerState.deepResearchFlowStep === 1}
                                 <span class="text-primary bg-primary/10 px-2 py-0.5 rounded font-mono animate-pulse">{trainerState.deepResearchScrapedSources} docs</span>
                                 {/if}
                             </div>
                         </div>
                         
                         <!-- Step 3 -->
-                        <div class="flex items-center gap-4 transition-all duration-300 {trainerState.isDeepResearchActive && flowStep >= 2 || flowStep === 4 ? 'opacity-100 scale-100' : 'opacity-40 grayscale scale-95'}">
-                            <div class="w-4 h-4 rounded-full bg-on-tertiary-container shadow-[0_0_10px_rgba(79,175,110,0.5)] ring-4 ring-on-tertiary-container/20 shrink-0 {trainerState.isDeepResearchActive && flowStep === 2 ? 'animate-pulse' : ''} flex items-center justify-center {flowStep > 2 || flowStep === 4 ? 'bg-secondary' : ''}">
-                                {#if flowStep > 2 || flowStep === 4}
+                        <div class="flex items-center gap-4 transition-all duration-300 {trainerState.isDeepResearchActive && trainerState.deepResearchFlowStep >= 2 || trainerState.deepResearchFlowStep === 4 ? 'opacity-100 scale-100' : 'opacity-40 grayscale scale-95'}">
+                            <div class="w-4 h-4 rounded-full bg-on-tertiary-container shadow-[0_0_10px_rgba(79,175,110,0.5)] ring-4 ring-on-tertiary-container/20 shrink-0 {trainerState.isDeepResearchActive && trainerState.deepResearchFlowStep === 2 ? 'animate-pulse' : ''} flex items-center justify-center {trainerState.deepResearchFlowStep > 2 || trainerState.deepResearchFlowStep === 4 ? 'bg-secondary' : ''}">
+                                {#if trainerState.deepResearchFlowStep > 2 || trainerState.deepResearchFlowStep === 4}
                                 <span class="material-symbols-outlined text-white text-[10px] font-bold">check</span>
                                 {/if}
                             </div>
-                            <div class="w-10 border-t-2 border-dashed border-outline-variant/40 shrink-0 {flowStep > 2 || flowStep === 4 ? 'border-secondary' : ''}"></div>
+                            <div class="w-10 border-t-2 border-dashed border-outline-variant/40 shrink-0 {trainerState.deepResearchFlowStep > 2 || trainerState.deepResearchFlowStep === 4 ? 'border-secondary' : ''}"></div>
                             <div class="px-4 py-2 bg-[#f6fcf8] text-[11px] font-extrabold rounded-xl shadow-sm uppercase tracking-widest text-on-tertiary-container border border-on-tertiary-container/30 w-full flex items-center gap-2 justify-between">
                                 <span class="flex items-center gap-2"><span class="material-symbols-outlined text-[14px]">security</span> Hallucination Filter</span>
-                                {#if trainerState.isDeepResearchActive && flowStep === 2} <span class="w-2 h-2 rounded-full bg-on-tertiary-container animate-pulse"></span> {/if}
+                                {#if trainerState.isDeepResearchActive && trainerState.deepResearchFlowStep === 2} <span class="w-2 h-2 rounded-full bg-on-tertiary-container animate-pulse"></span> {/if}
                             </div>
                         </div>
                         
                         <!-- Step 4 -->
-                        <div class="flex items-center gap-4 transition-all duration-300 {trainerState.isDeepResearchActive && flowStep >= 3 || flowStep === 4 ? 'opacity-100 scale-100' : 'opacity-40 grayscale scale-95'}">
-                            <div class="w-4 h-4 rounded-full bg-secondary ring-4 ring-secondary/20 shrink-0 {trainerState.isDeepResearchActive && flowStep === 3 ? 'animate-pulse' : ''} flex items-center justify-center {flowStep === 4 ? 'bg-secondary' : ''}">
-                                {#if flowStep === 4}
+                        <div class="flex items-center gap-4 transition-all duration-300 {trainerState.isDeepResearchActive && trainerState.deepResearchFlowStep >= 3 || trainerState.deepResearchFlowStep === 4 ? 'opacity-100 scale-100' : 'opacity-40 grayscale scale-95'}">
+                            <div class="w-4 h-4 rounded-full bg-secondary ring-4 ring-secondary/20 shrink-0 {trainerState.isDeepResearchActive && trainerState.deepResearchFlowStep === 3 ? 'animate-pulse' : ''} flex items-center justify-center {trainerState.deepResearchFlowStep === 4 ? 'bg-secondary' : ''}">
+                                {#if trainerState.deepResearchFlowStep === 4}
                                 <span class="material-symbols-outlined text-white text-[10px] font-bold">check</span>
                                 {/if}
                             </div>
                             <div class="w-10 border-t-2 border-dashed border-outline-variant/40 shrink-0"></div>
                             <div class="px-4 py-2 bg-surface text-[11px] font-extrabold rounded-xl shadow-sm uppercase tracking-widest text-[#444653] border border-outline-variant/10 w-full flex items-center justify-between">
                                 Vault Context Injector
-                                {#if trainerState.isDeepResearchActive && flowStep === 3} <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span> {/if}
+                                {#if trainerState.isDeepResearchActive && trainerState.deepResearchFlowStep === 3} <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span> {/if}
                             </div>
                         </div>
                     </div>
@@ -422,7 +419,7 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
         </div>
 
         <!-- Full-Width X-Ray Terminal Logger -->
-        {#if trainerState.isDeepResearchActive || agenticLogs.length > 0}
+        {#if trainerState.isDeepResearchActive || trainerState.deepResearchLogs.length > 0}
         <div class="w-full mb-12 bg-[#0a0a0a] rounded-3xl border border-outline-variant/20 shadow-inner overflow-hidden flex flex-col h-80 animate-in fade-in duration-500">
             <div class="bg-[#1a1a1a] px-5 py-3 border-b border-white/10 flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -436,7 +433,7 @@ import { API_BASE_URL, OLLAMA_BASE_URL } from '$lib/env_config';
                 </div>
             </div>
             <div class="p-5 flex-1 overflow-y-auto font-mono text-[12px] leading-relaxed custom-scrollbar flex flex-col gap-2" id="xray-terminal">
-                {#each agenticLogs as logLine}
+                {#each trainerState.deepResearchLogs as logLine}
                     <div class="text-green-400/90 break-words flex gap-3">
                         <span class="text-blue-400/50 shrink-0">❯</span>
                         <span class="{logLine.includes('❌') ? 'text-red-400' : logLine.includes('⚠️') ? 'text-yellow-400' : 'text-green-400/90'}">{logLine}</span>
