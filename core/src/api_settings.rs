@@ -417,6 +417,62 @@ pub async fn set_cold_storage_handler(
     Json(serde_json::json!({"status": "ok"})).into_response()
 }
 
+/// Rota GET /v1/settings/openrouter
+pub async fn get_openrouter_settings_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let result = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'openrouter'")
+        .fetch_optional(&state.db)
+        .await;
+
+    match result {
+        Ok(Some(row)) => {
+            let val: String = row.get("value_json");
+            let mut parsed: Value = serde_json::from_str(&val).unwrap_or(serde_json::json!({}));
+            
+            // Decifra a API Key se presente
+            if let Some(obj) = parsed.as_object_mut() {
+                if let Some(val) = obj.get("api_key")
+                    && let Some(str_val) = val.as_str()
+                        && !str_val.is_empty()
+                            && let Some(decrypted) = kms::decrypt_vault_secret(str_val) {
+                                obj.insert("api_key".to_string(), serde_json::json!(decrypted));
+                            }
+            }
+            
+            Json(parsed).into_response()
+        },
+        _ => Json(serde_json::json!({})).into_response()
+    }
+}
+
+/// Rota POST /v1/settings/openrouter
+pub async fn set_openrouter_settings_handler(
+    State(state): State<Arc<AppState>>,
+    Json(mut payload): Json<Value>,
+) -> impl IntoResponse {
+    // Cifra a API Key se enviada (AES-GCM at rest)
+    if let Some(obj) = payload.as_object_mut() {
+        if let Some(val) = obj.get("api_key")
+            && let Some(str_val) = val.as_str()
+                && !str_val.is_empty()
+                    && let Some(encrypted) = kms::encrypt_vault_secret(str_val) {
+                        obj.insert("api_key".to_string(), serde_json::json!(encrypted));
+                    }
+    }
+
+    let json_str = serde_json::to_string(&payload).unwrap_or_else(|_| "{}".to_string());
+    
+    let res = sqlx::query("INSERT INTO global_settings (id, value_json) VALUES ('openrouter', ?) ON CONFLICT(id) DO UPDATE SET value_json = excluded.value_json")
+        .bind(json_str)
+        .execute(&state.db)
+        .await;
+
+    if res.is_err() {
+        return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Database Error").into_response();
+    }
+
+    Json(serde_json::json!({"status": "ok"})).into_response()
+}
+
 // ---------------------------------------------------------
 // SECOPS VAULT: TENANT API KEYS (CRUD)
 // ---------------------------------------------------------
