@@ -1,4 +1,4 @@
-use axum::{ extract::{Json, State}, response::{ sse::{Event, Sse}, IntoResponse, Response, }, }; use futures_util::StreamExt;  use serde_json::{json, Value}; use std::convert::Infallible; use std::sync::{Arc, Mutex}; use tracing::{error, info};
+use axum::{ extract::{Json, State}, response::{ sse::{Event, Sse}, IntoResponse, Response, }, }; use futures_util::StreamExt;  use serde_json::{json, Value}; use std::convert::Infallible; use std::sync::Arc; use tracing::{error, info};
 
 use crate::models::{ OpenAIChatChunkChoice, OpenAIChatChunkDelta, OpenAIChatChunkResponse, OpenAIChatRequest, }; use crate::AppState;
 // removed unused explicit scraper import
@@ -135,7 +135,59 @@ pub async fn discover_cognitive_model_by_tier(tier: &str) -> String {
             return fallback_elected;
         }
         
+        
     "llama3.2:latest".to_string()
+}
+
+/// [Triviality Triage] - Zero-Latency Classification Layer
+/// Prevents greetings and small-talk from triggering heavy agentic loops (Nurse/WAG/ReWOO).
+async fn perform_triviality_triage(prompt: &str, state: &Arc<AppState>) -> bool {
+    let p_norm = prompt.trim().to_lowercase();
+    
+    // 1. FAST-PATH: Local Regex/Keyword bypass (Zero-latency)
+    let greetings = [
+        "bom dia", "boa tarde", "boa noite", "olá", "ola", "oi", 
+        "hello", "hi", "hey", "tudo bem?", "tudo bem", "com vai",
+        "good morning", "good afternoon", "good evening", "how are you"
+    ];
+    
+    if greetings.iter().any(|&g| p_norm == g || p_norm.starts_with(&(g.to_owned() + " ")) || p_norm.ends_with(&( " " .to_owned() + g))) {
+        tracing::info!("🎯 [Triviality Triage] Fast-path Match: Greeting detected.");
+        return true;
+    }
+
+    // 2. ZERO-SHOT: Small Model Intent Classification (Tier: Intern)
+    // Only if the message is short (under 60 chars) to avoid wasting time on long complex queries.
+    if p_norm.len() < 60 {
+        let triage_model = discover_cognitive_model_by_tier("intern").await;
+        let triage_prompt = format!(
+            "Determine if this is a TRIVIAL greeting or a COMPLEX request. \
+            Respond ONLY 'TRIVIAL' or 'COMPLEX'. \
+            Input: '{}'", 
+            prompt.replace('\'', "")
+        );
+
+        let ollama_url = format!("{}/api/chat", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()));
+        let payload = serde_json::json!({
+            "model": triage_model,
+            "messages": [{"role": "user", "content": triage_prompt}],
+            "stream": false,
+            "options": { "temperature": 0.0, "num_predict": 10 }
+        });
+
+        if let Ok(res) = state.http_client.post(&ollama_url).json(&payload).timeout(std::time::Duration::from_secs(3)).send().await {
+            if let Ok(json) = res.json::<serde_json::Value>().await {
+                if let Some(content) = json.get("message").and_then(|m| m.get("content")).and_then(|c| c.as_str()) {
+                    if content.to_uppercase().contains("TRIVIAL") {
+                        tracing::info!("🧠 [Triviality Triage] Zero-Shot Match ({}): Intent is Trivial.", triage_model);
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    false
 }
 
 
@@ -673,6 +725,12 @@ if hp_norm == "qual a data/hora atual?" || hp_norm == "qual a data atual?" || hp
     return Sse::new(stream).into_response();
 }
 
+// ===== TRIVIALITY TRIAGE (Zero-Shot Intent Classification) =====
+let is_trivial = perform_triviality_triage(&human_prompt, &state).await;
+if is_trivial {
+    tracing::info!("🍃 [Sovereign Core] Triviality Triage: Bypassing heavy agentic loops for simple intent.");
+}
+
 // ===== THE NURSE (WEB & SYS AGENTIC BYPASS) =====
 let (tx_sse, mut rx_sse) = tokio::sync::mpsc::unbounded_channel::<axum::response::sse::Event>();
 let tx_sse_clone = tx_sse.clone();
@@ -710,13 +768,10 @@ tokio::spawn(async move {
         let _ = tx_sse_clone.send(axum::response::sse::Event::default().data(serde_json::to_string(&chunk).unwrap()));
     };
 
-    let hp_lower = human_prompt.trim().to_lowercase();
-    let is_greeting = hp_lower.is_empty() || hp_lower == "oi" || hp_lower == "olá" || hp_lower == "bom dia" || hp_lower == "boa tarde" || hp_lower == "boa noite" || hp_lower == "teste" || hp_lower == "hello" || hp_lower == "hi" || hp_lower == "tudo bem?" || hp_lower == "tudo bem" || hp_lower.len() < 3;
+    let is_web = human_prompt.to_lowercase().starts_with("/web");
+    let is_sys = human_prompt.to_lowercase().starts_with("/sys");
 
-    let is_web = hp_lower.starts_with("/web");
-    let is_sys = hp_lower.starts_with("/sys");
-
-if payload.deep_research.unwrap_or(false) && !is_greeting {
+if (payload.deep_research.unwrap_or(false) || is_web) && (!is_trivial || is_web) {
     let mut url_to_scrape = String::new();
     let mut user_question = human_prompt.clone();
     
@@ -729,7 +784,7 @@ if payload.deep_research.unwrap_or(false) && !is_greeting {
     }
 
     if !url_to_scrape.is_empty() {
-        send_thought(&format!("🔎 *Lendo URL solicitada Diretamente: {}...*\n\n", url_to_scrape));
+        send_thought(&format!("<thought>🔎 Lendo URL solicitada Diretamente: {}...</thought>\n\n", url_to_scrape));
         tracing::info!("🕸️ [WAG Native] O botão 'Deep Research' estava ATIVO na UI. Acionando raspagem perene p/ {}", url_to_scrape);
         let wag_args = serde_json::json!({ "url": url_to_scrape });
         let wag_result = crate::mcp::execute_mcp_tool(&state, "mcp_deep_research", &wag_args).await;
@@ -737,7 +792,7 @@ if payload.deep_research.unwrap_or(false) && !is_greeting {
         web_context = format!("INSTRUÇÃO SISTÊMICA (DEEP RESEARCH/WAG): O motor de Agentic Web-Scraping leu a URL solicitada ({}) e a salvou fisicamente na Sensus Database Vault local do usuário.\n\nEis o PREVIEW direto (Truncado) dos dados limpos recém-extraídos da internet:\n\n{}\n\nAGENTE: Baseado estritamente nestes dados in-locus, responda/analise de forma soberba a: '{}'", url_to_scrape, wag_result, user_question);
     } else {
         tracing::info!("🧠 [WAG Multi-Hop] Nenhuma URL explícita no prompt. Iniciando Deep Research Agentico (Sub-Processo LLM) para Múltiplas Visões: '{}'", user_question);
-        send_thought("Iniciando *Sovereign Search Engine* (WAG)...\nAcionando *Sub-LLM O Doutrinador*...\n");
+        send_thought("<thought>Iniciando Sovereign Search Engine (WAG)...</thought>\n<thought>Acionando Sub-LLM O Doutrinador...</thought>\n");
         // 1. Notifica o Frontend que o Loop Começou
         let _ = state.log_sender.send(crate::models::LogEntry {
             timestamp: chrono::Local::now().to_rfc3339(),
@@ -814,9 +869,9 @@ if payload.deep_research.unwrap_or(false) && !is_greeting {
             message: format!("📡 [Deep Research] 3 Queries Forjadas: {:?}. Lançando {} Spiders Concurrentes à Malha SearxNG...", extracted_queries, extracted_queries.len()),
         });
 
-        send_thought(&format!("*Desdobramento em {} visões paralelas concluído. Lançando Meta-Spiders Cíbridas...*\n", extracted_queries.len()));
+        send_thought(&format!("<thought>Desdobramento em {} visões paralelas concluído. Lançando Meta-Spiders Cíbridas...</thought>\n", extracted_queries.len()));
         for q in &extracted_queries {
-            send_thought(&format!("🔍 *Querying web: \"{}\"* \n", q));
+            send_thought(&format!("<thought>🔍 Querying web: \"{}\"</thought>\n", q));
         }
 
         let engine = std::sync::Arc::new(crate::research::DeepResearchEngine::new(Some(state.db.clone()), Some(state.adblock_engine.clone()), Some(state.vault_path.clone())));
@@ -1060,7 +1115,19 @@ if let Some(pid) = payload.project_id
             }
     }
 
-// GAP FIX: Removida a injeção incondicional de 'Consciência de Projetos' para evitar poluição de prompt no Chat regular.
+if project_context.is_empty()
+    && let Ok(active_projs) = sqlx::query("SELECT name, purpose FROM projects WHERE is_archived = 0 OR is_archived IS NULL")
+        .fetch_all(&state.db)
+        .await
+            && !active_projs.is_empty() {
+                project_context.push_str("INSTRUÇÃO SISTÊMICA (CONSCIÊNCIA DE PROJETOS): O usuário possui os seguintes Projetos ativos no Kanban local neste exato momento:\n");
+                for p in active_projs {
+                    let n: String = sqlx::Row::get(&p, "name");
+                    let purp: Option<String> = sqlx::Row::get(&p, "purpose");
+                    project_context.push_str(&format!("- KANBAN '{}': {}\n", n, purp.unwrap_or_default()));
+                }
+                project_context.push_str("Use esta consciência periférica se o usuário pedir ajuda para gerenciar o seu dia, idéias ou se for relevante durante a conversa.\n");
+            }
 
 if !project_context.is_empty() {
     purified_messages.push(json!({
@@ -1094,19 +1161,23 @@ if let Some(global_prompt) = global_system_prompt {
     }));
 }
 
-// Injeta a Orquestração do ReWOO (Reasoning Without Observation) Se Habilitado e não for saudação
-if payload.rewoo_enabled.unwrap_or(false) && !is_greeting {
-    let workspace_id = payload.workspace_id.clone().unwrap_or_else(|| "default".to_string());
-    send_thought("🧭 *Sovereign Hub: Consultando Plano de Tarefas...*\n");
-    let rewoo_observations = crate::rewoo::execute_rewoo_plan(&human_prompt, &workspace_id, &state.db).await;
-    if !rewoo_observations.trim().is_empty() && rewoo_observations != "ReWOO Accumulated Observations:\n" {
-        send_thought("🧠 *Sovereign ReWOO: Executando nós paralelos mapeados na memória local...*\n*Grafo ReWOO consolidado. Injetando descobertas.*\n\n");
-        tracing::debug!("🧠 ReWOO Workflow Executed. Injecting compiled DAG observations.");
-        purified_messages.push(json!({
-            "role": "system",
-            "content": rewoo_observations
-        }));
-    }
+// Injeta a Orquestração do ReWOO (Reasoning Without Observation) Apenas Se Houver Plano
+let workspace_id = payload.workspace_id.clone().unwrap_or_else(|| "default".to_string());
+
+let rewoo_observations = if payload.rewoo_enabled.unwrap_or(false) && !is_trivial {
+    send_thought("<thought>Consultando Plano de Tarefas Sovereign Hub...</thought>\n");
+    crate::rewoo::execute_rewoo_plan(&human_prompt, &workspace_id, &state.db).await
+} else {
+    String::new()
+};
+
+if !rewoo_observations.trim().is_empty() && rewoo_observations != "ReWOO Accumulated Observations:\n" {
+    send_thought("<thought>Sovereign ReWOO: Executando nós paralelos mapeados na memória local...</thought>\n<thought>Grafo ReWOO consolidado. Injetando descobertas.</thought>\n\n");
+    tracing::debug!("🧠 ReWOO Workflow Executed. Injecting compiled DAG observations.");
+    purified_messages.push(json!({
+        "role": "system",
+        "content": rewoo_observations
+    }));
 }
 
 // Injeta o Override de Desenho (RLHF Bypass) para combater a recusa algorítmica de IAs de texto (Qwen/Gemma)
@@ -1219,12 +1290,9 @@ purified_messages.extend(active_messages.into_iter().map(|msg| {
 }));
 
 // 3. Empacotar para o Servidor Local com Controle Rigoroso de VRAM (Sovereign Enterprise - B2B)
-let hw_telemetry = crate::hardware::capture_hardware_telemetry();
-let safe_ctx = crate::hardware::calculate_safe_context_window(&hw_telemetry);
-
 let mut ollama_options = json!({
     "num_keep": 4, // Forçar Lock do System Prompt na VRAM
-    "num_ctx": safe_ctx, // Calculado via Vulkan / Sysinfo RAM
+    "num_ctx": 8192, // Desidratação do Nurse (16GB RAM overhead fix resolvido pra RPI/OracleA1)
     "repeat_penalty": 1.15
 });
 
@@ -1238,33 +1306,14 @@ let mut ollama_payload = json!({
     "options": ollama_options
 });
 
-// [GATING FIX]: Só injeta tools se Deep Research (Internet) estiver ATIVO e não for saudação
+// Injeção de Tools Requisitadas pelo Frontend (Vercel AI SDK JSON Schema)
 let mut injected_tools = Vec::new();
-if payload.deep_research.unwrap_or(false) && !is_greeting {
-    if let Some(tools) = payload.tools.clone() {
-        injected_tools.extend(tools);
-    }
-    
-    // Injeta Tools Nativas do Sovereign Trainer (Registry)
-    let registry_path = crate::api_trainer::resolve_python_workers_dir().join("registry.json");
-    if let Ok(file_content) = std::fs::read_to_string(&registry_path) {
-        if let Ok(registry) = serde_json::from_str::<Vec<serde_json::Value>>(&file_content) {
-            for t in registry {
-                if let Some(func) = t.get("function") {
-                    if let Some(_name) = func.get("name").and_then(|n| n.as_str()) {
-                        if let Ok(model) = serde_json::from_value(t.clone()) {
-                            injected_tools.push(model);
-                        }
-                    }
-                }
-            }
-        }
-    }
+if let Some(tools) = payload.tools {
+    injected_tools.extend(tools);
 }
 
 // ================= THE SOVEREIGN VISUAL ARTIST (NATIVE TOOL) =================
-// Também gateado por Deep Research (Ferramentas de Internet/Externas)
-if is_drawing_intent && payload.deep_research.unwrap_or(false) && !is_greeting {
+if is_drawing_intent {
     let visual_artist_tool = serde_json::json!({
         "type": "function",
         "function": {
@@ -1331,17 +1380,7 @@ if !is_custom_cluster && ollama_base_url == "http://host.docker.internal:11434" 
 let endpoint = format!("{}/api/chat", ollama_base_url);
 
 let mut retry_count = 0;
-    let mut current_history = purified_messages.clone();
-    let mut final_response_sent = false;
-    let mut loop_cycle = 0;
-
-    while !final_response_sent && loop_cycle < 10 {
-        loop_cycle += 1;
-        if let Some(obj) = ollama_payload.as_object_mut() {
-            obj.insert("messages".to_string(), serde_json::json!(current_history));
-        }
-
-    let res = loop {
+let res = loop {
     let response_result = state
         .http_client
         .post(&endpoint)
@@ -1488,14 +1527,9 @@ let mut session_tokens = 0;
 let mut accumulator = String::new(); // Memory Builder da Resposta do Agente
 let tracking_log_sender = state.log_sender.clone();
 let tx_map_capture = tx_sse_clone.clone();
-let tool_collector = Arc::new(Mutex::new(Vec::<Value>::new()));
-let tc_inner = tool_collector.clone();
-
-let loop_model = requested_model.clone();
 
 // Extraímos os Bytes Chunk a Chunk e mapeamos pro formato OpenAI SSE:
 let mut map_stream = res.bytes_stream().map(move |result| {
-    let requested_model = loop_model.clone();
     match result {
         Ok(bytes) => {
             // Tenta transformar os bytes em string (pode vir linha cortada)
@@ -1536,11 +1570,6 @@ let mut map_stream = res.bytes_stream().map(move |result| {
                                 }
 
                             if let Some(tool_calls_arr) = msg_obj.get("tool_calls").and_then(|tc| tc.as_array()) {
-                                if let Ok(mut tc_lock) = tc_inner.lock() {
-                                    for tc in tool_calls_arr {
-                                        tc_lock.push(tc.clone());
-                                    }
-                                }
                                 let mut tcs = Vec::new();
                                 let mut is_visual_artist = false;
                                 let mut visual_prompt = String::new();
@@ -1555,25 +1584,19 @@ let mut map_stream = res.bytes_stream().map(move |result| {
                                     if let Some(func) = tc.get("function") {
                                         let name = func.get("name").and_then(|n| n.as_str()).map(|n| n.to_string());
                                         
-                                        // Intercept Sovereign Native Tools (Visual Artist & Python Workers)
-                                        if let Some(n) = name.as_deref() {
-                                            if n == "dispatch_visual_artist" || n == "fetch_macroeconomy" || n == "fetch_financial_ticker" || n == "search_api_directory" || n == "fetch_json_endpoint" || n == "execute_python_code" || n == "dispatch_sub_researcher" {
-                                                is_visual_artist = true; // Reusing this flag to bypass UI returning and trigger execution
-                                                if let Some(args_val) = func.get("arguments") {
-                                                    if args_val.is_object() {
-                                                        visual_prompt = serde_json::to_string(args_val).unwrap_or_default();
-                                                    } else if let Some(s) = args_val.as_str() {
-                                                        visual_prompt = s.to_string();
-                                                    }
+                                        // Intercept Sovereign Native Visual Artist
+                                        if name.as_deref() == Some("dispatch_visual_artist") {
+                                            is_visual_artist = true;
+                                            if let Some(args_val) = func.get("arguments") {
+                                                if args_val.is_object() {
+                                                    visual_prompt = args_val.get("prompt").and_then(|p| p.as_str()).unwrap_or("").to_string();
+                                                } else if let Some(parsed) = args_val.as_str().and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok()) {
+                                                    visual_prompt = parsed.get("prompt").and_then(|p| p.as_str()).unwrap_or("").to_string();
                                                 }
-                                                // Store the tool name in a hacky way if it's not visual artist (since we only have visual_prompt string)
-                                                // We can prefix the visual_prompt to know which tool it is!
-                                            visual_prompt = format!("{}|||{}", n, visual_prompt);
-                                            accumulator.push_str(&format!("\n\n⚙️ **Sovereign Dispatcher**: Acionando Worker Nativo para `{}`...\n\n", n));
+                                            }
                                         }
-                                    }
-                                    
-                                    let args = func.get("arguments").map(|a| {
+                                        
+                                        let args = func.get("arguments").map(|a| {
                                             if a.is_string() {
                                                 a.as_str().unwrap().to_string()
                                             } else {
@@ -1594,135 +1617,53 @@ let mut map_stream = res.bytes_stream().map(move |result| {
                                     let req_model = requested_model.clone();
                                     
                                     tokio::spawn(async move {
-                                        let mut tool_name = "dispatch_visual_artist".to_string();
-                                        let mut args_str = p_clone.clone();
-                                        if let Some(idx) = p_clone.find("|||") {
-                                            tool_name = p_clone[..idx].to_string();
-                                            args_str = p_clone[idx+3..].to_string();
-                                        }
-                                        
-                                        let pseudo_json = serde_json::from_str::<serde_json::Value>(&args_str).unwrap_or(serde_json::Value::Null);
+                                        let loading_msg = format!("\n\n🎨 **Sovereign Vision Engine**: Acionando SD.cpp no Bare-Metal para forjar imagem fotorealista Baseada em: *{}*. Aguarde...\n\n", p_clone);
+                                        let chunk = crate::models::OpenAIChatChunkResponse {
+                                            id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
+                                            object: "chat.completion.chunk".to_string(),
+                                            created: chrono::Local::now().timestamp(),
+                                            model: req_model.clone(),
+                                            choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(loading_msg), tool_calls: None }, finish_reason: None }],
+                                            usage: None,
+                                        };
+                                        let _ = tx_visual.send(Event::default().data(serde_json::to_string(&chunk).unwrap()));
 
-                                        if tool_name == "dispatch_visual_artist" {
-                                            let prompt_only = if pseudo_json.is_object() { pseudo_json.get("prompt").and_then(|p| p.as_str()).unwrap_or("").to_string() } else { args_str.clone() };
-                                            let loading_msg = format!("\n\n🎨 **Sovereign Vision Engine**: Acionando SD.cpp no Bare-Metal para forjar imagem fotorealista Baseada em: *{}*. Aguarde...\n\n", prompt_only);
-                                            let chunk = crate::models::OpenAIChatChunkResponse {
+                                        let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(120)).build().unwrap_or_default();
+                                        if let Ok(r) = client.post(format!("{}{}", std::env::var("SOVEREIGN_API_URL").unwrap_or_else(|_| "http://127.0.0.1:38001".to_string()), "/v1/images/generations")).json(&serde_json::json!({ "prompt": p_clone })).send().await {
+                                            if let Ok(j) = r.json::<serde_json::Value>().await {
+                                                if let Some(url) = j.get("data").and_then(|arr| arr.as_array()).and_then(|a| a.first()).and_then(|f| f.get("url")).and_then(|u| u.as_str()) {
+                                                    let ok_msg = format!("![Sovereign Vault Artefact]({})\n\n", url);
+                                                    let ok_chunk = crate::models::OpenAIChatChunkResponse {
+                                                        id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
+                                                        object: "chat.completion.chunk".to_string(),
+                                                        created: chrono::Local::now().timestamp(),
+                                                        model: req_model.clone(),
+                                                        choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(ok_msg), tool_calls: None }, finish_reason: None }],
+                                                        usage: None,
+                                                    };
+                                                    let _ = tx_visual.send(Event::default().data(serde_json::to_string(&ok_chunk).unwrap()));
+                                                } else {
+                                                    let err_chunk = crate::models::OpenAIChatChunkResponse {
+                                                        id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
+                                                        object: "chat.completion.chunk".to_string(),
+                                                        created: chrono::Local::now().timestamp(),
+                                                        model: req_model.clone(),
+                                                        choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some("\n\n❌ Falha estrutural no motor de Visão. A imagem não foi renderizada.\n".to_string()), tool_calls: None }, finish_reason: None }],
+                                                        usage: None,
+                                                    };
+                                                    let _ = tx_visual.send(Event::default().data(serde_json::to_string(&err_chunk).unwrap()));
+                                                }
+                                            }
+                                        } else {
+                                            let offline_chunk = crate::models::OpenAIChatChunkResponse {
                                                 id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
                                                 object: "chat.completion.chunk".to_string(),
                                                 created: chrono::Local::now().timestamp(),
                                                 model: req_model.clone(),
-                                                choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(loading_msg), tool_calls: None }, finish_reason: None }],
+                                                choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some("\n\n❌ Motor Visual OFFLINE: O processo SD.cpp na Porta 7860 não pôde ser alcançado.\n".to_string()), tool_calls: None }, finish_reason: None }],
                                                 usage: None,
                                             };
-                                            let _ = tx_visual.send(Event::default().data(serde_json::to_string(&chunk).unwrap()));
-
-                                            let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(120)).build().unwrap_or_default();
-                                            if let Ok(r) = client.post(format!("{}{}", std::env::var("SOVEREIGN_API_URL").unwrap_or_else(|_| "http://127.0.0.1:38001".to_string()), "/v1/images/generations")).json(&serde_json::json!({ "prompt": prompt_only })).send().await {
-                                                if let Ok(j) = r.json::<serde_json::Value>().await {
-                                                    if let Some(url) = j.get("data").and_then(|arr| arr.as_array()).and_then(|a| a.first()).and_then(|f| f.get("url")).and_then(|u| u.as_str()) {
-                                                        let ok_msg = format!("![Sovereign Vault Artefact]({})\n\n", url);
-                                                        let ok_chunk = crate::models::OpenAIChatChunkResponse {
-                                                            id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
-                                                            object: "chat.completion.chunk".to_string(),
-                                                            created: chrono::Local::now().timestamp(),
-                                                            model: req_model.clone(),
-                                                            choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(ok_msg), tool_calls: None }, finish_reason: None }],
-                                                            usage: None,
-                                                        };
-                                                        let _ = tx_visual.send(Event::default().data(serde_json::to_string(&ok_chunk).unwrap()));
-                                                    } else {
-                                                        let err_chunk = crate::models::OpenAIChatChunkResponse {
-                                                            id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
-                                                            object: "chat.completion.chunk".to_string(),
-                                                            created: chrono::Local::now().timestamp(),
-                                                            model: req_model.clone(),
-                                                            choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some("\n\n❌ Falha estrutural no motor de Visão. A imagem não foi renderizada.\n".to_string()), tool_calls: None }, finish_reason: None }],
-                                                            usage: None,
-                                                        };
-                                                        let _ = tx_visual.send(Event::default().data(serde_json::to_string(&err_chunk).unwrap()));
-                                                    }
-                                                }
-                                            } else {
-                                                let offline_chunk = crate::models::OpenAIChatChunkResponse {
-                                                    id: format!("chatcmpl-art-{}", uuid::Uuid::new_v4()),
-                                                    object: "chat.completion.chunk".to_string(),
-                                                    created: chrono::Local::now().timestamp(),
-                                                    model: req_model.clone(),
-                                                    choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some("\n\n❌ Motor Visual OFFLINE: O processo SD.cpp na Porta 7860 não pôde ser alcançado.\n".to_string()), tool_calls: None }, finish_reason: None }],
-                                                    usage: None,
-                                                };
-                                                let _ = tx_visual.send(Event::default().data(serde_json::to_string(&offline_chunk).unwrap()));
-                                            }
-                                        } else {
-                                            // Execução Nativa de Ferramentas via Python Workers (Dispatcher)
-                                            let loading_msg = format!("\n\n⚙️ **Sovereign Tool Dispatcher**: Acionando Worker Nativo para `{}`...\n\n", tool_name);
-                                            let chunk = crate::models::OpenAIChatChunkResponse {
-                                                id: format!("chatcmpl-tool-{}", uuid::Uuid::new_v4()),
-                                                object: "chat.completion.chunk".to_string(),
-                                                created: chrono::Local::now().timestamp(),
-                                                model: req_model.clone(),
-                                                choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(loading_msg), tool_calls: None }, finish_reason: None }],
-                                                usage: None,
-                                            };
-                                            let _ = tx_visual.send(Event::default().data(serde_json::to_string(&chunk).unwrap()));
-
-                                            let mut final_result = String::new();
-                                            let venv_python = crate::api_trainer::resolve_venv_python();
-                                            let matrix_script = crate::api_trainer::resolve_python_workers_dir().join("sovereign_matrix.py");
-                                            
-                                            if tool_name == "fetch_financial_ticker" {
-                                                let symbol = pseudo_json.get("symbol").and_then(|v| v.as_str()).unwrap_or("");
-                                                let years = pseudo_json.get("years").map(|v| v.as_str().map(|s| s.to_string()).or_else(|| v.as_i64().map(|n| n.to_string())).unwrap_or_else(|| "1".to_string())).unwrap_or_else(|| "1".to_string());
-                                                if let Ok(out) = tokio::process::Command::new(&venv_python).arg(&matrix_script).arg("finance").arg(symbol).arg(years).output().await {
-                                                    final_result = String::from_utf8_lossy(&out.stdout).to_string();
-                                                }
-                                            } else if tool_name == "fetch_macroeconomy" {
-                                                let indicator = pseudo_json.get("indicator").and_then(|v| v.as_str()).unwrap_or("");
-                                                if let Ok(out) = tokio::process::Command::new(&venv_python).arg(&matrix_script).arg("macro").arg(indicator).output().await {
-                                                    final_result = String::from_utf8_lossy(&out.stdout).to_string();
-                                                }
-                                            } else if tool_name == "search_api_directory" {
-                                                let topic = pseudo_json.get("topic").and_then(|v| v.as_str()).unwrap_or("");
-                                                if let Ok(out) = tokio::process::Command::new(&venv_python).arg(crate::api_trainer::resolve_python_workers_dir().join("api_gateway.py")).arg("search").arg(topic).output().await {
-                                                    final_result = String::from_utf8_lossy(&out.stdout).to_string();
-                                                }
-                                            } else if tool_name == "fetch_json_endpoint" {
-                                                let url = pseudo_json.get("url").and_then(|v| v.as_str()).unwrap_or("");
-                                                if let Ok(out) = tokio::process::Command::new(&venv_python).arg(crate::api_trainer::resolve_python_workers_dir().join("api_gateway.py")).arg("fetch").arg(url).output().await {
-                                                    final_result = String::from_utf8_lossy(&out.stdout).to_string();
-                                                }
-                                            } else if tool_name == "execute_python_code" {
-                                                let code = pseudo_json.get("code").and_then(|v| v.as_str()).unwrap_or("");
-                                                final_result = crate::sandbox::execute_python_code(code).await.unwrap_or_else(|e| format!("Error: {}", e));
-                                            } else if tool_name == "dispatch_sub_researcher" {
-                                                let query = pseudo_json.get("search_queries").and_then(|v| v.as_array()).and_then(|a| a.first()).and_then(|f| f.as_str()).unwrap_or("");
-                                                let client = reqwest::Client::builder().build().unwrap_or_default();
-                                                let url_g = format!("https://html.duckduckgo.com/html/?q={}", urlencoding::encode(query));
-                                                final_result = crate::api::scrape_engine(&client, "DuckDuckGo", &url_g, 0).await;
-                                            }
-                                            
-                                            if !final_result.trim().is_empty() {
-                                                let ok_msg = format!("```json\n{}\n```\n", final_result.trim());
-                                                let ok_chunk = crate::models::OpenAIChatChunkResponse {
-                                                    id: format!("chatcmpl-tool-{}", uuid::Uuid::new_v4()),
-                                                    object: "chat.completion.chunk".to_string(),
-                                                    created: chrono::Local::now().timestamp(),
-                                                    model: req_model.clone(),
-                                                    choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(ok_msg), tool_calls: None }, finish_reason: None }],
-                                                    usage: None,
-                                                };
-                                                let _ = tx_visual.send(Event::default().data(serde_json::to_string(&ok_chunk).unwrap()));
-                                            } else {
-                                                let err_chunk = crate::models::OpenAIChatChunkResponse {
-                                                    id: format!("chatcmpl-tool-{}", uuid::Uuid::new_v4()),
-                                                    object: "chat.completion.chunk".to_string(),
-                                                    created: chrono::Local::now().timestamp(),
-                                                    model: req_model.clone(),
-                                                    choices: vec![crate::models::OpenAIChatChunkChoice { index: 0, delta: crate::models::OpenAIChatChunkDelta { role: Some("assistant".to_string()), content: Some(format!("\n\n❌ O Worker retornou nulo ou falhou ao extrair os dados da ferramenta `{}`.\n", tool_name)), tool_calls: None }, finish_reason: None }],
-                                                    usage: None,
-                                                };
-                                                let _ = tx_visual.send(Event::default().data(serde_json::to_string(&err_chunk).unwrap()));
-                                            }
+                                            let _ = tx_visual.send(Event::default().data(serde_json::to_string(&offline_chunk).unwrap()));
                                         }
                                     });
                                     
@@ -1861,56 +1802,10 @@ let mut map_stream = res.bytes_stream().map(move |result| {
     }
 });
 
-        while let Some(Ok(event)) = futures_util::StreamExt::next(&mut map_stream).await {
-            let _ = tx_sse_clone.send(event);
-        }
-
-        // --- FEEDBACK LOOP NATIVO ---
-        let mut tools_found = Vec::new();
-        if let Ok(mut tc_lock) = tool_collector.lock() {
-            tools_found.extend(tc_lock.drain(..));
-        }
-
-        if tools_found.is_empty() {
-            final_response_sent = true;
-        } else {
-            // Incorpora o Assistant Call no Histórico
-            current_history.push(json!({
-                "role": "assistant",
-                "tool_calls": tools_found
-            }));
-
-            // Executa as Ferramentas e Incorpora Resultados
-            for tc in tools_found {
-                let name = tc.get("function").and_then(|f| f.get("name")).and_then(|n| n.as_str()).unwrap_or("");
-                let args = tc.get("function").and_then(|f| f.get("arguments")).cloned().unwrap_or(json!({}));
-                
-                // [NATIVE DISPATCHER]: Execução síncrona para retroalimentação
-                let result = match name {
-                    "fetch_financial_ticker" => {
-                        let symbol = args.get("symbol").and_then(|v| v.as_str()).unwrap_or("");
-                        let years = args.get("years").map(|v| v.as_str().map(|s| s.to_string()).or_else(|| v.as_i64().map(|n| n.to_string())).unwrap_or("1".to_string())).unwrap_or("1".to_string());
-                        let out = tokio::process::Command::new(crate::api_trainer::resolve_venv_python()).arg(crate::api_trainer::resolve_python_workers_dir().join("sovereign_matrix.py")).arg("finance").arg(symbol).arg(years).output().await;
-                        match out { Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(), Err(_) => "Erro na execução".to_string() }
-                    },
-                    "execute_python_code" => {
-                        let code = args.get("code").and_then(|v| v.as_str()).unwrap_or("");
-                        crate::sandbox::execute_python_code(code).await.unwrap_or_else(|e| format!("Error: {}", e))
-                    },
-                    _ => "A ferramenta foi executada via dispatcher paralelo, mas o resultado não pôde ser reinjetado no loop de síntese textual.".to_string(),
-                };
-
-                current_history.push(json!({
-                    "role": "tool",
-                    "name": name,
-                    "content": result
-                }));
-            }
-        }
-    } // while loop
-
-    let _ = tx_sse_clone.send(Event::default().data("[DONE]"));
-});
+while let Some(Ok(event)) = futures_util::StreamExt::next(&mut map_stream).await {
+    let _ = tx_sse_clone.send(event);
+}
+}); // Fim do tokio::spawn
 
 let final_stream = async_stream::stream! {
     while let Some(event) = rx_sse.recv().await {
@@ -1950,27 +1845,21 @@ pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> i
             t.refresh_hardware();
             t.get_snapshot()
         },
-        Err(_) => {
-            // Q-02 FIX: Use real hardware data even in the Mutex poison fallback path.
-            let hw = crate::hardware::capture_hardware_telemetry();
-            crate::telemetry::TelemetrySnapshot {
-                total_tokens: 0,
-                avg_tps: 0.0,
-                avg_latency_ms: 0,
-                estimated_cost: 0.0,
-                avg_cloud_cost_per_1k: 0.00625,
-                models_usage: std::collections::HashMap::new(),
-                hardware: crate::telemetry::HardwareSnapshot {
-                    cpu_cores: vec![],
-                    ram_usage_mb: hw.used_ram_gb * 1024.0,
-                    ram_total_gb: hw.total_ram_gb,
-                    io_rx_bytes: 0,
-                    io_tx_bytes: 0,
-                    gpu_name: hw.gpu_name,
-                    gpu_vram_total_mb: (hw.total_vram_gb * 1024.0) as u64,
-                    gpu_vram_used_mb: (hw.used_vram_gb * 1024.0) as u64,
-                    unified_memory: hw.unified_memory,
-                }
+        Err(_) => crate::telemetry::TelemetrySnapshot {
+            total_tokens: 0,
+            avg_tps: 0.0,
+            avg_latency_ms: 0,
+            estimated_cost: 0.0,
+            avg_cloud_cost_per_1k: 0.00625,
+            models_usage: std::collections::HashMap::new(),
+            hardware: crate::telemetry::HardwareSnapshot {
+                cpu_cores: vec![],
+                ram_usage_mb: 0.0,
+                ram_total_gb: 24.0,
+                io_rx_bytes: 0,
+                io_tx_bytes: 0,
+                gpu_name: "GPU Compute".to_string(),
+                gpu_vram_total_mb: 0,
             }
         },
     };
