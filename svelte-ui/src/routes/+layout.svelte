@@ -284,7 +284,7 @@ import { API_BASE_URL } from '$lib/env_config';
       <!-- Account / Notifications Actions -->
       <div class="flex items-center bg-white dark:bg-[#12192b] rounded-full shadow-sm pr-2 pl-4 py-1.5 border border-slate-100 dark:border-[#424859]/20 h-12 flex-shrink-0">
         <NotificationBell />
-        <button onclick={() => settingsState.isOpen = true} class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 mr-4 transition-colors focus:outline-none">
+        <button onclick={() => settingsState.isOpen = true} aria-label="Open Settings" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 mr-4 transition-colors focus:outline-none">
           <Settings class="w-5 h-5" />
         </button>
         <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 mr-4"></div>
