@@ -27,6 +27,11 @@ impl AdblockHandle {
         }
         false
     }
+
+    pub fn mock() -> Self {
+        let (tx, _) = mpsc::channel(1);
+        Self { sender: tx }
+    }
 }
 
 pub fn start_adblock_daemon(
