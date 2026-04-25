@@ -871,6 +871,7 @@ mod tests {
             log_sender,
             sync_sender,
             adblock_engine: crate::adblocker::AdblockHandle { sender: adblock_tx },
+            health: crate::health_gate::new_health_state(),
         });
 
         // 1. Test POST /workspaces (Creation)
@@ -907,6 +908,7 @@ mod tests {
             log_sender,
             sync_sender,
             adblock_engine: crate::adblocker::AdblockHandle { sender: adblock_tx },
+            health: crate::health_gate::new_health_state(),
         });
 
         let app = axum::Router::new()

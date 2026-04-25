@@ -295,6 +295,13 @@ import { API_BASE_URL } from '$lib/env_config';
                         </button>
 
                         <button type="button" 
+                            onclick={() => globalState.chat.isRewooEnabled = !globalState.chat.isRewooEnabled}
+                            class={`p-2 rounded-lg transition-colors cursor-pointer ${globalState.chat.isRewooEnabled ? 'text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/20 shadow-inner dark:shadow-none border border-amber-200 dark:border-amber-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-200/50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
+                            title="Ativar Sovereign ReWOO (Parallel Plan & Execute)">
+                            <BrainCircuit class="w-4 h-4" />
+                        </button>
+
+                        <button type="button" 
                             onclick={() => globalState.chat.isCognitiveFirewallEnabled = !globalState.chat.isCognitiveFirewallEnabled}
                             class={`p-2 rounded-lg transition-colors cursor-pointer ${globalState.chat.isCognitiveFirewallEnabled ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/20 shadow-inner dark:shadow-none border border-emerald-200 dark:border-emerald-500/30' : 'text-slate-400 dark:text-slate-500 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-slate-200/50 dark:hover:bg-[#1d253b] border border-transparent'}`} 
                             title={globalState.chat.isCognitiveFirewallEnabled ? 'Firewall Cognitivo: ON (Modo Estrito)' : 'Firewall Cognitivo: OFF (Modo Quarentena)'}>

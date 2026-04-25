@@ -11,6 +11,8 @@ pub struct HardwareSnapshot {
     pub io_tx_bytes: u64,
     pub gpu_name: String,
     pub gpu_vram_total_mb: u64,
+    pub gpu_vram_used_mb: u64,
+    pub unified_memory: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +39,8 @@ pub struct TelemetryState {
     pub networks: Networks,
     pub gpu_name: String,
     pub gpu_vram_total_mb: u64,
+    pub gpu_vram_used_mb: u64,
+    pub unified_memory: bool,
     pub avg_cloud_cost_per_1k: f64,
 }
 
@@ -47,42 +51,11 @@ impl TelemetryState {
         let mut networks = Networks::new_with_refreshed_list();
         networks.refresh(true);
 
-        let mut gpu_name = String::from("GPU Compute");
-        let mut gpu_vram_total_mb = 0;
-
-        #[cfg(target_os = "linux")]
-        if let Ok(output) = std::process::Command::new("glxinfo").arg("-B").output() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            for line in stdout.lines() {
-                let text = line.trim();
-                if text.starts_with("Device: ") {
-                    if let Some(name) = text.split(" (").next() {
-                        gpu_name = name.replace("Device: ", "").to_string();
-                    }
-                } else if text.starts_with("Dedicated video memory: ")
-                    && let Some(mb_str) = text.split(':').nth(1)
-                        && let Ok(val) = mb_str.replace("MB", "").trim().parse::<u64>() {
-                            gpu_vram_total_mb = val;
-                        }
-            }
-        }
-
-        #[cfg(target_os = "macos")]
-        if let Ok(output) = std::process::Command::new("system_profiler").arg("SPDisplaysDataType").output() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            for line in stdout.lines() {
-                let text = line.trim();
-                if text.starts_with("Chipset Model: ") {
-                    gpu_name = text.replace("Chipset Model: ", "").to_string();
-                } else if text.starts_with("VRAM (Total): ") || text.starts_with("VRAM (Dynamic, Max): ") {
-                    if let Some(gb_str) = text.split(':').nth(1) {
-                        if let Ok(val) = gb_str.replace("GB", "").trim().parse::<u64>() {
-                            gpu_vram_total_mb = val * 1024;
-                        }
-                    }
-                }
-            }
-        }
+        let hardware_data = crate::hardware::capture_hardware_telemetry();
+        let gpu_name = hardware_data.gpu_name;
+        let gpu_vram_total_mb = (hardware_data.total_vram_gb * 1024.0) as u64;
+        let gpu_vram_used_mb = (hardware_data.used_vram_gb * 1024.0) as u64;
+        let unified_memory = hardware_data.unified_memory;
 
         Self {
             total_tokens: 0,
@@ -94,6 +67,8 @@ impl TelemetryState {
             networks,
             gpu_name,
             gpu_vram_total_mb,
+            gpu_vram_used_mb,
+            unified_memory,
             avg_cloud_cost_per_1k: 0.00625, // Default fallback
         }
     }
@@ -130,6 +105,13 @@ impl TelemetryState {
         self.sys.refresh_cpu_usage();
         self.sys.refresh_memory();
         self.networks.refresh(true); // Refreshes network usage stats
+
+        // GAP-01: Refresh dynamic VRAM usage from sysfs on each poll cycle
+        let hw = crate::hardware::capture_hardware_telemetry();
+        self.gpu_vram_used_mb = (hw.used_vram_gb * 1024.0) as u64;
+        self.gpu_vram_total_mb = (hw.total_vram_gb * 1024.0) as u64;
+        self.gpu_name = hw.gpu_name;
+        self.unified_memory = hw.unified_memory;
     }
 
     pub fn get_snapshot(&self) -> TelemetrySnapshot {
@@ -190,6 +172,8 @@ impl TelemetryState {
                 io_tx_bytes,
                 gpu_name: self.gpu_name.clone(),
                 gpu_vram_total_mb: self.gpu_vram_total_mb,
+                gpu_vram_used_mb: self.gpu_vram_used_mb,
+                unified_memory: self.unified_memory,
             }
         }
     }

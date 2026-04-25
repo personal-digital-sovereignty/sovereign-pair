@@ -31,6 +31,7 @@ export const globalState = $state({
         messages: [] as any[],
         isTyping: false,
         isDeepResearchEnabled: false,
+        isRewooEnabled: false,
         isCognitiveFirewallEnabled: true,
         isVisualArtistEnabled: false
     },
@@ -152,6 +153,7 @@ export const sendGlobalChatMessage = async (userText: string) => {
             session_id: globalState.chat.activeSessionId,
             stream: true,
             deep_research: globalState.chat.isDeepResearchEnabled,
+            rewoo_enabled: globalState.chat.isRewooEnabled,
             firewall_enabled: globalState.chat.isCognitiveFirewallEnabled,
             visual_artist_mode: globalState.chat.isVisualArtistEnabled
         };

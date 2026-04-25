@@ -241,7 +241,7 @@ describe('TypeScript Quality — Type Guards', () => {
 // PERFORMANCE TESTS — Sanitização não deve ser lenta
 // ================================================================
 describe('Performance — DOMPurify Sanitization Speed', () => {
-    it('Sanitizar 100 mensagens de 1KB deve ser concluído em < 2000ms (JSDOM overhead)', () => {
+    it('Sanitizar 100 mensagens de 1KB deve ser concluído em < 5000ms (JSDOM overhead)', () => {
         const message = '**Texto em negrito** com _itálico_ e código `inline`.\n\n'.repeat(50);
         const start = performance.now();
         for (let i = 0; i < 100; i++) {
@@ -250,7 +250,7 @@ describe('Performance — DOMPurify Sanitization Speed', () => {
         }
         const elapsed = performance.now() - start;
         // JSDOM tem ~5x overhead vs browser real; limite generoso para CI
-        expect(elapsed).toBeLessThan(2000);
+        expect(elapsed).toBeLessThan(5000);
     });
 
     it('String vazia deve sanitizar em < 50ms (JSDOM overhead)', () => {

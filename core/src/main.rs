@@ -7,11 +7,13 @@
 #![allow(clippy::if_same_then_else)]
 #![allow(clippy::unnecessary_sort_by)]
 
+pub mod turboquant;
 mod api;
 mod models;
 mod realtime;
 mod rag;
 mod telemetry;
+pub mod hardware;
 mod sync_engine;
 mod db;
 mod api_chat;
@@ -45,6 +47,8 @@ pub mod sandbox;
 pub mod memory_manager;
 pub mod garbage_collector; // <-- Adicionado
 pub mod prompt_vault;
+pub mod health_gate;
+pub mod oracle_worker;
 
 #[cfg(test)]
 pub mod tests;
@@ -199,6 +203,7 @@ pub struct AppState {
     pub sync_sender: broadcast::Sender<sync_engine::IngestionJob>,
     pub db: sqlx::SqlitePool,
     pub adblock_engine: adblocker::AdblockHandle,
+    pub health: health_gate::HealthState,
 }
 
 struct StringVisitor {
@@ -324,15 +329,28 @@ async fn main() {
     let adblock_handle = adblocker::start_adblock_daemon(active_vault.clone(), db_pool.clone());
 
     // Cria o Roteador Axum (A fundação dos Cíbridos) com Contexto Acoplado
+    let health_state = health_gate::new_health_state();
     let state = Arc::new(AppState {
         http_client: Client::new(),
         vault_path: active_vault,
         telemetry: Arc::new(RwLock::new(telemetry::TelemetryState::new())),
         log_sender: log_tx,
         sync_sender: sync_tx,
-        db: db_pool,
+        db: db_pool.clone(),
         adblock_engine: adblock_handle,
+        health: health_state.clone(),
     });
+
+    // 🛡️ Resilience Shield: Startup API Health Gate (non-blocking)
+    let db_health = db_pool.clone();
+    let hs = health_state.clone();
+    tokio::spawn(async move {
+        health_gate::startup_health_gate(db_health, hs).await;
+    });
+    health_gate::spawn_periodic_watchdog(db_pool.clone(), health_state).await;
+
+    // ☁️ Oracle Cloud: Auto-connect SSH tunnel for Ollama offload (non-blocking)
+    ssh_mesh_connector::auto_connect_oracle_node(db_pool.clone()).await;
 
     // Boot the Auto-Evaluator (LLM-as-a-Judge Mesh Loop)
     auto_evaluator::start_evaluator_loop(state.clone()).await;
@@ -368,6 +386,7 @@ async fn main() {
         // ------------------ LLMOps Telemetry & Logs ------------------
         .route("/v1/analytics/telemetry", axum::routing::get(api::telemetry_snapshot_handler))
         .route("/v1/analytics/hallucinations", axum::routing::get(api_trainer::get_hallucinations_ledger_handler))
+        .route("/v1/analytics/api_health", axum::routing::get(health_gate::api_health_handler))
         .route("/v1/logs", axum::routing::get(api::realtime_logs_handler))
         // ------------------ RAG & SOVEREIGN DRIVES (Workspaces O.S) --------------------------
         .route("/v1/workspaces", axum::routing::get(api_vault::list_workspaces_handler)
@@ -413,9 +432,17 @@ async fn main() {
             .post(api_settings::set_searxng_nodes_handler))
         .route("/v1/settings/cold_storage", axum::routing::get(api_settings::get_cold_storage_handler)
             .post(api_settings::set_cold_storage_handler))
+        .route("/v1/settings/p2p_mesh", axum::routing::get(api_settings::get_p2p_mesh_handler)
+            .post(api_settings::set_p2p_mesh_handler))
+        .route("/v1/settings/cloud_target", axum::routing::get(api_settings::get_cloud_target_handler)
+            .post(api_settings::set_cloud_target_handler))
         .route("/v1/settings/tenant_keys", axum::routing::get(api_settings::get_tenant_keys_handler)
             .post(api_settings::create_tenant_key_handler))
         .route("/v1/settings/tenant_keys/:id", axum::routing::delete(api_settings::delete_tenant_key_handler))
+        // ☁️ Oracle Cloud Node
+        .route("/v1/settings/oracle_node", axum::routing::get(oracle_worker::get_oracle_node_handler)
+            .post(oracle_worker::set_oracle_node_handler))
+        .route("/v1/mesh/oracle_status", axum::routing::get(oracle_worker::oracle_status_handler))
         .route("/v1/system/export_config", axum::routing::get(api_settings::export_config_handler))
         .route("/v1/system/import_config", axum::routing::post(api_settings::import_config_handler))
         .route("/v1/system/available_models", axum::routing::get(api_settings::get_available_models_handler))
@@ -450,6 +477,12 @@ async fn main() {
         .route("/v1/research/staging", axum::routing::get(api_trainer::get_staged_research_handler))
         .route("/v1/research/staging/:id", axum::routing::delete(api_trainer::discard_staged_research_handler))
         .route("/v1/research/staging/:id/commit", axum::routing::post(api_trainer::commit_staged_research_handler))
+        // ------------------ Reflection Lab ----------------------
+        .route("/v1/engineer/reflection/apply", axum::routing::post(api_trainer::save_reflection_dataset_handler))
+        .route("/v1/engineer/reflection/settings", axum::routing::get(api_trainer::get_reflection_settings_handler)
+            .post(api_trainer::save_reflection_settings_handler))
+        .route("/v1/engineer/reflection/stream", axum::routing::get(api_trainer::reflection_sse_handler))
+        .route("/v1/engineer/reflection/simulate", axum::routing::post(api_trainer::run_reflection_simulation_handler))
         // ------------------ Multimodal Endpoints ------------------
         .route("/v1/images/generations", post(api_multimodal::generate_image_handler))
         // ------------------ Chat Endpoints ------------------

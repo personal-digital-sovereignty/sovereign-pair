@@ -145,7 +145,46 @@ import { API_BASE_URL } from '$lib/env_config';
 
     export const TheAccountantMath = Extension.create({
         name: 'theAccountantMath',
+        addStorage() {
+            return {
+                safeEval: (str: string): string => {
+                    let s = str.replace(/\s+/g, '').replace(/,/g, '.');
+                    // Resolve parênteses recursivamente com limite de profundidade
+                    let safety = 0;
+                    while (s.includes('(') && safety < 10) {
+                        s = s.replace(/\(([^()]+)\)/g, (_, exp) => {
+                            // Recursividade local para parênteses
+                            let inner = exp;
+                            while (/(-?\d*\.?\d+)([*/])(-?\d*\.?\d+)/.test(inner)) {
+                                inner = inner.replace(/(-?\d*\.?\d+)([*/])(-?\d*\.?\d+)/g, (__, a, op, b) => 
+                                    op === '*' ? (parseFloat(a) * parseFloat(b)).toString() : (parseFloat(a) / parseFloat(b)).toString());
+                            }
+                            while (/(-?\d*\.?\d+)([+-])(-?\d*\.?\d+)/.test(inner)) {
+                                inner = inner.replace(/(-?\d*\.?\d+)([+-])(-?\d*\.?\d+)/g, (__, a, op, b) => 
+                                    op === '+' ? (parseFloat(a) + parseFloat(b)).toString() : (parseFloat(a) - parseFloat(b)).toString());
+                            }
+                            return inner;
+                        });
+                        safety++;
+                    }
+                    // Multiplicação e Divisão (Prioridade)
+                    while (/(-?\d*\.?\d+)([*/])(-?\d*\.?\d+)/.test(s)) {
+                        s = s.replace(/(-?\d*\.?\d+)([*/])(-?\d*\.?\d+)/g, (_, a, op, b) => {
+                            return op === '*' ? (parseFloat(a) * parseFloat(b)).toString() : (parseFloat(a) / parseFloat(b)).toString();
+                        });
+                    }
+                    // Adição e Subtração
+                    while (/(-?\d*\.?\d+)([+-])(-?\d*\.?\d+)/.test(s)) {
+                        s = s.replace(/(-?\d*\.?\d+)([+-])(-?\d*\.?\d+)/g, (_, a, op, b) => {
+                            return op === '+' ? (parseFloat(a) + parseFloat(b)).toString() : (parseFloat(a) - parseFloat(b)).toString();
+                        });
+                    }
+                    return s;
+                }
+            }
+        },
         addProseMirrorPlugins() {
+            const extension = this;
             return [
                 new Plugin({
                     key: new PluginKey('theAccountantMath'),
@@ -245,7 +284,7 @@ import { API_BASE_URL } from '$lib/env_config';
 
                                             if (/^[0-9+\-*/(). ]+$/.test(evalFormula)) {
                                                 try {
-                                                    let resNum = Number(new Function('return ' + evalFormula)());
+                                                    let resNum = Number(extension.storage.safeEval(evalFormula));
                                                     if (!isNaN(resNum) && isFinite(resNum)) {
                                                         const valStr = Number.isInteger(resNum) ? resNum.toString() : parseFloat(resNum.toFixed(5)).toString();
                                                         
@@ -695,21 +734,45 @@ import { API_BASE_URL } from '$lib/env_config';
     }
     :global(.tiptap td a[href^="="]) {
         text-decoration: none !important;
-        color: #1e293b !important;
-        cursor: text;
-        pointer-events: none;
+        color: inherit !important;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+    }
+    :global(.tiptap td a[href^="="]::before) {
+        content: "ƒ";
+        font-family: serif;
+        font-style: italic;
+        font-size: 14px;
+        color: #10b981;
+        opacity: 0.7;
+        font-weight: bold;
     }
     :global(.tiptap td a[href^="="]::after) {
         content: attr(href);
-        background-color: #d1fae5;
-        color: #047857;
-        font-family: monospace;
-        padding: 2px 6px;
+        background-color: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        font-family: 'JetBrains Mono', monospace;
+        padding: 2px 8px;
         border-radius: 4px;
-        font-size: 12px;
-        font-weight: 700;
-        margin-left: 8px;
-        display: inline-block;
-        vertical-align: middle;
+        font-size: 11px;
+        font-weight: 600;
+        opacity: 0;
+        transform: translateX(-5px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+        white-space: nowrap;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    :global(.tiptap td a[href^="="]:hover::after) {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    :global(.dark .tiptap td a[href^="="]::after) {
+        background-color: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+        border-color: rgba(52, 211, 153, 0.2);
     }
 </style>

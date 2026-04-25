@@ -1,6 +1,6 @@
 [package]
 name = "sovereign-core"
-version = "1.2.11"
+version = "1.3.0"
 edition = "2024"
 license = "MIT"
 build = "build.rs"
@@ -34,6 +34,7 @@ walkdir = "2.5.0"
 tokio-stream = { version = "0.1.18", features = ["sync"] }
 notify = "8.2.0"
 sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio-rustls", "chrono", "uuid"] }
+libsqlite3-sys = { version = "0.30.1", features = ["bundled"] }
 chrono = { version = "0.4.44", features = ["serde"] }
 async-recursion = "1.1.1"
 urlencoding = "2.1.3"
@@ -58,7 +59,7 @@ unicode-segmentation = "1.13.2"
 ort = "2.0.0-rc.4"
 symphonia = { version = "0.5.4", features = ["all"] }
 image = "0.25.1"
-ndarray = "0.16.1"
+ndarray = "0.17.2"
 
 # Office Multimodal Ingestion
 calamine = "0.34.0"
@@ -69,6 +70,10 @@ serde_yaml = "0.9"
 toml = "0.8"
 url = "2.5.8"
 futures = "0.3.32"
+statrs = "0.17"
+rand_chacha = "0.10.0"
+rand_distr = "0.6.0"
+ash = "0.38.0"
 
 [dev-dependencies]
 tempfile = "3.10.1"
