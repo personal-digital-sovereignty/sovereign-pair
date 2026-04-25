@@ -13,6 +13,28 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
+## [1.3.1] - 2026-04-25
+*Epic: Sovereign Shield (Autonomous Testing), Forensic Archeology & Cloud Integration Polish*
+
+### Sovereign Shield (Autonomous Testing — Epic 4)
+- **Phase 1: Backend Hardening (Rust Integration)**: Implementada suíte de testes de integração em Rust (`provider_integration_tests.rs`) validando o ciclo completo de persistência e criptografia KMS para Qwen e NVIDIA.
+- **Phase 2: UI/UX Stability (Playwright E2E)**: 
+    - Corrigida ambiguidade de seletores `header` em toda a suíte de testes E2E.
+    - Adicionado `aria-label` ao botão de configurações global para melhor acessibilidade e automação.
+    - Criada nova suíte de testes `provider_settings.spec.ts` validando os fluxos de configuração de Nuvem Híbrida.
+- **Phase 3: Stress & Concurrency (Zero-Regression)**:
+    - Validada concorrência de escrita massiva no SQLite (50 threads) em modo WAL (`stress_tests.rs`).
+    - Benchmarking de streaming concorrente com 3 clientes simultâneos via Ollama, garantindo estabilidade do motor Rust sob carga (`bench_stream.py`).
+    - Teste de payload massivo (5MB) validando proteções de segurança contra exaustão de memória (413 Payload Too Large).
+
+### Forensic Archeology (Retroactive Roadmap — Epic 0)
+- **ROADMAP.md**: Criado o novo manifesto central de evolução do projeto, resgatando a "Trilha Arqueológica" desde a Milestone 0.1.
+- **Commit Trail Audit**: Realizada auditoria de 1.038 commits para consolidar o histórico de features retroativas.
+
+### Improvements & Security
+- **Clippy Sanitization**: Resolvidos avisos de `redundant-locals` e casts desnecessários no `api.rs` (Zero Warnings Policy).
+- **Settings Persistence**: Unificada a lógica de persistência de configurações para múltiplos provedores de nuvem no frontend Svelte.
+
 ## [1.3.0] - 2026-04-23
 *Epic: Resilience Shield, Hardware Telemetry, Oracle Cloud Integration & Selective Agentic Modes*
 
