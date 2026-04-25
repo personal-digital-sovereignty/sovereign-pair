@@ -270,3 +270,40 @@ pub struct OpenRouterRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub route: Option<String>, // 'fallback' ou 'native'
 }
+
+// ==========================================
+// Alibaba Qwen (DashScope) Models
+// ==========================================
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct QwenSettings {
+    pub enabled: bool,
+    pub api_key: String,
+    pub default_model: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QwenRequest {
+    pub model: String,
+    pub input: QwenInput,
+    pub parameters: Option<QwenParameters>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QwenInput {
+    pub messages: Vec<OpenAIChatMessage>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct QwenParameters {
+    pub result_format: Option<String>,
+    pub seed: Option<u64>,
+    pub max_tokens: Option<i32>,
+    pub top_p: Option<f32>,
+    pub top_k: Option<i32>,
+    pub repetition_penalty: Option<f32>,
+    pub temperature: Option<f32>,
+    pub stop: Option<Value>,
+    pub enable_search: Option<bool>,
+    pub incremental_output: Option<bool>,
+}
