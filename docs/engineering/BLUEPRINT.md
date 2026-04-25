@@ -62,6 +62,12 @@ Blindagem de nível de kernel para LLMs:
 ### 2.5 [Integração OpenCode](opencode_integration.md)
 Manual técnico para conexão de extensões de IDE (VS Code/OpenCode) com o Sovereign Proxy local.
 
+### 2.6 [Identidade Visual](visual_identity.md)
+Manifesto de design "Modern Enterprise" e tokens estéticos do sistema.
+
+### 2.7 [Aquisição de Modelos](model_acquisition.md)
+Guia de provisionamento offline para pesos de modelos LLM, VLM e OCR.
+
 ---
 
 ## 3. Topologia de Rede (OCI Mesh)

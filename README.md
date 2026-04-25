@@ -22,7 +22,7 @@ O sistema opera com base nos seguintes componentes principais:
    - **Epistemic Guard v2 (Deterministic SHA-256)**: O sistema de verificacao de proveniencia criptografica opera de forma **deterministicamente** pelo Motor Rust, re-hasheando arquivos fisicos em `/tmp/sovereign/` e comparando 1:1 com checksums originais. Nenhuma dependencia cognitiva do LLM para reproducao de hashes.
    - **TurboQuantMSE (Vector Quantization)**: Implementação nativa sob o Kernel Rust que compacta tensores (Embeddings) baseando-se em dicionários Lloyd-max de 4-bits. Corta em 10.6x o rastro de memória (Footprint) nas varreduras semânticas dentro do SQLite local.
    - **Sovereign Resilience Shield**: Trabalhadores Python são encapsulados em tolerância a falhas utilizando roteamento dinâmico *Exponential Backoff*, tornando o sistema resistente contra limites ou quedas instáveis de APIs de nuvem (Yfinance, Brapi, Banco Central).
-   - **Deep Research Pipeline (Model-Agnostic)**: Motor de Pesquisa Profunda orquestrado via *Agentic Loop* com Tool Calling nativo, fusao de series temporais via Pandas (Pearson correlation matrix 6×6), e cadeia de formatacao Scribe→Auditor com *Sycophancy Breaker* cross-family. Validado em stress tests com modelos de 8B a 14B produzindo dados **bitwise identicos** (SHA-256). Detalhes em [`docs/case_study_v1.2_deep_research_stress_test.md`](docs/case_study_v1.2_deep_research_stress_test.md) e [`docs/reports/_strategy/deep_research_scribe_hardening_v1.2.7.md`](docs/reports/_strategy/deep_research_scribe_hardening_v1.2.7.md).
+   - **Deep Research Pipeline (Model-Agnostic)**: Motor de Pesquisa Profunda orquestrado via *Agentic Loop* com Tool Calling nativo, fusao de series temporais via Pandas (Pearson correlation matrix 6×6), e cadeia de formatacao Scribe→Auditor com *Sycophancy Breaker* cross-family. Validado em stress tests com modelos de 8B a 14B produzindo dados **bitwise identicos** (SHA-256). Detalhes técnicos e diagramas no [**Engineering Blueprint**](docs/engineering/BLUEPRINT.md).
 
 4. Dashboard Web (Svelte 5)
    - Interface Web (PWA) de painel unico que centraliza logs do sistema, monitoramento de recursos (RAM/VRAM) e navegacao interativa e controlada do repositorio fisico de documentos. 
@@ -52,11 +52,10 @@ Para acompanhar a evolução do projeto e as próximas grandes funcionalidades p
 
 ## Mapas Arquiteturais dos Repositorios
 
-- core/ - Contratos tecnicos de processamento modular Rust e Retriever Vetorial O.S.
-- svelte-ui/ - Camada Svelte 5 para visualizacoes gerenciais.
-- docs/ - Acondiciona manifestos tecnicos da construcao da aplicacao.
-- _strategy/ - Artigos tecnicos internos, case studies e analises arquiteturais.
-- infra/ - Assets Terraform e shell-scripts cloud-inits.
+- **core/**: Contratos técnicos de processamento modular Rust e Retriever Vetorial O.S.
+- **svelte-ui/**: Camada Svelte 5 para visualizações gerenciais e telemetria.
+- **docs/engineering/**: **Hub de Engenharia (Blueprint)**. Contém desenhos técnicos, manifestos e o "livro aberto" do sistema.
+- **infra/**: Assets Terraform e shell-scripts cloud-inits para OCI/Tunnels.
 
 ---
 
