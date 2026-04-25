@@ -307,3 +307,10 @@ pub struct QwenParameters {
     pub enable_search: Option<bool>,
     pub incremental_output: Option<bool>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct NvidiaSettings {
+    pub enabled: bool,
+    pub api_key: String,
+    pub default_model: String,
+}
