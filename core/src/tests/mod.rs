@@ -7,3 +7,4 @@ pub mod reflection_tests;
 pub mod health_gate_tests;
 pub mod oracle_worker_tests;
 pub mod openrouter_tests;
+pub mod provider_integration_tests;

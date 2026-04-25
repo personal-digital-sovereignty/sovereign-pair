@@ -447,7 +447,7 @@ if is_qwen_model {
 let mut nvidia_settings = NvidiaSettings::default();
 if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'nvidia'").fetch_optional(&state.db).await {
     let val: String = row.get("value_json");
-    if let Ok(mut parsed) = serde_json::from_str::<NvidiaSettings>(&val) {
+    if let Ok(parsed) = serde_json::from_str::<NvidiaSettings>(&val) {
         nvidia_settings = parsed;
         if let Some(decrypted) = crate::kms::decrypt_vault_secret(&nvidia_settings.api_key) {
             nvidia_settings.api_key = decrypted;
