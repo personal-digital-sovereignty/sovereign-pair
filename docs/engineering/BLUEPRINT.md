@@ -68,6 +68,9 @@ Manifesto de design "Modern Enterprise" e tokens estéticos do sistema.
 ### 2.7 [Aquisição de Modelos](model_acquisition.md)
 Guia de provisionamento offline para pesos de modelos LLM, VLM e OCR.
 
+### 2.8 [Infraestrutura](infrastructure.md)
+Manual de provisionamento de nós, topologia cloud (OCI) e otimização de baixo nível (ZRAM/Swap).
+
 ---
 
 ## 3. Topologia de Rede (OCI Mesh)
