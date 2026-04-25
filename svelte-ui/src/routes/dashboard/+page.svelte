@@ -172,14 +172,11 @@ Exibe o stress exato da máquina local rodando o Sovereign Core">
                         {telemetryState.vramTotalMB > 0 ? telemetryState.gpuName + ' (' + (telemetryState.vramTotalMB / 1024).toFixed(1) + ' GB VRAM)' : 'GPU Compute'}
                     </span>
                 </div>
-                <div class="h-12 bg-slate-50 dark:bg-[#0c1324] rounded-lg border border-slate-100 dark:border-[#424859]/10 relative overflow-hidden">
-                    <div class="absolute bottom-0 w-full h-[40%] opacity-30 bg-gradient-to-t from-emerald-500/20 to-transparent"></div>
-                    <svg class="absolute bottom-0 w-full h-full preserve-3d opacity-80" preserveAspectRatio="none" viewBox="0 0 100 100">
-                        <path d="M0,100 L0,95 L20,95 L30,97 L40,94 L50,95 L60,95 L70,85 L80,90 L90,95 L100,92 L100,100 Z" fill="none" stroke="#10b981" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-                    </svg>
+                <div class="h-12 bg-slate-50 dark:bg-[#0c1324] rounded-lg border border-slate-100 dark:border-[#424859]/10 flex flex-col justify-end p-1 gap-0.5">
+                    <div class="h-full bg-emerald-500/20 rounded-sm overflow-hidden" style="width: {telemetryState.vramTotalMB > 0 ? '100%' : '0%'}"><div class="w-full h-full bg-emerald-500 relative"><div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMjBMMjAgMEgxMEwwIDEwWiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjEpIi8+PC9zdmc+')] opacity-20"></div></div></div>
                 </div>
                 <div class="flex justify-between text-[10px] font-mono mt-1 px-1">
-                    <span class="text-slate-500 dark:text-slate-400">Temp: <span class="{telemetryState.gpuTemperature > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'} font-semibold">{telemetryState.gpuTemperature > 0 ? telemetryState.gpuTemperature + 'ºC' : '--ºC'}</span></span>
+                    <span class="text-slate-500 dark:text-slate-400">Status: <span class="{telemetryState.vramTotalMB > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'} font-semibold">{telemetryState.vramTotalMB > 0 ? 'Vulkan Active' : 'Offloaded to CPU'}</span></span>
                     <span class="text-slate-500 dark:text-slate-400">Load: <span class="{telemetryState.vramUsageMB > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'} font-semibold">{telemetryState.vramUsageMB > 0 ? 'Active' : 'Idle'}</span></span>
                 </div>
             </div>

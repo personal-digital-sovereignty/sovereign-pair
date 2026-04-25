@@ -162,6 +162,34 @@ CREATE TABLE IF NOT EXISTS model_metrics (
     last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS reflection_datasets (
+    id TEXT PRIMARY KEY,
+    model_tag TEXT NOT NULL,
+    payload_json TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- S7: Indexes for efficient Fine-Tuning dataset retrieval
+CREATE INDEX IF NOT EXISTS idx_reflection_model ON reflection_datasets(model_tag);
+CREATE INDEX IF NOT EXISTS idx_reflection_created ON reflection_datasets(created_at DESC);
+
+-- ---------------------------------------------------------
+-- 5b. RESILIENCE SHIELD — API Health Monitoring
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS api_health_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    api_name TEXT NOT NULL,
+    api_type TEXT NOT NULL,
+    status TEXT NOT NULL,
+    is_critical BOOLEAN NOT NULL DEFAULT 0,
+    latency_ms INTEGER DEFAULT 0,
+    error_message TEXT,
+    checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_api_health_name ON api_health_log(api_name);
+CREATE INDEX IF NOT EXISTS idx_api_health_checked ON api_health_log(checked_at DESC);
+
 -- ---------------------------------------------------------
 -- 6. SEGURANÇA E AUTO-BLINDAGEM
 -- ---------------------------------------------------------
@@ -259,4 +287,22 @@ CREATE TABLE IF NOT EXISTS tenant_api_keys (
     api_key_value TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ---------------------------------------------------------
+-- 10. SOVEREIGN ORACLE CLOUD NODE (Fase 3)
+-- ---------------------------------------------------------
+-- Default seed: disabled. User activates via Settings > Oracle Node
+INSERT OR IGNORE INTO global_settings (id, value_json) VALUES (
+    'oracle_node',
+    '{
+        "ip": "",
+        "user": "ubuntu",
+        "key_path": "~/.ssh/id_ed25519",
+        "ollama_tunnel_port": 41434,
+        "enabled": false,
+        "cold_storage_enabled": false,
+        "workers_dir": "~/sovereign-workers",
+        "venv_path": "~/sovereign-venv/bin/python"
+    }'
 );

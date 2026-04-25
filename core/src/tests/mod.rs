@@ -3,3 +3,6 @@
 
 pub mod security_tests;
 pub mod regression_tests;
+pub mod reflection_tests;
+pub mod health_gate_tests;
+pub mod oracle_worker_tests;

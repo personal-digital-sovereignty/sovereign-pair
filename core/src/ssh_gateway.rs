@@ -23,30 +23,76 @@ impl SshGateway {
             target_uri = mesh_uri;
             key_path = mesh_key;
         } else {
-            // 2. FALLBACK PARA O BANCO DE DADOS LOCAL OCI (Legacy Bypass)
-            let row = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'system_settings'")
+            // 2. FALLBACK PARA O BANCO DE DADOS LOCAL OCI
+            // GAP-O02: Reads from the new 'cloud_target' settings first (host_ip + pem_key AES-GCM).
+            // Falls back to legacy 'system_settings' oci_sandbox_* fields for backward compat.
+            let cloud_row = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'cloud_target'")
                 .fetch_optional(&db)
                 .await
-                .map_err(|e| format!("Database connection err: {}", e))?;
+                .ok()
+                .flatten();
 
             let mut target_ip = String::new();
-            let mut target_user = String::new();
+            let mut target_user = "ubuntu".to_string(); // sensible OCI default
 
-            if let Some(r) = row {
+            if let Some(r) = cloud_row {
                 let val: String = r.get("value_json");
-                let parsed: Value = serde_json::from_str(&val).unwrap_or(serde_json::json!({}));
-                
-                target_ip = parsed.get("oci_sandbox_ip").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                target_user = parsed.get("oci_sandbox_user").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                key_path = parsed.get("oci_sandbox_key").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let parsed: serde_json::Value = serde_json::from_str(&val).unwrap_or(serde_json::json!({}));
+
+                let raw_ip = parsed.get("host_ip").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let encrypted_pem = parsed.get("pem_key").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+                if !raw_ip.is_empty() && !encrypted_pem.is_empty() {
+                    // Decrypt PEM from AES-GCM vault
+                    match crate::kms::decrypt_vault_secret(&encrypted_pem) {
+                        Some(pem_content) => {
+                            // Write PEM to a secure temp file with 0600 permissions
+                            let tmp_path = std::env::temp_dir().join(format!("sovereign_oci_{}.pem", std::process::id()));
+                            match std::fs::write(&tmp_path, pem_content.as_bytes()) {
+                                Ok(_) => {
+                                    #[cfg(unix)]
+                                    {
+                                        use std::os::unix::fs::PermissionsExt;
+                                        let _ = std::fs::set_permissions(&tmp_path, std::fs::Permissions::from_mode(0o600));
+                                    }
+                                    target_ip = raw_ip;
+                                    key_path = tmp_path.to_string_lossy().to_string();
+                                    info!("🔑 [Zero-Trust Gateway] OCI PEM decrypted from Vault and staged at temp path.");
+                                },
+                                Err(e) => {
+                                    error!("❌ [Zero-Trust Gateway] Failed to write PEM temp file: {}", e);
+                                }
+                            }
+                        },
+                        None => {
+                            error!("❌ [Zero-Trust Gateway] KMS decryption of OCI PEM failed. Key may be corrupted.");
+                        }
+                    }
+                }
             }
 
-            if target_ip.is_empty() || target_user.is_empty() || key_path.is_empty() {
+            // Legacy fallback: system_settings oci_sandbox_* fields
+            if target_ip.is_empty() {
+                let row = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'system_settings'")
+                    .fetch_optional(&db)
+                    .await
+                    .map_err(|e| format!("Database connection err: {}", e))?;
+
+                if let Some(r) = row {
+                    let val: String = r.get("value_json");
+                    let parsed: Value = serde_json::from_str(&val).unwrap_or(serde_json::json!({}));
+                    target_ip = parsed.get("oci_sandbox_ip").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                    target_user = parsed.get("oci_sandbox_user").and_then(|v| v.as_str()).unwrap_or("ubuntu").to_string();
+                    key_path = parsed.get("oci_sandbox_key").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                }
+            }
+
+            if target_ip.is_empty() || key_path.is_empty() {
                 error!("❌ [Zero-Trust Gateway] Nenhum Nó de Malha Sandboxed encontrado E credenciais OCI do KMS ausentes.");
                 return Err("Missing Zero-Trust Sandbox Parameters. No Mesh Nodes available and no KMS configs.".to_string());
             }
             target_uri = format!("{}@{}", target_user, target_ip);
-            info!("🛡️ [Zero-Trust Gateway] Opening Legacy SSH Pipe to Central Oracle VM: {}", target_uri);
+            info!("🛡️ [Zero-Trust Gateway] Opening SSH Pipe to Oracle Cloud VM: {}", target_uri);
         }
 
         debug!("🛡️ [Zero-Trust Gateway] SSH Key Auth: {}", key_path);

@@ -1,10 +1,70 @@
 # Changelog
+### v1.3.0 Stable (Gold Edition)
+- **Reflexive Agent Loop**: Ciclo recursivo de agência no `api.rs` (Thought -> Tool -> Synthesis).
+- **Knowledge Vault**: Corrigida falha de resolução de path absoluto no macOS (FIX-60).
+- **The Accountant**: Restaurado motor matemático com parser aritmético CSP-Safe (FIX-61).
+- **Resilience Shield**: Monitoramento de VRAM em tempo real e OOM Guard preventivo.
+- **Data Integrity**: Zero-Hallucination Policy no Scribe e unificação de escopo em workers Python.
+- **Audit Pass**: Validação comparativa v1.1.0 vs v1.3.0 confirmando zero regressão.
+
 
 All notable changes to the Sovereign Pair project will be documented in this file.
 
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
+## [1.3.0] - 2026-04-23
+*Epic: Resilience Shield, Hardware Telemetry, Oracle Cloud Integration & Selective Agentic Modes*
+
+### Stability & Data Pipeline (Fixes)
+- **FIX-53 (Math Error / Pipeline)**: Resolved critical "Expected object or value" in Deep Research pipeline by stripping visual headers (###) before writing tool results to disk. This ensures valid JSON/Text files for Python processing.
+- **FIX-54 (JSON Sanity)**: Added dynamic file extension handling (.json vs .txt) and correct LLM tool instructions based on content type, preventing parser failures in the Sandbox.
+- **FIX-55 (Nestle Registry)**: Manually resolved Nestle ticker mapping (NEST34.SA / NESN.SW / NESN3) and added to emergency fallback map in `sovereign_matrix.py` to ensure data acquisition resilience.
+- **FIX-56 (Error Propagation)**: Prevented error messages from being saved to disk as "successful" data files, improving Agentic Loop awareness of tool failures.
+- **FIX-57 (Epistemic Vaccine)**: Implemented explicit failure alerts that prevent the LLM from entering a 'ghost-file' read loop.
+- **FIX-58 (UnboundLocalError)**: Resolved a critical shadowing bug in `sovereign_matrix.py` that caused crashes during error reporting.
+- **FIX-59 (Thought Cleanup)**: Refactored internal thinking tags to Markdown italics to prevent unrendered XML-like tags from leaking into the user chat interface.
+- **DOC-01 (External Dependencies)**: Identificado e resolvido bloqueio de rede via NextDNS que impedia a conexão com `fc.yahoo.com` (CURL 7). Recomendado whitelist de domínios Yahoo para plena operação do pipeline financeiro.
+
+### Security (Hardening Crítico)
+- **CWE-78 Command Injection (Remote RCE)**: Identificada e aniquilada uma vulnerabilidade severa de injeção direta ao protocolo `ssh`. Caracteres maliciosos (`; rm -rf /`) injetados via Payload Axum nas configurações de P2P da OCI Cloud executariam evasão de Shell Bash. Desenvolvida blindagem `shell_escape()` e rejeição por Regex pura no Guard Axum protegendo a Nuvem Oracle remota 100%.
+- **Chaves SSH Blindadas Exfiltradas**: O Vault de segredos `/v1/settings/oracle_node` ativamente rejeita a gravação de arquivos que denotem conteudos crus de PEM/RSA Keys.
+- **SHA-256 Worker Auto-Provisioning (Fase 3)**: Garantida absoluta Assimetria Criptográfica. A Engine Base (Rust local) não injetará códigos subversivos Python. Antes da malha OCI invocar inferência, é tirado checksum digital dos scripts (Master Node). O Oracle Replique avalia: Se diferente, clona assincronamente a verdade local via `.rsync` e Delta sync antes de executar o loop.
+- **SCA-01 — Dependências Seguras (Gate 2 Trivy SCA)**: Erradicadas vulnerabilidades críticas e altas detectadas no pipeline. Atualizados `openssl` (0.10.76 → 0.10.78) corrigindo CVE-2026-41681 no motor Rust, e `cookie` (0.6 → 0.7.2) + `dompurify` (3.3.3 → 3.4.1) no frontend Svelte.
+
+- **Native Chat Tool Dispatcher**: O Chat regular agora possui suporte nativo a ferramentas (Weather, Finance, Search). Implementado interceptador de streaming em `api.rs` que executa Workers Python (`tokio::spawn`) e injeta resultados em tempo real via SSE.
+- **Selective Agentic Modalities (UI Control)**: O usuário agora possui controle granular sobre o nível de cognição. Adicionados botões dedicados na UI para **Sovereign ReWOO (Plan & Execute)** e **Deep Research (Internet Access)**. O sistema não tenta planejar tarefas complexas automaticamente, economizando VRAM e latência.
+- **Triviality Triage (The "Bom dia" Gate)**: Implementada camada de roteamento rápido que detecta saudações e mensagens triviais. O sistema ignora qualquer pré-processamento agêntico para essas mensagens, respondendo instantaneamente em modo Zero-Shot.
+
+### Changed
+- **P2P Mesh Connector Hot-Reloading**: O Node principal refatorou a arquitetura em linha OCI para um Loop Mutável. Túneis Mesh ativam, reconfiguram portas P2P entre Local e Subrede Virtual na Oracle ao som de Configurações Svelte no SQLite sem Restart de sistema operante.
+### Fixed
+
+#### 🏗️ CI/CD — Cross-Platform Build Stability
+- **BUILD-01 — ndarray-linalg/openblas-static removido (Windows/aarch64 blocker)**: A dependência `ndarray-linalg` exigia compilação do OpenBLAS do zero via Fortran (`gfortran`) e `make` — toolchain ausente nos runners GitHub Actions para Windows e aarch64. Isso bloqueava 100% dos builds cross-platform na release branch. **Fix**: Substituída a decomposição QR por implementação pura em Rust (**Gram-Schmidt Modificado**) em `core/src/turboquant.rs`. Zero dependências de C/Fortran para geração de matrizes de rotação Haar. O binário agora compila nativamente em todas as plataformas sem toolchain nativa adicional (`core/Cargo.toml`, `core/src/turboquant.rs`).
+- **BUILD-02 — libsqlite3-sys bundled para Windows**: Feature `bundled` ativada no `core/Cargo.toml` para garantir compilação nativa do SQLite em runners Windows sem biblioteca pré-instalada no sistema.
+- **LINT-01 — Clippy 1.94 strict mode**: Corrigidos erros de `doc_lazy_continuation`, complexidade booleana no `api.rs` e borrows desnecessários introduzidos pelo upgrade automático da toolchain Rust 1.94+ nos runners de CI. Pipeline retomada com `cargo clippy -- -D warnings` zerado em todas as plataformas.
+- **AGENTIC-FIX — Deep Research Empty Response**: Removida a castração `think: false` em `api_trainer.rs` que impedia modelos reasoner (Qwen3/DeepSeek R1) de formular chamadas de ferramentas, causando respostas vazias. Adicionada validação de `tool_calls` não-vazios para estabilizar o loop agêntico.
+
+#### 🍎 macOS — Python Worker Pipeline (RAG & Deep Research)
+- **FIX-42 — resolve_python_workers_dir() retornava `/core/python_workers` no macOS produção**: Em produção (Tauri sidecar, binary standalone), `std::env::current_dir()` retorna `/` (root do filesystem). A lógica anterior priorizava CWD, gerando o path inexistente `/core/python_workers` — causando falha silenciosa do RAG Pipeline e Deep Research com `[Errno 2] No such file or directory` nos arquivos de saída `/tmp/sovereign/`. **Fix**: Detecção exe-relative agora é tentada **primeiro** (antes do CWD), garantindo resolução correta como sidecar Tauri (`Contents/MacOS/ → Contents/Resources/python_workers`) ou binary standalone (`exe_dir/python_workers`). Adicionada variável de ambiente `SOVEREIGN_WORKERS_DIR` como escape hatch para setups não-convencionais (`core/src/api_trainer.rs`).
+- **FIX-43 — resolve_venv_python() selecionava wrapper .app do Homebrew**: O symlink genérico `/opt/homebrew/bin/python3` aponta para o wrapper bundled do Homebrew (`Python@3.14/.../Python.app/Contents/MacOS/Python`), com comportamento de sandbox diferente do binário direto — causando falhas de path interno no script. **Fix**: Binários **versionados explícitos** agora são priorizados na ordem `python3.13 → python3.12 → python3.11`, apontando diretamente ao binário sem o wrapper `.app`. Auto-provisioning de Python standalone removido (comportamento não-confiável nos runners). **Requisito de Sistema**: Python 3.11+ deve estar pré-instalado — `brew install python@3.12` (macOS) · `apt install python3.12` (Linux) · installer python.org (Windows) (`core/src/api_trainer.rs`).
+- **FIX-44 — RAG Pipeline Regex Failure (BBAS3.SA)**: Uma regex em `analyze_and_join_time_series.py` era estritamente maiúscula, causando falha quando o nome do ativo continha caracteres minúsculos (ex: "Banco do Brasil"). **Fix**: Regex expandida para `[a-zA-Z]` (`core/python_workers/analyze_and_join_time_series.py`).
+- **FIX-45 — Chat Persistence & "Amnesia"**: Ferramentas executadas no chat enviavam resultados para a UI mas não salvavam no histórico do banco (accumulator). **Fix**: Assistente agora registra invocação de ferramentas na mensagem persistida, preservando o contexto entre os turnos 2 e 3 (`core/src/api.rs`).
+- **FIX-46 — Memory Unified Swapping (Apple Silicon)**: Elevado consumo de memória em 16GB causava crash no Ollama. **Fix**: Reduzida a janela de contexto dinâmica para 32.768 tokens para o tier de 16GB (`core/src/hardware.rs`).
+- **FIX-47 — Sandbox Quarantine macOS Paths**: A lógica de detecção de reprocessamento falhava no macOS por não reconhecer caminhos temporários `/var/folders/`. **Fix**: Regex de quarentena agora detecta o subdiretório `sovereign/` de forma genérica (`core/src/api_trainer.rs`).
+- **FIX-48 — Symbiotic Ubiquity**: O Joiner Pandas não rodava para ativos únicos. **Fix**: Pipeline matemática forçada sempre que `len >= 1`, garantindo tabelas e médias válidas para o Scribe (`core/src/api_trainer.rs`).
+- **FIX-49 — Strict Tool & ReWOO Gating**: Ferramentas (Front, Registry e Visual Artist) agora são 100% bloqueadas se o ícone de Internet (Deep Research) estiver desativado. ReWOO segue rigorosamente o toggle da UI, eliminando disparos acidentais (`core/src/api.rs`).
+- **FIX-50 — Selective Project Context**: Removida a injeção automática de "Consciência de Projetos" global. Agora, dados de tarefas e documentos só entram no prompt se o usuário selecionar um Projeto específico, limpando o Chat regular (`core/src/api.rs`).
+- **FIX-51 — RAG Regex Resilience**: Atualizada a regex do Joiner Pandas para suportar ativos com nomes em maiúsculas/minúsculas (ex: 'Banco do Brasil'). Isso restaura a geração automática de tabelas Markdown e matrizes de correlação (`core/python_workers/analyze_and_join_time_series.py`).
+- **FIX-52 — Native Source Tracking**: Corrigida a lógica de proveniência para listar ferramentas de Open-Data (Yahoo, BCB) na seção de fontes pesquisadas, eliminando o falso-positivo de 'Nenhuma fonte encontrada' (`core/src/api_trainer.rs`).
+
+#### ⚙️ System UI & Telemetry Hardening
+- **Telemetria GPU/VRAM Síncrona**: O `telemetry.rs` agora envia nome da GPU, memória unificada e limite dinâmico de VRAM a cada ciclo de polling (em vez de estático). Isso garante que métricas dinâmicas (como eGPUs ou memória unificada em Apple Silicon) sejam instantaneamente refletidas na UI sem exigir refresh.
+- **Apple Silicon Hardware Fallback**: A interface `Layout.svelte` (Engineer Operations) agora oculta condicionalmente o bloco de telemetria "VRAM" em hardware sem GPU dedicada. Se for detectada VRAM > 0 ou flag `unifiedMemory`, o widget é exibido e rotulado corretamente, não exibindo dados irrelevantes como `0MB / 0MB`.
+- **Persistência de Global Logs (System & Cognitive X-Ray)**: Os logs do servidor (System Logs) e do pipeline RAG (Cognitive X-Ray) perdiam histórico toda vez que o usuário mudava de rota, devido ao uso de variáveis locais no componente. **Fix**: O estado de ambos (linhas de console, etapa atual do RAG Pipeline, e cliente de EventSource) foi promovido para os stores globais `$state` do Svelte 5 (`telemetryState.systemLogs`, `trainerState.deepResearchLogs`). O usuário pode navegar livremente pela UI e os terminais continuarão vivos e preenchidos.
+- **Sandbox Quarantine Stability**: A mensagem de retorno artificial gerada para o LLM quando o Sandbox Quarentine bloqueia execução de script em favor da Symbiotic Pipeline (Rust) foi alterada de `BLOCKED` para `SUCCESS - DELEGATED TO NATIVE ENGINE`. Isso previne "hallucination feedback loops".
+- **Quantitative Tool Hardening (Finance Accuracy)**: A ferramenta `fetch_macroeconomy` foi blindada via System Prompt para atuar strictly em dados quantitativos oficiais. Isso impede que o modelo tente usar a ferramenta (gerando latência) para responder perguntas qualitativas sobre "insights" ou "conselhos" financeiros.
 
 ## [1.2.10] - 2026-04-18
 *CI/CD Stability — Semgrep SAST False Positive Fix*
