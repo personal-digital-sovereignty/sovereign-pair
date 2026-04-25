@@ -436,6 +436,8 @@ async fn main() {
             .post(api_settings::set_p2p_mesh_handler))
         .route("/v1/settings/cloud_target", axum::routing::get(api_settings::get_cloud_target_handler)
             .post(api_settings::set_cloud_target_handler))
+        .route("/v1/settings/openrouter", axum::routing::get(api_settings::get_openrouter_settings_handler)
+            .post(api_settings::set_openrouter_settings_handler))
         .route("/v1/settings/tenant_keys", axum::routing::get(api_settings::get_tenant_keys_handler)
             .post(api_settings::create_tenant_key_handler))
         .route("/v1/settings/tenant_keys/:id", axum::routing::delete(api_settings::delete_tenant_key_handler))
