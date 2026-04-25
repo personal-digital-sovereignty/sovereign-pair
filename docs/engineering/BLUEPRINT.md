@@ -56,7 +56,11 @@ Monitoramento de métricas TTFT/TPS e gestão de custos de inferência via Seman
 Blindagem de nível de kernel para LLMs:
 *   **KMS**: Chaves de API nunca são salvas em texto puro.
 *   **Prompt Sanitization**: Proteção contra injeção de prompt e exfiltração de dados sensíveis.
+*   **Financial Mechanics**: Metodologia de análise PTAX vs Spot ([Detalhes](financial_mechanics.md)).
 *   **OOM Guard**: Telemetria de hardware em tempo real (VRAM/RAM) que ajusta a janela de contexto dinamicamente para evitar crashes.
+
+### 2.5 [Integração OpenCode](opencode_integration.md)
+Manual técnico para conexão de extensões de IDE (VS Code/OpenCode) com o Sovereign Proxy local.
 
 ---
 
