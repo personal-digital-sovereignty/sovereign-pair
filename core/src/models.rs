@@ -82,7 +82,7 @@ pub struct ToolDefinition {
     pub function: FunctionDefinition,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OpenAIChatRequest {
     #[serde(default)] // Permite falha silenciosa para modelos puros (se ausente)
     pub model: String,
