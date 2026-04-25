@@ -1,6 +1,8 @@
 use axum::{ extract::{Json, State}, response::{ sse::{Event, Sse}, IntoResponse, Response, }, }; use futures_util::StreamExt;  use serde_json::{json, Value}; use std::convert::Infallible; use std::sync::Arc; use tracing::{error, info};
+use sqlx::Row;
 
-use crate::models::{ OpenAIChatChunkChoice, OpenAIChatChunkDelta, OpenAIChatChunkResponse, OpenAIChatRequest, OpenRouterSettings, QwenSettings }; use crate::AppState; use crate::api_tools::openrouter_client::OpenRouterClient; use crate::api_tools::qwen_client::QwenClient;
+use crate::models::{ OpenAIChatChunkChoice, OpenAIChatChunkDelta, OpenAIChatChunkResponse, OpenAIChatRequest, OpenRouterSettings, QwenSettings, NvidiaSettings }; use crate::AppState; use crate::api_tools::openrouter_client::OpenRouterClient; use crate::api_tools::qwen_client::QwenClient;
+use crate::api_tools::nvidia_client::NvidiaClient;
 // removed unused explicit scraper import
 
 // -------------------------------------------------------------
@@ -438,6 +440,17 @@ if is_qwen_model {
             if let Some(decrypted) = crate::kms::decrypt_vault_secret(&qwen_settings.api_key) {
                 qwen_settings.api_key = decrypted;
             }
+        }
+    }
+}
+
+let mut nvidia_settings = NvidiaSettings::default();
+if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'nvidia'").fetch_optional(&state.db).await {
+    let val: String = row.get("value_json");
+    if let Ok(mut parsed) = serde_json::from_str::<NvidiaSettings>(&val) {
+        nvidia_settings = parsed;
+        if let Some(decrypted) = crate::kms::decrypt_vault_secret(&nvidia_settings.api_key) {
+            nvidia_settings.api_key = decrypted;
         }
     }
 }
@@ -1493,6 +1506,63 @@ if use_openrouter && let Some(settings) = openrouter_settings {
             },
             Err(e) => {
                 error!("❌ [Qwen Mesh] Connection Failed: {}", e);
+            }
+        }
+    }
+
+    let is_nvidia_model = ollama_model.starts_with("nvidia/");
+    if is_nvidia_model && nvidia_settings.enabled {
+        let nvidia_client = NvidiaClient::new(nvidia_settings.api_key.clone());
+        let mut nvidia_payload_model = ollama_model.replace("nvidia/", "");
+        if nvidia_payload_model.is_empty() { nvidia_payload_model = nvidia_settings.default_model; }
+
+        match nvidia_client.stream_chat_completions(nvidia_payload_model, payload.messages.clone(), payload.temperature.map(|t| t as f32), payload.max_tokens).await {
+            Ok(mut n_stream) => {
+                let tx_clone = tx_sse_clone.clone();
+                let mut accumulator = String::new();
+                let start_time = std::time::Instant::now();
+                let tracking_telemetry = state.telemetry.clone();
+                let tracking_db = state.db.clone();
+                let tracking_model = ollama_model.clone();
+                let active_session_id = active_session_id;
+
+                tokio::spawn(async move {
+                    while let Some(event_res) = n_stream.next().await {
+                        match event_res {
+                            Ok(reqwest_eventsource::Event::Message(msg)) => {
+                                if msg.data == "[DONE]" { break; }
+                                if let Ok(chunk) = serde_json::from_str::<crate::models::OpenAIChatChunkResponse>(&msg.data) {
+                                    if let Some(choice) = chunk.choices.first() {
+                                        if let Some(content) = &choice.delta.content {
+                                            accumulator.push_str(content);
+                                        }
+                                    }
+                                    let _ = tx_clone.send(axum::response::sse::Event::default().data(msg.data));
+                                }
+                            },
+                            Ok(_) => {},
+                            Err(e) => {
+                                tracing::error!("❌ [Nvidia Mesh] SSE Error: {}", e);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    let duration_ms = start_time.elapsed().as_millis();
+                    let total_tokens = accumulator.split_whitespace().count();
+
+                    if let Ok(mut t) = tracking_telemetry.write() {
+                        t.record_session(total_tokens, duration_ms, &tracking_model);
+                    }
+                    
+                    crate::api_chat::save_message(&tracking_db, active_session_id, "assistant", &accumulator).await;
+                    let _ = tx_clone.send(axum::response::sse::Event::default().data("[DONE]"));
+                });
+                
+                return;
+            },
+            Err(e) => {
+                error!("❌ [Nvidia Mesh] Connection Failed: {}", e);
             }
         }
     }
