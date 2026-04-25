@@ -43,14 +43,14 @@ Focado em estabilidade absoluta, integração de nuvem híbrida e telemetria ava
 
 ## 🚀 Épicos Planejados (The Expansion Horizon)
 
-### **Épico 1: OpenRouter Mesh (Concluído)**
-- Integração de modelos de nuvem via OpenRouter com KMS Encryption para chaves de API.
+### **Épico 1: OpenRouter Mesh — [CONCLUÍDO]**
+- [x] Integração de modelos de nuvem via OpenRouter com KMS Encryption para chaves de API.
 
-### **Épico 2: Alibaba Qwen & DashScope (Concluído)**
-- Suporte nativo aos modelos Qwen e roteamento via MuleRouter.
+### **Épico 2: Alibaba Qwen & DashScope — [CONCLUÍDO]**
+- [x] Suporte nativo aos modelos Qwen e roteamento via MuleRouter.
 
-### **Épico 3: NVIDIA NIM & CUDA Acceleration (Concluído)**
-- Integração com NVIDIA API Catalog e otimização para hardware NVIDIA.
+### **Épico 3: NVIDIA NIM & CUDA Acceleration — [CONCLUÍDO]**
+- [x] Integração com NVIDIA API Catalog e otimização para hardware NVIDIA.
 
 ### **Épico 4: Sovereign Shield (Autonomous Testing) — [EM PROGRESSO]**
 - [ ] **Hardening de Testes**: Cobertura de 100% dos fluxos agênticos sem intervenção humana.

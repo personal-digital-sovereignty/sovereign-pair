@@ -16,7 +16,7 @@ test.describe('Cybrid Svelte UI E2E Assurance', () => {
         await expect(page.locator('aside')).toBeVisible();
 
         // Control Hub Header should be present
-        await expect(page.locator('header')).toBeVisible();
+        await expect(page.locator('header').first()).toBeVisible();
     });
 
     test('Navigates flawlessly to the Vault Interface', async ({ page }) => {

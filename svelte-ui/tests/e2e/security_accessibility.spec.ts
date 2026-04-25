@@ -19,7 +19,7 @@ test.describe('E2E — Core Navigation & Layout', () => {
     test('Shell OS layout carrega com sidebar e header', async ({ page }) => {
         await page.goto('/');
         await expect(page.locator('aside')).toBeVisible({ timeout: 5000 });
-        await expect(page.locator('header')).toBeVisible();
+        await expect(page.locator('header').first()).toBeVisible();
     });
 
     test('Vault Interface monta sem erros', async ({ page }) => {

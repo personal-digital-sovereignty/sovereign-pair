@@ -80,10 +80,14 @@ impl TelemetryState {
         // Simula A Economia Diária: Se é modelo Local (livre de taxas), o custo que EXISTIRIA na Cloud 
         // conta como "Economia" baseada no market pricing matrix.
         let mut cost_per_1k = 0.0;
-        if model.to_lowercase().contains("gpt-4") {
+        let m_lower = model.to_lowercase();
+        if m_lower.contains("gpt-4") {
             cost_per_1k = 0.0300;
-        } else if model.to_lowercase().contains("claude") {
+        } else if m_lower.contains("claude") {
             cost_per_1k = 0.0150;
+        } else if m_lower.contains("openrouter") {
+            // Estimativa conservadora para modelos variados via OpenRouter
+            cost_per_1k = 0.0020; 
         } else {
             // Local Sovereign Model -> Nós geramos ECONOMIA (Savings) baseada no Cloud Benchmark
             cost_per_1k = self.avg_cloud_cost_per_1k;
