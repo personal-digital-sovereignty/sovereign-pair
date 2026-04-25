@@ -46,6 +46,10 @@ O Sovereign Pair não é um monolito estrito, mas sim um **Monorepo Híbrido** c
 
 Consulte o documento de [Guia de Instalacao](docs/install_guide.md) para instrucoes detalhadas de execucao do binario pre-compilado em ambientes Windows, Linux ou MacOS.
 
+## Roadmap Técnico
+
+Para acompanhar a evolução do projeto e as próximas grandes funcionalidades planejadas (como integrações com OpenRouter, Alibaba e NVIDIA, além do novo Ecossistema Coder), consulte o nosso [ROADMAP.md](ROADMAP.md).
+
 ## Mapas Arquiteturais dos Repositorios
 
 - core/ - Contratos tecnicos de processamento modular Rust e Retriever Vetorial O.S.
