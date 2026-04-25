@@ -7,6 +7,7 @@ use sqlx::Row;
 use crate::kms;
 
 use serde::{Serialize, Deserialize};
+use crate::models::{OpenRouterSettings, QwenSettings};
 
 /// Limites configuráveis de scraping por contexto
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -471,6 +472,56 @@ pub async fn set_openrouter_settings_handler(
     }
 
     Json(serde_json::json!({"status": "ok"})).into_response()
+}
+
+// ==========================================
+// Qwen DashScope Settings (Epic 2)
+// ==========================================
+
+pub async fn get_qwen_settings_handler(
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    let row = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'qwen'")
+        .fetch_optional(&state.db)
+        .await;
+
+    match row {
+        Ok(Some(r)) => {
+            let val: String = sqlx::Row::get(&r, "value_json");
+            if let Ok(mut settings) = serde_json::from_str::<QwenSettings>(&val) {
+                // Decifra a chave para exibição na UI
+                if let Some(decrypted) = crate::kms::decrypt_vault_secret(&settings.api_key) {
+                    settings.api_key = decrypted;
+                }
+                return Json(settings).into_response();
+            }
+            Json(QwenSettings::default()).into_response()
+        },
+        _ => Json(QwenSettings::default()).into_response(),
+    }
+}
+
+pub async fn set_qwen_settings_handler(
+    State(state): State<Arc<AppState>>,
+    Json(mut payload): Json<QwenSettings>,
+) -> impl IntoResponse {
+    // Cifra a API Key antes de salvar
+    if !payload.api_key.is_empty() {
+        if let Some(encrypted) = crate::kms::encrypt_vault_secret(&payload.api_key) {
+            payload.api_key = encrypted;
+        }
+    }
+
+    let val_json = serde_json::to_string(&payload).unwrap_or_default();
+    let res = sqlx::query("INSERT INTO global_settings (id, value_json) VALUES ('qwen', ?) ON CONFLICT(id) DO UPDATE SET value_json = excluded.value_json")
+        .bind(val_json)
+        .execute(&state.db)
+        .await;
+
+    match res {
+        Ok(_) => (axum::http::StatusCode::OK, Json(serde_json::json!({"status": "ok"}))).into_response(),
+        Err(e) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
+    }
 }
 
 // ---------------------------------------------------------
