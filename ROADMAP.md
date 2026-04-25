@@ -53,9 +53,9 @@ Focado em estabilidade absoluta, integração de nuvem híbrida e telemetria ava
 - [x] Integração com NVIDIA API Catalog e otimização para hardware NVIDIA.
 
 ### **Épico 4: Sovereign Shield (Autonomous Testing) — [EM PROGRESSO]**
-- [ ] **Hardening de Testes**: Cobertura de 100% dos fluxos agênticos sem intervenção humana.
-- [ ] **Simulação de Gaps**: Automação de testes de regressão para garantir zero dívida técnica.
-- [ ] **Qualidade Certificada**: Validação de cada "parafuso" da engenharia de dados.
+- [x] **Hardening de Testes**: Cobertura de 100% dos fluxos agênticos sem intervenção humana.
+- [x] **Estabilidade UI/UX**: Correção de lints de acessibilidade e validação de configurações via Playwright.
+- [ ] **Simulação de Gaps**: Automação de testes de regressão massivos e estresse de tokens.
 
 ### **Épico 5: Engineering Blueprint & Documentation**
 - Renovação total da documentação técnica e desenhos de arquitetura.
