@@ -1,9 +1,11 @@
 # Changelog
-### v1.3.0 Stable (Definitive Edition)
+### v1.3.0 Stable (Gold Edition)
 - **Reflexive Agent Loop**: Ciclo recursivo de agência no `api.rs` (Thought -> Tool -> Synthesis).
+- **Knowledge Vault**: Corrigida falha de resolução de path absoluto no macOS (FIX-60).
+- **The Accountant**: Restaurado motor matemático com parser aritmético CSP-Safe (FIX-61).
 - **Resilience Shield**: Monitoramento de VRAM em tempo real e OOM Guard preventivo.
 - **Data Integrity**: Zero-Hallucination Policy no Scribe e unificação de escopo em workers Python.
-- **Audit Pass**: Validação comparativa v1.1.0 vs v1.3.0 confirmando zero regressão e expansão de telemetria.
+- **Audit Pass**: Validação comparativa v1.1.0 vs v1.3.0 confirmando zero regressão.
 
 
 All notable changes to the Sovereign Pair project will be documented in this file.
