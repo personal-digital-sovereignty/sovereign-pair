@@ -1,0 +1,1356 @@
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	﻿2026-04-25T10:35:11.2035500Z ##[group]Run aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2035839Z with:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2035989Z   scan-type: fs
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2036156Z   ignore-unfixed: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2036311Z   format: table
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2036453Z   exit-code: 1
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2036601Z   severity: CRITICAL,HIGH
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2036800Z   scan-ref: .
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2036949Z   vuln-type: os,library
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2037214Z   cache-dir: /home/runner/work/sovereign-pair/sovereign-pair/.cache/trivy
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2037506Z   list-all-pkgs: false
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2037664Z   version: v0.69.3
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2037834Z   cache: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2037980Z   skip-setup-trivy: false
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2038324Z   token-setup-trivy: ***
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2038495Z env:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2038661Z   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2038898Z   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2039106Z ##[endgroup]
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2165481Z ##[group]Run aquasecurity/setup-trivy@e6c2c5e321ed9123bda567646e2f96565e34abe1
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2165815Z with:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2165962Z   version: v0.69.3
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2166134Z   cache: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2166391Z   token: ***
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2166557Z   path: $HOME/.local/bin
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2166760Z   github-server-url: https://github.com
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2166979Z env:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2167147Z   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2167384Z   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2167610Z ##[endgroup]
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2189471Z ##[group]Run echo "dir=$HOME/.local/bin/trivy-bin" >> $GITHUB_OUTPUT
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2189878Z [36;1mecho "dir=$HOME/.local/bin/trivy-bin" >> $GITHUB_OUTPUT[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2210964Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2211240Z env:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2211410Z   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2211670Z   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2211881Z ##[endgroup]
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2329272Z ##[warning]Both FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 and ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION environment variables are set to true in the workflow environment. This is likely a configuration error. Using the default Node version: node20.
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2330220Z ##[group]Run actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2330470Z with:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2330835Z   path: /home/runner/.local/bin/trivy-bin
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2331080Z   key: trivy-binary-v0.69.3-Linux-X64
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2331299Z   enableCrossOsArchive: false
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2331493Z   fail-on-cache-miss: false
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2331663Z   lookup-only: false
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2331826Z   save-always: false
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2331966Z env:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2332122Z   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2332345Z   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.2332563Z ##[endgroup]
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:11.5354473Z Cache hit for: trivy-binary-v0.69.3-Linux-X64
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:12.7475753Z Received 20971520 of 44251616 (47.4%), 20.0 MBs/sec
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:12.8870929Z Received 44251616 of 44251616 (100.0%), 37.0 MBs/sec
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:12.8871438Z Cache Size: ~42 MB (44251616 B)
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:12.8893223Z [command]/usr/bin/tar -xf /home/runner/work/_temp/643e05a5-eaaa-43a1-a9b3-1009aea2eb6e/cache.tzst -P -C /home/runner/work/sovereign-pair/sovereign-pair --use-compress-program unzstd
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.0738002Z Cache restored successfully
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.0819280Z Cache restored from key: trivy-binary-v0.69.3-Linux-X64
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.0904123Z ##[group]Run echo /home/runner/.local/bin/trivy-bin >> $GITHUB_PATH
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.0904491Z [36;1mecho /home/runner/.local/bin/trivy-bin >> $GITHUB_PATH[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.0922427Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.0922883Z env:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.0923062Z   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.0923304Z   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.0923514Z ##[endgroup]
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.0982965Z ##[group]Run echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.0983291Z [36;1mecho "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1000911Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1001215Z env:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1001390Z   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1001643Z   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1001877Z ##[endgroup]
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1093781Z ##[warning]Both FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 and ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION environment variables are set to true in the workflow environment. This is likely a configuration error. Using the default Node version: node20.
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1094593Z ##[group]Run actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1094859Z with:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1095094Z   path: /home/runner/work/sovereign-pair/sovereign-pair/.cache/trivy
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1095370Z   key: cache-trivy-2026-04-25
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1095556Z   restore-keys: cache-trivy-
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1095746Z   enableCrossOsArchive: false
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1095931Z   fail-on-cache-miss: false
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1096104Z   lookup-only: false
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1096257Z   save-always: false
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1096404Z env:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1096559Z   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1096785Z   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.1097126Z ##[endgroup]
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.3916543Z Cache not found for input keys: cache-trivy-2026-04-25, cache-trivy-
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.3978785Z ##[group]Run echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.3979083Z [36;1mecho "$GITHUB_ACTION_PATH" >> $GITHUB_PATH[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.3996976Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.3997244Z env:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.3997412Z   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.3997654Z   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.3998071Z   GITHUB_ACTION_PATH: /home/runner/work/_actions/aquasecurity/trivy-action/57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.3998461Z ##[endgroup]
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4047446Z ##[group]Run rm -f trivy_envs.txt
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4047666Z [36;1mrm -f trivy_envs.txt[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4047852Z [36;1mtouch trivy_envs.txt[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4063968Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4064243Z env:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4064410Z   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4064645Z   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4064860Z ##[endgroup]
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4128639Z ##[group]Run # Note: There is currently no way to distinguish between undefined variables and empty strings in GitHub Actions.
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4129317Z [36;1m# Note: There is currently no way to distinguish between undefined variables and empty strings in GitHub Actions.[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4129817Z [36;1m# This limitation affects how we handle default values and empty inputs.[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4130219Z [36;1m# For more information, see: https://github.com/actions/runner/issues/924[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4130529Z [36;1m[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4131021Z [36;1m# The following logic implements the configuration priority described in the README:[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4131352Z [36;1m#[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4131497Z [36;1m# Inputs[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4131669Z [36;1m# Environment Variables[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4131856Z [36;1m# Config File[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4132014Z [36;1m# Defaults[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4132164Z [36;1m#[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4132470Z [36;1m# As noted above defaults are awkward to handle as GitHub Actions will inject those values as the input[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4133209Z [36;1m# if the caller doesn't provide them, thus if the input matches the default we don't set it as we[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4133694Z [36;1m# can't tell the difference.  Plus if we did set it when it was the default value then it could potentially[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4134240Z [36;1m# override an external environment variable, or something in the callers configuration file, which then wouldn't[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4134677Z [36;1m# match the configuration priority that is documented.[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4134934Z [36;1mset_env_var_if_provided() {[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4135142Z [36;1m  local var_name="$1"[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4135333Z [36;1m  local input_value="$2"[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4135528Z [36;1m  local default_value="$3"[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4135707Z [36;1m[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4135926Z [36;1m  if [ -n "$input_value" ] && [ "$input_value" != "$default_value" ]; then[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4136285Z [36;1m    # If action was provided with explicit input by the caller set that[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4136693Z [36;1m    # Use printf %q to safely escape special characters and prevent command injection[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4137070Z [36;1m    printf 'export %s=%q\n' "$var_name" "$input_value" >> trivy_envs.txt[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4137333Z [36;1m  fi[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4137476Z [36;1m}[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4137603Z [36;1m[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4137818Z [36;1m# Set environment variables, handling those with default values[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4138247Z [36;1m# cf. https://aquasecurity.github.io/trivy/latest/docs/configuration/#environment-variables[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4138773Z [36;1mset_env_var_if_provided "TRIVY_INPUT" "$INPUT_INPUT" ""[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4139082Z [36;1mset_env_var_if_provided "TRIVY_EXIT_CODE" "$INPUT_EXIT_CODE" ""[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4139440Z [36;1mset_env_var_if_provided "TRIVY_IGNORE_UNFIXED" "$INPUT_IGNORE_UNFIXED" "false"[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4139832Z [36;1mset_env_var_if_provided "TRIVY_PKG_TYPES" "$INPUT_VULN_TYPE" "os,library"[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4140262Z [36;1mset_env_var_if_provided "TRIVY_SEVERITY" "$INPUT_SEVERITY" "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4140808Z [36;1mset_env_var_if_provided "TRIVY_FORMAT" "$INPUT_FORMAT" "table"[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4141133Z [36;1mset_env_var_if_provided "TRIVY_TEMPLATE" "$INPUT_TEMPLATE" ""[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4141443Z [36;1mset_env_var_if_provided "TRIVY_OUTPUT" "$INPUT_OUTPUT" ""[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4141756Z [36;1mset_env_var_if_provided "TRIVY_SKIP_DIRS" "$INPUT_SKIP_DIRS" ""[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4142076Z [36;1mset_env_var_if_provided "TRIVY_SKIP_FILES" "$INPUT_SKIP_FILES" ""[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4142411Z [36;1mset_env_var_if_provided "TRIVY_TIMEOUT" "$INPUT_TIMEOUT" ""[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4142745Z [36;1mset_env_var_if_provided "TRIVY_IGNORE_POLICY" "$INPUT_IGNORE_POLICY" ""[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4143086Z [36;1mset_env_var_if_provided "TRIVY_QUIET" "$INPUT_HIDE_PROGRESS" ""[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4143435Z [36;1mset_env_var_if_provided "TRIVY_LIST_ALL_PKGS" "$INPUT_LIST_ALL_PKGS" "false"[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4143784Z [36;1mset_env_var_if_provided "TRIVY_SCANNERS" "$INPUT_SCANNERS" ""[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4144095Z [36;1mset_env_var_if_provided "TRIVY_CONFIG" "$INPUT_TRIVY_CONFIG" ""[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4144401Z [36;1mset_env_var_if_provided "TRIVY_TF_VARS" "$INPUT_TF_VARS" ""[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4144791Z [36;1mset_env_var_if_provided "TRIVY_DOCKER_HOST" "$INPUT_DOCKER_HOST" ""[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4160877Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4161144Z env:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4161304Z   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4161543Z   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4161757Z   INPUT_INPUT: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4161901Z   INPUT_EXIT_CODE: 1
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4162070Z   INPUT_IGNORE_UNFIXED: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4162259Z   INPUT_VULN_TYPE: os,library
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4162559Z   INPUT_SEVERITY: CRITICAL,HIGH
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4162748Z   INPUT_FORMAT: table
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4162906Z   INPUT_TEMPLATE: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4163055Z   INPUT_OUTPUT: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4163197Z   INPUT_SKIP_DIRS: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4163347Z   INPUT_SKIP_FILES: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4163515Z   INPUT_TIMEOUT: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4163660Z   INPUT_IGNORE_POLICY: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4163826Z   INPUT_HIDE_PROGRESS: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4163987Z   INPUT_LIST_ALL_PKGS: false
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4164150Z   INPUT_SCANNERS: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4164301Z   INPUT_TRIVY_CONFIG: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4164461Z   INPUT_TF_VARS: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4164601Z   INPUT_DOCKER_HOST: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4164756Z ##[endgroup]
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4215580Z ##[group]Run entrypoint.sh
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4215792Z [36;1mentrypoint.sh[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4231751Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4232001Z env:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4232176Z   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4232412Z   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4232625Z   INPUT_SCAN_TYPE: fs
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4232787Z   INPUT_IMAGE_REF: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4232940Z   INPUT_SCAN_REF: .
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4233092Z   INPUT_TRIVYIGNORES: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4233248Z   INPUT_GITHUB_PAT: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4233422Z   INPUT_LIMIT_SEVERITIES_FOR_SARIF: 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4233715Z   TRIVY_CACHE_DIR: /home/runner/work/sovereign-pair/sovereign-pair/.cache/trivy
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4233999Z ##[endgroup]
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4277764Z Running Trivy with options: trivy fs .
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4674791Z 2026-04-25T10:35:13Z	INFO	[vulndb] Need to update DB
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4675173Z 2026-04-25T10:35:13Z	INFO	[vulndb] Downloading vulnerability DB...
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:13.4675606Z 2026-04-25T10:35:13Z	INFO	[vulndb] Downloading artifact...	repo="mirror.gcr.io/aquasec/trivy-db:2"
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:18.6715581Z 719.18 KiB / 91.40 MiB [>____________________________________________________________] 0.77% ? p/s ?5.44 MiB / 91.40 MiB [--->___________________________________________________________] 5.95% ? p/s ?23.08 MiB / 91.40 MiB [--------------->_____________________________________________] 25.25% ? p/s ?44.93 MiB / 91.40 MiB [----------------------->________________________] 49.15% 73.73 MiB p/s ETA 0s66.35 MiB / 91.40 MiB [---------------------------------->_____________] 72.59% 73.73 MiB p/s ETA 0s86.64 MiB / 91.40 MiB [--------------------------------------------->__] 94.79% 73.73 MiB p/s ETA 0s91.40 MiB / 91.40 MiB [---------------------------------------------->] 100.00% 73.97 MiB p/s ETA 0s91.40 MiB / 91.40 MiB [---------------------------------------------->] 100.00% 73.97 MiB p/s ETA 0s91.40 MiB / 91.40 MiB [---------------------------------------------->] 100.00% 73.97 MiB p/s ETA 0s91.40 MiB / 91.40 MiB [---------------------------------------------->] 100.00% 69.20 MiB p/s ETA 0s91.40 MiB / 91.40 MiB [---------------------------------------------->] 100.00% 69.20 MiB p/s ETA 0s91.40 MiB / 91.40 MiB [---------------------------------------------->] 100.00% 69.20 MiB p/s ETA 0s91.40 MiB / 91.40 MiB [---------------------------------------------->] 100.00% 64.73 MiB p/s ETA 0s91.40 MiB / 91.40 MiB [---------------------------------------------->] 100.00% 64.73 MiB p/s ETA 0s91.40 MiB / 91.40 MiB [---------------------------------------------->] 100.00% 64.73 MiB p/s ETA 0s91.40 MiB / 91.40 MiB [---------------------------------------------->] 100.00% 60.56 MiB p/s ETA 0s91.40 MiB / 91.40 MiB [-------------------------------------------------] 100.00% 29.40 MiB p/s 3.3s2026-04-25T10:35:18Z	INFO	[vulndb] Artifact successfully downloaded	repo="mirror.gcr.io/aquasec/trivy-db:2"
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:18.6721955Z 2026-04-25T10:35:18Z	INFO	[vuln] Vulnerability scanning is enabled
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:18.6722411Z 2026-04-25T10:35:18Z	INFO	[secret] Secret scanning is enabled
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:18.6723072Z 2026-04-25T10:35:18Z	INFO	[secret] If your scanning is slow, please try '--scanners vuln' to disable secret scanning
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:18.6724332Z 2026-04-25T10:35:18Z	INFO	[secret] Please see https://trivy.dev/docs/v0.69/guide/scanner/secret#recommendation for faster secret detection
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0648063Z 2026-04-25T10:35:19Z	INFO	[npm] To collect the license information of packages, "npm install" needs to be performed beforehand	dir="svelte-ui/node_modules"
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0791104Z 2026-04-25T10:35:19Z	INFO	Suppressing dependencies for development and testing. To display them, try the '--include-dev-deps' flag.
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0791708Z 2026-04-25T10:35:19Z	INFO	Number of language-specific files	num=3
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0792071Z 2026-04-25T10:35:19Z	INFO	[cargo] Detecting vulnerabilities...
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0898866Z 2026-04-25T10:35:19Z	INFO	[npm] Detecting vulnerabilities...
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0934192Z 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0934504Z Report Summary
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0934670Z 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0935168Z ┌────────────────────────────────┬───────┬─────────────────┬─────────┐
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0935701Z │             Target             │ Type  │ Vulnerabilities │ Secrets │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0936250Z ├────────────────────────────────┼───────┼─────────────────┼─────────┤
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0937177Z │ core/Cargo.lock                │ cargo │        4        │    -    │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0937765Z ├────────────────────────────────┼───────┼─────────────────┼─────────┤
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0938328Z │ svelte-ui/package-lock.json    │  npm  │        0        │    -    │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0938794Z ├────────────────────────────────┼───────┼─────────────────┼─────────┤
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0939481Z │ svelte-ui/src-tauri/Cargo.lock │ cargo │        0        │    -    │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0940053Z └────────────────────────────────┴───────┴─────────────────┴─────────┘
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0940376Z Legend:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0940523Z - '-': Not scanned
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0940941Z - '0': Clean (no security findings detected)
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0941099Z 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0941122Z 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0941193Z For OSS Maintainers: VEX Notice
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0941381Z --------------------------------
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0941974Z If you're an OSS maintainer and Trivy has detected vulnerabilities in your project that you believe are not actually exploitable, consider issuing a VEX (Vulnerability Exploitability eXchange) statement.
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0942848Z VEX allows you to communicate the actual status of vulnerabilities in your project, improving security transparency and reducing false positives for your users.
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0943294Z 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0943401Z 📣 [34mNotices:[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0943645Z   - Version 0.70.0 of Trivy is now available, current version is 0.69.3
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0943841Z 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0944007Z To suppress version checks, run Trivy scans with the --skip-version-check flag
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0944228Z 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0944509Z Learn more and start using VEX: https://trivy.dev/docs/v0.69/guide/supply-chain/vex/repo#publishing-vex-documents
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0944848Z 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0945006Z To disable this notice, set the TRIVY_DISABLE_VEX_NOTICE environment variable.
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0945229Z 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0945233Z 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0945297Z core/Cargo.lock (cargo)
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0945462Z =======================
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0945627Z Total: 4 (HIGH: 4, CRITICAL: 0)
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0945746Z 
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0946078Z ┌─────────┬─────────────────────┬──────────┬────────┬───────────────────┬───────────────┬───────────────────────────────────────────────────────┐
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0946724Z │ Library │    Vulnerability    │ Severity │ Status │ Installed Version │ Fixed Version │                         Title                         │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0947405Z ├─────────┼─────────────────────┼──────────┼────────┼───────────────────┼───────────────┼───────────────────────────────────────────────────────┤
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0948035Z │ openssl │ CVE-2026-41676      │ HIGH     │ fixed  │ 0.10.76           │ 0.10.78       │ rust-openssl provides OpenSSL bindings for the Rust   │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0948807Z │         │                     │          │        │                   │               │ programming langua ...                                │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0949313Z │         │                     │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2026-41676            │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0949837Z │         ├─────────────────────┤          │        │                   │               ├───────────────────────────────────────────────────────┤
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0950475Z │         │ CVE-2026-41678      │          │        │                   │               │ rust-openssl provides OpenSSL bindings for the Rust   │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0951135Z │         │                     │          │        │                   │               │ programming langua ...                                │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0951639Z │         │                     │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2026-41678            │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0952170Z │         ├─────────────────────┤          │        │                   │               ├───────────────────────────────────────────────────────┤
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0952674Z │         │ CVE-2026-41681      │          │        │                   │               │ rust-openssl provides OpenSSL bindings for the Rust   │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0953174Z │         │                     │          │        │                   │               │ programming langua ...                                │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0953671Z │         │                     │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2026-41681            │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0954176Z │         ├─────────────────────┤          │        │                   │               ├───────────────────────────────────────────────────────┤
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0954719Z │         │ GHSA-hppc-g8h3-xhp3 │          │        │                   │               │ rust-openssl: Unchecked callback length in PSK/cookie │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0955253Z │         │                     │          │        │                   │               │ trampolines leaks adjacent memory to peer...          │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0955746Z │         │                     │          │        │                   │               │ https://github.com/advisories/GHSA-hppc-g8h3-xhp3     │
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0956317Z └─────────┴─────────────────────┴──────────┴────────┴───────────────────┴───────────────┴───────────────────────────────────────────────────────┘
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0977986Z ##[error]Process completed with exit code 1.
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0998287Z ##[group]Run rm -f trivy_envs.txt
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.0998533Z [36;1mrm -f trivy_envs.txt[0m
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.1016793Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.1017044Z env:
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.1017369Z   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.1017605Z   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+📦 Gate 2: Trivy SCA	Scan for CRITICAL/HIGH vulnerabilities in dependencies	2026-04-25T10:35:19.1017817Z ##[endgroup]
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	﻿2026-04-25T10:35:29.5641012Z ##[group]Run cargo clippy -- -D warnings
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:29.5641325Z [36;1mcargo clippy -- -D warnings[0m
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:29.5660301Z shell: /usr/bin/bash -e {0}
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:29.5660521Z env:
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:29.5660707Z   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:29.5660986Z   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:29.5661256Z   CARGO_HOME: /home/runner/.cargo
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:29.5661473Z   CARGO_INCREMENTAL: 0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:29.5661663Z   CARGO_TERM_COLOR: always
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:29.5661860Z   CACHE_ON_FAILURE: false
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:29.5662052Z ##[endgroup]
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:29.6431059Z [1m[92m    Updating[0m crates.io index
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.4869054Z [1m[92m Downloading[0m crates ...
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.5595029Z [1m[92m  Downloaded[0m crossbeam-utils v0.8.21
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.5644661Z [1m[92m  Downloaded[0m atoi_simd v0.17.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.5690205Z [1m[92m  Downloaded[0m anyhow v1.0.102
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.5753633Z [1m[92m  Downloaded[0m hex v0.4.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.5792399Z [1m[92m  Downloaded[0m elliptic-curve v0.13.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.5853577Z [1m[92m  Downloaded[0m flatbuffers v25.12.19
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.5892602Z [1m[92m  Downloaded[0m futf v0.1.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.5924940Z [1m[92m  Downloaded[0m fnv v1.0.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.5957508Z [1m[92m  Downloaded[0m ff v0.13.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.5996045Z [1m[92m  Downloaded[0m fax_derive v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.6026853Z [1m[92m  Downloaded[0m futures-util v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.6189366Z [1m[92m  Downloaded[0m crc-catalog v2.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.6227889Z [1m[92m  Downloaded[0m form_urlencoded v1.2.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.6262922Z [1m[92m  Downloaded[0m http-body v0.4.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.6315984Z [1m[92m  Downloaded[0m lebe v0.5.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.6390084Z [1m[92m  Downloaded[0m md-5 v0.10.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.6478628Z [1m[92m  Downloaded[0m new_debug_unreachable v1.0.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.6557498Z [1m[92m  Downloaded[0m num-complex v0.4.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.6633063Z [1m[92m  Downloaded[0m phf v0.11.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.6711345Z [1m[92m  Downloaded[0m p256 v0.13.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.6809809Z [1m[92m  Downloaded[0m rand_chacha v0.3.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.6893235Z [1m[92m  Downloaded[0m sqlx-macros v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.6990063Z [1m[92m  Downloaded[0m symphonia-bundle-flac v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7072494Z [1m[92m  Downloaded[0m tokio-native-tls v0.3.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7144138Z [1m[92m  Downloaded[0m tower-service v0.3.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7202922Z [1m[92m  Downloaded[0m wasm-bindgen-macro v0.2.117
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7246934Z [1m[92m  Downloaded[0m webpki-roots v0.26.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7284820Z [1m[92m  Downloaded[0m weezl v0.1.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7338053Z [1m[92m  Downloaded[0m wasm-bindgen-macro-support v0.2.117
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7378097Z [1m[92m  Downloaded[0m wasm-bindgen v0.2.117
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7427934Z [1m[92m  Downloaded[0m yoke-derive v0.8.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7451143Z [1m[92m  Downloaded[0m zune-core v0.5.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7491163Z [1m[92m  Downloaded[0m zopfli v0.8.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7525090Z [1m[92m  Downloaded[0m ureq v3.3.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7587891Z [1m[92m  Downloaded[0m webpki-root-certs v1.0.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7626575Z [1m[92m  Downloaded[0m rustls v0.23.37
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7750173Z [1m[92m  Downloaded[0m spm_precompiled v0.1.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7825925Z [1m[92m  Downloaded[0m zerocopy-derive v0.8.48
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7922662Z [1m[92m  Downloaded[0m zerotrie v0.2.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7967551Z [1m[92m  Downloaded[0m writeable v0.6.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.7990191Z [1m[92m  Downloaded[0m zune-inflate v0.2.54
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.8009444Z [1m[92m  Downloaded[0m zlib-rs v0.6.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.8062574Z [1m[92m  Downloaded[0m zune-jpeg v0.5.15
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.8098901Z [1m[92m  Downloaded[0m zip v7.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.8147887Z [1m[92m  Downloaded[0m zerovec v0.11.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.8208890Z [1m[92m  Downloaded[0m zerofrom v0.1.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.8219436Z [1m[92m  Downloaded[0m yoke v0.8.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.8238448Z [1m[92m  Downloaded[0m tracing v0.1.44
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.8391187Z [1m[92m  Downloaded[0m winnow v0.7.15
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.8485045Z [1m[92m  Downloaded[0m unicode-width v0.2.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.8538988Z [1m[92m  Downloaded[0m zip v0.6.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.8580242Z [1m[92m  Downloaded[0m zerocopy v0.8.48
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.8794845Z [1m[92m  Downloaded[0m webpki-roots v1.0.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.8827465Z [1m[92m  Downloaded[0m vcpkg v0.2.15
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.9356847Z [1m[92m  Downloaded[0m unicode-ident v1.0.24
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.9384710Z [1m[92m  Downloaded[0m tracing-log v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.9398386Z [1m[92m  Downloaded[0m libsqlite3-sys v0.30.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.9969733Z [1m[92m  Downloaded[0m typenum v1.19.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:30.9998003Z [1m[92m  Downloaded[0m tracing-subscriber v0.3.23
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.0080470Z [1m[92m  Downloaded[0m ring v0.17.14
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.0493340Z [1m[92m  Downloaded[0m typed-path v0.12.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.0560287Z [1m[92m  Downloaded[0m time v0.3.47
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.0687995Z [1m[92m  Downloaded[0m syn v2.0.117
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.0790944Z [1m[92m  Downloaded[0m rust-embed v8.11.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.0873109Z [1m[92m  Downloaded[0m fastembed v5.13.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.0944832Z [1m[92m  Downloaded[0m tokenizers v0.22.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.1031209Z [1m[92m  Downloaded[0m tiff v0.11.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.1074035Z [1m[92m  Downloaded[0m tokio v1.51.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.1506489Z [1m[92m  Downloaded[0m sysinfo v0.38.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.1624613Z [1m[92m  Downloaded[0m syn v1.0.109
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.1715518Z [1m[92m  Downloaded[0m symphonia-core v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.1748921Z [1m[92m  Downloaded[0m zmij v1.0.21
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.1766797Z [1m[92m  Downloaded[0m zerovec-derive v0.11.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.1782154Z [1m[92m  Downloaded[0m zeroize v1.8.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.1795491Z [1m[92m  Downloaded[0m zerofrom-derive v0.1.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.1805732Z [1m[92m  Downloaded[0m ureq v2.12.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.1854114Z [1m[92m  Downloaded[0m tower-http v0.6.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.1935373Z [1m[92m  Downloaded[0m openssl v0.10.76
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2028499Z [1m[92m  Downloaded[0m image v0.25.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2120572Z [1m[92m  Downloaded[0m y4m v0.8.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2132893Z [1m[92m  Downloaded[0m xml5ever v0.17.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2156970Z [1m[92m  Downloaded[0m whoami v1.6.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2176969Z [1m[92m  Downloaded[0m unicode-segmentation v1.13.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2205142Z [1m[92m  Downloaded[0m unicode-normalization-alignments v0.1.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2232208Z [1m[92m  Downloaded[0m tokio-util v0.7.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2307420Z [1m[92m  Downloaded[0m sqlx-core v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2384943Z [1m[92m  Downloaded[0m url v2.5.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2410111Z [1m[92m  Downloaded[0m unsafe-libyaml v0.2.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2441541Z [1m[92m  Downloaded[0m encoding_rs v0.8.35
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2634405Z [1m[92m  Downloaded[0m unicode_categories v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2651316Z [1m[92m  Downloaded[0m unicode-normalization v0.1.25
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2684772Z [1m[92m  Downloaded[0m sqlx v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2824016Z [1m[92m  Downloaded[0m serde v1.0.228
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2857687Z [1m[92m  Downloaded[0m quinn-proto v0.11.14
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2922459Z [1m[92m  Downloaded[0m uuid v1.23.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2951102Z [1m[92m  Downloaded[0m ureq-proto v0.6.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.2993070Z [1m[92m  Downloaded[0m serde_json v1.0.149
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.3064114Z [1m[92m  Downloaded[0m regex-syntax v0.8.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.3128994Z [1m[92m  Downloaded[0m rayon v1.11.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.3221671Z [1m[92m  Downloaded[0m portable-atomic v1.13.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.3290454Z [1m[92m  Downloaded[0m walkdir v2.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.3307586Z [1m[92m  Downloaded[0m unicode-bidi v0.3.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.3331032Z [1m[92m  Downloaded[0m unicase v2.9.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.3344525Z [1m[92m  Downloaded[0m try-lock v0.2.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.3353269Z [1m[92m  Downloaded[0m tower v0.5.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.3452159Z [1m[92m  Downloaded[0m tinyvec v1.11.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.3476923Z [1m[92m  Downloaded[0m reqwest v0.12.28
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.3528859Z [1m[92m  Downloaded[0m quick-xml v0.39.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.3583441Z [1m[92m  Downloaded[0m pxfm v0.1.28
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.3831439Z [1m[92m  Downloaded[0m markup5ever_rcdom v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.3947398Z [1m[92m  Downloaded[0m lzma-rust2 v0.15.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4027458Z [1m[92m  Downloaded[0m wasm-bindgen-shared v0.2.117
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4037454Z [1m[92m  Downloaded[0m version_check v0.9.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4050118Z [1m[92m  Downloaded[0m v_frame v0.3.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4065283Z [1m[92m  Downloaded[0m utf8-zero v0.8.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4079172Z [1m[92m  Downloaded[0m unicode-properties v0.1.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4097519Z [1m[92m  Downloaded[0m tinyvec_macros v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4105848Z [1m[92m  Downloaded[0m tinystr v0.8.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4126071Z [1m[92m  Downloaded[0m time-macros v0.2.27
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4147721Z [1m[92m  Downloaded[0m time-core v0.1.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4158367Z [1m[92m  Downloaded[0m thread_local v1.1.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4173890Z [1m[92m  Downloaded[0m symphonia-metadata v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4187729Z [1m[92m  Downloaded[0m symphonia-format-riff v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4200086Z [1m[92m  Downloaded[0m symphonia-format-mkv v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4211810Z [1m[92m  Downloaded[0m symphonia-format-isomp4 v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4245460Z [1m[92m  Downloaded[0m symphonia-format-caf v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4254844Z [1m[92m  Downloaded[0m symphonia-codec-vorbis v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4267083Z [1m[92m  Downloaded[0m symphonia-codec-pcm v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4274666Z [1m[92m  Downloaded[0m symphonia-codec-aac v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4292586Z [1m[92m  Downloaded[0m symphonia-bundle-mp3 v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4314434Z [1m[92m  Downloaded[0m socks v0.3.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4327423Z [1m[92m  Downloaded[0m signature v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4341659Z [1m[92m  Downloaded[0m rsa v0.9.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4393177Z [1m[92m  Downloaded[0m regex v1.12.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4444506Z [1m[92m  Downloaded[0m rayon-core v1.13.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4480855Z [1m[92m  Downloaded[0m exr v1.74.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4568448Z [1m[92m  Downloaded[0m want v0.3.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4578334Z [1m[92m  Downloaded[0m utf8_iter v1.0.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4588620Z [1m[92m  Downloaded[0m utf-8 v0.7.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4600493Z [1m[92m  Downloaded[0m urlencoding v2.1.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4610480Z [1m[92m  Downloaded[0m untrusted v0.9.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4626868Z [1m[92m  Downloaded[0m universal-hash v0.5.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4635731Z [1m[92m  Downloaded[0m tracing-core v0.1.36
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4661932Z [1m[92m  Downloaded[0m tracing-attributes v0.1.31
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4687421Z [1m[92m  Downloaded[0m toml_edit v0.22.27
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4730357Z [1m[92m  Downloaded[0m toml v0.8.23
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4753110Z [1m[92m  Downloaded[0m tokio-stream v0.1.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4800864Z [1m[92m  Downloaded[0m tokio-rustls v0.26.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4821307Z [1m[92m  Downloaded[0m symphonia-codec-alac v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4828873Z [1m[92m  Downloaded[0m symphonia-codec-adpcm v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4837422Z [1m[92m  Downloaded[0m sqlx-postgres v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4922644Z [1m[92m  Downloaded[0m spki v0.7.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4940258Z [1m[92m  Downloaded[0m spin v0.9.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4963718Z [1m[92m  Downloaded[0m simd-adler32 v0.3.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4982709Z [1m[92m  Downloaded[0m serde_spanned v0.6.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.4993087Z [1m[92m  Downloaded[0m serde_derive v1.0.228
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5023114Z [1m[92m  Downloaded[0m semver v1.0.28
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5045698Z [1m[92m  Downloaded[0m seahash v4.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5061225Z [1m[92m  Downloaded[0m reqwest v0.11.27
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5130298Z [1m[92m  Downloaded[0m qoi v0.4.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5158066Z [1m[92m  Downloaded[0m psl v2.1.200
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5210521Z [1m[92m  Downloaded[0m moxcms v0.8.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5311063Z [1m[92m  Downloaded[0m hyper v0.14.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5383986Z [1m[92m  Downloaded[0m hkdf v0.12.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5407433Z [1m[92m  Downloaded[0m tower-layer v0.3.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5417224Z [1m[92m  Downloaded[0m toml_write v0.1.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5429759Z [1m[92m  Downloaded[0m toml_datetime v0.6.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5440270Z [1m[92m  Downloaded[0m tokio-macros v2.7.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5450285Z [1m[92m  Downloaded[0m tendril v0.4.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5468258Z [1m[92m  Downloaded[0m sqlx-sqlite v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5512324Z [1m[92m  Downloaded[0m simple_asn1 v0.6.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5524972Z [1m[92m  Downloaded[0m simd_helpers v0.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5532872Z [1m[92m  Downloaded[0m signal-hook-registry v1.4.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5544208Z [1m[92m  Downloaded[0m shlex v1.3.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5556194Z [1m[92m  Downloaded[0m sha2 v0.10.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5581035Z [1m[92m  Downloaded[0m sha1 v0.10.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5596378Z [1m[92m  Downloaded[0m servo_arc v0.3.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5603058Z [1m[92m  Downloaded[0m serde_yaml v0.9.34+deprecated
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5635591Z [1m[92m  Downloaded[0m serde_path_to_error v0.1.20
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5650922Z [1m[92m  Downloaded[0m serde_core v1.0.228
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5677408Z [1m[92m  Downloaded[0m selectors v0.25.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5694413Z [1m[92m  Downloaded[0m sec1 v0.7.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5710028Z [1m[92m  Downloaded[0m rust-embed-utils v8.11.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5717122Z [1m[92m  Downloaded[0m rayon-cond v0.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5727375Z [1m[92m  Downloaded[0m rand_core v0.10.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5743130Z [1m[92m  Downloaded[0m rand v0.10.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5779863Z [1m[92m  Downloaded[0m quinn v0.11.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5810427Z [1m[92m  Downloaded[0m quick-xml v0.31.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5857661Z [1m[92m  Downloaded[0m profiling-procmacros v1.0.17
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5864356Z [1m[92m  Downloaded[0m png v0.18.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5904871Z [1m[92m  Downloaded[0m pkg-config v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5920134Z [1m[92m  Downloaded[0m mio v1.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.5980418Z [1m[92m  Downloaded[0m itertools v0.14.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6047835Z [1m[92m  Downloaded[0m iri-string v0.7.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6124567Z [1m[92m  Downloaded[0m idna v1.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6158125Z [1m[92m  Downloaded[0m icu_properties_data v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6264480Z [1m[92m  Downloaded[0m hyper v1.9.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6329004Z [1m[92m  Downloaded[0m hashbrown v0.16.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6377921Z [1m[92m  Downloaded[0m h2 v0.4.13
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6441797Z [1m[92m  Downloaded[0m h2 v0.3.27
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6502665Z [1m[92m  Downloaded[0m esaxx-rs v0.1.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6536255Z [1m[92m  Downloaded[0m thiserror-impl v2.0.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6550590Z [1m[92m  Downloaded[0m thiserror-impl v1.0.69
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6563349Z [1m[92m  Downloaded[0m thiserror v2.0.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6626782Z [1m[92m  Downloaded[0m thiserror v1.0.69
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6691344Z [1m[92m  Downloaded[0m synstructure v0.13.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6693488Z [1m[92m  Downloaded[0m sync_wrapper v1.0.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6700210Z [1m[92m  Downloaded[0m sync_wrapper v0.1.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6707755Z [1m[92m  Downloaded[0m symphonia-utils-xiph v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6717116Z [1m[92m  Downloaded[0m symphonia-format-ogg v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6731192Z [1m[92m  Downloaded[0m sqlx-mysql v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6788673Z [1m[92m  Downloaded[0m sqlx-macros-core v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6810233Z [1m[92m  Downloaded[0m socket2 v0.6.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6827465Z [1m[92m  Downloaded[0m socket2 v0.5.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6844928Z [1m[92m  Downloaded[0m sharded-slab v0.1.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6877659Z [1m[92m  Downloaded[0m serde_urlencoded v0.7.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6893859Z [1m[92m  Downloaded[0m rustls-webpki v0.103.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6923566Z [1m[92m  Downloaded[0m rust-embed-impl v8.11.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6931760Z [1m[92m  Downloaded[0m rgb v0.8.53
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6955310Z [1m[92m  Downloaded[0m rfc6979 v0.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6965772Z [1m[92m  Downloaded[0m readability v0.3.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6979343Z [1m[92m  Downloaded[0m rawpointer v0.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6987501Z [1m[92m  Downloaded[0m ravif v0.13.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.6998386Z [1m[92m  Downloaded[0m rav1e v0.8.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7322404Z [1m[92m  Downloaded[0m rand_core v0.9.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7335896Z [1m[92m  Downloaded[0m rand_core v0.6.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7348765Z [1m[92m  Downloaded[0m rand_chacha v0.9.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7360370Z [1m[92m  Downloaded[0m rand v0.9.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7397168Z [1m[92m  Downloaded[0m rand v0.8.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7430206Z [1m[92m  Downloaded[0m psl-types v2.0.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7439782Z [1m[92m  Downloaded[0m primeorder v0.13.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7452397Z [1m[92m  Downloaded[0m ppv-lite86 v0.2.21
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7464955Z [1m[92m  Downloaded[0m polyval v0.6.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7480855Z [1m[92m  Downloaded[0m pkcs8 v0.10.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7508397Z [1m[92m  Downloaded[0m phf_shared v0.11.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7517689Z [1m[92m  Downloaded[0m phf_shared v0.10.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7523918Z [1m[92m  Downloaded[0m phf_macros v0.11.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7533394Z [1m[92m  Downloaded[0m phf_codegen v0.11.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7542187Z [1m[92m  Downloaded[0m itertools v0.13.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7608595Z [1m[92m  Downloaded[0m indexmap v2.13.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7650025Z [1m[92m  Downloaded[0m icu_collections v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7710448Z [1m[92m  Downloaded[0m hyper-util v0.1.20
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7770854Z [1m[92m  Downloaded[0m http v1.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7806124Z [1m[92m  Downloaded[0m http v0.2.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7840597Z [1m[92m  Downloaded[0m hashbrown v0.15.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7888777Z [1m[92m  Downloaded[0m futures-intrusive v0.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7931861Z [1m[92m  Downloaded[0m symphonia v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7942819Z [1m[92m  Downloaded[0m subtle v2.6.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7954377Z [1m[92m  Downloaded[0m strsim v0.11.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7967347Z [1m[92m  Downloaded[0m stringprep v0.1.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7981848Z [1m[92m  Downloaded[0m string_cache_codegen v0.5.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.7989651Z [1m[92m  Downloaded[0m string_cache v0.8.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8004640Z [1m[92m  Downloaded[0m static_assertions v1.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8018443Z [1m[92m  Downloaded[0m stable_deref_trait v1.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8026978Z [1m[92m  Downloaded[0m socket-pktinfo v0.3.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8042459Z [1m[92m  Downloaded[0m smallvec v1.15.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8063055Z [1m[92m  Downloaded[0m slab v0.4.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8075840Z [1m[92m  Downloaded[0m scraper v0.20.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8100654Z [1m[92m  Downloaded[0m safetensors v0.7.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8113320Z [1m[92m  Downloaded[0m ryu v1.0.23
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8145605Z [1m[92m  Downloaded[0m rustversion v1.0.22
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8173886Z [1m[92m  Downloaded[0m rustls-pki-types v1.14.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8198566Z [1m[92m  Downloaded[0m rustls-pemfile v1.0.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8221318Z [1m[92m  Downloaded[0m regex-automata v0.4.14
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8356335Z [1m[92m  Downloaded[0m quinn-udp v0.5.14
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8374272Z [1m[92m  Downloaded[0m quick-error v2.0.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8386900Z [1m[92m  Downloaded[0m profiling v1.0.17
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8399027Z [1m[92m  Downloaded[0m proc-macro2 v1.0.106
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8428550Z [1m[92m  Downloaded[0m precomputed-hash v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8435090Z [1m[92m  Downloaded[0m powerfmt v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8446369Z [1m[92m  Downloaded[0m phf_generator v0.11.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8458197Z [1m[92m  Downloaded[0m phf_generator v0.10.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8468217Z [1m[92m  Downloaded[0m miniz_oxide v0.8.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8492514Z [1m[92m  Downloaded[0m memchr v2.8.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8545583Z [1m[92m  Downloaded[0m indicatif v0.17.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8582150Z [1m[92m  Downloaded[0m image-webp v0.2.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8603694Z [1m[92m  Downloaded[0m icu_normalizer_data v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8624665Z [1m[92m  Downloaded[0m icu_normalizer v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8660844Z [1m[92m  Downloaded[0m icu_locale_core v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8730060Z [1m[92m  Downloaded[0m html5ever v0.27.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8765495Z [1m[92m  Downloaded[0m html5ever v0.26.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8801100Z [1m[92m  Downloaded[0m futures-channel v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8820148Z [1m[92m  Downloaded[0m flume v0.11.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8854628Z [1m[92m  Downloaded[0m flate2 v1.1.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8904839Z [1m[92m  Downloaded[0m siphasher v1.0.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8918270Z [1m[92m  Downloaded[0m siphasher v0.3.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8933220Z [1m[92m  Downloaded[0m scopeguard v1.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8945475Z [1m[92m  Downloaded[0m same-file v1.0.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8959091Z [1m[92m  Downloaded[0m rustc_version v0.4.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8972090Z [1m[92m  Downloaded[0m rustc-hash v2.1.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8985059Z [1m[92m  Downloaded[0m rustc-hash v1.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.8994175Z [1m[92m  Downloaded[0m quote v1.0.45
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9021191Z [1m[92m  Downloaded[0m potential_utf v0.1.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9032240Z [1m[92m  Downloaded[0m pkcs1 v0.7.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9056115Z [1m[92m  Downloaded[0m pin-project-lite v0.2.17
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9114644Z [1m[92m  Downloaded[0m parking_lot v0.12.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9139099Z [1m[92m  Downloaded[0m parking v2.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9150007Z [1m[92m  Downloaded[0m p384 v0.13.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9193849Z [1m[92m  Downloaded[0m ort v2.0.0-rc.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9263416Z [1m[92m  Downloaded[0m openssl-sys v0.9.112
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9317938Z [1m[92m  Downloaded[0m notify v8.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9334935Z [1m[92m  Downloaded[0m log v0.4.29
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9358980Z [1m[92m  Downloaded[0m imgref v1.12.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9376305Z [1m[92m  Downloaded[0m icu_provider v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9402165Z [1m[92m  Downloaded[0m icu_properties v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9424953Z [1m[92m  Downloaded[0m half v2.7.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9451231Z [1m[92m  Downloaded[0m getrandom v0.4.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9488316Z [1m[92m  Downloaded[0m getrandom v0.3.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9521980Z [1m[92m  Downloaded[0m futures v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9570126Z [1m[92m  Downloaded[0m phf_codegen v0.10.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9576368Z [1m[92m  Downloaded[0m phf v0.10.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9585402Z [1m[92m  Downloaded[0m percent-encoding v2.3.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9594914Z [1m[92m  Downloaded[0m pem-rfc7468 v1.0.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9615146Z [1m[92m  Downloaded[0m pem-rfc7468 v0.7.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9634515Z [1m[92m  Downloaded[0m pem v3.0.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9648350Z [1m[92m  Downloaded[0m pastey v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9665448Z [1m[92m  Downloaded[0m paste v1.0.15
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9696847Z [1m[92m  Downloaded[0m parking_lot_core v0.9.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9717499Z [1m[92m  Downloaded[0m option-ext v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9725993Z [1m[92m  Downloaded[0m openssl-probe v0.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9738042Z [1m[92m  Downloaded[0m onig_sys v69.9.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9921420Z [1m[92m  Downloaded[0m markup5ever v0.12.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9937828Z [1m[92m  Downloaded[0m litemap v0.8.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:31.9960539Z [1m[92m  Downloaded[0m libc v0.2.184
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0348328Z [1m[92m  Downloaded[0m iana-time-zone v0.1.65
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0376808Z [1m[92m  Downloaded[0m hyper-rustls v0.27.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0400595Z [1m[92m  Downloaded[0m httparse v1.10.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0425613Z [1m[92m  Downloaded[0m hmac v0.12.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0444870Z [1m[92m  Downloaded[0m hf-hub v0.4.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0464675Z [1m[92m  Downloaded[0m gif v0.14.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0481680Z [1m[92m  Downloaded[0m getrandom v0.2.17
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0510453Z [1m[92m  Downloaded[0m fast-float2 v0.2.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0534782Z [1m[92m  Downloaded[0m csv v1.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0705535Z [1m[92m  Downloaded[0m ort-sys v2.0.0-rc.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0730013Z [1m[92m  Downloaded[0m openssl-macros v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0737524Z [1m[92m  Downloaded[0m opaque-debug v0.3.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0746919Z [1m[92m  Downloaded[0m num-conv v0.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0756220Z [1m[92m  Downloaded[0m noop_proc_macro v0.3.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0765129Z [1m[92m  Downloaded[0m ndarray v0.17.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0854776Z [1m[92m  Downloaded[0m ndarray v0.16.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.0986445Z [1m[92m  Downloaded[0m mime_guess v2.0.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1005564Z [1m[92m  Downloaded[0m matchit v0.7.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1025901Z [1m[92m  Downloaded[0m macro_rules_attribute v0.2.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1040854Z [1m[92m  Downloaded[0m inotify v0.11.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1060010Z [1m[92m  Downloaded[0m heck v0.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1073171Z [1m[92m  Downloaded[0m hashlink v0.10.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1090941Z [1m[92m  Downloaded[0m group v0.13.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1106803Z [1m[92m  Downloaded[0m futures-executor v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1120662Z [1m[92m  Downloaded[0m foldhash v0.1.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1132802Z [1m[92m  Downloaded[0m event-listener v5.4.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1152778Z [1m[92m  Downloaded[0m curve25519-dalek v4.1.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1233763Z [1m[92m  Downloaded[0m av-scenechange v0.14.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1342424Z [1m[92m  Downloaded[0m onig v6.5.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1364516Z [1m[92m  Downloaded[0m once_cell v1.21.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1390316Z [1m[92m  Downloaded[0m number_prefix v0.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1399811Z [1m[92m  Downloaded[0m num-traits v0.2.19
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1425322Z [1m[92m  Downloaded[0m num-rational v0.4.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1440936Z [1m[92m  Downloaded[0m num-iter v0.1.45
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1450598Z [1m[92m  Downloaded[0m num-integer v0.1.46
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1467007Z [1m[92m  Downloaded[0m num-derive v0.4.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1484493Z [1m[92m  Downloaded[0m num-bigint-dig v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1528443Z [1m[92m  Downloaded[0m num-bigint v0.4.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1574167Z [1m[92m  Downloaded[0m nom v8.0.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1625709Z [1m[92m  Downloaded[0m nom v7.1.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1675825Z [1m[92m  Downloaded[0m mime v0.3.17
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1689027Z [1m[92m  Downloaded[0m mdns-sd v0.18.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1719001Z [1m[92m  Downloaded[0m libm v0.2.16
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1827034Z [1m[92m  Downloaded[0m ipnet v2.12.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1843590Z [1m[92m  Downloaded[0m http-body-util v0.1.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1861473Z [1m[92m  Downloaded[0m http-body v1.0.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1871297Z [1m[92m  Downloaded[0m getopts v0.2.24
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1886792Z [1m[92m  Downloaded[0m generic-array v0.14.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1900693Z [1m[92m  Downloaded[0m foldhash v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1912834Z [1m[92m  Downloaded[0m der v0.8.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.1971530Z [1m[92m  Downloaded[0m chrono v0.4.44
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2035744Z [1m[92m  Downloaded[0m cc v1.2.59
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2064802Z [1m[92m  Downloaded[0m axum v0.7.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2141642Z [1m[92m  Downloaded[0m aho-corasick v1.1.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2192664Z [1m[92m  Downloaded[0m aes v0.8.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2226158Z [1m[92m  Downloaded[0m adblock v0.12.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2279635Z [1m[92m  Downloaded[0m nu-ansi-term v0.50.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2303542Z [1m[92m  Downloaded[0m notify-types v2.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2337641Z [1m[92m  Downloaded[0m monostate-impl v0.1.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2345910Z [1m[92m  Downloaded[0m monostate v0.1.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2365328Z [1m[92m  Downloaded[0m minimal-lexical v0.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2410358Z [1m[92m  Downloaded[0m maybe-rayon v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2418381Z [1m[92m  Downloaded[0m matrixmultiply v0.3.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2455333Z [1m[92m  Downloaded[0m matchers v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2465996Z [1m[92m  Downloaded[0m mac v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2476115Z [1m[92m  Downloaded[0m jsonwebtoken v10.3.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2526223Z [1m[92m  Downloaded[0m if-addrs v0.15.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2542108Z [1m[92m  Downloaded[0m ident_case v1.0.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2550622Z [1m[92m  Downloaded[0m hyper-tls v0.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2563264Z [1m[92m  Downloaded[0m hmac-sha256 v1.1.14
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2574470Z [1m[92m  Downloaded[0m ghash v0.5.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2585602Z [1m[92m  Downloaded[0m futures-task v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2597788Z [1m[92m  Downloaded[0m futures-io v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2607001Z [1m[92m  Downloaded[0m futures-core v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2620482Z [1m[92m  Downloaded[0m ed25519-dalek v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2650951Z [1m[92m  Downloaded[0m der v0.7.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2702792Z [1m[92m  Downloaded[0m darling_core v0.20.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2753749Z [1m[92m  Downloaded[0m crypto-bigint v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2824641Z [1m[92m  Downloaded[0m crossbeam-epoch v0.9.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2848612Z [1m[92m  Downloaded[0m const-oid v0.9.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2868213Z [1m[92m  Downloaded[0m console v0.15.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2897610Z [1m[92m  Downloaded[0m concurrent-queue v2.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2914639Z [1m[92m  Downloaded[0m compact_str v0.9.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2945784Z [1m[92m  Downloaded[0m calamine v0.34.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.2983967Z [1m[92m  Downloaded[0m bytes v1.11.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3025298Z [1m[92m  Downloaded[0m bytemuck v1.25.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3056197Z [1m[92m  Downloaded[0m bumpalo v3.20.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3082263Z [1m[92m  Downloaded[0m bitstream-io v4.9.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3109926Z [1m[92m  Downloaded[0m base64 v0.22.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3147100Z [1m[92m  Downloaded[0m base64 v0.13.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3176725Z [1m[92m  Downloaded[0m addr v0.15.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3203521Z [1m[92m  Downloaded[0m native-tls v0.2.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3218008Z [1m[92m  Downloaded[0m multer v3.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3242015Z [1m[92m  Downloaded[0m markup5ever v0.11.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3258000Z [1m[92m  Downloaded[0m lock_api v0.4.14
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3270843Z [1m[92m  Downloaded[0m jobserver v0.1.34
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3291037Z [1m[92m  Downloaded[0m inotify-sys v0.1.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3300220Z [1m[92m  Downloaded[0m idna_adapter v1.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3309235Z [1m[92m  Downloaded[0m httpdate v1.0.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3321314Z [1m[92m  Downloaded[0m home v0.5.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3331019Z [1m[92m  Downloaded[0m fxhash v0.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3337797Z [1m[92m  Downloaded[0m futures-sink v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3346688Z [1m[92m  Downloaded[0m find-msvc-tools v0.1.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3362549Z [1m[92m  Downloaded[0m dtoa v1.0.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3378027Z [1m[92m  Downloaded[0m displaydoc v0.2.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3408118Z [1m[92m  Downloaded[0m digest v0.10.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3426091Z [1m[92m  Downloaded[0m derive_more v0.99.20
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3472773Z [1m[92m  Downloaded[0m derive_builder_core v0.20.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3492330Z [1m[92m  Downloaded[0m derive_builder v0.20.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3542245Z [1m[92m  Downloaded[0m deranged v0.5.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3556340Z [1m[92m  Downloaded[0m dary_heap v0.3.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3567406Z [1m[92m  Downloaded[0m darling v0.20.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3615711Z [1m[92m  Downloaded[0m ctr v0.9.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3636960Z [1m[92m  Downloaded[0m csv-core v0.1.13
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3650157Z [1m[92m  Downloaded[0m cssparser v0.31.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3673667Z [1m[92m  Downloaded[0m crypto-common v0.1.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3683125Z [1m[92m  Downloaded[0m crc32fast v1.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3701596Z [1m[92m  Downloaded[0m core2 v0.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3720737Z [1m[92m  Downloaded[0m castaway v0.2.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3734576Z [1m[92m  Downloaded[0m byteorder v1.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3750433Z [1m[92m  Downloaded[0m bitflags v2.11.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3792706Z [1m[92m  Downloaded[0m base64ct v1.8.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3817582Z [1m[92m  Downloaded[0m base64 v0.21.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3855835Z [1m[92m  Downloaded[0m axum-core v0.4.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3876149Z [1m[92m  Downloaded[0m av1-grain v0.2.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3901725Z [1m[92m  Downloaded[0m autocfg v1.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3920775Z [1m[92m  Downloaded[0m macro_rules_attribute-proc_macro v0.2.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3928664Z [1m[92m  Downloaded[0m lru-slab v0.1.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3937213Z [1m[92m  Downloaded[0m loop9 v0.1.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3945793Z [1m[92m  Downloaded[0m ed25519 v2.2.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3963539Z [1m[92m  Downloaded[0m dotenvy v0.15.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.3990808Z [1m[92m  Downloaded[0m dirs-sys v0.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4003049Z [1m[92m  Downloaded[0m derive_builder_macro v0.20.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4011069Z [1m[92m  Downloaded[0m debug_unsafe v0.1.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4021105Z [1m[92m  Downloaded[0m crossbeam-queue v0.3.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4033270Z [1m[92m  Downloaded[0m crc v3.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4050049Z [1m[92m  Downloaded[0m color_quant v1.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4060376Z [1m[92m  Downloaded[0m cipher v0.4.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4075142Z [1m[92m  Downloaded[0m cfg_aliases v0.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4084758Z [1m[92m  Downloaded[0m block-buffer v0.10.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4095168Z [1m[92m  Downloaded[0m bit_field v0.10.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4107364Z [1m[92m  Downloaded[0m avif-serialize v0.8.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4117676Z [1m[92m  Downloaded[0m arrayvec v0.7.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4137672Z [1m[92m  Downloaded[0m arg_enum_proc_macro v0.3.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4149507Z [1m[92m  Downloaded[0m lazy_static v1.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4167086Z [1m[92m  Downloaded[0m itoa v1.0.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4181701Z [1m[92m  Downloaded[0m inout v0.1.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4192635Z [1m[92m  Downloaded[0m hyper-tls v0.6.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4206494Z [1m[92m  Downloaded[0m futures-macro v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4216986Z [1m[92m  Downloaded[0m ego-tree v0.6.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4230822Z [1m[92m  Downloaded[0m ecdsa v0.16.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4247755Z [1m[92m  Downloaded[0m darling_macro v0.20.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4254930Z [1m[92m  Downloaded[0m chacha20 v0.10.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4278617Z [1m[92m  Downloaded[0m cfg-if v1.0.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4292048Z [1m[92m  Downloaded[0m bitflags v1.3.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4324568Z [1m[92m  Downloaded[0m dtoa-short v0.3.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4332478Z [1m[92m  Downloaded[0m dirs v6.0.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4345396Z [1m[92m  Downloaded[0m curve25519-dalek-derive v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4355728Z [1m[92m  Downloaded[0m cssparser-macros v0.6.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4362551Z [1m[92m  Downloaded[0m aligned v0.4.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4374188Z [1m[92m  Downloaded[0m foreign-types v0.3.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4381788Z [1m[92m  Downloaded[0m cpufeatures v0.3.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4395841Z [1m[92m  Downloaded[0m base16ct v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4409181Z [1m[92m  Downloaded[0m async-stream v0.3.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4430638Z [1m[92m  Downloaded[0m aead v0.5.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4441409Z [1m[92m  Downloaded[0m codepage v0.1.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4451213Z [1m[92m  Downloaded[0m async-recursion v1.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4488281Z [1m[92m  Downloaded[0m foreign-types-shared v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4495403Z [1m[92m  Downloaded[0m fax v0.2.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4510111Z [1m[92m  Downloaded[0m either v1.15.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4524488Z [1m[92m  Downloaded[0m aligned-vec v0.6.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4534263Z [1m[92m  Downloaded[0m errno v0.3.14
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4549624Z [1m[92m  Downloaded[0m equivalent v1.0.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4559776Z [1m[92m  Downloaded[0m crossbeam-deque v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4573932Z [1m[92m  Downloaded[0m cpufeatures v0.2.17
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4587728Z [1m[92m  Downloaded[0m byteorder-lite v0.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4598125Z [1m[92m  Downloaded[0m extended v0.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4606071Z [1m[92m  Downloaded[0m equator-macro v0.4.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4614837Z [1m[92m  Downloaded[0m equator v0.4.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4628187Z [1m[92m  Downloaded[0m built v0.8.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4647288Z [1m[92m  Downloaded[0m ahash v0.8.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4670830Z [1m[92m  Downloaded[0m fdeflate v0.3.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4686299Z [1m[92m  Downloaded[0m fastrand v2.4.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4699764Z [1m[92m  Downloaded[0m atomic-waker v1.1.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4711605Z [1m[92m  Downloaded[0m as-slice v0.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4720824Z [1m[92m  Downloaded[0m atoi v2.0.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4733861Z [1m[92m  Downloaded[0m async-trait v0.1.89
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4770726Z [1m[92m  Downloaded[0m async-stream-impl v0.3.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4776648Z [1m[92m  Downloaded[0m aes-gcm v0.10.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4805115Z [1m[92m  Downloaded[0m adler2 v2.0.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.4816846Z [1m[92m  Downloaded[0m allocator-api2 v0.2.21
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.6306320Z [1m[92m   Compiling[0m proc-macro2 v1.0.106
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.6307204Z [1m[92m   Compiling[0m unicode-ident v1.0.24
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.6307937Z [1m[92m   Compiling[0m quote v1.0.45
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.6309055Z [1m[92m   Compiling[0m libc v0.2.184
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.6915931Z [1m[92m    Checking[0m cfg-if v1.0.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.7205779Z [1m[92m   Compiling[0m serde_core v1.0.228
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.8142136Z [1m[92m    Checking[0m log v0.4.29
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:32.9211069Z [1m[92m   Compiling[0m version_check v0.9.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:33.1474854Z [1m[92m    Checking[0m scopeguard v1.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:33.1854265Z [1m[92m    Checking[0m lock_api v0.4.14
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:33.4575220Z [1m[92m   Compiling[0m serde v1.0.228
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:33.5520150Z [1m[92m   Compiling[0m syn v2.0.117
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:33.6519494Z [1m[92m   Compiling[0m shlex v1.3.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:33.7369684Z [1m[92m   Compiling[0m find-msvc-tools v0.1.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:33.9039460Z [1m[92m   Compiling[0m cc v1.2.59
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:34.7100004Z [1m[92m    Checking[0m smallvec v1.15.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:34.8426227Z [1m[92m   Compiling[0m typenum v1.19.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:34.8499482Z [1m[92m    Checking[0m zeroize v1.8.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:34.9258811Z [1m[92m    Checking[0m memchr v2.8.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:35.0752207Z [1m[92m    Checking[0m getrandom v0.2.17
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:35.1689670Z [1m[92m   Compiling[0m parking_lot_core v0.9.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:35.2149793Z [1m[92m    Checking[0m itoa v1.0.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:35.2989982Z [1m[92m   Compiling[0m autocfg v1.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:35.3033166Z [1m[92m   Compiling[0m pkg-config v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:35.3120198Z [1m[92m    Checking[0m once_cell v1.21.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:35.4249556Z [1m[92m    Checking[0m rand_core v0.6.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:35.5269391Z [1m[92m   Compiling[0m generic-array v0.14.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:35.6106348Z [1m[92m    Checking[0m subtle v2.6.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:35.6189464Z [1m[92m    Checking[0m pin-project-lite v0.2.17
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:35.8179751Z [1m[92m   Compiling[0m vcpkg v0.2.15
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:35.8727229Z [1m[92m    Checking[0m parking_lot v0.12.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:36.0048959Z [1m[92m    Checking[0m futures-core v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:36.0659712Z [1m[92m    Checking[0m stable_deref_trait v1.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:36.0989503Z [1m[92m    Checking[0m bytes v1.11.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:36.4316064Z [1m[92m    Checking[0m spin v0.9.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:36.5159815Z [1m[92m    Checking[0m futures-sink v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:36.5449905Z [1m[92m   Compiling[0m zerocopy v0.8.48
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:36.5619481Z [1m[92m   Compiling[0m libm v0.2.16
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:36.7200227Z [1m[92m    Checking[0m crypto-common v0.1.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:36.7509916Z [1m[92m   Compiling[0m num-traits v0.2.19
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:36.7794279Z [1m[92m    Checking[0m allocator-api2 v0.2.21
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:36.8005323Z [1m[92m    Checking[0m equivalent v1.0.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:37.0229780Z [1m[92m    Checking[0m socket2 v0.6.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:37.2515934Z [1m[92m   Compiling[0m synstructure v0.13.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:37.6940512Z [1m[92m    Checking[0m mio v1.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:37.7710071Z [1m[92m    Checking[0m const-oid v0.9.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:38.0780831Z [1m[92m    Checking[0m errno v0.3.14
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:38.1379664Z [1m[92m   Compiling[0m icu_properties_data v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:38.2250271Z [1m[92m   Compiling[0m icu_normalizer_data v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:38.3189907Z [1m[92m    Checking[0m foldhash v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:38.3889869Z [1m[92m    Checking[0m hashbrown v0.16.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:38.4786900Z [1m[92m    Checking[0m signal-hook-registry v1.4.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:38.5746092Z [1m[92m   Compiling[0m openssl-sys v0.9.112
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:38.7469751Z [1m[92m   Compiling[0m serde_derive v1.0.228
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:38.9083705Z [1m[92m   Compiling[0m zerofrom-derive v0.1.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:38.9145566Z [1m[92m   Compiling[0m yoke-derive v0.8.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:39.8939748Z [1m[92m   Compiling[0m zerovec-derive v0.11.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:40.1630289Z [1m[92m   Compiling[0m displaydoc v0.2.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:40.6750048Z [1m[92m   Compiling[0m tracing-attributes v0.1.31
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:40.6929863Z [1m[92m   Compiling[0m ppv-lite86 v0.2.21
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:40.9970878Z [1m[92m   Compiling[0m rand_chacha v0.3.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:41.0035699Z [1m[92m   Compiling[0m tokio-macros v2.7.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:41.3599585Z [1m[92m    Checking[0m tracing-core v0.1.36
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:41.5179795Z [1m[92m    Checking[0m slab v0.4.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:41.6119812Z [1m[92m    Checking[0m arrayvec v0.7.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:41.6219314Z [1m[92m    Checking[0m tokio v1.51.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:41.7719663Z [1m[92m   Compiling[0m rand v0.8.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:41.7799367Z [1m[92m    Checking[0m zerofrom v0.1.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:42.3174081Z [1m[92m    Checking[0m futures-channel v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:42.3570264Z [1m[92m    Checking[0m bitflags v2.11.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:42.3959852Z [1m[92m    Checking[0m yoke v0.8.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:42.4569545Z [1m[92m    Checking[0m tracing v0.1.44
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:42.4643049Z [1m[92m    Checking[0m indexmap v2.13.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:42.5219659Z [1m[92m   Compiling[0m futures-macro v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:42.6019757Z [1m[92m    Checking[0m lazy_static v1.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:42.6339597Z [1m[92m   Compiling[0m ring v0.17.14
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:42.9870334Z [1m[92m    Checking[0m futures-io v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:43.0259779Z [1m[92m    Checking[0m futures-task v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:43.1038154Z [1m[92m    Checking[0m block-buffer v0.10.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:43.1382267Z [1m[92m    Checking[0m futures-util v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:43.1610654Z [1m[92m    Checking[0m encoding_rs v0.8.35
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:44.0139721Z [1m[92m   Compiling[0m zmij v1.0.21
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:44.1162209Z [1m[92m   Compiling[0m crossbeam-utils v0.8.21
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:44.2637443Z [1m[92m    Checking[0m digest v0.10.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:44.3879961Z [1m[92m    Checking[0m zerovec v0.11.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:44.7714584Z [1m[92m   Compiling[0m siphasher v1.0.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:44.9020221Z [1m[92m   Compiling[0m phf_shared v0.11.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:45.1628581Z [1m[92m   Compiling[0m openssl v0.10.76
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:45.2619786Z [1m[92m    Checking[0m bytemuck v1.25.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:45.2789844Z [1m[92m   Compiling[0m thiserror v2.0.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:45.4073415Z [1m[92m   Compiling[0m phf_generator v0.11.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:45.4218225Z [1m[92m    Checking[0m tokio-util v0.7.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:45.5133481Z [1m[92m   Compiling[0m openssl-macros v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:45.5572183Z [1m[92m   Compiling[0m zerocopy-derive v0.8.48
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:45.6712086Z [1m[92m   Compiling[0m thiserror-impl v2.0.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:46.0272631Z [1m[92m    Checking[0m tinystr v0.8.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:46.1459683Z [1m[92m    Checking[0m litemap v0.8.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:46.4099728Z [1m[92m    Checking[0m percent-encoding v2.3.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:46.4747462Z [1m[92m    Checking[0m writeable v0.6.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:46.5635967Z [1m[92m    Checking[0m icu_locale_core v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:46.6622104Z [1m[92m   Compiling[0m rustls-pki-types v1.14.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:47.0187920Z [1m[92m    Checking[0m potential_utf v0.1.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:47.0380179Z [1m[92m    Checking[0m zerotrie v0.2.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:47.0810467Z [1m[92m    Checking[0m num-integer v0.1.46
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:47.2544746Z [1m[92m    Checking[0m bitflags v1.3.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:47.2809751Z [1m[92m    Checking[0m fnv v1.0.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:47.2857454Z [1m[92m    Checking[0m utf8_iter v1.0.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:47.3110847Z [1m[92m    Checking[0m new_debug_unreachable v1.0.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:47.3435305Z [1m[92m    Checking[0m icu_collections v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:47.4435393Z [1m[92m    Checking[0m symphonia-core v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:47.6048076Z [1m[92m    Checking[0m icu_provider v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:48.3619795Z [1m[92m    Checking[0m either v1.15.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:48.8122917Z [1m[92m    Checking[0m simd-adler32 v0.3.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:48.8705790Z [1m[92m   Compiling[0m httparse v1.10.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:49.1233513Z [1m[92m    Checking[0m cpufeatures v0.2.17
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:49.1559866Z [1m[92m    Checking[0m base64ct v1.8.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:49.3638734Z [1m[92m    Checking[0m pem-rfc7468 v0.7.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:49.9679624Z [1m[92m    Checking[0m http v1.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:49.9942443Z [1m[92m   Compiling[0m serde_json v1.0.149
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:50.0011531Z [1m[92m    Checking[0m tower-service v0.3.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:50.0359806Z [1m[92m   Compiling[0m siphasher v0.3.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:50.0460255Z [1m[92m    Checking[0m base64 v0.22.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:50.2030038Z [1m[92m   Compiling[0m phf_shared v0.10.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:50.2490312Z [1m[92m    Checking[0m icu_properties v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:50.3279765Z [1m[92m    Checking[0m icu_normalizer v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:50.5892178Z [1m[92m    Checking[0m der v0.7.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:50.7150309Z [1m[92m    Checking[0m form_urlencoded v1.2.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:50.9963315Z [1m[92m    Checking[0m ryu v1.0.23
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:51.0829771Z [1m[92m   Compiling[0m crc32fast v1.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:51.1667643Z [1m[92m    Checking[0m try-lock v0.2.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:51.2063014Z [1m[92m    Checking[0m want v0.3.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:51.2174674Z [1m[92m    Checking[0m idna_adapter v1.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:51.2730092Z [1m[92m   Compiling[0m phf_generator v0.10.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:51.3479819Z [1m[92m    Checking[0m spki v0.7.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:51.4417597Z [1m[92m   Compiling[0m string_cache_codegen v0.5.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:51.4499474Z [1m[92m    Checking[0m crossbeam-epoch v0.9.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:51.6169778Z [1m[92m   Compiling[0m rayon-core v1.13.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:51.8280993Z [1m[92m    Checking[0m adler2 v2.0.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:51.8820200Z [1m[92m    Checking[0m untrusted v0.9.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:51.9240223Z [1m[92m    Checking[0m httpdate v1.0.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:51.9359884Z [1m[92m    Checking[0m foreign-types-shared v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:51.9625422Z [1m[92m    Checking[0m foreign-types v0.3.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:52.0090387Z [1m[92m    Checking[0m miniz_oxide v0.8.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:52.0309637Z [1m[92m    Checking[0m crossbeam-deque v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:52.1425900Z [1m[92m    Checking[0m pkcs8 v0.10.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:52.3309831Z [1m[92m   Compiling[0m phf_codegen v0.10.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:52.3690226Z [1m[92m    Checking[0m idna v1.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:52.4799905Z [1m[92m    Checking[0m http-body v1.0.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:52.7929793Z [1m[92m   Compiling[0m rustls v0.23.37
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:53.0589839Z [1m[92m   Compiling[0m native-tls v0.2.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:53.0728947Z [1m[92m    Checking[0m precomputed-hash v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:53.1043016Z [1m[92m    Checking[0m rustls-webpki v0.103.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:53.1139688Z [1m[92m   Compiling[0m sha2 v0.10.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:53.4782168Z [1m[92m    Checking[0m url v2.5.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:53.8359963Z [1m[92m    Checking[0m symphonia-metadata v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:53.8920119Z [1m[92m    Checking[0m mac v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:53.9219664Z [1m[92m    Checking[0m openssl-probe v0.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:53.9609976Z [1m[92m   Compiling[0m getrandom v0.3.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:54.0629889Z [1m[92m    Checking[0m zlib-rs v0.6.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:54.1468864Z [1m[92m   Compiling[0m semver v1.0.28
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:54.3860227Z [1m[92m   Compiling[0m rustc_version v0.4.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:54.8150004Z [1m[92m    Checking[0m futf v0.1.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:55.1240010Z [1m[92m    Checking[0m flate2 v1.1.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:55.2840198Z [1m[92m    Checking[0m webpki-roots v1.0.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:55.3979871Z [1m[92m    Checking[0m num-bigint v0.4.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:55.5678850Z [1m[92m   Compiling[0m equator-macro v0.4.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:56.1030113Z [1m[92m    Checking[0m utf-8 v0.7.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:56.2550115Z [1m[92m    Checking[0m ipnet v2.12.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:56.3739834Z [1m[92m    Checking[0m atomic-waker v1.1.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:56.3990289Z [1m[92m    Checking[0m byteorder v1.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:56.4149417Z [1m[92m    Checking[0m mime v0.3.17
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:56.4470230Z [1m[92m    Checking[0m h2 v0.4.13
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:56.5847118Z [1m[92m    Checking[0m tendril v0.4.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:56.6450210Z [1m[92m    Checking[0m equator v0.4.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:57.3479897Z [1m[92m    Checking[0m rayon v1.11.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:57.7552953Z [1m[92m    Checking[0m string_cache v0.8.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:57.8509423Z [1m[92m    Checking[0m serde_urlencoded v0.7.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:58.0067083Z [1m[92m    Checking[0m hmac v0.12.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:58.0819665Z [1m[92m   Compiling[0m libsqlite3-sys v0.30.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:58.2769805Z [1m[92m    Checking[0m aho-corasick v1.1.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:58.7539949Z [1m[92m   Compiling[0m ident_case v1.0.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:58.8129717Z [1m[92m    Checking[0m regex-syntax v0.8.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:59.1256320Z [1m[92m   Compiling[0m rustversion v1.0.22
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:59.2255880Z [1m[92m   Compiling[0m paste v1.0.15
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:59.5719842Z [1m[92m   Compiling[0m anyhow v1.0.102
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:59.5799336Z [1m[92m   Compiling[0m strsim v0.11.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:59.7939682Z [1m[92m   Compiling[0m darling_core v0.20.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:59.8340289Z [1m[92m    Checking[0m hyper v1.9.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:35:59.9919760Z [1m[92m   Compiling[0m pem-rfc7468 v1.0.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:00.1740404Z [1m[92m    Checking[0m regex-automata v0.4.14
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:02.6164594Z [1m[92m    Checking[0m aligned-vec v0.6.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:02.7420114Z [1m[92m    Checking[0m phf v0.10.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:03.0189213Z [1m[92m    Checking[0m tokio-native-tls v0.3.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:03.0369727Z [1m[92m    Checking[0m http-body-util v0.1.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:03.3030064Z [1m[92m    Checking[0m signature v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:03.3609830Z [1m[92m    Checking[0m sync_wrapper v1.0.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:03.4089601Z [1m[92m    Checking[0m ff v0.13.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:04.1133232Z [1m[92m   Compiling[0m foldhash v0.1.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:04.1757788Z [1m[92m    Checking[0m base16ct v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:04.3369776Z [1m[92m    Checking[0m rand_core v0.10.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:04.3869790Z [1m[92m    Checking[0m tower-layer v0.3.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:04.4207237Z [1m[92m   Compiling[0m syn v1.0.109
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:04.4919919Z [1m[92m   Compiling[0m getrandom v0.4.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:04.6333977Z [1m[92m   Compiling[0m socks v0.3.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:04.8619803Z [1m[92m    Checking[0m sec1 v0.7.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:04.8786621Z [1m[92m   Compiling[0m hashbrown v0.15.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:05.4054768Z [1m[92m   Compiling[0m ureq-proto v0.6.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:06.0004201Z [1m[92m    Checking[0m group v0.13.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:06.4229512Z [1m[92m    Checking[0m v_frame v0.3.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:07.1680307Z [1m[92m   Compiling[0m darling_macro v0.20.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:07.3879856Z [1m[92m    Checking[0m hyper-util v0.1.20
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:08.6052851Z [1m[92m   Compiling[0m der v0.8.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:08.9747060Z [1m[92m    Checking[0m hkdf v0.12.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:09.0530325Z [1m[92m   Compiling[0m concurrent-queue v2.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:09.1890004Z [1m[92m    Checking[0m num-rational v0.4.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:09.4469762Z [1m[92m    Checking[0m webpki-roots v0.26.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:09.4769800Z [1m[92m    Checking[0m symphonia-utils-xiph v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:09.5540196Z [1m[92m   Compiling[0m markup5ever v0.11.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:09.6269791Z [1m[92m    Checking[0m itertools v0.14.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:09.9399782Z [1m[92m    Checking[0m http v0.2.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:10.4469809Z [1m[92m   Compiling[0m webpki-root-certs v1.0.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:10.4960277Z [1m[92m   Compiling[0m phf_macros v0.11.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:10.7610299Z [1m[92m    Checking[0m crypto-bigint v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:10.8179595Z [1m[92m    Checking[0m as-slice v0.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:10.8539627Z [1m[92m   Compiling[0m matrixmultiply v0.3.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:10.9430124Z [1m[92m   Compiling[0m crc-catalog v2.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:10.9610928Z [1m[92m   Compiling[0m utf8-zero v0.8.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:10.9930750Z [1m[92m   Compiling[0m av-scenechange v0.14.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:11.0530120Z [1m[92m    Checking[0m unicode-width v0.2.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:11.1089702Z [1m[92m   Compiling[0m iana-time-zone v0.1.65
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:11.2649741Z [1m[92m   Compiling[0m parking v2.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:11.2832756Z [1m[92m   Compiling[0m built v0.8.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:11.3510279Z [1m[92m   Compiling[0m event-listener v5.4.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:11.6850064Z [1m[92m   Compiling[0m rav1e v0.8.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:11.7196004Z [1m[92m    Checking[0m elliptic-curve v0.13.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:11.7459758Z [1m[92m   Compiling[0m chrono v0.4.44
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:11.8229698Z [1m[92m   Compiling[0m ureq v3.3.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:12.0160185Z [1m[92m   Compiling[0m crc v3.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:12.1919911Z [1m[92m    Checking[0m phf v0.11.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:12.2899598Z [1m[92m    Checking[0m aligned v0.4.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:13.5408763Z [1m[92m   Compiling[0m tokio-stream v0.1.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:13.5499648Z [1m[92m   Compiling[0m darling v0.20.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:13.6789882Z [1m[92m   Compiling[0m futures-intrusive v0.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:13.8899770Z [1m[92m   Compiling[0m hashlink v0.10.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:14.1690227Z [1m[92m    Checking[0m tower v0.5.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:14.2709737Z [1m[92m   Compiling[0m crossbeam-queue v0.3.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:14.3679648Z [1m[92m    Checking[0m rand_core v0.9.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:14.6559739Z [1m[92m   Compiling[0m phf_codegen v0.11.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:14.7259814Z [1m[92m   Compiling[0m arg_enum_proc_macro v0.3.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:14.7440338Z [1m[92m   Compiling[0m profiling-procmacros v1.0.17
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:14.9439807Z [1m[92m   Compiling[0m onig_sys v69.9.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:15.1215724Z [1m[92m    Checking[0m core2 v0.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:15.1269637Z [1m[92m    Checking[0m nom v8.0.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:15.1500616Z [1m[92m   Compiling[0m ahash v0.8.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:15.2556646Z [1m[92m   Compiling[0m uuid v1.23.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:15.5311550Z [1m[92m    Checking[0m quick-error v2.0.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:15.5789631Z [1m[92m   Compiling[0m portable-atomic v1.13.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:15.8857139Z [1m[92m   Compiling[0m pastey v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:16.2591233Z [1m[92m   Compiling[0m hmac-sha256 v1.1.14
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:16.4450148Z [1m[92m    Checking[0m y4m v0.8.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:16.5949670Z [1m[92m   Compiling[0m lzma-rust2 v0.15.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:16.6480444Z [1m[92m    Checking[0m rawpointer v0.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:17.2019502Z [1m[92m   Compiling[0m ort-sys v2.0.0-rc.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:17.6235010Z [1m[92m    Checking[0m av1-grain v0.2.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:17.8179777Z [1m[92m   Compiling[0m sqlx-core v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:18.0069830Z [1m[92m    Checking[0m bitstream-io v4.9.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:18.4720154Z [1m[92m    Checking[0m profiling v1.0.17
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:18.5039846Z [1m[92m   Compiling[0m markup5ever v0.12.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:18.8250254Z [1m[92m   Compiling[0m flume v0.11.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:18.9251813Z [1m[92m   Compiling[0m html5ever v0.26.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:19.0103815Z [1m[92m    Checking[0m rand_chacha v0.9.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:19.7519683Z [1m[92m   Compiling[0m derive_builder_core v0.20.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:20.4419727Z [1m[92m    Checking[0m http-body v0.4.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:20.5880092Z [1m[92m    Checking[0m h2 v0.3.27
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:20.6219855Z [1m[92m   Compiling[0m futures-executor v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:20.7820164Z [1m[92m   Compiling[0m atoi v2.0.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:20.8019822Z [1m[92m    Checking[0m regex v1.12.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:20.8629640Z [1m[92m    Checking[0m maybe-rayon v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:20.8960042Z [1m[92m    Checking[0m rfc6979 v0.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:20.9549926Z [1m[92m    Checking[0m tokio-rustls v0.26.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:21.1244221Z [1m[92m   Compiling[0m curve25519-dalek v4.1.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:21.2480585Z [1m[92m   Compiling[0m toml_datetime v0.6.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:21.3599876Z [1m[92m   Compiling[0m serde_spanned v0.6.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:21.4232949Z [1m[92m    Checking[0m half v2.7.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:21.5529807Z [1m[92m   Compiling[0m num-derive v0.4.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:21.6454512Z [1m[92m   Compiling[0m fax_derive v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:21.7649615Z [1m[92m    Checking[0m num-complex v0.4.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.0370164Z [1m[92m    Checking[0m inout v0.1.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.0449292Z [1m[92m    Checking[0m socket2 v0.5.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.0990218Z [1m[92m   Compiling[0m simd_helpers v0.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.2609795Z [1m[92m    Checking[0m same-file v1.0.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.2719471Z [1m[92m   Compiling[0m time-core v0.1.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.3209747Z [1m[92m    Checking[0m option-ext v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.3593323Z [1m[92m   Compiling[0m esaxx-rs v0.1.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.3656740Z [1m[92m   Compiling[0m num-conv v0.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.4509670Z [1m[92m   Compiling[0m winnow v0.7.15
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.4910086Z [1m[92m    Checking[0m imgref v1.12.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.5799664Z [1m[92m    Checking[0m weezl v0.1.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.6639762Z [1m[92m    Checking[0m iri-string v0.7.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.7595584Z [1m[92m    Checking[0m powerfmt v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.8560076Z [1m[92m   Compiling[0m num-bigint-dig v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:22.9499674Z [1m[92m   Compiling[0m noop_proc_macro v0.3.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:23.0899704Z [1m[92m    Checking[0m dtoa v1.0.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:23.1614333Z [1m[92m   Compiling[0m toml_write v0.1.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:23.3010235Z [1m[92m    Checking[0m minimal-lexical v0.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:23.4540339Z [1m[92m    Checking[0m zune-core v0.5.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:23.5603821Z [1m[92m    Checking[0m hyper v0.14.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:23.6040313Z [1m[92m    Checking[0m zune-jpeg v0.5.15
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:23.8990488Z [1m[92m    Checking[0m tower-http v0.6.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:24.1109803Z [1m[92m   Compiling[0m toml_edit v0.22.27
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:24.1547034Z [1m[92m    Checking[0m nom v7.1.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:24.2549643Z [1m[92m    Checking[0m dtoa-short v0.3.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:25.4549922Z [1m[92m    Checking[0m deranged v0.5.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:25.8839887Z [1m[92m    Checking[0m loop9 v0.1.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:26.4799664Z [1m[92m   Compiling[0m walkdir v2.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:26.7023992Z [1m[92m   Compiling[0m time-macros v0.2.27
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:27.0129685Z [1m[92m    Checking[0m dirs-sys v0.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:27.1699723Z [1m[92m    Checking[0m cipher v0.4.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:27.1759208Z [1m[92m    Checking[0m fax v0.2.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:27.4339846Z [1m[92m   Compiling[0m sqlx-sqlite v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:27.7370746Z [1m[92m    Checking[0m hyper-rustls v0.27.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:27.8619754Z [1m[92m    Checking[0m ecdsa v0.16.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:27.8847739Z [1m[92m   Compiling[0m derive_builder_macro v0.20.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:28.1740440Z [1m[92m    Checking[0m rand v0.9.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:28.8280152Z [1m[92m    Checking[0m primeorder v0.13.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:28.8999988Z [1m[92m    Checking[0m console v0.15.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:29.0210416Z [1m[92m    Checking[0m hyper-tls v0.6.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:29.1089609Z [1m[92m    Checking[0m castaway v0.2.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:29.1559731Z [1m[92m   Compiling[0m flatbuffers v25.12.19
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:29.2499581Z [1m[92m   Compiling[0m selectors v0.25.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:29.2609860Z [1m[92m    Checking[0m zune-inflate v0.2.54
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:29.3930291Z [1m[92m    Checking[0m fdeflate v0.3.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:29.5249594Z [1m[92m    Checking[0m num-iter v0.1.45
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:29.7470345Z [1m[92m    Checking[0m avif-serialize v0.8.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:29.9089672Z [1m[92m   Compiling[0m curve25519-dalek-derive v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:29.9360179Z [1m[92m   Compiling[0m cssparser-macros v0.6.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:30.1869611Z [1m[92m   Compiling[0m html5ever v0.27.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:30.3389730Z [1m[92m   Compiling[0m monostate-impl v0.1.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:30.5709425Z [1m[92m    Checking[0m universal-hash v0.5.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:30.8819709Z [1m[92m   Compiling[0m multer v3.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:30.9699836Z [1m[92m    Checking[0m base64 v0.13.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.0689624Z [1m[92m    Checking[0m pxfm v0.1.28
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.0793061Z [1m[92m    Checking[0m opaque-debug v0.3.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.1279906Z [1m[92m    Checking[0m color_quant v1.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.1879775Z [1m[92m    Checking[0m base64 v0.21.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.1969605Z [1m[92m    Checking[0m psl-types v2.0.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.2509569Z [1m[92m   Compiling[0m hex v0.4.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.3657705Z [1m[92m    Checking[0m bumpalo v3.20.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.4390011Z [1m[92m   Compiling[0m thiserror v1.0.69
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.5099721Z [1m[92m    Checking[0m number_prefix v0.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.5709547Z [1m[92m   Compiling[0m heck v0.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.5980010Z [1m[92m    Checking[0m static_assertions v1.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.6299790Z [1m[92m    Checking[0m lebe v0.5.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.7303478Z [1m[92m    Checking[0m bit_field v0.10.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.7359609Z [1m[92m   Compiling[0m dotenvy v0.15.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.8117322Z [1m[92m   Compiling[0m unicase v2.9.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.8376996Z [1m[92m    Checking[0m unicode-segmentation v1.13.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.9399789Z [1m[92m    Checking[0m byteorder-lite v0.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:31.9829814Z [1m[92m   Compiling[0m macro_rules_attribute-proc_macro v0.2.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:32.1253680Z [1m[92m    Checking[0m rgb v0.8.53
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:32.1380209Z [1m[92m    Checking[0m spm_precompiled v0.1.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:32.2460218Z [1m[92m    Checking[0m image-webp v0.2.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:32.2569662Z [1m[92m    Checking[0m macro_rules_attribute v0.2.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:32.2879715Z [1m[92m   Compiling[0m mime_guess v2.0.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:32.3856567Z [1m[92m    Checking[0m ravif v0.13.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:32.5549939Z [1m[92m   Compiling[0m sqlx-macros-core v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:32.6560133Z [1m[92m    Checking[0m time v0.3.47
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:33.0158634Z [1m[92m    Checking[0m exr v1.74.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:33.0819941Z [1m[92m    Checking[0m moxcms v0.8.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:34.0750192Z [1m[92m    Checking[0m compact_str v0.9.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:34.1739703Z [1m[92m    Checking[0m indicatif v0.17.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:34.4123286Z [1m[92m    Checking[0m zopfli v0.8.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:34.4680466Z [1m[92m    Checking[0m rustls-pemfile v1.0.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:34.5312310Z [1m[92m    Checking[0m psl v2.1.200
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:34.7072896Z [1m[92m    Checking[0m gif v0.14.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:34.9470006Z [1m[92m    Checking[0m polyval v0.6.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:35.3110021Z [1m[92m    Checking[0m monostate v0.1.18
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:36.1489718Z [1m[92m    Checking[0m cssparser v0.31.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:36.2553480Z [1m[92m    Checking[0m png v0.18.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:36.9489775Z [1m[92m    Checking[0m ureq v2.12.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:36.9599290Z [1m[92m    Checking[0m reqwest v0.12.28
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:37.6468714Z [1m[92m    Checking[0m derive_builder v0.20.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:37.6615716Z [1m[92m    Checking[0m onig v6.5.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:37.6970326Z [1m[92m    Checking[0m tiff v0.11.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:37.9865639Z [1m[92m    Checking[0m dirs v6.0.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:38.0539754Z [1m[92m   Compiling[0m rust-embed-utils v8.11.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:38.0810050Z [1m[92m   Compiling[0m toml v0.8.23
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:38.1209574Z [1m[92m    Checking[0m hyper-tls v0.5.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:38.1669694Z [1m[92m    Checking[0m ndarray v0.17.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:38.2169651Z [1m[92m    Checking[0m xml5ever v0.17.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:38.5699974Z [1m[92m    Checking[0m rayon-cond v0.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:38.6319735Z [1m[92m    Checking[0m ed25519 v2.2.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:38.6569672Z [1m[92m    Checking[0m fxhash v0.2.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:38.6729797Z [1m[92m    Checking[0m pkcs1 v0.7.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:38.7130023Z [1m[92m    Checking[0m qoi v0.4.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:38.8239929Z [1m[92m    Checking[0m dary_heap v0.3.8
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:38.8589691Z [1m[92m   Compiling[0m async-trait v0.1.89
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:38.9120125Z [1m[92m   Compiling[0m thiserror-impl v1.0.69
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:38.9289689Z [1m[92m   Compiling[0m derive_more v0.99.20
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:39.5349832Z [1m[92m    Checking[0m servo_arc v0.3.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:39.6349889Z [1m[92m    Checking[0m unicode-normalization-alignments v0.1.12
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:39.6408847Z [1m[92m    Checking[0m inotify-sys v0.1.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:39.8060148Z [1m[92m    Checking[0m sync_wrapper v0.1.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:39.8460170Z [1m[92m    Checking[0m cpufeatures v0.3.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:39.8770109Z [1m[92m    Checking[0m typed-path v0.12.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:39.9549086Z [1m[92m    Checking[0m unicode_categories v0.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:40.0693570Z [1m[92m    Checking[0m extended v0.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:40.1318012Z [1m[92m    Checking[0m debug_unsafe v0.1.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:40.1689836Z [1m[92m    Checking[0m atoi_simd v0.17.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:40.2840100Z [1m[92m    Checking[0m symphonia-format-riff v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:40.4389659Z [1m[92m    Checking[0m tokenizers v0.22.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:40.6719559Z [1m[92m    Checking[0m zip v7.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:41.3080081Z [1m[92m    Checking[0m chacha20 v0.10.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:41.3870123Z [1m[92m    Checking[0m ort v2.0.0-rc.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:41.4569687Z [1m[92m    Checking[0m reqwest v0.11.27
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:42.0724419Z [1m[92m    Checking[0m inotify v0.11.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:42.7939838Z [1m[92m    Checking[0m axum-core v0.4.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:42.9967570Z [1m[92m    Checking[0m image v0.25.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:43.4700091Z [1m[92m    Checking[0m rsa v0.9.10
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:43.8029864Z [1m[92m    Checking[0m ed25519-dalek v2.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:43.9310241Z [1m[92m   Compiling[0m sovereign-core v1.3.1 (/home/runner/work/sovereign-pair/sovereign-pair/core)
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:44.1566083Z [1m[92m    Checking[0m markup5ever_rcdom v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:44.2440054Z [1m[92m   Compiling[0m rust-embed-impl v8.11.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:44.3869782Z [1m[92m    Checking[0m hf-hub v0.4.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:44.5909436Z [1m[92m    Checking[0m addr v0.15.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:44.8675532Z [1m[92m    Checking[0m ghash v0.5.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:44.9210135Z [1m[92m   Compiling[0m sqlx-macros v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:44.9480163Z [1m[92m    Checking[0m simple_asn1 v0.6.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:45.0819423Z [1m[92m    Checking[0m p256 v0.13.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:45.0939342Z [1m[92m    Checking[0m p384 v0.13.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:45.2749511Z [1m[92m    Checking[0m ctr v0.9.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:45.3430006Z [1m[92m    Checking[0m aes v0.8.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:45.4469456Z [1m[92m    Checking[0m getopts v0.2.24
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:45.5081170Z [1m[92m    Checking[0m symphonia-codec-vorbis v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:45.5749094Z [1m[92m    Checking[0m symphonia-format-mkv v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:45.6859689Z [1m[92m    Checking[0m symphonia-format-isomp4 v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:45.7647818Z [1m[92m    Checking[0m symphonia-format-ogg v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:45.8059652Z [1m[92m    Checking[0m symphonia-bundle-flac v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:45.8336945Z [1m[92m    Checking[0m matchers v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:45.8950283Z [1m[92m    Checking[0m symphonia-format-caf v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:45.9926035Z [1m[92m    Checking[0m symphonia-bundle-mp3 v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:45.9999567Z [1m[92m    Checking[0m safetensors v0.7.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.0250046Z [1m[92m    Checking[0m pem v3.0.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.0969606Z [1m[92m    Checking[0m itertools v0.13.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.1169661Z [1m[92m    Checking[0m symphonia-codec-alac v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.2184402Z [1m[92m    Checking[0m symphonia-codec-pcm v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.2279681Z [1m[92m    Checking[0m symphonia-codec-aac v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.3245074Z [1m[92m    Checking[0m symphonia-codec-adpcm v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.4029581Z [1m[92m    Checking[0m quick-xml v0.39.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.4679588Z [1m[92m    Checking[0m codepage v0.1.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.5057205Z [1m[92m    Checking[0m sharded-slab v0.1.7
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.5145726Z [1m[92m    Checking[0m notify-types v2.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.6653312Z [1m[92m    Checking[0m tracing-log v0.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.7489976Z [1m[92m   Compiling[0m async-stream-impl v0.3.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.8949784Z [1m[92m    Checking[0m socket-pktinfo v0.3.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.8999566Z [1m[92m    Checking[0m aead v0.5.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.9571373Z [1m[92m    Checking[0m serde_path_to_error v0.1.20
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:46.9759784Z [1m[92m    Checking[0m csv-core v0.1.13
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.1099972Z [1m[92m    Checking[0m if-addrs v0.15.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.1179821Z [1m[92m    Checking[0m thread_local v1.1.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.2086269Z [1m[92m    Checking[0m matchit v0.7.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.2145532Z [1m[92m    Checking[0m rustc-hash v1.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.2206524Z [1m[92m    Checking[0m seahash v4.1.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.2529469Z [1m[92m    Checking[0m nu-ansi-term v0.50.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.2749702Z [1m[92m    Checking[0m unsafe-libyaml v0.2.11
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.2859380Z [1m[92m    Checking[0m fast-float2 v0.2.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.3469767Z [1m[92m    Checking[0m ego-tree v0.6.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.4135654Z [1m[92m    Checking[0m fastrand v2.4.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.4779612Z [1m[92m    Checking[0m scraper v0.20.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.5289689Z [1m[92m    Checking[0m mdns-sd v0.18.2
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.6826609Z [1m[92m    Checking[0m calamine v0.34.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.7950158Z [1m[92m    Checking[0m tracing-subscriber v0.3.23
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:47.8079847Z [1m[92m    Checking[0m serde_yaml v0.9.34+deprecated
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:48.3568089Z [1m[92m    Checking[0m axum v0.7.9
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:48.6279687Z [1m[92m    Checking[0m adblock v0.12.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:48.7361823Z [1m[92m    Checking[0m csv v1.4.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:48.7419488Z [1m[92m    Checking[0m async-stream v0.3.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:48.8028769Z [1m[92m    Checking[0m aes-gcm v0.10.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:48.8979766Z [1m[92m    Checking[0m notify v8.2.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:49.0692494Z [1m[92m    Checking[0m symphonia v0.5.5
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:49.0779848Z [1m[92m    Checking[0m fastembed v5.13.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:49.1170135Z [1m[92m    Checking[0m jsonwebtoken v10.3.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:49.5361232Z [1m[92m    Checking[0m sqlx v0.8.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:49.6099603Z [1m[92m    Checking[0m rust-embed v8.11.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:49.8255546Z [1m[92m    Checking[0m readability v0.3.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:49.9857239Z [1m[92m    Checking[0m rand v0.10.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:50.0739631Z [1m[92m    Checking[0m futures v0.3.32
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:50.0995011Z [1m[92m    Checking[0m ndarray v0.16.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:50.1702416Z [1m[33mwarning[0m: sovereign-core@1.3.1: O Sovereign Build System está vetorizando a lista de APIs públicas...
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:50.1746696Z [1m[33mwarning[0m: sovereign-core@1.3.1: APIs listadas com sucesso (Base64 gerado).
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:50.1760481Z [1m[33mwarning[0m: sovereign-core@1.3.1: Prompt Vault: 9 hashes SHA-256 compilados.
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:50.1761704Z [1m[92m    Checking[0m zip v0.6.6
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:50.4360416Z [1m[92m   Compiling[0m async-recursion v1.1.1
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:50.4599779Z [1m[92m    Checking[0m quick-xml v0.31.0
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:50.8190003Z [1m[92m    Checking[0m sysinfo v0.38.4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:50.8419821Z [1m[92m    Checking[0m urlencoding v2.1.3
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:58.0909583Z [1m[91merror[0m[1m: this boolean expression can be simplified[0m
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:58.0910323Z    [1m[94m--> [0msrc/api.rs:774:4
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:58.0910743Z     [1m[94m|[0m
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:58.0911543Z [1m[94m774[0m [1m[94m|[0m if (payload.deep_research.unwrap_or(false) || is_web) && (!is_trivial || is_web) {
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:58.0913113Z     [1m[94m|[0m    [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m [1m[91mhelp: try: `is_web || payload.deep_research.unwrap_or(false) && !is_trivial`[0m
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:58.0914413Z     [1m[94m|[0m
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:58.0915430Z     [1m[94m= [0m[1mhelp[0m: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#nonminimal_bool
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:58.0921829Z     [1m[94m= [0m[1mnote[0m: `-D clippy::nonminimal-bool` implied by `-D warnings`
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:58.0923092Z     [1m[94m= [0m[1mhelp[0m: to override `-D warnings` add `#[allow(clippy::nonminimal_bool)]`
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:36:58.0923611Z 
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:37:00.1685420Z [1m[33mwarning[0m: sovereign-core@1.3.1: O Sovereign Build System está vetorizando a lista de APIs públicas...
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:37:00.1686642Z [1m[33mwarning[0m: sovereign-core@1.3.1: APIs listadas com sucesso (Base64 gerado).
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:37:00.1687575Z [1m[33mwarning[0m: sovereign-core@1.3.1: Prompt Vault: 9 hashes SHA-256 compilados.
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:37:00.1688816Z [1m[91merror[0m: could not compile `sovereign-core` (bin "sovereign-core") due to 1 previous error
+🦀 Gate 3: Clippy + Cargo Test	Cargo Clippy (zero warnings enforced)	2026-04-25T10:37:00.2790678Z ##[error]Process completed with exit code 101.
+✅ FOSS DevSecOps Gate	Evaluate gate results	﻿2026-04-25T10:37:06.4966384Z ##[group]Run echo "═══════════════════════════════════════════════"
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4967289Z [36;1mecho "═══════════════════════════════════════════════"[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4968021Z [36;1mecho "  FOSS Enterprise DevSecOps — Gate Summary"[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4968719Z [36;1mecho "═══════════════════════════════════════════════"[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4969415Z [36;1mecho ""[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4970281Z [36;1mecho "Pipeline Security: success"[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4970898Z [36;1mecho "SAST (Semgrep):    success"[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4971431Z [36;1mecho "SCA (Trivy):       failure"[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4972084Z [36;1mecho "Rust (Clippy+Test):failure"[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4972631Z [36;1mecho "Python (Ruff+Test):success"[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4973230Z [36;1mecho "Svelte (Check):    success"[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4973834Z [36;1mecho ""[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4974238Z [36;1m[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4974685Z [36;1m# Fail if any critical gate failed[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4975660Z [36;1mif [[ "success" == "failure" ]] || \[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4976248Z [36;1m   [[ "success" == "failure" ]] || \[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4976887Z [36;1m   [[ "failure" == "failure" ]] || \[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4977468Z [36;1m   [[ "success" == "failure" ]]; then[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4978127Z [36;1m  echo "❌ CRITICAL GATE FAILURE — Merge blocked."[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4978717Z [36;1m  exit 1[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4979168Z [36;1mfi[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4979701Z [36;1m[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4980196Z [36;1m# Warn on non-critical failures[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4980810Z [36;1mif [[ "failure" == "failure" ]]; then[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4981532Z [36;1m  echo "::warning::Trivy SCA failed — review dependency vulnerabilities."[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4982481Z [36;1mfi[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4983015Z [36;1m[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4983688Z [36;1mif [[ "success" == "failure" ]]; then[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4984831Z [36;1m  echo "::warning::Svelte Check failed — review type declarations."[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4985870Z [36;1mfi[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4986277Z [36;1m[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4986626Z [36;1mecho ""[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4987243Z [36;1mecho "🎯 ALL FOSS DevSecOps Gates Passed — Merge authorized."[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.4988069Z [36;1mecho "ℹ️  Secret scanning handled by local pre-push hook (Gitleaks Docker)."[0m
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5206883Z shell: /usr/bin/bash -e {0}
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5207751Z env:
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5208195Z   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5208869Z   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5209445Z ##[endgroup]
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5484390Z ═══════════════════════════════════════════════
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5485306Z   FOSS Enterprise DevSecOps — Gate Summary
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5485994Z ═══════════════════════════════════════════════
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5486343Z 
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5486542Z Pipeline Security: success
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5487050Z SAST (Semgrep):    success
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5487579Z SCA (Trivy):       failure
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5488034Z Rust (Clippy+Test):failure
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5488527Z Python (Ruff+Test):success
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5488988Z Svelte (Check):    success
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5489298Z 
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5489674Z ❌ CRITICAL GATE FAILURE — Merge blocked.
+✅ FOSS DevSecOps Gate	Evaluate gate results	2026-04-25T10:37:06.5505170Z ##[error]Process completed with exit code 1.
