@@ -78,4 +78,13 @@ sequenceDiagram
 ---
 
 ## 4. Guia de Manutenção de "Parafusos"
-(Em construção: Detalhamento de cada módulo do `core/src`)
+
+Cada módulo do sistema foi auditado e documentado minunciosamente (Rustdoc/TSDoc):
+
+- **[api.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/api.rs)**: O cérebro do sistema. Gerencia roteamento agêntico, MLA e injeção de contexto RAG.
+- **[sync_engine.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/sync_engine.rs)**: Orquestra a "Verdade Dupla" entre SQLite e Markdown via File Watcher resiliente.
+- **[api_trainer.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/api_trainer.rs)**: Gestão de Python Workers, Sandboxing e o motor de Deep Research (Fact Verification).
+- **[hardware.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/hardware.rs)**: Telemetria de baixo nível (Vulkan/Sysfs) e o guardião anti-OOM.
+- **[kms.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/kms.rs)**: Infraestrutura de segurança AES-256-GCM com proteção de memória Zeroize.
+- **[ssh_mesh_connector.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/ssh_mesh_connector.rs)**: Tecelagem de túneis SSH para a malha P2P e Nuvem Oracle.
+- **[state.svelte.ts](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/svelte-ui/src/lib/state.svelte.ts)**: Estado global reativo via Svelte 5 Runes e motor de streaming SSE.
