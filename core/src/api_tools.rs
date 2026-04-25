@@ -24,6 +24,8 @@ pub struct CreateKanbanTaskRequest {
     pub priority: Option<String>,
 }
 
+pub mod openrouter_client;
+
 // --------------------------------------------------------
 // Agentic Tools: Exposes System functionality to the LLM
 // --------------------------------------------------------
