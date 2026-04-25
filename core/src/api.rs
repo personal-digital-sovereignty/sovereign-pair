@@ -1,6 +1,6 @@
 use axum::{ extract::{Json, State}, response::{ sse::{Event, Sse}, IntoResponse, Response, }, }; use futures_util::StreamExt;  use serde_json::{json, Value}; use std::convert::Infallible; use std::sync::Arc; use tracing::{error, info};
 
-use crate::models::{ OpenAIChatChunkChoice, OpenAIChatChunkDelta, OpenAIChatChunkResponse, OpenAIChatRequest, }; use crate::AppState;
+use crate::models::{ OpenAIChatChunkChoice, OpenAIChatChunkDelta, OpenAIChatChunkResponse, OpenAIChatRequest, OpenRouterSettings }; use crate::AppState; use crate::api_tools::openrouter_client::OpenRouterClient;
 // removed unused explicit scraper import
 
 // -------------------------------------------------------------
@@ -1374,6 +1374,125 @@ if !is_custom_cluster && ollama_base_url == "http://host.docker.internal:11434" 
     // Simplificado: sempre usar localhost se for host native O.S para compatibilidade IPv6 (MacOS)
     if std::env::var("SOVEREIGN_RUN_ENV").unwrap_or_default() == "native" {
          ollama_base_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()).to_string();
+    }
+}
+
+
+
+let mut openrouter_settings: Option<OpenRouterSettings> = None;
+if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'openrouter'")
+    .fetch_optional(&state.db).await {
+    let val: String = sqlx::Row::get(&row, "value_json");
+    if let Ok(mut settings) = serde_json::from_str::<OpenRouterSettings>(&val) {
+        // Decifra a API Key para uso em memória
+        if let Some(decrypted) = crate::kms::decrypt_vault_secret(&settings.api_key) {
+            settings.api_key = decrypted;
+            openrouter_settings = Some(settings);
+        }
+    }
+}
+
+let is_openrouter_model = ollama_model.starts_with("openrouter/");
+let use_openrouter = is_openrouter_model || (openrouter_settings.as_ref().map(|s| s.enabled).unwrap_or(false) && (ollama_model.contains("gpt") || ollama_model.contains("claude")));
+
+if use_openrouter && let Some(settings) = openrouter_settings {
+    info!("☁️ [Sovereign Mesh] Roteando requisição para OpenRouter: [{}]", ollama_model);
+    
+    // Converte a payload de volta para OpenAIChatRequest
+    // (Ollama payload é levemente diferente mas compatível em sua maioria)
+    let mut or_payload: crate::models::OpenAIChatRequest = serde_json::from_value(ollama_payload.clone()).unwrap_or_else(|_| {
+        crate::models::OpenAIChatRequest {
+            model: ollama_model.clone().replace("openrouter/", ""),
+            messages: vec![],
+            stream: Some(true),
+            temperature: sys_temperature.map(|t| t as f32),
+            top_p: None,
+            n: None,
+            max_tokens: None,
+            stop: None,
+            presence_penalty: None,
+            frequency_penalty: None,
+            user: None,
+            tools: None,
+            tool_choice: None,
+            visual_artist_mode: None,
+            deep_research: None,
+            rewoo_enabled: None,
+            session_id: None,
+            workspace_id: None,
+            project_id: None,
+            firewall_enabled: None,
+        }
+    });
+
+    // Strip prefix if necessary
+    if is_openrouter_model {
+        or_payload.model = ollama_model.replace("openrouter/", "");
+    }
+
+    let or_client = OpenRouterClient::new(settings);
+    
+    match or_client.chat_completions_stream(or_payload).await {
+        Ok(mut or_stream) => {
+            let tx_clone = tx_sse_clone.clone();
+            let mut accumulator = String::new();
+            let start_time = std::time::Instant::now();
+            let tracking_telemetry = state.telemetry.clone();
+            let tracking_db = state.db.clone();
+            let tracking_model = ollama_model.clone();
+            let tracking_log_sender = state.log_sender.clone();
+            let active_session_id = active_session_id;
+            let tracking_human_query = human_prompt.clone();
+            let mut tracking_rag_context = project_context.clone();
+            if !web_context.is_empty() { tracking_rag_context.push('\n'); tracking_rag_context.push_str(&web_context); }
+            if !sys_context.is_empty() { tracking_rag_context.push('\n'); tracking_rag_context.push_str(&sys_context); }
+
+            tokio::spawn(async move {
+                while let Some(event_res) = or_stream.next().await {
+                    match event_res {
+                        Ok(reqwest_eventsource::Event::Message(msg)) => {
+                            if msg.data == "[DONE]" { break; }
+                            
+                            if let Ok(chunk) = serde_json::from_str::<crate::models::OpenAIChatChunkResponse>(&msg.data) {
+                                if let Some(choice) = chunk.choices.first() {
+                                    if let Some(content) = &choice.delta.content {
+                                        accumulator.push_str(content);
+                                    }
+                                }
+                                let _ = tx_clone.send(axum::response::sse::Event::default().data(msg.data));
+                            }
+                        },
+                        Ok(_) => {},
+                        Err(e) => {
+                            error!("OpenRouter Stream Error: {}", e);
+                            break;
+                        }
+                    }
+                }
+                
+                // Finalização e Métricas
+                let duration = start_time.elapsed().as_millis();
+                let total_tokens = accumulator.split_whitespace().count(); // Heurística se OpenRouter não mandar usage
+                
+                if let Ok(mut t) = tracking_telemetry.write() {
+                    t.record_session(total_tokens, duration, &tracking_model);
+                }
+                
+                let _ = tracking_log_sender.send(crate::models::LogEntry {
+                    timestamp: chrono::Local::now().to_rfc3339(),
+                    level: "system".to_string(),
+                    message: format!("⚡ Cloud Mesh Inference: {} tokens em {}ms [{}]", total_tokens, duration, tracking_model),
+                });
+
+                crate::api_chat::save_message(&tracking_db, active_session_id, "assistant", &accumulator).await;
+                let _ = tx_clone.send(axum::response::sse::Event::default().data("[DONE]"));
+            });
+
+            return; // Encerra a closure do tokio::spawn principal, permitindo que o SSE Stream principal flua
+        },
+        Err(e) => {
+            error!("OpenRouter Connection Failed: {}. Falling back to local...", e);
+        }
     }
 }
 
