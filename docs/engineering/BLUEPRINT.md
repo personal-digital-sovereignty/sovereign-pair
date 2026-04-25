@@ -68,8 +68,20 @@ Manifesto de design "Modern Enterprise" e tokens estéticos do sistema.
 ### 2.7 [Aquisição de Modelos](model_acquisition.md)
 Guia de provisionamento offline para pesos de modelos LLM, VLM e OCR.
 
-### 2.8 [Infraestrutura](infrastructure.md)
-Manual de provisionamento de nós, topologia cloud (OCI) e otimização de baixo nível (ZRAM/Swap).
+### 2.8 [Infraestrutura & Otimização](infrastructure.md)
+Manual de provisionamento de nós, topologia cloud (OCI) e otimização de hardware (ZRAM/Swap).
+
+---
+
+## 5. Hub de Referências Técnicas
+
+O ecossistema Sovereign Pair é documentado de forma modular para garantir profundidade técnica e facilidade de manutenção:
+
+- **[Arquitetura do Core](core_architecture.md)**: Detalhamento do motor Rust, Sandbox Python e Vision Engine.
+- **[Estratégia de Modelos](model_strategy.md)**: Manifesto de Tiers, Capacidades e Destilação.
+- **[Mecânicas de RAG](rag_mechanics.md)**: Conhecimento Efêmero, Pesquisa Profunda e Grounding.
+- **[Segurança & Observabilidade](security_observability.md)**: Blindagem Zero-Trust e Telemetry Sinkhole.
+- **[Identidade Visual](visual_identity.md)**: Guia estético do Design System "Modern Enterprise".
 
 ---
 
