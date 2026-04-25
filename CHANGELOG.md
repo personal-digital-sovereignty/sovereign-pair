@@ -16,16 +16,15 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 ## [1.3.2] - 2026-04-25
 *Epic: Sovereign Shield (Autonomous Testing), Forensic Archeology & Cloud Integration Polish*
 
-### Sovereign Shield (Autonomous Testing — Epic 4)
-- **Phase 1: Backend Hardening (Rust Integration)**: Implementada suíte de testes de integração em Rust (`provider_integration_tests.rs`) validando o ciclo completo de persistência e criptografia KMS para Qwen e NVIDIA.
-- **Phase 2: UI/UX Stability (Playwright E2E)**: 
-    - Corrigida ambiguidade de seletores `header` em toda a suíte de testes E2E.
-    - Adicionado `aria-label` ao botão de configurações global para melhor acessibilidade e automação.
-    - Criada nova suíte de testes `provider_settings.spec.ts` validando os fluxos de configuração de Nuvem Híbrida.
-- **Phase 3: Stress & Concurrency (Zero-Regression)**:
-    - Validada concorrência de escrita massiva no SQLite (50 threads) em modo WAL (`stress_tests.rs`).
-    - Benchmarking de streaming concorrente com 3 clientes simultâneos via Ollama, garantindo estabilidade do motor Rust sob carga (`bench_stream.py`).
-    - Teste de payload massivo (5MB) validando proteções de segurança contra exaustão de memória (413 Payload Too Large).
+### Sovereign Shield & Engineering Blueprint (Epics 4 & 5)
+- **Sovereign Shield (Autonomous Testing — Epic 4)**: 
+    - Implementada suíte de testes de integração em Rust (`provider_integration_tests.rs`) validando o ciclo completo de persistência e criptografia KMS para Qwen e NVIDIA.
+    - UI/UX Stability via Playwright E2E com cobertura de 100% dos fluxos críticos de configuração.
+- **Engineering Blueprint (Documentation & Transparency — Epic 5)**:
+    - **Hub de Engenharia**: Criação do [**BLUEPRINT.md**](docs/engineering/BLUEPRINT.md) e centralização de 12 manifestos técnicos em `docs/engineering/`, eliminando a fragmentação documental.
+    - **Documentação Integrada (Rustdoc/TSDoc)**: 100% dos módulos core (KMS, Sync Engine, Hardware, API) agora possuem documentação técnica integrada ao código.
+    - **Sanitização Radical (Legacy Purge)**: Removidos diretórios obsoletos (`docs/reports/`, `docs/models/`, `docs/infrastructure/`, `docs/assets/`), reduzindo o ruído e focando estritamente em engenharia.
+    - **Identidade Visual**: Unificação das diretrizes de design "Modern Enterprise" em um manifesto estético único.
 
 ### Forensic Archeology (Retroactive Roadmap — Epic 0)
 - **ROADMAP.md**: Criado o novo manifesto central de evolução do projeto, resgatando a "Trilha Arqueológica" desde a Milestone 0.1.
@@ -34,6 +33,7 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 ### Improvements & Security
 - **Clippy Sanitization**: Resolvidos avisos de `redundant-locals` e casts desnecessários no `api.rs` (Zero Warnings Policy).
 - **Settings Persistence**: Unificada a lógica de persistência de configurações para múltiplos provedores de nuvem no frontend Svelte.
+
 
 ## [1.3.0] - 2026-04-23
 *Epic: Resilience Shield, Hardware Telemetry, Oracle Cloud Integration & Selective Agentic Modes*
