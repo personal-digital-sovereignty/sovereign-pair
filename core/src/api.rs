@@ -771,7 +771,7 @@ tokio::spawn(async move {
     let is_web = human_prompt.to_lowercase().starts_with("/web");
     let is_sys = human_prompt.to_lowercase().starts_with("/sys");
 
-if (payload.deep_research.unwrap_or(false) || is_web) && (!is_trivial || is_web) {
+if is_web || (payload.deep_research.unwrap_or(false) && !is_trivial) {
     let mut url_to_scrape = String::new();
     let mut user_question = human_prompt.clone();
     
@@ -1860,6 +1860,8 @@ pub async fn telemetry_snapshot_handler(State(state): State<Arc<AppState>>) -> i
                 io_tx_bytes: 0,
                 gpu_name: "GPU Compute".to_string(),
                 gpu_vram_total_mb: 0,
+                gpu_vram_used_mb: 0,
+                unified_memory: false,
             }
         },
     };
