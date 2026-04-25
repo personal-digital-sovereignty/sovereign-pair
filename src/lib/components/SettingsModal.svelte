@@ -1,8 +1,8 @@
 <script lang="ts">
 import { API_BASE_URL } from '$lib/env_config';
 
-  import { settingsState, saveSettings, openRouterState, loadOpenRouterSettings, saveOpenRouterSettings } from '$lib/settings.svelte';
-  import { Settings, ChevronDown, ChevronsUpDown, X, Plus, Trash2, Database, Globe, ShieldCheck } from 'lucide-svelte';
+  import { settingsState, saveSettings, openRouterState, loadOpenRouterSettings, saveOpenRouterSettings, qwenState, loadQwenSettings, saveQwenSettings } from '$lib/settings.svelte';
+  import { Settings, ChevronDown, ChevronsUpDown, X, Plus, Trash2, Database, Globe, ShieldCheck, Cloud, Sparkles } from 'lucide-svelte';
   import { onMount } from 'svelte';
   
   let activeTab = $state('Workspaces'); // Engine, Workspaces, Persona, Guardrails, Profile
@@ -32,6 +32,7 @@ import { API_BASE_URL } from '$lib/env_config';
       loadWorkspaces();
       loadSearxng();
       loadOpenRouterSettings();
+      loadQwenSettings();
   });
   
   async function loadWorkspaces() {
@@ -152,8 +153,8 @@ import { API_BASE_URL } from '$lib/env_config';
         </div>
 
         <!-- Tabs -->
-        <div class="flex px-8 border-b border-slate-200 dark:border-[#424859]/20 bg-slate-50/50 dark:bg-[#0c1324] transition-colors">
-            {#each ['Workspaces', 'Engine', 'Cloud Mesh', 'Persona', 'Profile', 'Guardrails'] as tab}
+        <div class="flex px-8 border-b border-slate-200 dark:border-[#424859]/20 bg-slate-50/50 dark:bg-[#0c1324] transition-colors overflow-x-auto no-scrollbar">
+            {#each ['Workspaces', 'Engine', 'Cloud Mesh', 'Alibaba Qwen', 'Persona', 'Profile', 'Guardrails'] as tab}
                 <button 
                     class="px-6 py-3 text-sm font-bold border-b-2 transition-colors cursor-pointer {activeTab === tab ? 'border-indigo-700 dark:border-[#74b0ff] text-indigo-800 dark:text-[#74b0ff]' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}"
                     onclick={() => activeTab = tab}
@@ -360,6 +361,58 @@ import { API_BASE_URL } from '$lib/env_config';
                 </section>
             {/if}
 
+            {#if activeTab === 'Alibaba Qwen'}
+                <section class="space-y-8">
+                    <div class="flex items-center justify-between p-6 bg-orange-50 dark:bg-orange-500/5 border border-orange-100 dark:border-orange-500/20 rounded-2xl">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <Sparkles class="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Alibaba Qwen (DashScope)</h3>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm">Use o poder dos modelos Qwen da Alibaba Cloud via API DashScope nativa.</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" bind:checked={qwenState.enabled} class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-600"></div>
+                        </label>
+                    </div>
+
+                    <div class="space-y-6 {qwenState.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none transition-opacity'}">
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                <ShieldCheck class="w-4 h-4" /> DashScope API Key
+                            </label>
+                            <div class="relative">
+                                <input 
+                                    type="password" 
+                                    bind:value={qwenState.api_key} 
+                                    class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500/20 outline-none font-mono" 
+                                    placeholder="sk-..." 
+                                />
+                                <div class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-widest bg-orange-50 dark:bg-orange-500/10 px-2 py-1 rounded">KMS Protected</div>
+                            </div>
+                            <p class="text-[10px] text-slate-400 dark:text-slate-500">Chave protegida pelo Sovereign KMS (AES-256-GCM).</p>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Default Qwen Model</label>
+                            <input 
+                                bind:value={qwenState.default_model} 
+                                class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500/20 outline-none font-mono" 
+                                placeholder="qwen-plus" 
+                            />
+                            <p class="text-[10px] text-slate-400 dark:text-slate-500">Ex: `qwen-turbo`, `qwen-plus`, `qwen-max`, `qwen-long`.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 bg-slate-50 dark:bg-[#0c1324] border border-slate-100 dark:border-[#424859]/20 rounded-xl">
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed italic">
+                            * Note: Para usar estes modelos no chat, prefixe o nome do modelo com `qwen/` (ex: `qwen/qwen-max`) ou ative a opção "Alibaba Qwen" acima.
+                        </p>
+                    </div>
+                </section>
+            {/if}
+
             {#if activeTab === 'Persona'}
                 <!-- AI Personality -->
                 <section class="space-y-4">
@@ -489,7 +542,7 @@ import { API_BASE_URL } from '$lib/env_config';
             <button onclick={closeModal} class="px-6 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer">
                 Discard Changes
             </button>
-            <button onclick={async () => { await saveSettings(); await saveOpenRouterSettings(); }} class="px-8 py-2.5 text-sm font-bold text-white bg-gradient-to-br from-indigo-700 to-indigo-800 dark:from-indigo-600 dark:to-indigo-500 rounded-lg shadow-lg hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer">
+            <button onclick={async () => { await saveSettings(); await saveOpenRouterSettings(); await saveQwenSettings(); }} class="px-8 py-2.5 text-sm font-bold text-white bg-gradient-to-br from-indigo-700 to-indigo-800 dark:from-indigo-600 dark:to-indigo-500 rounded-lg shadow-lg hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer">
                 Save Engine Config
             </button>
         </div>
