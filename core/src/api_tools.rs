@@ -25,6 +25,7 @@ pub struct CreateKanbanTaskRequest {
 }
 
 pub mod openrouter_client;
+pub mod qwen_client;
 
 // --------------------------------------------------------
 // Agentic Tools: Exposes System functionality to the LLM
