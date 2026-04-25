@@ -1465,7 +1465,6 @@ if use_openrouter && let Some(settings) = openrouter_settings {
                 let tracking_telemetry = state.telemetry.clone();
                 let tracking_db = state.db.clone();
                 let tracking_model = ollama_model.clone();
-                let active_session_id = active_session_id;
 
                 tokio::spawn(async move {
                     while let Some(event_res) = q_stream.next().await {
@@ -1516,7 +1515,7 @@ if use_openrouter && let Some(settings) = openrouter_settings {
         let mut nvidia_payload_model = ollama_model.replace("nvidia/", "");
         if nvidia_payload_model.is_empty() { nvidia_payload_model = nvidia_settings.default_model; }
 
-        match nvidia_client.stream_chat_completions(nvidia_payload_model, payload.messages.clone(), payload.temperature.map(|t| t as f32), payload.max_tokens).await {
+        match nvidia_client.stream_chat_completions(nvidia_payload_model, payload.messages.clone(), payload.temperature, payload.max_tokens).await {
             Ok(mut n_stream) => {
                 let tx_clone = tx_sse_clone.clone();
                 let mut accumulator = String::new();
@@ -1524,7 +1523,6 @@ if use_openrouter && let Some(settings) = openrouter_settings {
                 let tracking_telemetry = state.telemetry.clone();
                 let tracking_db = state.db.clone();
                 let tracking_model = ollama_model.clone();
-                let active_session_id = active_session_id;
 
                 tokio::spawn(async move {
                     while let Some(event_res) = n_stream.next().await {
@@ -1583,8 +1581,6 @@ if use_openrouter && let Some(settings) = openrouter_settings {
             let tracking_db = state.db.clone();
             let tracking_model = ollama_model.clone();
             let tracking_log_sender = state.log_sender.clone();
-            let active_session_id = active_session_id;
-            let tracking_human_query = human_prompt.clone();
             let mut tracking_rag_context = project_context.clone();
             if !web_context.is_empty() { tracking_rag_context.push('\n'); tracking_rag_context.push_str(&web_context); }
             if !sys_context.is_empty() { tracking_rag_context.push('\n'); tracking_rag_context.push_str(&sys_context); }
