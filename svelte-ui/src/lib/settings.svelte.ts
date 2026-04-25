@@ -177,3 +177,47 @@ export async function saveQwenSettings() {
         return false;
     }
 }
+
+// NVIDIA NIM Integration State (Epic 3)
+export const nvidiaState = $state({
+    enabled: false,
+    api_key: '',
+    default_model: 'meta/llama-3.1-405b-instruct',
+});
+
+export async function loadNvidiaSettings() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/v1/settings/nvidia`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            nvidiaState.enabled = data.enabled || false;
+            nvidiaState.api_key = data.api_key || '';
+            nvidiaState.default_model = data.default_model || 'meta/llama-3.1-405b-instruct';
+        }
+    } catch (e) {
+        console.error("Failed to load NVIDIA settings:", e);
+    }
+}
+
+export async function saveNvidiaSettings() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/v1/settings/nvidia`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}`
+            },
+            body: JSON.stringify({
+                enabled: nvidiaState.enabled,
+                api_key: nvidiaState.api_key,
+                default_model: nvidiaState.default_model
+            })
+        });
+        return res.ok;
+    } catch (e) {
+        console.error("Failed to save NVIDIA settings:", e);
+        return false;
+    }
+}

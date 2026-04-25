@@ -1,8 +1,8 @@
 <script lang="ts">
 import { API_BASE_URL } from '$lib/env_config';
 
-  import { settingsState, saveSettings, openRouterState, loadOpenRouterSettings, saveOpenRouterSettings, qwenState, loadQwenSettings, saveQwenSettings } from '$lib/settings.svelte';
-  import { Settings, ChevronDown, ChevronsUpDown, X, Plus, Trash2, Database, Globe, ShieldCheck, Cloud, Sparkles } from 'lucide-svelte';
+  import { settingsState, saveSettings, openRouterState, loadOpenRouterSettings, saveOpenRouterSettings, qwenState, loadQwenSettings, saveQwenSettings, nvidiaState, loadNvidiaSettings, saveNvidiaSettings } from '$lib/settings.svelte';
+  import { Settings, ChevronDown, ChevronsUpDown, X, Plus, Trash2, Database, Globe, ShieldCheck, Cloud, Sparkles, Cpu } from 'lucide-svelte';
   import { onMount } from 'svelte';
   
   let activeTab = $state('Workspaces'); // Engine, Workspaces, Persona, Guardrails, Profile
@@ -33,6 +33,7 @@ import { API_BASE_URL } from '$lib/env_config';
       loadSearxng();
       loadOpenRouterSettings();
       loadQwenSettings();
+      loadNvidiaSettings();
   });
   
   async function loadWorkspaces() {
@@ -154,7 +155,7 @@ import { API_BASE_URL } from '$lib/env_config';
 
         <!-- Tabs -->
         <div class="flex px-8 border-b border-slate-200 dark:border-[#424859]/20 bg-slate-50/50 dark:bg-[#0c1324] transition-colors overflow-x-auto no-scrollbar">
-            {#each ['Workspaces', 'Engine', 'Cloud Mesh', 'Alibaba Qwen', 'Persona', 'Profile', 'Guardrails'] as tab}
+            {#each ['Workspaces', 'Engine', 'Cloud Mesh', 'Alibaba Qwen', 'NVIDIA NIM', 'Persona', 'Profile', 'Guardrails'] as tab}
                 <button 
                     class="px-6 py-3 text-sm font-bold border-b-2 transition-colors cursor-pointer {activeTab === tab ? 'border-indigo-700 dark:border-[#74b0ff] text-indigo-800 dark:text-[#74b0ff]' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}"
                     onclick={() => activeTab = tab}
@@ -413,6 +414,58 @@ import { API_BASE_URL } from '$lib/env_config';
                 </section>
             {/if}
 
+            {#if activeTab === 'NVIDIA NIM'}
+                <section class="space-y-8">
+                    <div class="flex items-center justify-between p-6 bg-green-50 dark:bg-green-500/5 border border-green-100 dark:border-green-500/20 rounded-2xl">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <Cpu class="w-5 h-5 text-green-600 dark:text-green-400" />
+                                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">NVIDIA NIM (Accelerated Inference)</h3>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm">Acesse modelos de estado da arte otimizados pela NVIDIA via NIM API.</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" bind:checked={nvidiaState.enabled} class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                        </label>
+                    </div>
+
+                    <div class="space-y-6 {nvidiaState.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none transition-opacity'}">
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                <ShieldCheck class="w-4 h-4" /> NVIDIA API Key
+                            </label>
+                            <div class="relative">
+                                <input 
+                                    type="password" 
+                                    bind:value={nvidiaState.api_key} 
+                                    class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 outline-none font-mono" 
+                                    placeholder="nvapi-..." 
+                                />
+                                <div class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-widest bg-green-50 dark:bg-green-500/10 px-2 py-1 rounded">KMS Protected</div>
+                            </div>
+                            <p class="text-[10px] text-slate-400 dark:text-slate-500">Chave protegida pelo Sovereign KMS (AES-256-GCM).</p>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Default NIM Model</label>
+                            <input 
+                                bind:value={nvidiaState.default_model} 
+                                class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-[#424859]/50 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500/20 outline-none font-mono" 
+                                placeholder="meta/llama-3.1-405b-instruct" 
+                            />
+                            <p class="text-[10px] text-slate-400 dark:text-slate-500">Ex: `meta/llama-3.1-405b-instruct`, `nvidia/llama-3.1-nemotron-70b-instruct`.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 bg-slate-50 dark:bg-[#0c1324] border border-slate-100 dark:border-[#424859]/20 rounded-xl">
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed italic">
+                            * Note: Para usar estes modelos no chat, prefixe o nome do modelo com `nvidia/` (ex: `nvidia/meta/llama-3.1-405b-instruct`).
+                        </p>
+                    </div>
+                </section>
+            {/if}
+
             {#if activeTab === 'Persona'}
                 <!-- AI Personality -->
                 <section class="space-y-4">
@@ -542,7 +595,7 @@ import { API_BASE_URL } from '$lib/env_config';
             <button onclick={closeModal} class="px-6 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer">
                 Discard Changes
             </button>
-            <button onclick={async () => { await saveSettings(); await saveOpenRouterSettings(); await saveQwenSettings(); }} class="px-8 py-2.5 text-sm font-bold text-white bg-gradient-to-br from-indigo-700 to-indigo-800 dark:from-indigo-600 dark:to-indigo-500 rounded-lg shadow-lg hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer">
+            <button onclick={async () => { await saveSettings(); await saveOpenRouterSettings(); await saveQwenSettings(); await saveNvidiaSettings(); }} class="px-8 py-2.5 text-sm font-bold text-white bg-gradient-to-br from-indigo-700 to-indigo-800 dark:from-indigo-600 dark:to-indigo-500 rounded-lg shadow-lg hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer">
                 Save Engine Config
             </button>
         </div>
