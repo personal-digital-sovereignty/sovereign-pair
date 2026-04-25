@@ -133,3 +133,47 @@ export async function saveOpenRouterSettings() {
     }
 }
 
+
+// Alibaba Qwen Integration State (Epic 2)
+export const qwenState = $state({
+    enabled: false,
+    api_key: '',
+    default_model: 'qwen-plus',
+});
+
+export async function loadQwenSettings() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/v1/settings/qwen`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            qwenState.enabled = data.enabled || false;
+            qwenState.api_key = data.api_key || '';
+            qwenState.default_model = data.default_model || 'qwen-plus';
+        }
+    } catch (e) {
+        console.error("Failed to load Qwen settings:", e);
+    }
+}
+
+export async function saveQwenSettings() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/v1/settings/qwen`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('sovereign_token') || ''}`
+            },
+            body: JSON.stringify({
+                enabled: qwenState.enabled,
+                api_key: qwenState.api_key,
+                default_model: qwenState.default_model
+            })
+        });
+        return res.ok;
+    } catch (e) {
+        console.error("Failed to save Qwen settings:", e);
+        return false;
+    }
+}
