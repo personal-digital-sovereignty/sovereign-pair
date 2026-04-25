@@ -66,7 +66,22 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 - **Sandbox Quarantine Stability**: A mensagem de retorno artificial gerada para o LLM quando o Sandbox Quarentine bloqueia execução de script em favor da Symbiotic Pipeline (Rust) foi alterada de `BLOCKED` para `SUCCESS - DELEGATED TO NATIVE ENGINE`. Isso previne "hallucination feedback loops".
 - **Quantitative Tool Hardening (Finance Accuracy)**: A ferramenta `fetch_macroeconomy` foi blindada via System Prompt para atuar strictly em dados quantitativos oficiais. Isso impede que o modelo tente usar a ferramenta (gerando latência) para responder perguntas qualitativas sobre "insights" ou "conselhos" financeiros.
 
-## [1.2.10] - 2026-04-18
+## [1.3.1] - 2026-04-25
+*MacOS Visual Identity & Agentic Performance Hardening (Optional Deep Research & ReWOO)*
+
+### Added
+- **Optional ReWOO (Reasoning Without Observation)**: Adicionado controle granular sobre o planejamento de múltiplas etapas. O ReWOO agora é desativado por padrão e pode ser ativado via toggle na UI (`BrainCircuit`), economizando latência em queries triviais.
+- **Triage de Trivialidade**: Implementada camada de classificação Zero-Shot para detectar saudações (Bom dia, Olá) e comandos simples, ignorando automaticamente o acionamento de agentes pesados (Nurse/Scribe/ReWOO) para resposta instantânea.
+- **Reflexive Web-Augmented Generation (WAG)**: O Deep Research agora é opcional e só é acionado se o botão estiver ligado ou se o comando `/web` for utilizado explicitamente.
+
+### Fixed
+- **🍎 MacOS Tray Icon Identity**: Ícone do systray refatorado para transparência total e modo template nativo do macOS (`icon_as_template(true)`). O ícone agora se adapta automaticamente aos temas Claro e Escuro do sistema, mantendo a consistência visual.
+- **Deep Research / Web Trigger Logic**: Corrigida anomalia onde o comando `/web` era ignorado se a pergunta fosse curta. Agora comandos explícitos têm prioridade sobre o bloqueio de trivialidade.
+
+### Changed
+- **Default State - "Fast First"**: Todos os fluxos agentícos pesados agora são desativados por padrão no estado global (`state.svelte.ts`), garantindo uma experiência de chat rápida e responsiva "out of the box".
+
+## [1.3.0] - 2026-04-23
 *CI/CD Stability — Semgrep SAST False Positive Fix*
 
 ### Fixed
