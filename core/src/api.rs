@@ -1,6 +1,6 @@
 use axum::{ extract::{Json, State}, response::{ sse::{Event, Sse}, IntoResponse, Response, }, }; use futures_util::StreamExt;  use serde_json::{json, Value}; use std::convert::Infallible; use std::sync::Arc; use tracing::{error, info};
 
-use crate::models::{ OpenAIChatChunkChoice, OpenAIChatChunkDelta, OpenAIChatChunkResponse, OpenAIChatRequest, OpenRouterSettings }; use crate::AppState; use crate::api_tools::openrouter_client::OpenRouterClient;
+use crate::models::{ OpenAIChatChunkChoice, OpenAIChatChunkDelta, OpenAIChatChunkResponse, OpenAIChatRequest, OpenRouterSettings, QwenSettings }; use crate::AppState; use crate::api_tools::openrouter_client::OpenRouterClient; use crate::api_tools::qwen_client::QwenClient;
 // removed unused explicit scraper import
 
 // -------------------------------------------------------------
@@ -427,6 +427,20 @@ pub async fn chat_completions_handler(
     // Fallback/Extrator: Se 'stream' não vier especificado, assumimos True em respeito aos IDs nativos
     let is_stream = payload.stream.unwrap_or(true);
 let requested_model = payload.model.clone();
+let is_qwen_model = requested_model.starts_with("qwen/");
+let mut qwen_settings = QwenSettings::default();
+
+if is_qwen_model {
+    if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'qwen'").fetch_optional(&state.db).await {
+        let val: String = sqlx::Row::get(&row, "value_json");
+        if let Ok(parsed) = serde_json::from_str::<QwenSettings>(&val) {
+            qwen_settings = parsed;
+            if let Some(decrypted) = crate::kms::decrypt_vault_secret(&qwen_settings.api_key) {
+                qwen_settings.api_key = decrypted;
+            }
+        }
+    }
+}
 
 info!("🔥 [Sovereign Core] Interceptando requisição OpenCode/TUI para o modelo: [{}] | Streaming: {}", requested_model, is_stream);
 
@@ -1424,6 +1438,64 @@ if use_openrouter && let Some(settings) = openrouter_settings {
             firewall_enabled: None,
         }
     });
+
+    if is_qwen_model && qwen_settings.enabled {
+        let qwen_client = QwenClient::new(qwen_settings.api_key.clone());
+        let mut qwen_payload_model = ollama_model.replace("qwen/", "");
+        if qwen_payload_model.is_empty() { qwen_payload_model = qwen_settings.default_model; }
+
+        match qwen_client.stream_chat_completions(qwen_payload_model, payload.messages.clone(), payload.temperature.map(|t| t as f32), payload.max_tokens).await {
+            Ok(mut q_stream) => {
+                let tx_clone = tx_sse_clone.clone();
+                let mut accumulator = String::new();
+                let start_time = std::time::Instant::now();
+                let tracking_telemetry = state.telemetry.clone();
+                let tracking_db = state.db.clone();
+                let tracking_model = ollama_model.clone();
+                let active_session_id = active_session_id;
+
+                tokio::spawn(async move {
+                    while let Some(event_res) = q_stream.next().await {
+                        match event_res {
+                            Ok(event) => {
+                                if let Some(chunk) = qwen_client.transform_event(event) {
+                                    if let Some(choice) = chunk.choices.first() {
+                                        if let Some(content) = &choice.delta.content {
+                                            accumulator.push_str(content);
+                                        }
+                                    }
+                                    let _ = tx_clone.send(axum::response::sse::Event::default().data(serde_json::to_string(&chunk).unwrap_or_default()));
+                                }
+                            },
+                            Err(e) => {
+                                tracing::error!("❌ [Qwen Mesh] SSE Error: {}", e);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Finalization
+                    let _ = tx_clone.send(axum::response::sse::Event::default().data("[DONE]"));
+                    
+                    // Telemetry & DB store
+                    let duration_ms = start_time.elapsed().as_millis();
+                    let total_tokens = accumulator.split_whitespace().count(); // Heurística
+
+                    if let Ok(mut t) = tracking_telemetry.write() {
+                        t.record_session(total_tokens, duration_ms, &tracking_model);
+                    }
+                    
+                    crate::api_chat::save_message(&tracking_db, active_session_id, "assistant", &accumulator).await;
+                    let _ = tx_clone.send(axum::response::sse::Event::default().data("[DONE]"));
+                });
+                
+                return;
+            },
+            Err(e) => {
+                error!("❌ [Qwen Mesh] Connection Failed: {}", e);
+            }
+        }
+    }
 
     // Strip prefix if necessary
     if is_openrouter_model {
