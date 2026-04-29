@@ -187,18 +187,23 @@ jobs:
           - os: ubuntu-latest
             artifact_name: sovereign-core-linux-amd64
             binary_name: sovereign-core
+            target_triple: x86_64-unknown-linux-gnu
           - os: windows-latest
             artifact_name: sovereign-core-windows-amd64
             binary_name: sovereign-core.exe
+            target_triple: x86_64-pc-windows-msvc
           - os: ubuntu-24.04-arm
             artifact_name: sovereign-core-linux-arm64
             binary_name: sovereign-core
+            target_triple: aarch64-unknown-linux-gnu
           - os: macos-latest
             artifact_name: sovereign-core-macos-arm64
             binary_name: sovereign-core
-          - os: macos-13
+            target_triple: aarch64-apple-darwin
+          - os: macos-15-intel
             artifact_name: sovereign-core-macos-amd64
             binary_name: sovereign-core
+            target_triple: x86_64-apple-darwin
     runs-on: ${{ matrix.os }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -237,13 +242,13 @@ jobs:
       - name: Compile Sovereign Cibrid Core (Rust)
         working-directory: ./core
         run: |
-          cargo build --release
+          cargo build --release --target ${{ matrix.target_triple }}
 
       - name: Upload Core Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: core/target/release/${{ matrix.binary_name }}
+          path: core/target/${{ matrix.target_triple }}/release/${{ matrix.binary_name }}
 
   build-kde-plasmoid:
     needs: [foss-enterprise-devsecops]
@@ -282,7 +287,7 @@ jobs:
           - os: macos-latest
             core_artifact: sovereign-core-macos-arm64
             target_triple: aarch64-apple-darwin
-          - os: macos-13
+          - os: macos-15-intel
             core_artifact: sovereign-core-macos-amd64
             target_triple: x86_64-apple-darwin
     runs-on: ${{ matrix.os }}
