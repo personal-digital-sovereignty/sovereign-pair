@@ -56,8 +56,11 @@ async fn scrape_engine(client: &reqwest::Client, name: &str, url: &str, jitter_b
 /// dentro de uma hierarquia de preferência. Permite que o sistema se adapte
 /// dinamicamente aos modelos que o usuário possui instalados.
 pub async fn discover_best_model(hierarchy: Vec<&str>, fallback: &str) -> String {
-    let client = reqwest::Client::new();
-    if let Ok(res) = client.get(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/tags")).send().await
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
+    if let Ok(res) = client.get(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://localhost:11434".to_string()), "/api/tags")).send().await
         && let Ok(json) = res.json::<serde_json::Value>().await
             && let Some(models) = json.get("models").and_then(|m| m.as_array()) {
                 let available_names: Vec<&str> = models.iter()
@@ -76,9 +79,12 @@ pub async fn discover_best_model(hierarchy: Vec<&str>, fallback: &str) -> String
 }
 
 pub async fn discover_cognitive_model_by_tier(tier: &str) -> String {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
     
-    if let Ok(res) = client.get(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/tags")).send().await
+    if let Ok(res) = client.get(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://localhost:11434".to_string()), "/api/tags")).send().await
         && let Ok(json) = res.json::<serde_json::Value>().await
         && let Some(models) = json.get("models").and_then(|m| m.as_array()) {
             
@@ -198,8 +204,11 @@ async fn perform_triviality_triage(prompt: &str, state: &Arc<AppState>) -> bool 
 
 
 pub async fn sync_model_capabilities(pool: &sqlx::SqlitePool) {
-    let client = reqwest::Client::new();
-    let mut base_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string());
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
+    let mut base_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://localhost:11434".to_string());
     
     if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'ollama_clusters'").fetch_optional(pool).await {
         let val: String = sqlx::Row::get(&row, "value_json");
@@ -220,7 +229,7 @@ pub async fn sync_model_capabilities(pool: &sqlx::SqlitePool) {
     }
 
     if base_url == "http://host.docker.internal:11434" && std::env::var("SOVEREIGN_RUN_ENV").unwrap_or_default() == "native" {
-        base_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string());
+        base_url = std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://localhost:11434".to_string());
     }
     
     if let Ok(res) = client.get(format!("{}/api/tags", base_url)).send().await

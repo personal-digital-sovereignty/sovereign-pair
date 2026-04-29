@@ -47,6 +47,8 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 
 ### Stability & Data Pipeline (Fixes)
 - **Matrix Synchronization**: Corrigido o bug crítico "não está se auto atualizando" onde a *Operations Matrix* na interface não refletia os modelos recém instalados ou removidos. O backend agora ativa um `sync_model_capabilities` reflexivo a cada vez que a página é acessada, com suporte nativo a múltiplos clusters e túneis dinâmicos configurados no banco de dados.
+- **MacOS App Sandbox Bypass (Localhost IPv4)**: O sistema de telemetria base que descobre LLMs instalados via `api/tags` falhava silenciosamente em binários `.dmg` no MacOS devido a restrições de sandbox e parsing estrito de loopback. O target foi alterado de `127.0.0.1` para `localhost` resolvendo 100% de conexões bloqueadas e falhas do SQLite na detecção de modelos da série `Qwen3.5`.
+- **API Matrix Timeout Prevention**: Requisições de descoberta (`api/show`) feitas para o Ollama podiam enfileirar e bloquear infinitamente o loop do orquestrador caso modelos pesados ou truncados gerassem engasgo. Implementado `timeout(5s)` estrito nas instâncias de `reqwest::Client` garantindo preenchimento contínuo e fluído do RAG Model Selector sem gerar UI freeze.
 - **Rust Core Compilation**: Sanados erros residuais de chaves desencontradas e variáveis indefinidas (`api_trainer.rs`, `sync_engine.rs`, `kms.rs`, `api.rs`) provenientes de iterações prévias, restaurando a pipeline local do `cargo check` em sua plenitude (Exit Code 0).
 
 ### Improvements & Security
