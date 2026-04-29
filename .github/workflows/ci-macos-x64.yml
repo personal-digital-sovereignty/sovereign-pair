@@ -1,15 +1,7 @@
 name: CI/CD MacOS Intel (x64)
 
 on:
-  push:
-    branches:
-      - main
-      - development
-    tags:
-      - 'v*'
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   build-macos-x64:
