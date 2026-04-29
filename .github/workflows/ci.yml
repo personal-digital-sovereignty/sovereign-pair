@@ -200,10 +200,7 @@ jobs:
             artifact_name: sovereign-core-macos-arm64
             binary_name: sovereign-core
             target_triple: aarch64-apple-darwin
-          - os: macos-15-intel
-            artifact_name: sovereign-core-macos-amd64
-            binary_name: sovereign-core
-            target_triple: x86_64-apple-darwin
+
     runs-on: ${{ matrix.os }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -287,9 +284,7 @@ jobs:
           - os: macos-latest
             core_artifact: sovereign-core-macos-arm64
             target_triple: aarch64-apple-darwin
-          - os: macos-15-intel
-            core_artifact: sovereign-core-macos-amd64
-            target_triple: x86_64-apple-darwin
+
     runs-on: ${{ matrix.os }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -386,7 +381,7 @@ jobs:
           mv sovereign-core-linux-arm64/sovereign-core sovereign-core-linux-arm64-binary
           mv sovereign-core-windows-amd64/sovereign-core.exe sovereign-core-windows-amd64-binary.exe
           mv sovereign-core-macos-arm64/sovereign-core sovereign-core-macos-arm64-binary
-          mv sovereign-core-macos-amd64/sovereign-core sovereign-core-macos-amd64-binary
+
           
       - name: Generate Nightly Pre-Release
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
@@ -404,7 +399,7 @@ jobs:
             sovereign-core-linux-arm64-binary
             sovereign-core-windows-amd64-binary.exe
             sovereign-core-macos-arm64-binary
-            sovereign-core-macos-amd64-binary
+
             sovereign-pair-kde-widget/sovereign-pair-widget.plasmoid
             tauri-installers-*/**/*.msi
             tauri-installers-*/**/*.exe
@@ -430,7 +425,7 @@ jobs:
           mv sovereign-core-linux-arm64/sovereign-core sovereign-core-linux-arm64-binary
           mv sovereign-core-windows-amd64/sovereign-core.exe sovereign-core-windows-amd64-binary.exe
           mv sovereign-core-macos-arm64/sovereign-core sovereign-core-macos-arm64-binary
-          mv sovereign-core-macos-amd64/sovereign-core sovereign-core-macos-amd64-binary
+
           
       - name: Generate Stable Release
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
@@ -441,7 +436,7 @@ jobs:
             sovereign-core-linux-arm64-binary
             sovereign-core-windows-amd64-binary.exe
             sovereign-core-macos-arm64-binary
-            sovereign-core-macos-amd64-binary
+
             sovereign-pair-kde-widget/sovereign-pair-widget.plasmoid
             tauri-installers-*/**/*.msi
             tauri-installers-*/**/*.exe
