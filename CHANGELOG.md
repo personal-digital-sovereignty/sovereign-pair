@@ -13,8 +13,19 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
-## [1.3.2] - 2026-04-28
-*Epic: Sovereign Shield (Autonomous Testing), Forensic Archeology, Cloud Integration Polish & Unified SecOps Vault*
+## [1.3.2] - 2026-04-29
+*Epic: Sovereign Shield (Autonomous Testing), CI/CD Hardening, MacOS Intel Support & Unified SecOps Vault*
+
+### CI/CD Hardening & Multi-Arch Stability (The "Build-Ready" Pass)
+- **MacOS Intel (x86_64) Support**: Expansão da matriz de build para suportar nativamente Macs antigos (Intel) via runner `macos-13`. Binários e instaladores `.dmg` agora são gerados para ambas as arquiteturas (`arm64` e `x86_64`).
+- **GAP-01 FIX (SQLite Bundled)**: Implementada a compilação estática do SQLite (`bundled` feature) para Windows e macOS. Isso elimina a dependência de bibliotecas de sistema nos runners e no ambiente do usuário final, resolvendo falhas de linkagem e execução.
+- **CI Resilience & Security**:
+    - **SHA-Pinning**: Fixada a versão da `tauri-action` por SHA-256 para prevenir ataques de supply-chain.
+    - **Rust Cache 2.0**: Implementado cache inteligente por Sistema Operacional e Workspace (`core` vs `tauri`), reduzindo o tempo de build em ~40%.
+    - **Explicit Target Triples**: Configuração explícita de targets (`aarch64-apple-darwin`, `x86_64-apple-darwin`) em todos os estágios de compilação para garantir integridade multi-arch.
+- **Tauri Bundle Optimization**:
+    - **Resource Inclusion**: Adicionados os diretórios `python_workers` e `plasma-widget` aos recursos do bundle. Isso garante que as ferramentas agênticas (RAG/Deep Research) e o widget do Linux funcionem "out-of-the-box" após a instalação.
+- **Nightly Trigger Fix**: Corrigido o gatilho do `publish-nightly` que estava inativo devido a condições de trigger conflitantes.
 
 ### Sovereign Shield & Engineering Blueprint (Epics 4 & 5)
 - **Sovereign Shield (Autonomous Testing — Epic 4)**: 

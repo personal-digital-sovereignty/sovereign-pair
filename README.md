@@ -44,7 +44,7 @@ O Sovereign Pair não é um monolito estrito, mas sim um **Monorepo Híbrido** c
 
 ## Instalacao
 
-Consulte o documento de [Guia de Instalacao](docs/install_guide.md) para instrucoes detalhadas de execucao do binario pre-compilado em ambientes Windows, Linux ou MacOS.
+Consulte o documento de [Guia de Instalacao](docs/install_guide.md) para instrucoes detalhadas de execucao do binario pre-compilado em ambientes Windows, Linux ou MacOS (suporte nativo para Apple Silicon e Intel).
 
 ## Roadmap Técnico
 

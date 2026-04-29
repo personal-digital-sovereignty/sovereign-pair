@@ -1,6 +1,8 @@
 name: Unified Cibrid CI/CD Pipeline
 
 on:
+  push:
+    branches: [main]
   release:
     types: [ created ]
   workflow_dispatch:
@@ -194,6 +196,9 @@ jobs:
           - os: macos-latest
             artifact_name: sovereign-core-macos-arm64
             binary_name: sovereign-core
+          - os: macos-13
+            artifact_name: sovereign-core-macos-amd64
+            binary_name: sovereign-core
     runs-on: ${{ matrix.os }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -216,11 +221,14 @@ jobs:
 
       - name: Setup Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target_triple }}
           
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: core
+          key: core-${{ matrix.os }}
 
       - name: Install SQLite Runtime Dependencies (Linux Only)
         if: runner.os == 'Linux'
@@ -274,6 +282,9 @@ jobs:
           - os: macos-latest
             core_artifact: sovereign-core-macos-arm64
             target_triple: aarch64-apple-darwin
+          - os: macos-13
+            core_artifact: sovereign-core-macos-amd64
+            target_triple: x86_64-apple-darwin
     runs-on: ${{ matrix.os }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -287,6 +298,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target_triple }}
+
+      - name: Rust Cache (Tauri)
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: svelte-ui/src-tauri
+          key: tauri-${{ matrix.os }}
 
       - name: Install Tauri Linux Dependencies
         if: runner.os == 'Linux'
@@ -316,7 +333,7 @@ jobs:
           npm run build
 
       - name: Build Tauri Universal Installers
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@5befcc3e8a1ae4b62a70ac2f3f6a76e86faffc5e # v0.5.20
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -364,6 +381,7 @@ jobs:
           mv sovereign-core-linux-arm64/sovereign-core sovereign-core-linux-arm64-binary
           mv sovereign-core-windows-amd64/sovereign-core.exe sovereign-core-windows-amd64-binary.exe
           mv sovereign-core-macos-arm64/sovereign-core sovereign-core-macos-arm64-binary
+          mv sovereign-core-macos-amd64/sovereign-core sovereign-core-macos-amd64-binary
           
       - name: Generate Nightly Pre-Release
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
@@ -381,6 +399,7 @@ jobs:
             sovereign-core-linux-arm64-binary
             sovereign-core-windows-amd64-binary.exe
             sovereign-core-macos-arm64-binary
+            sovereign-core-macos-amd64-binary
             sovereign-pair-kde-widget/sovereign-pair-widget.plasmoid
             tauri-installers-*/**/*.msi
             tauri-installers-*/**/*.exe
@@ -406,6 +425,7 @@ jobs:
           mv sovereign-core-linux-arm64/sovereign-core sovereign-core-linux-arm64-binary
           mv sovereign-core-windows-amd64/sovereign-core.exe sovereign-core-windows-amd64-binary.exe
           mv sovereign-core-macos-arm64/sovereign-core sovereign-core-macos-arm64-binary
+          mv sovereign-core-macos-amd64/sovereign-core sovereign-core-macos-amd64-binary
           
       - name: Generate Stable Release
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
@@ -416,6 +436,7 @@ jobs:
             sovereign-core-linux-arm64-binary
             sovereign-core-windows-amd64-binary.exe
             sovereign-core-macos-arm64-binary
+            sovereign-core-macos-amd64-binary
             sovereign-pair-kde-widget/sovereign-pair-widget.plasmoid
             tauri-installers-*/**/*.msi
             tauri-installers-*/**/*.exe
