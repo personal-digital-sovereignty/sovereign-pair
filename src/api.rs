@@ -69,16 +69,6 @@ pub async fn discover_best_model_from_matrix(pool: &sqlx::SqlitePool, min_size: 
     fallback.to_string()
 }
 
-pub async fn discover_best_model(hierarchy: Vec<&str>, fallback: &str) -> String {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(5))
-        .build()
-        .unwrap_or_else(|_| reqwest::Client::new());
-    if let Ok(res) = client.get(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://localhost:11434".to_string()), "/api/tags")).send().await
-        && let Ok(json) = res.json::<serde_json::Value>().await
-            && let Some(models) = json.get("models").and_then(|m| m.as_array()) {
-                let available_names: Vec<&str> = models.iter()
-                    .filter_map(|m| m.get("name").and_then(|n| n.as_str()))
                     .collect();
                 
                 for ideal in hierarchy {
