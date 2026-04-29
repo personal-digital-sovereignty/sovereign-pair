@@ -200,34 +200,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate gate results
+        env:
+          PIPELINE_SECURITY: ${{ needs.pipeline-security.result }}
+          SAST_SEMGREP: ${{ needs.sast-semgrep.result }}
+          SCA_TRIVY: ${{ needs.sca-trivy.result }}
+          QUALITY_RUST: ${{ needs.quality-rust.result }}
+          QUALITY_PYTHON: ${{ needs.quality-python.result }}
+          QUALITY_SVELTE: ${{ needs.quality-svelte.result }}
         run: |
           echo "═══════════════════════════════════════════════"
           echo "  FOSS Enterprise DevSecOps — Gate Summary"
           echo "═══════════════════════════════════════════════"
           echo ""
-          echo "Pipeline Security: ${{ needs.pipeline-security.result }}"
-          echo "SAST (Semgrep):    ${{ needs.sast-semgrep.result }}"
-          echo "SCA (Trivy):       ${{ needs.sca-trivy.result }}"
-          echo "Rust (Clippy+Test):${{ needs.quality-rust.result }}"
-          echo "Python (Ruff+Test):${{ needs.quality-python.result }}"
-          echo "Svelte (Check):    ${{ needs.quality-svelte.result }}"
+          echo "Pipeline Security: $PIPELINE_SECURITY"
+          echo "SAST (Semgrep):    $SAST_SEMGREP"
+          echo "SCA (Trivy):       $SCA_TRIVY"
+          echo "Rust (Clippy+Test):$QUALITY_RUST"
+          echo "Python (Ruff+Test):$QUALITY_PYTHON"
+          echo "Svelte (Check):    $QUALITY_SVELTE"
           echo ""
 
           # Fail if any critical gate failed
-          if [[ "${{ needs.pipeline-security.result }}" == "failure" ]] || \
-             [[ "${{ needs.sast-semgrep.result }}" == "failure" ]] || \
-             [[ "${{ needs.quality-rust.result }}" == "failure" ]] || \
-             [[ "${{ needs.quality-python.result }}" == "failure" ]]; then
+          if [[ "$PIPELINE_SECURITY" == "failure" ]] || \
+             [[ "$SAST_SEMGREP" == "failure" ]] || \
+             [[ "$QUALITY_RUST" == "failure" ]] || \
+             [[ "$QUALITY_PYTHON" == "failure" ]]; then
             echo "❌ CRITICAL GATE FAILURE — Merge blocked."
             exit 1
           fi
 
           # Warn on non-critical failures
-          if [[ "${{ needs.sca-trivy.result }}" == "failure" ]]; then
+          if [[ "$SCA_TRIVY" == "failure" ]]; then
             echo "::warning::Trivy SCA failed — review dependency vulnerabilities."
           fi
 
-          if [[ "${{ needs.quality-svelte.result }}" == "failure" ]]; then
+          if [[ "$QUALITY_SVELTE" == "failure" ]]; then
             echo "::warning::Svelte Check failed — review type declarations."
           fi
 
