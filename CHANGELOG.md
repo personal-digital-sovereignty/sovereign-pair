@@ -30,6 +30,10 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 - **ROADMAP.md**: Criado o novo manifesto central de evolução do projeto, resgatando a "Trilha Arqueológica" desde a Milestone 0.1.
 - **Commit Trail Audit**: Realizada auditoria de 1.038 commits para consolidar o histórico de features retroativas.
 
+### Stability & Data Pipeline (Fixes)
+- **Matrix Synchronization**: Corrigido o bug crítico "não está se auto atualizando" onde a *Operations Matrix* na interface não refletia os modelos recém instalados ou removidos. O backend agora ativa um `sync_model_capabilities` reflexivo a cada vez que a página é acessada, com suporte nativo a múltiplos clusters e túneis dinâmicos configurados no banco de dados.
+- **Rust Core Compilation**: Sanados erros residuais de chaves desencontradas e variáveis indefinidas (`api_trainer.rs`, `sync_engine.rs`, `kms.rs`, `api.rs`) provenientes de iterações prévias, restaurando a pipeline local do `cargo check` em sua plenitude (Exit Code 0).
+
 ### Improvements & Security
 - **Clippy Sanitization**: Resolvidos avisos de `redundant-locals` e casts desnecessários no `api.rs` (Zero Warnings Policy).
 - **Settings Persistence**: Unificada a lógica de persistência de configurações para múltiplos provedores de nuvem no frontend Svelte.
