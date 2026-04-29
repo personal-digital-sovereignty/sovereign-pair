@@ -1,0 +1,116 @@
+name: CI/CD MacOS Intel (x64)
+
+on:
+  push:
+    branches:
+      - main
+      - development
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-macos-x64:
+    name: "Build MacOS Intel x64"
+    runs-on: macos-13
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: 'svelte-ui/package-lock.json'
+
+      - name: Build Svelte UI Framework
+        working-directory: ./svelte-ui
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+          
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core
+          key: core-macos-13
+
+      - name: Compile Sovereign Cibrid Core (Rust)
+        working-directory: ./core
+        run: cargo build --release --target x86_64-apple-darwin
+
+      - name: Bundle Sidecar
+        run: |
+          mkdir -p svelte-ui/src-tauri/binaries
+          chmod +x core/target/x86_64-apple-darwin/release/sovereign-core
+          mv core/target/x86_64-apple-darwin/release/sovereign-core svelte-ui/src-tauri/binaries/sovereign-core-x86_64-apple-darwin
+        shell: bash
+
+      - name: Build Tauri Universal Installers
+        uses: tauri-apps/tauri-action@5befcc3e8a1ae4b62a70ac2f3f6a76e86faffc5e # v0.5.20
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: ./svelte-ui
+          releaseId: 'null'
+
+      - name: Upload Graphical Installers Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-installers-x86_64-apple-darwin
+          if-no-files-found: warn
+          path: |
+            svelte-ui/src-tauri/target/release/bundle/**/*.dmg
+            svelte-ui/src-tauri/target/release/bundle/**/*.app
+
+      - name: Upload Core Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sovereign-core-macos-amd64
+          path: svelte-ui/src-tauri/binaries/sovereign-core-x86_64-apple-darwin
+
+  publish-macos-x64:
+    needs: [build-macos-x64]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Download all built artifacts
+        uses: actions/download-artifact@v4
+      
+      - name: Set Release Tag
+        id: set_tag
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+            echo "is_prerelease=false" >> $GITHUB_ENV
+          else
+            echo "tag=nightly" >> $GITHUB_ENV
+            echo "is_prerelease=true" >> $GITHUB_ENV
+          fi
+          
+      - name: Rename Artifacts for Release
+        run: |
+          mv sovereign-core-macos-amd64/sovereign-core-x86_64-apple-darwin sovereign-core-macos-amd64-binary
+          
+      - name: Append to Release
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
+        with:
+          tag_name: ${{ env.tag }}
+          prerelease: ${{ env.is_prerelease == 'true' }}
+          files: |
+            sovereign-core-macos-amd64-binary
+            tauri-installers-*/**/*.dmg
