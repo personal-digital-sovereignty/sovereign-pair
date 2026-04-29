@@ -14,7 +14,7 @@ on:
 jobs:
   build-macos-x64:
     name: "Build MacOS Intel x64"
-    runs-on: macos-13
+    runs-on: macos-15-intel
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
@@ -94,12 +94,12 @@ jobs:
       - name: Set Release Tag
         id: set_tag
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-            echo "is_prerelease=false" >> $GITHUB_ENV
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
+            echo "is_prerelease=false" >> "$GITHUB_ENV"
           else
-            echo "tag=nightly" >> $GITHUB_ENV
-            echo "is_prerelease=true" >> $GITHUB_ENV
+            echo "tag=nightly" >> "$GITHUB_ENV"
+            echo "is_prerelease=true" >> "$GITHUB_ENV"
           fi
           
       - name: Rename Artifacts for Release
