@@ -16,6 +16,13 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 ## [1.3.2] - 2026-04-29
 *Epic: Sovereign Shield (Autonomous Testing), CI/CD Hardening, MacOS Intel Support & Unified SecOps Vault*
 
+### 🧠 Model Discovery & Matrix Hardening (v1.3.2 Stabilization)
+- **Eliminação de Hardcode de Modelos**: Removidas todas as listas e hierarquias estáticas de modelos de `api.rs`, `api_trainer.rs`, `realtime.rs`, `sync_engine.rs` e `auto_evaluator.rs`. O sistema agora é 100% agnóstico.
+- **Descoberta por Heurística de Template e Família**: Implementada detecção automática de capacidades (Tool-calling, Reasoner) via inspeção de templates do Ollama e mapeamento de famílias (`qwen`, `llama`, `phi`, etc.), garantindo suporte imediato a novos modelos como Qwen 3.5 e Phi-4 sem atualizações de código.
+- **Matrix-First Routing**: Nova lógica `discover_best_model_from_matrix` que elege dinamicamente o melhor modelo instalado baseado no tamanho de parâmetros e capacidades reais registradas no SQLite.
+- **Resiliência do Scribe & Sensus**: O pipeline de RAG agora executa uma escalada de resiliência automática buscando o próximo melhor "Scribe" local caso o modelo primário falhe, eliminando o erro de "modelo não encontrado".
+- **Amnesia Prevention**: Garantida a sincronização total (`UPSERT`) da tabela `model_capabilities` a cada boot, refletindo instantaneamente mudanças no inventário local do Ollama.
+
 ### CI/CD Hardening & Multi-Arch Stability (The "Build-Ready" Pass)
 - **MacOS Intel (x86_64) Support**: Expansão da matriz de build para suportar nativamente Macs antigos (Intel) via runner `macos-13`. Binários e instaladores `.dmg` agora são gerados para ambas as arquiteturas (`arm64` e `x86_64`).
 - **GAP-01 FIX (SQLite Bundled)**: Implementada a compilação estática do SQLite (`bundled` feature) para Windows e macOS. Isso elimina a dependência de bibliotecas de sistema nos runners e no ambiente do usuário final, resolvendo falhas de linkagem e execução.
