@@ -13,8 +13,8 @@ All notable changes to the Sovereign Pair project will be documented in this fil
 > **⚠️ NOTA HISTÓRICA DE REGRESSÃO SEMÂNTICA (Semantic Versioning Collapse):**
 > Durante os primeiros ciclos ágeis deste projeto, o versionamento foi inflacionado inadvertidamente a saltos drásticos (registrando passagens como `v2.2.0`, `v3.0.0` e `v4.0.0` no histórico fossilizado de commits e merges). Contudo, após uma avaliação sincera sobre a maturidade do código, a complexa reformulação arquitetural (do LlamaIndex/Python puro para o Motor Híbrido em Rust/Svelte) e as diretrizes FOSS, **decidimos regredir cirurgicamente toda a árvore hierárquica para a série de pré-lançamento estrita `0.x.x`**. A maturidade arquitetural plena do núcleo do ecossistema Sovereign Bare Main foi estruturalmente atestada e a série 1.0.0 de nível superior foi oficialmente (re)-ativada em **08/04/2026**.
 
-## [1.3.2] - 2026-04-25
-*Epic: Sovereign Shield (Autonomous Testing), Forensic Archeology & Cloud Integration Polish*
+## [1.3.2] - 2026-04-28
+*Epic: Sovereign Shield (Autonomous Testing), Forensic Archeology, Cloud Integration Polish & Unified SecOps Vault*
 
 ### Sovereign Shield & Engineering Blueprint (Epics 4 & 5)
 - **Sovereign Shield (Autonomous Testing — Epic 4)**: 
@@ -25,6 +25,10 @@ All notable changes to the Sovereign Pair project will be documented in this fil
     - **Documentação Integrada (Rustdoc/TSDoc)**: 100% dos módulos core (KMS, Sync Engine, Hardware, API) agora possuem documentação técnica integrada ao código.
     - **Sanitização Radical (Legacy Purge)**: Removidos diretórios obsoletos (`docs/reports/`, `docs/models/`, `docs/infrastructure/`, `docs/assets/`), reduzindo o ruído e focando estritamente em engenharia.
     - **Identidade Visual**: Unificação das diretrizes de design "Modern Enterprise" em um manifesto estético único.
+- **Unified SecOps Vault & Cloud Unification**:
+    - **SecOps Vault CRUD**: Unificação de todo o gerenciamento de credenciais (API Keys, SSH/PEM, Certificados, Endpoints) na nova tabela `secops_vault` criptografada com AES-GCM. 
+    - **Zero-Trust OCI Gateway**: Refatorado o `oracle_worker.rs` como Master Resolver, fundindo nativamente configurações legadas com o Vault para suportar acessos transparentes de IP/PEM locais.
+    - **AI Routing Matrix**: Interceptação dinâmica das chaves da NVIDIA, Qwen e OpenRouter armazenadas no Vault Central sobrescrevendo os roteadores da interface, mantendo a blindagem cíbrida.
 
 ### Forensic Archeology (Retroactive Roadmap — Epic 0)
 - **ROADMAP.md**: Criado o novo manifesto central de evolução do projeto, resgatando a "Trilha Arqueológica" desde a Milestone 0.1.

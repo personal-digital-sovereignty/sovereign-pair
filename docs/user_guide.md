@@ -24,7 +24,8 @@ Ative o **Deep Research** para investigações complexas.
 ---
 
 ## 3. Vault & Gestão de Conhecimento
-O Vault é seu repositório físico de arquivos Markdown e PDFs processados.
+O Vault é seu repositório físico de arquivos Markdown, PDFs processados e Segredos Criptográficos.
+- **Unified SecOps Vault**: A aba de segurança consolida todas as suas credenciais. Se você deseja rotear IA para a nuvem, simplesmente insira uma chave do tipo `API_KEY` com o nome do provedor (ex: `QWEN_KEY`, `NVIDIA_KEY`, `OPENROUTER_KEY`) e o Sovereign interceptará a configuração silenciosamente sob o capô. Você também pode inserir chaves SSH para conectar a instâncias Oracle Cloud.
 - **Sensus Sync**: Toda nota criada na UI é salva instantaneamente como um arquivo `.md` no seu HD. Você é dono dos seus dados, sem formatos proprietários.
 - **Grounding Engine**: Ao ativar o "Strict Grounding", a IA ignora o conhecimento de treinamento e responde **apenas** com base nos seus documentos.
 

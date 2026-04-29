@@ -439,9 +439,9 @@ async fn main() {
         .route("/v1/settings/openrouter", axum::routing::get(api_settings::get_openrouter_settings_handler).post(api_settings::set_openrouter_settings_handler))
         .route("/v1/settings/qwen", axum::routing::get(api_settings::get_qwen_settings_handler).post(api_settings::set_qwen_settings_handler))
         .route("/v1/settings/nvidia", axum::routing::get(api_settings::get_nvidia_settings_handler).post(api_settings::set_nvidia_settings_handler))
-        .route("/v1/settings/tenant_keys", axum::routing::get(api_settings::get_tenant_keys_handler)
-            .post(api_settings::create_tenant_key_handler))
-        .route("/v1/settings/tenant_keys/:id", axum::routing::delete(api_settings::delete_tenant_key_handler))
+        .route("/v1/settings/secops_vault", axum::routing::get(api_settings::get_secops_vault_handler)
+            .post(api_settings::create_secops_vault_handler))
+        .route("/v1/settings/secops_vault/:id", axum::routing::delete(api_settings::delete_secops_vault_handler))
         // ☁️ Oracle Cloud Node
         .route("/v1/settings/oracle_node", axum::routing::get(oracle_worker::get_oracle_node_handler)
             .post(oracle_worker::set_oracle_node_handler))
