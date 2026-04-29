@@ -479,14 +479,31 @@ let mut qwen_settings = QwenSettings::default();
         }
     }
 
+    // GAP FIXED: SecOps Vault Override
+    let qwen_vault = sqlx::query("SELECT secret_value FROM secops_vault WHERE key_type = 'API_KEY' AND name LIKE '%QWEN%' ORDER BY created_at DESC LIMIT 1").fetch_optional(&state.db).await.ok().flatten();
+    if let Some(r) = qwen_vault {
+        let enc: String = sqlx::Row::get(&r, "secret_value");
+        if let Some(raw) = crate::kms::decrypt_vault_secret(&enc) {
+            if !raw.is_empty() { qwen_settings.api_key = raw; qwen_settings.enabled = true; }
+        }
+    }
+
 let mut nvidia_settings = NvidiaSettings::default();
 if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'nvidia'").fetch_optional(&state.db).await {
-    let val: String = row.get("value_json");
+    let val: String = sqlx::Row::get(&row, "value_json");
     if let Ok(parsed) = serde_json::from_str::<NvidiaSettings>(&val) {
         nvidia_settings = parsed;
         if let Some(decrypted) = crate::kms::decrypt_vault_secret(&nvidia_settings.api_key) {
             nvidia_settings.api_key = decrypted;
         }
+    }
+}
+
+let nvidia_vault = sqlx::query("SELECT secret_value FROM secops_vault WHERE key_type = 'API_KEY' AND name LIKE '%NVIDIA%' ORDER BY created_at DESC LIMIT 1").fetch_optional(&state.db).await.ok().flatten();
+if let Some(r) = nvidia_vault {
+    let enc: String = sqlx::Row::get(&r, "secret_value");
+    if let Some(raw) = crate::kms::decrypt_vault_secret(&enc) {
+        if !raw.is_empty() { nvidia_settings.api_key = raw; nvidia_settings.enabled = true; }
     }
 }
 
@@ -1481,6 +1498,26 @@ if let Ok(Some(row)) = sqlx::query("SELECT value_json FROM global_settings WHERE
         if let Some(decrypted) = crate::kms::decrypt_vault_secret(&settings.api_key) {
             settings.api_key = decrypted;
             openrouter_settings = Some(settings);
+        }
+    }
+}
+
+// GAP FIXED: SecOps Vault Override
+let or_vault = sqlx::query("SELECT secret_value FROM secops_vault WHERE key_type = 'API_KEY' AND name LIKE '%OPENROUTER%' ORDER BY created_at DESC LIMIT 1").fetch_optional(&state.db).await.ok().flatten();
+if let Some(r) = or_vault {
+    let enc: String = sqlx::Row::get(&r, "secret_value");
+    if let Some(raw) = crate::kms::decrypt_vault_secret(&enc) {
+        if !raw.is_empty() {
+            if let Some(mut os) = openrouter_settings {
+                os.api_key = raw;
+                os.enabled = true;
+                openrouter_settings = Some(os);
+            } else {
+                let mut os = OpenRouterSettings::default();
+                os.api_key = raw;
+                os.enabled = true;
+                openrouter_settings = Some(os);
+            }
         }
     }
 }

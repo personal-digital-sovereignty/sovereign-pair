@@ -244,7 +244,7 @@ pub struct OpenAIChatChunkResponse {
 // OpenRouter Integration Models
 // ==========================================
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OpenRouterSettings {
     pub api_key: String,
     pub base_url: String,

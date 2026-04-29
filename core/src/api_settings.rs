@@ -575,51 +575,54 @@ pub async fn set_nvidia_settings_handler(
 }
 
 // ---------------------------------------------------------
-// SECOPS VAULT: TENANT API KEYS (CRUD)
+// UNIFIED SECOPS VAULT (CRUD)
 // ---------------------------------------------------------
 
 #[derive(Serialize, Deserialize, sqlx::FromRow)]
-pub struct TenantApiKeyRow {
+pub struct SecopsVaultRow {
     pub id: String,
-    pub provider_name: String,
+    pub name: String,
+    pub key_type: String,
     pub created_at: Option<chrono::NaiveDateTime>,
-    // Nós NUNCA retornamos a chave em texto plano para o Frontend
+    // O valor cifrado não é retornado ao frontend
 }
 
 #[derive(Deserialize)]
-pub struct CreateTenantKeyReq {
-    pub provider_name: String,
-    pub api_key_value: String,
+pub struct CreateSecopsVaultReq {
+    pub name: String,
+    pub key_type: String,
+    pub secret_value: String,
 }
 
-/// GET /v1/settings/tenant_keys
-pub async fn get_tenant_keys_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let rows = sqlx::query_as::<_, TenantApiKeyRow>("SELECT id, provider_name, created_at FROM tenant_api_keys ORDER BY created_at DESC")
+/// GET /v1/settings/secops_vault
+pub async fn get_secops_vault_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let rows = sqlx::query_as::<_, SecopsVaultRow>("SELECT id, name, key_type, created_at FROM secops_vault ORDER BY created_at DESC")
         .fetch_all(&state.db)
         .await;
 
     match rows {
         Ok(keys) => Json(keys).into_response(),
-        Err(_) => Json(Vec::<TenantApiKeyRow>::new()).into_response()
+        Err(_) => Json(Vec::<SecopsVaultRow>::new()).into_response()
     }
 }
 
-/// POST /v1/settings/tenant_keys
-pub async fn create_tenant_key_handler(
+/// POST /v1/settings/secops_vault
+pub async fn create_secops_vault_handler(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<CreateTenantKeyReq>,
+    Json(req): Json<CreateSecopsVaultReq>,
 ) -> impl IntoResponse {
     let new_id = uuid::Uuid::new_v4().to_string();
     
     // Criptografa a chave usando o KMS nativo (AES-GCM at rest)
-    let encrypted_key = match kms::encrypt_vault_secret(&req.api_key_value) {
+    let encrypted_key = match kms::encrypt_vault_secret(&req.secret_value) {
         Some(cipher) => cipher,
         None => return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": true, "message": "KMS Encryption failed"}))).into_response(),
     };
 
-    let res = sqlx::query("INSERT INTO tenant_api_keys (id, provider_name, api_key_value) VALUES (?, ?, ?)")
+    let res = sqlx::query("INSERT INTO secops_vault (id, name, key_type, secret_value) VALUES (?, ?, ?, ?)")
         .bind(&new_id)
-        .bind(&req.provider_name)
+        .bind(&req.name)
+        .bind(&req.key_type)
         .bind(&encrypted_key)
         .execute(&state.db)
         .await;
@@ -629,9 +632,10 @@ pub async fn create_tenant_key_handler(
         Err(e) => {
             if e.to_string().contains("UNIQUE") {
                 // Upsert se já existir
-                let _ = sqlx::query("UPDATE tenant_api_keys SET api_key_value = ?, updated_at = CURRENT_TIMESTAMP WHERE provider_name = ?")
+                let _ = sqlx::query("UPDATE secops_vault SET key_type = ?, secret_value = ?, updated_at = CURRENT_TIMESTAMP WHERE name = ?")
+                    .bind(&req.key_type)
                     .bind(&encrypted_key)
-                    .bind(&req.provider_name)
+                    .bind(&req.name)
                     .execute(&state.db)
                     .await;
                 Json(serde_json::json!({"status": "updated"})).into_response()
@@ -642,12 +646,12 @@ pub async fn create_tenant_key_handler(
     }
 }
 
-/// DELETE /v1/settings/tenant_keys/:id
-pub async fn delete_tenant_key_handler(
+/// DELETE /v1/settings/secops_vault/:id
+pub async fn delete_secops_vault_handler(
     axum::extract::Path(id): axum::extract::Path<String>,
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
-    let res = sqlx::query("DELETE FROM tenant_api_keys WHERE id = ?")
+    let res = sqlx::query("DELETE FROM secops_vault WHERE id = ?")
         .bind(id)
         .execute(&state.db)
         .await;

@@ -7,7 +7,7 @@ Este documento serve como o manifesto técnico definitivo do Sovereign Pair. Ele
 
 ## 1. Visão Geral da Arquitetura (The Cybrid Nexus)
 
-O Sovereign Pair opera sob um modelo **Cíbrido (Cibernético + Híbrido)**. Ele combina a segurança e performance de um núcleo escrito em **Rust** com a flexibilidade do ecossistema de dados e IA em **Python**.
+O Sovereign Pair opera sob um modelo **Cíbrido (Cibernético + Híbrido)**. Ele combina a segurança e performance de um núcleo escrito em **Rust** com a flexibilidade matemática, dados e IA do ecossistema em **Python**.
 
 ### 1.1 Diagrama de Fluxo Mestre
 ```mermaid
@@ -16,7 +16,7 @@ graph TD
     Svelte <--> Axum[Backend Axum / Rust]
     
     subgraph "Sovereign Core (Rust)"
-        Axum --> Router[Model Router]
+        Axum --> Router[Model Router / Inference]
         Router --> Ollama[Local Ollama]
         Router --> Cloud[Cloud Providers: Qwen/Nvidia/OpenRouter]
         
@@ -25,12 +25,14 @@ graph TD
         Sensus <--> Markdown[/Markdown Vault/]
         
         Axum --> AgentLoop[Reflexive Agent Loop]
+        AgentLoop --> Triage{Triviality Triage}
     end
     
     subgraph "Python Workers (The Squad)"
         AgentLoop --> Nurse[The Nurse: Data Scraper]
         AgentLoop --> Doctor[The Doctor: Financial Analyst]
         AgentLoop --> Accountant[The Accountant: Math Engine]
+        AgentLoop --> Scribe[The Scribe: Data Formatting]
     end
     
     subgraph "Cloud Mesh"
@@ -41,75 +43,72 @@ graph TD
 
 ---
 
-## 2. Componentes de Engenharia
+## 2. Componentes de Engenharia Estratégicos
 
-### 2.1 [Sensus Sync Engine](sensus_sync_engine.md)
-O **Sensus** é o nosso sistema de persistência dual. Ele garante que o estado do sistema (tarefas, notas, logs) esteja sempre disponível tanto em um banco de dados relacional (SQLite para performance) quanto em arquivos Markdown legíveis por humanos (Vault para soberania e portabilidade).
+### 2.1 Sensus Sync Engine (The Dual-Truth Persistence)
+O **Sensus** é o nosso sistema de persistência dual. Ele garante que o estado do sistema (tarefas, notas, logs, configurações e o Operations Matrix) esteja sempre disponível tanto em um banco de dados relacional (SQLite para queries e performance) quanto em arquivos Markdown legíveis por humanos (Vault para soberania criptográfica e portabilidade).
 
-### 2.2 [Reflexive Agent Loop](agentic_workflows.md)
-Diferente de chatbots comuns, o Sovereign Pair utiliza um loop reflexivo baseado em "Pensamentos" e "Ações" (ReWOO, Reflexion, etc).
+### 2.2 Reflexive Agentic Loop & Tool Dispatch
+Diferente de chatbots lineares, o Sovereign Pair utiliza um loop reflexivo autônomo:
+- **Triviality Triage**: Camada de roteamento rápido que impede saudações simples de engatilhar processos pesados.
+- **ReWOO (Reasoning Without Observation)**: Planejamento em estágios (Plan & Execute).
+- **Tool Dispatching Centralizado**: Roteamento dinâmico para workers Python de finanças e pesquisa sem necessidade de intervenção do Deep Research para queries corriqueiras.
 
-### 2.3 [Observabilidade & FinOps](observability_llmops.md)
-Monitoramento de métricas TTFT/TPS e gestão de custos de inferência via Semantic Caching.
+### 2.3 Resilience Shield & Sovereign Telemetry (v1.3.x)
+Blindagem de nível de kernel para estabilidade absoluta:
+- **OOM Guard (Out-of-Memory)**: Monitoramento de VRAM cross-platform (sysfs no Linux, nvidia-smi em NVIDIA, unified memory proxy para Apple Silicon). Impede crashes do sistema fechando instâncias ou ajustando o contexto preventivamente.
+- **API Health Gate**: Gatekeeper de inicialização que registra a integridade (Health Check) das APIs na tabela `api_health_log` e expõe a telemetria via endpoints seguros.
 
-### 2.4 Epistemic Guard (Segurança)
-Blindagem de nível de kernel para LLMs:
-*   **KMS**: Chaves de API nunca são salvas em texto puro.
-*   **Prompt Sanitization**: Proteção contra injeção de prompt e exfiltração de dados sensíveis.
-*   **Financial Mechanics**: Metodologia de análise PTAX vs Spot ([Detalhes](financial_mechanics.md)).
-*   **OOM Guard**: Telemetria de hardware em tempo real (VRAM/RAM) que ajusta a janela de contexto dinamicamente para evitar crashes.
+### 2.4 Epistemic Guard & Unified SecOps Vault
+Proteção e grounding da integridade de conhecimento:
+- **Unified SecOps Vault**: Unificação absoluta do CRUD de chaves (API Keys, SSH/PEM, Certificados, Endpoints). As credenciais são criptografadas em AES-256-GCM (KMS Local) at rest.
+- **AI Routing Matrix Override**: O motor lê as credenciais diretamente do SecOps Vault, sobrescrevendo configurações legadas (ex: Qwen, Nvidia, OpenRouter) dinamicamente no `api.rs`.
+- **Zero-Trust OCI Gateway**: Conexão nativa do túnel SSH (aarch64) utilizando metadados resolvidos puramente do Vault (incluindo tratamento dinâmico de chaves locais `~/.ssh/id_ed25519` versus chaves raw temporárias).
+- **Dynamic Ticker Registry**: Resolução infalível de ativos financeiros locais e globais suportada por um banco integrado (>2.000 tickers).
+- **Deep Research Pipeline**: O motor de correlação onde as personas coletam informações externas e The Scribe isola os dados estruturados do "ruído JSON".
 
-### 2.5 [Integração OpenCode](opencode_integration.md)
-Manual técnico para conexão de extensões de IDE (VS Code/OpenCode) com o Sovereign Proxy local.
-
-### 2.6 [Identidade Visual](visual_identity.md)
-Manifesto de design "Modern Enterprise" e tokens estéticos do sistema.
-
-### 2.7 [Aquisição de Modelos](model_acquisition.md)
-Guia de provisionamento offline para pesos de modelos LLM, VLM e OCR.
-
-### 2.8 [Infraestrutura & Otimização](infrastructure.md)
-Manual de provisionamento de nós, topologia cloud (OCI) e otimização de hardware (ZRAM/Swap).
+### 2.5 Cloud Mesh (Oracle Integration)
+Uma malha de infraestrutura elástica offloaded para instâncias aarch64 (Oracle Cloud) sem a necessidade de expor portas na internet. Todo o tráfego de inferência remota é encapsulado via **túnel SSH reverso local** (`localhost:41434 -> oracle:11434`).
 
 ---
 
-## 5. Hub de Referências Técnicas
-
-O ecossistema Sovereign Pair é documentado de forma modular para garantir profundidade técnica e facilidade de manutenção:
-
-- **[Arquitetura do Core](core_architecture.md)**: Detalhamento do motor Rust, Sandbox Python e Vision Engine.
-- **[Estratégia de Modelos](model_strategy.md)**: Manifesto de Tiers, Capacidades e Destilação.
-- **[Mecânicas de RAG](rag_mechanics.md)**: Conhecimento Efêmero, Pesquisa Profunda e Grounding.
-- **[Segurança & Observabilidade](security_observability.md)**: Blindagem Zero-Trust e Telemetry Sinkhole.
-- **[Identidade Visual](visual_identity.md)**: Guia estético do Design System "Modern Enterprise".
-
----
-
-## 3. Topologia de Rede (OCI Mesh)
-Não expomos portas. O túnel SSH reverso cria uma ponte segura entre o hardware local e a nuvem Oracle.
+## 3. Topologia de Rede (OCI Mesh Tunneling)
 
 ```mermaid
 sequenceDiagram
-    participant Local as Master Node (Local)
-    participant SSH as SSH Tunnel
-    participant OCI as Oracle Cloud Node
+    participant Local as Master Node (Sovereign Core)
+    participant SSH as SSH Mesh Connector
+    participant OCI as Oracle Cloud Node (aarch64)
     
-    Local->>SSH: Estabelece Túnel Seguro (Porta 41434)
-    SSH->>OCI: Mapeia para localhost:11434 (Ollama)
-    Local->>OCI: Envia inferência via localhost:41434
-    OCI-->>Local: Retorna tokens via túnel
+    Local->>SSH: Estabelece Túnel Criptografado (Porta 41434)
+    SSH->>OCI: Bind para o processo Ollama local (Porta 11434)
+    Local->>OCI: Envia job de inferência via proxy
+    OCI-->>Local: Retorna Output via streaming SSE seguro
 ```
 
 ---
 
-## 4. Guia de Manutenção de "Parafusos"
+## 4. Hub de Referências Técnicas Avançadas
 
-Cada módulo do sistema foi auditado e documentado minunciosamente (Rustdoc/TSDoc):
+O ecossistema Sovereign Pair é documentado de forma modular para garantir profundidade técnica:
 
-- **[api.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/api.rs)**: O cérebro do sistema. Gerencia roteamento agêntico, MLA e injeção de contexto RAG.
-- **[sync_engine.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/sync_engine.rs)**: Orquestra a "Verdade Dupla" entre SQLite e Markdown via File Watcher resiliente.
-- **[api_trainer.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/api_trainer.rs)**: Gestão de Python Workers, Sandboxing e o motor de Deep Research (Fact Verification).
-- **[hardware.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/hardware.rs)**: Telemetria de baixo nível (Vulkan/Sysfs) e o guardião anti-OOM.
-- **[kms.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/kms.rs)**: Infraestrutura de segurança AES-256-GCM com proteção de memória Zeroize.
-- **[ssh_mesh_connector.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/ssh_mesh_connector.rs)**: Tecelagem de túneis SSH para a malha P2P e Nuvem Oracle.
-- **[state.svelte.ts](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/svelte-ui/src/lib/state.svelte.ts)**: Estado global reativo via Svelte 5 Runes e motor de streaming SSE.
+- **[Arquitetura do Core](core_architecture.md)**: Detalhamento do motor Rust, Sandbox Python e Vision Engine.
+- **[Estratégia de Modelos](model_strategy.md)**: Manifesto de Tiers, Aquisição Offline, e Capacidades.
+- **[Mecânicas de RAG](rag_mechanics.md)**: Conhecimento Efêmero, Pesquisa Profunda e Grounding.
+- **[Segurança & Observabilidade](security_observability.md)**: Blindagem Zero-Trust (KMS) e Telemetry Sinkhole.
+- **[Identidade Visual](visual_identity.md)**: Guia estético do Design System "Modern Enterprise".
+- **[Integração OpenCode](opencode_integration.md)**: Manual para conexão de IDEs no proxy Sovereign local.
+
+---
+
+## 5. Guia de Manutenção de "Parafusos" do Ciberespaço
+
+Os pilares nativos foram auditados, documentados e compilados com zero warnings, seguindo o padrão ouro do Rust:
+
+- **[`api.rs`](../../core/src/api.rs)**: O hub agêntico que processa as LLMs e reage à Matrix de Configurações dinamicamente.
+- **[`sync_engine.rs`](../../core/src/sync_engine.rs)**: O file watcher que executa a "Dupla Verdade" entre banco local e Markdown.
+- **[`api_trainer.rs`](../../core/src/api_trainer.rs)**: O sandbox de contenção cross-platform dos Workers Python (The Squad).
+- **[`hardware.rs`](../../core/src/hardware.rs)**: Operações de nível de OS para telemetria bruta de VRAM.
+- **[`kms.rs`](../../core/src/kms.rs)**: Criptografia de memórias efêmeras via OnceLock para chaves mestras.
+- **[`ssh_mesh_connector.rs`](../../core/src/ssh_mesh_connector.rs)**: Construção da rede P2P blindada sem dependência externa.
+- **[`state.svelte.ts`](../../svelte-ui/src/lib/state.svelte.ts)**: Reatividade hiper-veloz providenciada pelo Svelte 5.
