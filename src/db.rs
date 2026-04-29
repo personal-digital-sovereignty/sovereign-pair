@@ -54,6 +54,9 @@ pub async fn init_pool() -> SqlitePool {
     // CARREGAMENTO DO OPENROUTER SETTINGS (MIGRATION 005)
     let _ = sqlx::raw_sql(include_str!("schemas/005_openrouter_settings.sql")).execute(&pool).await;
 
+    // CARREGAMENTO DO UNIFIED SECOPS VAULT (MIGRATION 006)
+    let _ = sqlx::raw_sql(include_str!("schemas/006_secops_vault.sql")).execute(&pool).await;
+
     // Seed core prompts do TOML (com verificação SHA-256)
     crate::prompt_vault::seed_core_prompts(&pool).await;
 

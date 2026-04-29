@@ -66,6 +66,8 @@ impl OracleNodeConfig {
 
 /// Carrega OracleNodeConfig do banco de dados
 pub async fn load_oracle_config(db: &sqlx::SqlitePool) -> OracleNodeConfig {
+    let mut config = OracleNodeConfig::default();
+
     let row = sqlx::query("SELECT value_json FROM global_settings WHERE id = 'oracle_node'")
         .fetch_optional(db)
         .await
@@ -75,12 +77,50 @@ pub async fn load_oracle_config(db: &sqlx::SqlitePool) -> OracleNodeConfig {
     if let Some(row) = row {
         use sqlx::Row;
         if let Ok(json_str) = row.try_get::<String, _>("value_json") {
-            if let Ok(config) = serde_json::from_str::<OracleNodeConfig>(&json_str) {
-                return config;
+            if let Ok(c) = serde_json::from_str::<OracleNodeConfig>(&json_str) {
+                config = c;
             }
         }
     }
-    OracleNodeConfig::default()
+
+    // GAP-ORACLE-01 FIXED: Override with Unified SecOps Vault
+    // Se o usuário registrar o IP ou SSH KEY via UI (SecOps Vault), eles têm precedência absoluta.
+    let ip_row = sqlx::query("SELECT secret_value FROM secops_vault WHERE key_type = 'IP_ADDRESS' ORDER BY created_at DESC LIMIT 1").fetch_optional(db).await.ok().flatten();
+    let key_row = sqlx::query("SELECT secret_value FROM secops_vault WHERE key_type IN ('SSH_KEY', 'PEM_KEY') ORDER BY created_at DESC LIMIT 1").fetch_optional(db).await.ok().flatten();
+
+    if let Some(r) = ip_row {
+        use sqlx::Row;
+        let enc: String = r.get("secret_value");
+        let raw = crate::kms::decrypt_vault_secret(&enc).unwrap_or_default();
+        if !raw.is_empty() { 
+            config.ip = raw; 
+            config.enabled = true; // Auto-enable if explicitly registered in Vault
+        } 
+    }
+    
+    if let Some(r) = key_row {
+        use sqlx::Row;
+        let enc: String = r.get("secret_value");
+        let raw = crate::kms::decrypt_vault_secret(&enc).unwrap_or_default();
+        if !raw.is_empty() {
+            if raw.starts_with("-----BEGIN") {
+                // É um PEM raw criptografado. Escreve no disco temporariamente com permissão 0600.
+                let tmp_path = std::env::temp_dir().join("sovereign_oci_vault.pem");
+                let _ = std::fs::write(&tmp_path, raw.as_bytes());
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    let _ = std::fs::set_permissions(&tmp_path, std::fs::Permissions::from_mode(0o600));
+                }
+                config.key_path = tmp_path.to_string_lossy().to_string();
+            } else {
+                // É um path direto (ex: ~/.ssh/id_ed25519) suportado pela arquitetura original.
+                config.key_path = raw;
+            }
+        }
+    }
+
+    config
 }
 
 /// Resultado da execução de um worker
