@@ -31,18 +31,8 @@ Abaixo, as Milestones retroativas validadas via histórico de commits e document
 
 ## 🛡️ Estado Atual: v1.3.x (Sovereign Shield)
 
-Focado em estabilidade absoluta, integração
-## 🛠️ Stack & Módulos (The "Bolts")
+Focado em estabilidade absoluta, automação de testes e integração de workers via túneis SSH seguros.
 
-Cada linha de código foi auditada e documentada para garantir transparência absoluta:
-
-- **[api.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/api.rs)**: Cérebro agêntico, Roteamento MLA e Injeção de Contexto.
-- **[sync_engine.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/sync_engine.rs)**: Motor Sensus, Sincronia SQLite/Markdown e Garbage Collector.
-- **[api_trainer.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/api_trainer.rs)**: Gestão de Python Workers, Deep Research e Firewall Cognitivo.
-- **[hardware.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/hardware.rs)**: Telemetria VRAM e OOM Guard preventivo.
-- **[kms.rs](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/core/src/kms.rs)**: Vault de segurança AES-256-GCM com Zeroize.
-- **[state.svelte.ts](file:///home/jefersonlopes/Developer/local-repositories/sovereign-pair/svelte-ui/src/lib/state.svelte.ts)**: Estado reativo via Svelte 5 Runes e streaming SSE.
-workers via túneis SSH seguros.
 - [x] **Selective Agentic Modes**: Toggles na UI para ativação explícita de ReWOO e Deep Research.
 - [x] **Triviality Triage**: Resposta instantânea para saudações e comandos simples.
 - [x] **MacOS Visual Identity**: Ícones nativos e transparência otimizada para o ecossistema Apple.
@@ -65,11 +55,11 @@ workers via túneis SSH seguros.
 - [x] **Estabilidade UI/UX**: Correção de lints de acessibilidade e validação de configurações via Playwright.
 - [x] **Simulação de Gaps**: Automação de testes de regressão massivos e estresse de tokens.
 
-### **Épico 5: Engineering Blueprint & Documentation — [EM PROGRESSO]**
+### **Épico 5: Engineering Blueprint & Documentation — [CONCLUÍDO]**
 - [x] **Auditoria Documental**: Purga de relatórios legados e centralização em `docs/engineering/`.
 - [x] **Desenhos Técnicos**: Criação de diagramas Mermaid para Sensus Sync Engine e OCI Mesh.
 - [x] **Code-Level Docs**: Auditoria minuciosa e Rustdoc em 100% do core e frontend crítico.
-- [ ] **Manifesto Técnico**: Finalização do `BLUEPRINT.md` como livro aberto da engenharia.
+- [x] **Manifesto Técnico**: Finalização do `BLUEPRINT.md` e do `Unified SecOps Vault`.
 
 ### **Épico 6: Coder Ecosystem Independence**
 - **Nova Feature**: Edição de código-fonte diretamente no Sovereign Pair.
