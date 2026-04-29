@@ -333,7 +333,7 @@ jobs:
           npm run build
 
       - name: Build Tauri Universal Installers
-        uses: tauri-apps/tauri-action@5befcc3e8a1ae4b62a70ac2f3f6a76e86faffc5e # v0.5.20
+        uses: tauri-apps/tauri-action@v0.5.20
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
