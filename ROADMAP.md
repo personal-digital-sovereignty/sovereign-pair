@@ -52,6 +52,7 @@ Focado em estabilidade absoluta, automação de testes e integração de workers
 
 ### **Épico 4: Sovereign Shield (Autonomous Testing) — [CONCLUÍDO]**
 - [x] **Hardening de Testes**: Cobertura de 100% dos fluxos agênticos sem intervenção humana.
+- [x] **Hardening de Pipeline**: Implementação de cache inteligente, targets explícitos, SQLite bundled e fixação de versões de actions (SHA).
 - [x] **Estabilidade UI/UX**: Correção de lints de acessibilidade e validação de configurações via Playwright.
 - [x] **Simulação de Gaps**: Automação de testes de regressão massivos e estresse de tokens.
 
