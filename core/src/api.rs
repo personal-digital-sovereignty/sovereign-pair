@@ -69,18 +69,6 @@ pub async fn discover_best_model_from_matrix(pool: &sqlx::SqlitePool, min_size: 
     fallback.to_string()
 }
 
-                    .collect();
-                
-                for ideal in hierarchy {
-                    if let Some(found) = available_names.iter().find(|&&n| n.contains(ideal)) {
-                        tracing::info!("✨ [Fleet Orchestrator] Modelo Dinâmico Elevado: '{}' (Alvo Encontrado: '{}')", found, ideal);
-                        return found.to_string();
-                    }
-                }
-            }
-    tracing::warn!("⚠️ [Fleet Orchestrator] Nenhum modelo da hierarquia encontrado. Fallback de Sobrevivência: '{}'", fallback);
-    fallback.to_string()
-}
 
 pub async fn discover_cognitive_model_by_tier(tier: &str) -> String {
     let client = reqwest::Client::builder()
@@ -281,105 +269,107 @@ pub async fn sync_model_capabilities(pool: &sqlx::SqlitePool) {
                                     is_reasoner = true;
                                 }
                             }
-                    // Mapeamento heuristico v1.3.2: Suporte a Tools e Reasoners baseado em Família e Template
-                    let name_lower = name.to_lowercase();
-                    
-                    // Se o template não disse nada, tentamos via Família (Ollama details.family)
-                    if !supports_tools {
-                        if let Some(d) = show_json.get("details") {
-                            if let Some(fam) = d.get("family").and_then(|f| f.as_str()) {
-                                let fam_lower = fam.to_lowercase();
-                                // Famílias conhecidas por suportar tool-calling em versões modernas
-                                let tool_capable_families = ["qwen", "llama", "mistral", "gemma", "phi", "command-r", "firefunction"];
-                                if tool_capable_families.iter().any(|f| fam_lower.contains(f)) {
-                                    supports_tools = true;
+                            
+                            // Mapeamento heuristico v1.3.2: Suporte a Tools e Reasoners baseado em Família e Template
+                            let name_lower = name.to_lowercase();
+                            
+                            // Se o template não disse nada, tentamos via Família (Ollama details.family)
+                            if !supports_tools {
+                                if let Some(d) = show_json.get("details") {
+                                    if let Some(fam) = d.get("family").and_then(|f| f.as_str()) {
+                                        let fam_lower = fam.to_lowercase();
+                                        // Famílias conhecidas por suportar tool-calling em versões modernas
+                                        let tool_capable_families = ["qwen", "llama", "mistral", "gemma", "phi", "command-r", "firefunction"];
+                                        if tool_capable_families.iter().any(|f| fam_lower.contains(f)) {
+                                            supports_tools = true;
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    }
 
-                    // Detecção de Reasoners via família ou nome
-                    if !is_reasoner {
-                        if let Some(d) = show_json.get("details") {
-                            if let Some(fam) = d.get("family").and_then(|f| f.as_str()) {
-                                let fam_lower = fam.to_lowercase();
-                                if fam_lower.contains("deepseek") || fam_lower.contains("r1") {
+                            // Detecção de Reasoners via família ou nome
+                            if !is_reasoner {
+                                if let Some(d) = show_json.get("details") {
+                                    if let Some(fam) = d.get("family").and_then(|f| f.as_str()) {
+                                        let fam_lower = fam.to_lowercase();
+                                        if fam_lower.contains("deepseek") || fam_lower.contains("r1") {
+                                            is_reasoner = true;
+                                        }
+                                    }
+                                }
+                                if name_lower.contains("reasoner") || name_lower.contains("r1") || name_lower.contains("think") {
                                     is_reasoner = true;
                                 }
                             }
+
+                            let mut is_master = false;
+                            let mut is_scribe = false;
+                            let mut is_agent = false;
+                            let mut is_coder = false;
+                            let is_chat = true; 
+                            let mut is_project = false;
+
+                            // Definição inteligente baseada em parâmetros e capacidades
+                            // Master: Modelos com Tools, não-reasoners, e tamanho respeitável (>= 7B)
+                            if supports_tools && !is_reasoner && size_val >= 6.5 { is_master = true; }
+                            
+                            if supports_tools {
+                                is_scribe = true;
+                                is_agent = true;
+                                is_project = true;
+                            }
+                            
+                            if name_lower.contains("coder") || name_lower.contains("qwen") || name_lower.contains("deepseek") || name_lower.contains("llama") {
+                                is_coder = true;
+                            }
+
+                            // UPSERT: Atualiza TUDO, garantindo que o modelo seja marcado como instalado
+                            let _ = sqlx::query("
+                                INSERT INTO model_capabilities (
+                                    model_name, parameter_size, supports_tools, is_reasoner, is_master, 
+                                    is_scribe, is_agent, is_coder, is_chat, is_project, template, is_installed, last_checked
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+                                ON CONFLICT(model_name) DO UPDATE SET
+                                    parameter_size = excluded.parameter_size,
+                                    supports_tools = excluded.supports_tools,
+                                    is_reasoner = excluded.is_reasoner,
+                                    is_master = excluded.is_master,
+                                    is_scribe = excluded.is_scribe,
+                                    is_agent = excluded.is_agent,
+                                    is_coder = excluded.is_coder,
+                                    is_chat = excluded.is_chat,
+                                    is_project = excluded.is_project,
+                                    template = excluded.template,
+                                    is_installed = 1,
+                                    last_checked = CURRENT_TIMESTAMP
+                            ")
+                            .bind(name)
+                            .bind(size_val)
+                            .bind(supports_tools)
+                            .bind(is_reasoner)
+                            .bind(is_master)
+                            .bind(is_scribe)
+                            .bind(is_agent)
+                            .bind(is_coder)
+                            .bind(is_chat)
+                            .bind(is_project)
+                            .bind(template_str)
+                            .execute(pool)
+                            .await;
+
+                            // Resolução de Alias: Se o Ollama retorna 'model:tag', também marca 'model:latest' se existir
+                            if let Some(prefix) = name.split(':').next() {
+                                let alias_latest = format!("{}:latest", prefix);
+                                if alias_latest != name {
+                                    let _ = sqlx::query("UPDATE model_capabilities SET is_installed = 1 WHERE model_name = ?")
+                                        .bind(&alias_latest)
+                                        .execute(pool)
+                                        .await;
+                                }
+                            }
+                                
+                            tracing::info!("🧠 [Model Discovery] Synced {}: Size={}B, Tools={}, Reasoner={}, Master={}", name, size_val, supports_tools, is_reasoner, is_master);
                         }
-                        if name_lower.contains("reasoner") || name_lower.contains("r1") || name_lower.contains("think") {
-                            is_reasoner = true;
-                        }
-                    }
-
-                    let mut is_master = false;
-                    let mut is_scribe = false;
-                    let mut is_agent = false;
-                    let mut is_coder = false;
-                    let is_chat = true; 
-                    let mut is_project = false;
-
-                    // Definição inteligente baseada em parâmetros e capacidades
-                    // Master: Modelos com Tools, não-reasoners, e tamanho respeitável (>= 7B)
-                    if supports_tools && !is_reasoner && size_val >= 6.5 { is_master = true; }
-                    
-                    if supports_tools {
-                        is_scribe = true;
-                        is_agent = true;
-                        is_project = true;
-                    }
-                    
-                    if name_lower.contains("coder") || name_lower.contains("qwen") || name_lower.contains("deepseek") || name_lower.contains("llama") {
-                        is_coder = true;
-                    }
-
-                    // UPSERT: Atualiza TUDO, garantindo que o modelo seja marcado como instalado
-                    let _ = sqlx::query("
-                        INSERT INTO model_capabilities (
-                            model_name, parameter_size, supports_tools, is_reasoner, is_master, 
-                            is_scribe, is_agent, is_coder, is_chat, is_project, template, is_installed, last_checked
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
-                        ON CONFLICT(model_name) DO UPDATE SET
-                            parameter_size = excluded.parameter_size,
-                            supports_tools = excluded.supports_tools,
-                            is_reasoner = excluded.is_reasoner,
-                            is_master = excluded.is_master,
-                            is_scribe = excluded.is_scribe,
-                            is_agent = excluded.is_agent,
-                            is_coder = excluded.is_coder,
-                            is_chat = excluded.is_chat,
-                            is_project = excluded.is_project,
-                            template = excluded.template,
-                            is_installed = 1,
-                            last_checked = CURRENT_TIMESTAMP
-                    ")
-                    .bind(name)
-                    .bind(size_val)
-                    .bind(supports_tools)
-                    .bind(is_reasoner)
-                    .bind(is_master)
-                    .bind(is_scribe)
-                    .bind(is_agent)
-                    .bind(is_coder)
-                    .bind(is_chat)
-                    .bind(is_project)
-                    .bind(template_str)
-                    .execute(pool)
-                    .await;
-
-                    // Resolução de Alias: Se o Ollama retorna 'model:tag', também marca 'model:latest' se existir
-                    if let Some(prefix) = name.split(':').next() {
-                        let alias_latest = format!("{}:latest", prefix);
-                        if alias_latest != name {
-                            let _ = sqlx::query("UPDATE model_capabilities SET is_installed = 1 WHERE model_name = ?")
-                                .bind(&alias_latest)
-                                .execute(pool)
-                                .await;
-                        }
-                    }
-                        
-                    tracing::info!("🧠 [Model Discovery] Synced {}: Size={}B, Tools={}, Reasoner={}, Master={}", name, size_val, supports_tools, is_reasoner, is_master);
                 }
             }
         } else {
