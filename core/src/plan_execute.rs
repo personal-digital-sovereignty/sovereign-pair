@@ -39,6 +39,7 @@ VOCÊ NÃO PODE RESPONDER NADA ALÉM DO JSON.
         ],
         "format": "json", // Strict JSON Chaining
         "stream": false,
+        "keep_alive": "30m",
         "options": {
             "temperature": 0.1 // Determinismo
         }
@@ -89,7 +90,8 @@ VOCÊ NÃO PODE RESPONDER NADA ALÉM DO JSON.
                                 { "role": "user", "content": format!("Contexto Anterior Acumulado:\n{}\n\nAção a tomar AGORA: ({}) -> {}", aggregated_results, step.action, step.task) }
                             ],
                             "tools": crate::mcp::get_mcp_tools(),
-                            "stream": false
+                            "stream": false,
+                            "keep_alive": "30m"
                         });
 
                         if let Ok(exec_res) = client.post(&ollama_url).json(&executor_payload).send().await

@@ -1453,6 +1453,7 @@ let mut ollama_payload = json!({
     "model": ollama_model,
     "messages": purified_messages,
     "stream": true,
+    "keep_alive": "30m",
     "options": ollama_options
 });
 

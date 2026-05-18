@@ -69,7 +69,8 @@ pub async fn realtime_responses_handler(
     let ollama_payload = json!({
         "model": ollama_model,
         "messages": purified_messages,
-        "stream": true
+        "stream": true,
+        "keep_alive": "30m"
     });
 
     let res = match state.http_client.post(format!("{}{}", std::env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| "http://127.0.0.1:11434".to_string()), "/api/chat")).json(&ollama_payload).send().await {
