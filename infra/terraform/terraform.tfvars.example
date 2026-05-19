@@ -1,0 +1,25 @@
+# ============================================================================
+# SOVEREIGN PAIR - Terraform Variables Template
+# ============================================================================
+# Preencha com seus valores reais da Oracle Cloud Infrastructure (OCI)
+# NUNCA commitar este arquivo com valores reais — use terraform.tfvars.local
+# ============================================================================
+
+# OCI Authentication
+user_ocid      = "ocid1.user.oc1..aaaaaaa..."
+fingerprint    = "xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
+tenancy_ocid   = "ocid1.tenancy.oc1..aaaaaaa..."
+compartment_ocid = "ocid1.compartment.oc1..aaaaaaa..."
+region         = "us-ashburn-1"
+
+# OCI API Private Key (use OCI CLI key ou gere com openssl)
+# private_key_path = "~/.oci/oci_api_key.pem"
+# OU inline (menos seguro):
+# private_key = <<-EOT
+# -----BEGIN PRIVATE KEY-----
+# ...
+# -----END PRIVATE KEY-----
+# EOT
+
+# Optional: Tailscale Auth Key (para P2P Mesh)
+# tailscale_auth_key = "tskey-auth-..."
