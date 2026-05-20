@@ -19,17 +19,30 @@ NC='\033[0m'
 
 echo -e "${GREEN}🔍 [Gitleaks] Pre-push secret scan...${NC}"
 
+# Build args array
+GL_ARGS=(detect --source . --no-banner --redact --log-level info --exit-code 1)
+if [ -f ".gitleaks.toml" ]; then
+    GL_ARGS+=(--config .gitleaks.toml)
+fi
+
 EXIT_CODE=0
 
 # Priority 1: Local gitleaks binary (Organization license)
 if command -v gitleaks &>/dev/null; then
-    gitleaks detect --source . --no-banner --redact --log-level info --exit-code 1 \
-        2>&1 || EXIT_CODE=$?
+    gitleaks "${GL_ARGS[@]}" 2>&1 || EXIT_CODE=$?
 # Priority 2: Docker fallback
 elif command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
-    docker run --rm -v "${REPO_ROOT}:/path:ro" zricethezav/gitleaks:latest \
-        detect --source /path --no-banner --redact --log-level info --exit-code 1 \
-        2>&1 || EXIT_CODE=$?
+    DOCKER_ARGS=(run --rm)
+    DOCKER_ARGS+=(-v "${REPO_ROOT}:/path:ro")
+    if [ -f ".gitleaks.toml" ]; then
+        DOCKER_ARGS+=(-v "${REPO_ROOT}/.gitleaks.toml:/path/.gitleaks.toml:ro")
+    fi
+    DOCKER_ARGS+=(zricethezav/gitleaks:latest)
+    DOCKER_ARGS+=(detect --source /path --no-banner --redact --log-level info --exit-code 1)
+    if [ -f ".gitleaks.toml" ]; then
+        DOCKER_ARGS+=(--config /path/.gitleaks.toml)
+    fi
+    docker "${DOCKER_ARGS[@]}" 2>&1 || EXIT_CODE=$?
 else
     echo -e "${YELLOW}⚠️  Neither gitleaks binary nor Docker available — skipping scan${NC}"
     exit 0
